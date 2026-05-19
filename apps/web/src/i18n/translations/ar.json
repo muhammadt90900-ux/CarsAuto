@@ -1,0 +1,27 @@
+// apps/web/src/i18n/translations/ar.json
+{
+  "common": {
+    "siteName": "أوتو بازار برو",
+    "tagline": "سوق السيارات الفاخر في الشرق الأوسط",
+    "search": "بحث",
+    "sell": "بيع",
+    "messages": "الرسائل",
+    "profile": "الملف الشخصي",
+    "language": "اللغة",
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح"
+  },
+  "home": {
+    "heroTitle": "اعثر على السيارات والدراجات وقطع الغيار",
+    "heroSubtitle": "سوق ممتاز للعراق وكردستان ودبي والصين",
+    "featuredCars": "سيارات مميزة",
+    "recentParts": "قطع غيار حديثة",
+    "viewAll": "عرض الكل"
+  },
+  "listing": {
+    "price": "السعر",
+    "negotiable": "قابل للتفاوض",
+    "contactSeller": "اتصل بالبائع",
+    "details": "التفاصيل"
+  }
+}
