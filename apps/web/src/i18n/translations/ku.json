@@ -1,0 +1,27 @@
+// apps/web/src/i18n/translations/ku.json (partial)
+{
+  "common": {
+    "siteName": "AutoBazaar Pro",
+    "tagline": "مارکێتی ئۆتۆمبێلی نایابی ڕۆژهەڵاتی ناوەڕاست",
+    "search": "گەڕان",
+    "sell": "فرۆشتن",
+    "messages": "پەیامەکان",
+    "profile": "پڕۆفایل",
+    "language": "زمان",
+    "darkMode": "شێوەی تاریک",
+    "lightMode": "شێوەی ڕووناک"
+  },
+  "home": {
+    "heroTitle": "ئۆتۆمبێل و ماتۆڕ و پارچەی یەدەگ بدۆزەرەوە",
+    "heroSubtitle": "بە بازاڕێکی پریمیەم بۆ عێراق، کوردستان، دوبەی و چین",
+    "featuredCars": "ئۆتۆمبێلە دیارەکان",
+    "recentParts": "پارچە نوێیەکان",
+    "viewAll": "هەمووی ببینە"
+  },
+  "listing": {
+    "price": "نرخ",
+    "negotiable": "گفتوگۆی لەسەر دەکرێت",
+    "contactSeller": "پەیوەندی بە فرۆشیارەوە",
+    "details": "وردەکارییەکان"
+  }
+}
