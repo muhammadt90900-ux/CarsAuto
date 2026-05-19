@@ -1,0 +1,41 @@
+/* apps/web/src/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter Variable', sans-serif;
+    --font-noto-arabic: 'Noto Sans Arabic', sans-serif;
+    --font-noto-sc: 'Noto Sans SC', sans-serif;
+    --font-jetbrains-mono: 'JetBrains Mono', monospace;
+  }
+  html[dir="rtl"] {
+    direction: rtl;
+  }
+  html[dir="ltr"] {
+    direction: ltr;
+  }
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
