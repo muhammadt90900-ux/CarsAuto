@@ -1,11 +1,12 @@
-// apps/web/src/app/[locale]/(public)/page.tsx
 import { getTranslations } from 'next-intl/server';
 import { HeroSearch } from '@/components/features/home/HeroSearch';
 import { FeaturedCars } from '@/components/features/home/FeaturedCars';
 import { RecentParts } from '@/components/features/home/RecentParts';
 
-export default async function HomePage() {
-  const t = await getTranslations('home');
+type Props = { params: { locale: string } };
+
+export default async function HomePage({ params }: Props) {
+  const t = await getTranslations({ locale: params.locale, namespace: 'home' });
   return (
     <>
       <HeroSearch />

@@ -8,30 +8,34 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const schema = z.object({
+  name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
+  phone: z.string().optional(),
 });
 
-export function LoginForm() {
-  const { login } = useAuthStore();
+export default function RegisterPage() {
+  const { register: registerUser } = useAuthStore();
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data: any) => {
-    await login(data.email, data.password);
+    await registerUser(data);
     router.push('/');
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-md mx-auto mt-20 p-8">
+      <h2 className="text-2xl font-bold text-center mb-6">Create Account</h2>
+      <Input label="Name" {...register('name')} error={errors.name?.message} />
       <Input label="Email" type="email" {...register('email')} error={errors.email?.message} />
       <Input label="Password" type="password" {...register('password')} error={errors.password?.message} />
-      <Button type="submit" className="w-full" variant="accent">Login</Button>
+      <Input label="Phone" {...register('phone')} />
+      <Button type="submit" className="w-full" variant="accent">Register</Button>
       <p className="text-center text-sm">
-        Don't have an account? <Link href="/register" className="text-[#e94560]">Register</Link>
+        Already have an account? <Link href="/login" className="text-[#e94560]">Login</Link>
       </p>
     </form>
   );
