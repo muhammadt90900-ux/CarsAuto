@@ -1,0 +1,12 @@
+// packages/config/tsconfig/nest.json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "./dist",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmit": false
+  }
+}
