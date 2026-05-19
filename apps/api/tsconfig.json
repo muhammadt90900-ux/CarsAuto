@@ -1,0 +1,11 @@
+// apps/api/tsconfig.json
+{
+  "extends": "@auto-bazaar-pro/config/tsconfig/nest.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
