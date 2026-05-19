@@ -1,0 +1,251 @@
+// apps/api/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  DEALER
+  ADMIN
+}
+
+enum ListingType {
+  CAR
+  MOTORCYCLE
+  SPARE_PART
+}
+
+enum ListingCondition {
+  NEW
+  USED
+  SALVAGE
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  DRAFT
+  EXPIRED
+  PENDING
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  phone     String?
+  password  String?
+  name      String
+  avatar    String?
+  role      UserRole @default(USER)
+  verified  Boolean  @default(false)
+  locale    String   @default("ku") // ku, ar, en, zh
+  googleId  String?
+  appleId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listings     Listing[]
+  chatsAsBuyer  Chat[]    @relation("BuyerChats")
+  chatsAsSeller Chat[]    @relation("SellerChats")
+  messages     Message[]
+  notifications Notification[]
+  reviewsGiven Review[]  @relation("Reviewer")
+  reviewsReceived Review[] @relation("Reviewee")
+  payments     Payment[]
+  reports      Report[]
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  type        ListingType
+  status      ListingStatus @default(ACTIVE)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  titleKu     String
+  titleAr     String
+  titleEn     String
+  titleZh     String
+  descriptionKu String?
+  descriptionAr String?
+  descriptionEn String?
+  descriptionZh String?
+  price       Float
+  currency    String        @default("USD")
+  negotiable  Boolean       @default(false)
+  locationId  String?
+  location    Location?     @relation(fields: [locationId], references: [id])
+  views       Int           @default(0)
+  featured    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Car specific
+  makeId      String?
+  modelId     String?
+  carMake     CarMake?      @relation(fields: [makeId], references: [id])
+  carModel    CarModel?     @relation(fields: [modelId], references: [id])
+  year        Int?
+  bodyType    String?
+  condition   ListingCondition?
+  mileage     Int?
+  color       String?
+  fuelType    String?
+  transmission String?
+  engineSize  Float?
+  driveType   String?
+  doors       Int?
+  seats       Int?
+  features    String[]
+
+  // Motorcycle specific
+  engineCC    Int?
+
+  // Spare Part specific
+  categoryId  String?
+  category    Category?     @relation(fields: [categoryId], references: [id])
+  partNumber  String?
+  compatibleMakes String[]
+  compatibleModels String[]
+  compatibleYearsFrom Int?
+  compatibleYearsTo   Int?
+  quantity    Int?
+
+  images      Image[]
+  chats       Chat[]
+
+  @@index([status])
+  @@index([type, status])
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  url       String
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  isCover   Boolean  @default(false)
+  order     Int      @default(0)
+}
+
+model CarMake {
+  id      String   @id @default(uuid())
+  nameKu  String
+  nameAr  String
+  nameEn  String
+  nameZh  String
+  logoUrl String
+  country String
+  models  CarModel[]
+}
+
+model CarModel {
+  id       String   @id @default(uuid())
+  makeId   String
+  make     CarMake  @relation(fields: [makeId], references: [id])
+  name     String
+  years    Int[]
+  bodyType String
+}
+
+model Category {
+  id       String   @id @default(uuid())
+  parentId String?
+  parent   Category? @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  nameKu   String
+  nameAr   String
+  nameEn   String
+  nameZh   String
+  icon     String?
+  slug     String   @unique
+}
+
+model Location {
+  id          String @id @default(uuid())
+  country     String
+  governorate String?
+  city        String
+  nameKu      String
+  nameAr      String
+  nameEn      String
+  nameZh      String
+  lat         Float
+  lng         Float
+}
+
+model Chat {
+  id        String    @id @default(uuid())
+  listingId String
+  listing   Listing   @relation(fields: [listingId], references: [id])
+  buyerId   String
+  buyer     User      @relation("BuyerChats", fields: [buyerId], references: [id])
+  sellerId  String
+  seller    User      @relation("SellerChats", fields: [sellerId], references: [id])
+  status    String    @default("active")
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  type      String   @default("text") // text, image, voice, location, listing-card
+  mediaUrl  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  reviewerId String
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id])
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  plan      String
+  amount    Float
+  currency  String
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  targetType String
+  targetId   String
+  reason     String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+}
