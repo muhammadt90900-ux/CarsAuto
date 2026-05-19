@@ -4,10 +4,11 @@ import { colors, fontFamily, spacing, borderRadius, shadows } from '@auto-bazaar
 
 const config: Config = {
   content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
-  ],
+  './src/app/**/*.{js,ts,jsx,tsx,mdx}',        // ✅
+  './src/components/**/*.{js,ts,jsx,tsx,mdx}', // ✅
+  '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
+]
+    
   darkMode: 'class',
   theme: {
     extend: {
