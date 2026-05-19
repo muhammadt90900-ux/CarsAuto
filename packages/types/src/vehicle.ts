@@ -1,4 +1,4 @@
-// packages/types/src/vehicle.ts
+import { MultiLangContent } from "./index";
 export interface CarMake {
   id: string;
   name: MultiLangContent;

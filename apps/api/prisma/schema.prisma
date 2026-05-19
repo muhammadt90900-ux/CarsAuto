@@ -44,96 +44,93 @@ model User {
   avatar    String?
   role      UserRole @default(USER)
   verified  Boolean  @default(false)
-  locale    String   @default("ku") // ku, ar, en, zh
+  locale    String   @default("ku")
   googleId  String?
   appleId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  listings     Listing[]
-  chatsAsBuyer  Chat[]    @relation("BuyerChats")
-  chatsAsSeller Chat[]    @relation("SellerChats")
-  messages     Message[]
-  notifications Notification[]
-  reviewsGiven Review[]  @relation("Reviewer")
-  reviewsReceived Review[] @relation("Reviewee")
-  payments     Payment[]
-  reports      Report[]
+  listings        Listing[]
+  chatsAsBuyer    Chat[]         @relation("BuyerChats")
+  chatsAsSeller   Chat[]         @relation("SellerChats")
+  messages        Message[]
+  notifications   Notification[]
+  reviewsGiven    Review[]       @relation("Reviewer")
+  reviewsReceived Review[]       @relation("Reviewee")
+  payments        Payment[]
+  reports         Report[]
 }
 
 model Listing {
-  id          String        @id @default(uuid())
-  type        ListingType
-  status      ListingStatus @default(ACTIVE)
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
-  titleKu     String
-  titleAr     String
-  titleEn     String
-  titleZh     String
+  id            String           @id @default(uuid())
+  type          ListingType
+  status        ListingStatus    @default(ACTIVE)
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+  titleKu       String
+  titleAr       String
+  titleEn       String
+  titleZh       String
   descriptionKu String?
   descriptionAr String?
   descriptionEn String?
   descriptionZh String?
-  price       Float
-  currency    String        @default("USD")
-  negotiable  Boolean       @default(false)
-  locationId  String?
-  location    Location?     @relation(fields: [locationId], references: [id])
-  views       Int           @default(0)
-  featured    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  price         Float
+  currency      String           @default("USD")
+  negotiable    Boolean          @default(false)
+  locationId    String?
+  location      Location?        @relation(fields: [locationId], references: [id])
+  views         Int              @default(0)
+  featured      Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  // Car specific
-  makeId      String?
-  modelId     String?
-  carMake     CarMake?      @relation(fields: [makeId], references: [id])
-  carModel    CarModel?     @relation(fields: [modelId], references: [id])
-  year        Int?
-  bodyType    String?
-  condition   ListingCondition?
-  mileage     Int?
-  color       String?
-  fuelType    String?
-  transmission String?
-  engineSize  Float?
-  driveType   String?
-  doors       Int?
-  seats       Int?
-  features    String[]
+  makeId        String?
+  modelId       String?
+  carMake       CarMake?         @relation(fields: [makeId], references: [id])
+  carModel      CarModel?        @relation(fields: [modelId], references: [id])
+  year          Int?
+  bodyType      String?
+  condition     ListingCondition?
+  mileage       Int?
+  color         String?
+  fuelType      String?
+  transmission  String?
+  engineSize    Float?
+  driveType     String?
+  doors         Int?
+  seats         Int?
+  features      String[]
 
-  // Motorcycle specific
-  engineCC    Int?
+  engineCC      Int?
 
-  // Spare Part specific
-  categoryId  String?
-  category    Category?     @relation(fields: [categoryId], references: [id])
-  partNumber  String?
-  compatibleMakes String[]
-  compatibleModels String[]
+  categoryId          String?
+  category            Category? @relation(fields: [categoryId], references: [id])
+  partNumber          String?
+  compatibleMakes     String[]
+  compatibleModels    String[]
   compatibleYearsFrom Int?
   compatibleYearsTo   Int?
-  quantity    Int?
+  quantity            Int?
 
-  images      Image[]
-  chats       Chat[]
+  images Image[]
+  chats  Chat[]
 
   @@index([status])
   @@index([type, status])
 }
 
 model Image {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   url       String
   listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  isCover   Boolean  @default(false)
-  order     Int      @default(0)
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  isCover   Boolean @default(false)
+  order     Int     @default(0)
 }
 
 model CarMake {
-  id      String   @id @default(uuid())
+  id      String     @id @default(uuid())
   nameKu  String
   nameAr  String
   nameEn  String
@@ -141,32 +138,35 @@ model CarMake {
   logoUrl String
   country String
   models  CarModel[]
+  listings Listing[]
 }
 
 model CarModel {
-  id       String   @id @default(uuid())
+  id       String    @id @default(uuid())
   makeId   String
-  make     CarMake  @relation(fields: [makeId], references: [id])
+  make     CarMake   @relation(fields: [makeId], references: [id])
   name     String
   years    Int[]
   bodyType String
+  listings Listing[]
 }
 
 model Category {
-  id       String   @id @default(uuid())
+  id       String     @id @default(uuid())
   parentId String?
-  parent   Category? @relation("SubCategories", fields: [parentId], references: [id])
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
   children Category[] @relation("SubCategories")
   nameKu   String
   nameAr   String
   nameEn   String
   nameZh   String
   icon     String?
-  slug     String   @unique
+  slug     String     @unique
+  listings Listing[]
 }
 
 model Location {
-  id          String @id @default(uuid())
+  id          String    @id @default(uuid())
   country     String
   governorate String?
   city        String
@@ -176,6 +176,7 @@ model Location {
   nameZh      String
   lat         Float
   lng         Float
+  listings    Listing[]
 }
 
 model Chat {
@@ -193,16 +194,16 @@ model Chat {
 }
 
 model Message {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  chat      Chat      @relation(fields: [chatId], references: [id])
   senderId  String
-  sender    User     @relation(fields: [senderId], references: [id])
+  sender    User      @relation(fields: [senderId], references: [id])
   content   String
-  type      String   @default("text") // text, image, voice, location, listing-card
+  type      String    @default("text")
   mediaUrl  String?
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Notification {

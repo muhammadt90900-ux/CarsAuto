@@ -1,4 +1,4 @@
-// packages/types/src/location.ts
+import { MultiLangContent } from "./index";
 export interface Location {
   id: string;
   country: string; // 'IQ' | 'KRI' | 'UAE' | 'CN'

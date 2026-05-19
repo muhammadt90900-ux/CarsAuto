@@ -67,7 +67,7 @@ export class ListingsService {
   }
 
   async create(data: CreateListingDto & { userId: string }) {
-    return this.prisma.listing.create({ data });
+    return this.prisma.listing.create({ data: { ...data, user: { connect: { id: data.userId } }, userId: undefined } as any });
   }
 
   async myListings(userId: string) {
