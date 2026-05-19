@@ -1,0 +1,14 @@
+// packages/config/tsconfig/next.json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ui/*": ["../../packages/ui/src/*"],
+      "@types/*": ["../../packages/types/src/*"],
+      "@utils/*": ["../../packages/utils/src/*"]
+    }
+  }
+}
