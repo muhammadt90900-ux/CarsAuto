@@ -1,26 +1,55 @@
 {
   "common": {
     "siteName": "AutoBazaar Pro",
-    "tagline": "مارکێتی ئۆتۆمبێلی نایابی ڕۆژهەڵاتی ناوەڕاست",
+    "tagline": "بازاڕی سەرەکی سەیارە لە ڕۆژهەڵاتی ناوین",
     "search": "گەڕان",
-    "sell": "فرۆشتن",
+    "sell": "سەیارەکەت بفرۆشە",
     "messages": "پەیامەکان",
-    "profile": "پڕۆفایل",
+    "profile": "پرۆفایل",
     "language": "زمان",
-    "darkMode": "شێوەی تاریک",
-    "lightMode": "شێوەی ڕووناک"
+    "darkMode": "دۆخی تاریک",
+    "lightMode": "دۆخی ڕووناک",
+    "login": "چوونەژوورەوە",
+    "logout": "چوونەدەرەوە",
+    "register": "تۆمارکردن",
+    "motorcycles": "موتەرسیکلەکان",
+    "spareParts": "پارچە یەدەکەکان",
+    "cars": "سەیارەکان",
+    "dashboard": "داشبۆرد"
   },
   "home": {
-    "heroTitle": "ئۆتۆمبێل و ماتۆڕ و پارچەی یەدەگ بدۆزەرەوە",
-    "heroSubtitle": "بە بازاڕێکی پریمیەم بۆ عێراق، کوردستان، دوبەی و چین",
-    "featuredCars": "ئۆتۆمبێلە دیارەکان",
-    "recentParts": "پارچە نوێیەکان",
+    "heroTitle": "سەیارە، موتەرسیکل و پارچە یەدەکە بدۆزەرەوە",
+    "heroSubtitle": "بازاڕی سەرەکی بۆ عێراق، کوردستان، دوبەی و چین",
+    "featuredCars": "سەیارە تایبەتەکان",
+    "recentParts": "پارچەی نوێ",
     "viewAll": "هەمووی ببینە"
   },
   "listing": {
     "price": "نرخ",
-    "negotiable": "گفتوگۆی لەسەر دەکرێت",
-    "contactSeller": "پەیوەندی بە فرۆشیارەوە",
-    "details": "وردەکارییەکان"
+    "negotiable": "لێکدەدرێتەوە",
+    "contactSeller": "پەیوەندی بکە بە فرۆشیار",
+    "details": "وردەکاریەکان",
+    "addListing": "زیادکردنی ئەلان",
+    "myListings": "ئەلانەکانم"
+  },
+  "auth": {
+    "loginTitle": "بەخێربێیتەوە",
+    "registerTitle": "ئەکاونت دروست بکە",
+    "email": "ئیمەیڵ",
+    "password": "پاسووڕد",
+    "name": "ناوی تەواو",
+    "phone": "ژمارەی تەلەفۆن",
+    "alreadyHaveAccount": "پێشتر ئەکاونتت هەیە؟",
+    "dontHaveAccount": "ئەکاونتت نیە؟"
+  },
+  "dashboard": {
+    "overview": "کورتە",
+    "myListings": "ئەلانەکانم",
+    "messages": "پەیامەکان",
+    "favorites": "دڵخوازەکان",
+    "notifications": "ئاگادارکردنەوەکان",
+    "profile": "پرۆفایل",
+    "reviews": "هەڵسەنگاندنەکان",
+    "subscription": "بەشداریکردن"
   }
 }

@@ -1,18 +1,25 @@
 {
   "common": {
-    "siteName": "أوتو بازار برو",
-    "tagline": "سوق السيارات الفاخر في الشرق الأوسط",
+    "siteName": "AutoBazaar Pro",
+    "tagline": "السوق المتميز للسيارات في الشرق الأوسط",
     "search": "بحث",
-    "sell": "بيع",
+    "sell": "بع سيارتك",
     "messages": "الرسائل",
     "profile": "الملف الشخصي",
     "language": "اللغة",
     "darkMode": "الوضع الداكن",
-    "lightMode": "الوضع الفاتح"
+    "lightMode": "الوضع الفاتح",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب",
+    "motorcycles": "الدراجات النارية",
+    "spareParts": "قطع الغيار",
+    "cars": "السيارات",
+    "dashboard": "لوحة التحكم"
   },
   "home": {
-    "heroTitle": "اعثر على السيارات والدراجات وقطع الغيار",
-    "heroSubtitle": "سوق ممتاز للعراق وكردستان ودبي والصين",
+    "heroTitle": "ابحث عن سيارات ودراجات وقطع غيار",
+    "heroSubtitle": "سوق متميز للعراق وكردستان ودبي والصين",
     "featuredCars": "سيارات مميزة",
     "recentParts": "قطع غيار حديثة",
     "viewAll": "عرض الكل"
@@ -20,7 +27,29 @@
   "listing": {
     "price": "السعر",
     "negotiable": "قابل للتفاوض",
-    "contactSeller": "اتصل بالبائع",
-    "details": "التفاصيل"
+    "contactSeller": "تواصل مع البائع",
+    "details": "التفاصيل",
+    "addListing": "إضافة إعلان",
+    "myListings": "إعلاناتي"
+  },
+  "auth": {
+    "loginTitle": "مرحباً بعودتك",
+    "registerTitle": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "name": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "dontHaveAccount": "ليس لديك حساب؟"
+  },
+  "dashboard": {
+    "overview": "نظرة عامة",
+    "myListings": "إعلاناتي",
+    "messages": "الرسائل",
+    "favorites": "المفضلة",
+    "notifications": "الإشعارات",
+    "profile": "الملف الشخصي",
+    "reviews": "التقييمات",
+    "subscription": "الاشتراك"
   }
 }

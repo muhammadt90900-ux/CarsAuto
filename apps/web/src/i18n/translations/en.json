@@ -3,12 +3,19 @@
     "siteName": "AutoBazaar Pro",
     "tagline": "The Middle East's Premium Auto Marketplace",
     "search": "Search",
-    "sell": "Sell",
+    "sell": "Sell Your Car",
     "messages": "Messages",
     "profile": "Profile",
     "language": "Language",
     "darkMode": "Dark Mode",
-    "lightMode": "Light Mode"
+    "lightMode": "Light Mode",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "motorcycles": "Motorcycles",
+    "spareParts": "Spare Parts",
+    "cars": "Cars",
+    "dashboard": "Dashboard"
   },
   "home": {
     "heroTitle": "Find Cars, Motorcycles & Spare Parts",
@@ -21,6 +28,28 @@
     "price": "Price",
     "negotiable": "Negotiable",
     "contactSeller": "Contact Seller",
-    "details": "Details"
+    "details": "Details",
+    "addListing": "Add Listing",
+    "myListings": "My Listings"
+  },
+  "auth": {
+    "loginTitle": "Welcome Back",
+    "registerTitle": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "phone": "Phone Number",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "myListings": "My Listings",
+    "messages": "Messages",
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "reviews": "Reviews",
+    "subscription": "Subscription"
   }
 }

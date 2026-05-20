@@ -1,19 +1,26 @@
 {
   "common": {
     "siteName": "AutoBazaar Pro",
-    "tagline": "中东高级汽车市场",
+    "tagline": "中东优质汽车市场",
     "search": "搜索",
-    "sell": "出售",
+    "sell": "出售您的汽车",
     "messages": "消息",
     "profile": "个人资料",
     "language": "语言",
     "darkMode": "深色模式",
-    "lightMode": "浅色模式"
+    "lightMode": "浅色模式",
+    "login": "登录",
+    "logout": "退出",
+    "register": "注册",
+    "motorcycles": "摩托车",
+    "spareParts": "零配件",
+    "cars": "汽车",
+    "dashboard": "仪表板"
   },
   "home": {
-    "heroTitle": "查找汽车、摩托车和备件",
-    "heroSubtitle": "面向伊拉克、库尔德斯坦、迪拜和中国的优质市场",
-    "featuredCars": "特色汽车",
+    "heroTitle": "查找汽车、摩托车和零配件",
+    "heroSubtitle": "服务于伊拉克、库尔德斯坦、迪拜和中国的优质市场",
+    "featuredCars": "精选汽车",
     "recentParts": "最新零件",
     "viewAll": "查看全部"
   },
@@ -21,6 +28,28 @@
     "price": "价格",
     "negotiable": "可议价",
     "contactSeller": "联系卖家",
-    "details": "详细信息"
+    "details": "详情",
+    "addListing": "添加列表",
+    "myListings": "我的列表"
+  },
+  "auth": {
+    "loginTitle": "欢迎回来",
+    "registerTitle": "创建账户",
+    "email": "电子邮件",
+    "password": "密码",
+    "name": "全名",
+    "phone": "电话号码",
+    "alreadyHaveAccount": "已有账户？",
+    "dontHaveAccount": "没有账户？"
+  },
+  "dashboard": {
+    "overview": "概览",
+    "myListings": "我的列表",
+    "messages": "消息",
+    "favorites": "收藏",
+    "notifications": "通知",
+    "profile": "个人资料",
+    "reviews": "评价",
+    "subscription": "订阅"
   }
 }
