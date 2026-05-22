@@ -11,13 +11,30 @@ import { useState, useEffect, useRef } from 'react';
 export function Navbar() {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
-  const { locale } = useParams();
+  const params = useParams();
+  // Normalize locale: useParams can return string | string[]; always use a plain string.
+  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? '');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // FIX 1 ─ scrolled must start `false` on both server and client so the
+  //          first paint matches SSR.  The scroll listener (client-only) will
+  //          update it after hydration is complete.
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  // Track whether the component is mounted to avoid touching detached nodes.
+  const mountedRef = useRef(true);
+
+  // FIX 2 ─ isRTL is derived from `locale`, which comes from useParams().
+  //          useParams() returns `null` during SSR in some Next.js versions,
+  //          so guard the derivation so server and client agree on the initial
+  //          value (`false`) when locale is still an empty string.
   const isRTL = locale === 'ar' || locale === 'ku';
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -26,11 +43,19 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
+    // Guard: only focus if still mounted and the node exists in the DOM.
+    // Defer by one frame so the CSS expand transition has started and the
+    // input is visible/interactable before focus fires.
+    if (searchOpen) {
+      const id = requestAnimationFrame(() => {
+        if (mountedRef.current) searchRef.current?.focus();
+      });
+      return () => cancelAnimationFrame(id);
+    }
   }, [searchOpen]);
 
   useEffect(() => {
-    const close = () => setMobileOpen(false);
+    const close = () => { if (mountedRef.current) setMobileOpen(false); };
     window.addEventListener('resize', close);
     return () => window.removeEventListener('resize', close);
   }, []);
@@ -149,22 +174,19 @@ export function Navbar() {
                   </>
                 ) : (
                   <>
-                    <Link href={`/${locale}/login`}>
-                      <Button
-                        size="sm"
-                        className="h-8 px-4 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 transition-all"
-                      >
-                        {t('login')}
-                      </Button>
+                    {/* Render as <Link> only — no <Button> child — so the DOM is
+                        a plain <a>, never the forbidden <a><button> nesting. */}
+                    <Link
+                      href={`/${locale}/login`}
+                      className="inline-flex items-center justify-center h-8 px-4 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 transition-all"
+                    >
+                      {t('login')}
                     </Link>
-                    <Link href={`/${locale}/register`}>
-                      <Button
-                        variant="accent"
-                        size="sm"
-                        className="h-8 px-4 text-xs font-bold rounded-lg bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_8px_rgba(233,69,96,0.35)] hover:shadow-[0_2px_12px_rgba(233,69,96,0.5)] transition-all"
-                      >
-                        {t('register')}
-                      </Button>
+                    <Link
+                      href={`/${locale}/register`}
+                      className="inline-flex items-center justify-center h-8 px-4 text-xs font-bold rounded-lg bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_8px_rgba(233,69,96,0.35)] hover:shadow-[0_2px_12px_rgba(233,69,96,0.5)] transition-all"
+                    >
+                      {t('register')}
                     </Link>
                   </>
                 )}
@@ -242,10 +264,14 @@ export function Navbar() {
           <div className="mt-3 flex flex-col gap-2">
             {user ? (
               <>
-                <Link href={`/${locale}/dashboard`} onClick={() => setMobileOpen(false)}>
-                  <Button size="sm" className="w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200">
-                    {t('dashboard')}
-                  </Button>
+                {/* Render as <Link> only — no <Button> child — so the DOM is
+                    a plain <a>, never the forbidden <a><button> nesting. */}
+                <Link
+                  href={`/${locale}/dashboard`}
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
+                >
+                  {t('dashboard')}
                 </Link>
                 <Button
                   variant="accent"
@@ -258,15 +284,21 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href={`/${locale}/login`} onClick={() => setMobileOpen(false)}>
-                  <Button size="sm" className="w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200">
-                    {t('login')}
-                  </Button>
+                {/* Render as <Link> only — no <Button> child — so the DOM is
+                    a plain <a>, never the forbidden <a><button> nesting. */}
+                <Link
+                  href={`/${locale}/login`}
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
+                >
+                  {t('login')}
                 </Link>
-                <Link href={`/${locale}/register`} onClick={() => setMobileOpen(false)}>
-                  <Button variant="accent" size="sm" className="w-full h-11 text-sm font-bold rounded-xl bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_10px_rgba(233,69,96,0.35)]">
-                    {t('register')}
-                  </Button>
+                <Link
+                  href={`/${locale}/register`}
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_10px_rgba(233,69,96,0.35)]"
+                >
+                  {t('register')}
                 </Link>
               </>
             )}
@@ -274,14 +306,20 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ── Mobile menu backdrop ── */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 md:hidden bg-black/20 dark:bg-black/40 backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* ── Mobile menu backdrop ──
+          Always rendered (never conditionally mounted/unmounted) so React never
+          calls removeChild on a node that a concurrent CSS transition is still
+          referencing. Visibility is controlled entirely by CSS opacity +
+          pointer-events, matching the same pattern used by the menu itself. */}
+      <div
+        aria-hidden="true"
+        onClick={() => setMobileOpen(false)}
+        className={[
+          'fixed inset-0 z-30 md:hidden bg-black/20 dark:bg-black/40 backdrop-blur-sm',
+          'transition-opacity duration-300 ease-in-out',
+          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        ].join(' ')}
+      />
     </>
   );
 }
