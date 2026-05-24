@@ -1,162 +1,184 @@
 'use client';
-// apps/web/src/components/features/auth/LoginForm.tsx
+// components/features/auth/LoginForm.tsx — Redesigned: Unified Gold/Midnight design system
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button, Input } from '@auto-bazaar-pro/ui/components';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react';
 
 const schema = z.object({
-  email: z.string().email('ئیمەیڵی دروست بنووسە'),
+  email:    z.string().email('ئیمەیڵی دروست بنووسە'),
   password: z.string().min(6, 'پاسوۆرد دەبێت لانیکەم ٦ پیت بێت'),
 });
 
 export function LoginForm() {
-  const { login } = useAuthStore();
-  const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [serverError, setServerError] = useState('');
+  const { login }  = useAuthStore();
+  const router     = useRouter();
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [srvError, setSrvError] = useState('');
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data: any) => {
-    setIsLoading(true);
-    setServerError('');
+    setLoading(true);
+    setSrvError('');
     try {
       await login(data.email, data.password);
       router.push('/dashboard');
     } catch {
-      setServerError('ئیمەیڵ یان پاسوۆرد هەڵەیە. دووبارە هەوڵ بدەوە.');
+      setSrvError('ئیمەیڵ یان پاسوۆرد هەڵەیە. دووبارە هەوڵ بدەوە.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ background: 'linear-gradient(135deg, #050e18 0%, #0a1628 60%, #050e18 100%)' }}
+      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: 'linear-gradient(175deg,#050b14 0%,#080f1c 40%,#0b1525 70%,#050b14 100%)' }}
     >
-      {/* Background glow */}
+      {/* Background dots */}
       <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full pointer-events-none opacity-10"
-        style={{ background: 'radial-gradient(ellipse, #c8a84b 0%, transparent 70%)' }}
+        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundImage: 'radial-gradient(circle,rgba(201,168,76,.8) 1px,transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+      {/* Central glow */}
+      <div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2
+                   w-[600px] h-[400px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse,rgba(201,168,76,.07) 0%,transparent 65%)', filter: 'blur(40px)' }}
       />
 
       <div className="relative w-full max-w-md">
-        {/* Logo area */}
-        <div className="text-center mb-8">
+        {/* Logo */}
+        <div className="text-center mb-8 reveal">
           <div
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #c8a84b 0%, #e8c96b 100%)' }}
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5
+                       shadow-[0_0_24px_rgba(201,168,76,0.40)]"
+            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
-            <span className="text-2xl">🚗</span>
+            <svg width="28" height="28" viewBox="0 0 20 20" fill="none">
+              <path d="M3 13.5L6 6.5H14L17 13.5H3Z" fill="white" opacity=".92"/>
+              <circle cx="6.5" cy="15" r="2" fill="white"/>
+              <circle cx="13.5" cy="15" r="2" fill="white"/>
+            </svg>
           </div>
-          <h1 className="text-2xl font-black text-white mb-1">بەخێربێی دەگەڕێیتەوە</h1>
-          <p className="text-white/40 text-sm">Welcome Back to Auto Bazaar Pro</p>
+          <h1 className="font-display text-2xl font-extrabold text-white mb-2 tracking-tight">
+            بەخێربێی دەگەڕێیتەوە
+          </h1>
+          <p className="text-white/35 text-sm">Welcome Back to AutoBazaar Pro</p>
         </div>
 
         {/* Card */}
         <div
-          className="rounded-3xl border border-white/[0.08] p-8"
-          style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)' }}
+          className="rounded-2xl border border-white/[0.09] p-8 reveal stagger-1"
+          style={{
+            background: 'linear-gradient(135deg,rgba(11,21,37,.88),rgba(8,15,28,.92))',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+          }}
         >
-          {/* Gold top bar */}
-          <div
-            className="h-1 rounded-full mb-8 -mx-8 -mt-8 rounded-t-3xl"
-            style={{ background: 'linear-gradient(90deg, transparent, #c8a84b, transparent)' }}
-          />
+          {/* Gold top accent */}
+          <div className="gold-line h-[2px] rounded-full -mx-8 -mt-8 mb-8 rounded-t-2xl" />
 
-          <div onSubmit={handleSubmit(onSubmit)} className="space-y-5" dir="rtl">
-
+          <div className="space-y-5" dir="rtl">
             {/* Server error */}
-            {serverError && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                {serverError}
+            {srvError && (
+              <div className="bg-red-500/[0.10] border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                {srvError}
               </div>
             )}
 
-            {/* Email Field */}
+            {/* Email */}
             <div className="space-y-1.5">
-              <label className="text-xs text-white/50 font-semibold tracking-wider uppercase">ئیمەیڵ / Email</label>
+              <label className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+                ئیمەیڵ / Email
+              </label>
               <div className="relative">
-                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <Mail className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none" />
                 <input
                   type="email"
                   {...register('email')}
                   placeholder="you@example.com"
                   dir="ltr"
                   className={`
-                    w-full pr-11 pl-4 py-3.5 rounded-xl text-sm text-white placeholder-white/25
-                    bg-white/[0.05] border transition-all duration-200 outline-none
-                    focus:bg-white/[0.08] focus:border-[#c8a84b]/60 focus:shadow-[0_0_20px_rgba(200,168,75,0.1)]
-                    ${errors.email ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}
+                    w-full pe-11 ps-4 py-3.5 rounded-xl text-sm text-white
+                    placeholder-white/20 bg-white/[0.05] border outline-none
+                    transition-all duration-200 caret-[#c9a84c]
+                    focus:bg-white/[0.08] focus:border-[#c9a84c]/55
+                    focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
+                    ${errors.email ? 'border-red-500/50' : 'border-white/[0.10] hover:border-white/[0.18]'}
                   `}
                 />
               </div>
-              {errors.email && <p className="text-red-400 text-xs">{errors.email.message as string}</p>}
+              {errors.email && (
+                <p className="text-red-400 text-xs">{errors.email.message as string}</p>
+              )}
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs text-white/50 font-semibold tracking-wider uppercase">پاسوۆرد / Password</label>
-                <Link href="/forgot-password" className="text-[10px] text-[#c8a84b]/70 hover:text-[#c8a84b] transition-colors">
+                <label className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+                  پاسوۆرد / Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[10px] text-[#c9a84c]/65 hover:text-[#c9a84c] transition-colors"
+                >
                   پاسوۆردت بیر چوێتەوە؟
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <Lock className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPw ? 'text' : 'password'}
                   {...register('password')}
                   placeholder="••••••••"
                   dir="ltr"
                   className={`
-                    w-full pr-11 pl-11 py-3.5 rounded-xl text-sm text-white placeholder-white/25
-                    bg-white/[0.05] border transition-all duration-200 outline-none
-                    focus:bg-white/[0.08] focus:border-[#c8a84b]/60 focus:shadow-[0_0_20px_rgba(200,168,75,0.1)]
-                    ${errors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}
+                    w-full pe-11 ps-11 py-3.5 rounded-xl text-sm text-white
+                    placeholder-white/20 bg-white/[0.05] border outline-none
+                    transition-all duration-200 caret-[#c9a84c]
+                    focus:bg-white/[0.08] focus:border-[#c9a84c]/55
+                    focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
+                    ${errors.password ? 'border-red-500/50' : 'border-white/[0.10] hover:border-white/[0.18]'}
                   `}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  onClick={() => setShowPw(v => !v)}
+                  className="absolute start-4 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/55 transition-colors"
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-red-400 text-xs">{errors.password.message as string}</p>}
+              {errors.password && (
+                <p className="text-red-400 text-xs">{errors.password.message as string}</p>
+              )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="button"
               onClick={handleSubmit(onSubmit)}
-              disabled={isLoading}
-              className="
-                w-full py-4 rounded-xl font-bold text-sm transition-all duration-200 mt-2
-                disabled:opacity-60 disabled:cursor-not-allowed
-                hover:shadow-lg hover:shadow-[#c8a84b]/30 hover:scale-[1.01] active:scale-[0.99]
-                flex items-center justify-center gap-2
-              "
-              style={{
-                background: isLoading
-                  ? 'rgba(200,168,75,0.5)'
-                  : 'linear-gradient(135deg, #c8a84b 0%, #e8c96b 50%, #c8a84b 100%)',
-                color: '#050e18',
-              }}
+              disabled={loading}
+              className="btn-gold w-full py-4 rounded-xl font-bold text-sm mt-2
+                         disabled:opacity-60 disabled:cursor-not-allowed
+                         flex items-center justify-center gap-2"
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   چاوەڕێ بکە...
@@ -172,27 +194,24 @@ export function LoginForm() {
             {/* Divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-white/[0.07]" />
-              <span className="text-white/25 text-xs">یان / or</span>
+              <span className="text-white/20 text-xs">یان / or</span>
               <div className="flex-1 h-px bg-white/[0.07]" />
             </div>
 
             {/* Register link */}
-            <p className="text-center text-sm text-white/40">
+            <p className="text-center text-sm text-white/35">
               ئەکاونتت نییە؟{' '}
-              <Link
-                href="/register"
-                className="text-[#c8a84b] hover:text-[#f5d98b] font-semibold transition-colors"
-              >
+              <Link href="/register" className="text-[#c9a84c] hover:text-[#e8cc7a] font-semibold transition-colors">
                 خۆت تۆمار بکە / Register
               </Link>
             </p>
           </div>
         </div>
 
-        {/* Trust badges */}
+        {/* Trust strip */}
         <div className="flex items-center justify-center gap-6 mt-6">
-          {['Iraq 🇮🇶', 'Kurdistan 🏔️', 'Dubai 🇦🇪'].map(region => (
-            <span key={region} className="text-xs text-white/20">{region}</span>
+          {['Iraq 🇮🇶', 'Kurdistan 🏔️', 'Dubai 🇦🇪'].map(r => (
+            <span key={r} className="text-xs text-white/20">{r}</span>
           ))}
         </div>
       </div>
