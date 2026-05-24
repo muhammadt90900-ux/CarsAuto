@@ -8,76 +8,62 @@ export class SearchService {
 
   async search(
     q: string,
-    options: {
-      type?: string;
-      brandId?: string;
-      modelId?: string;
-      trimId?: string;
-      year?: string;
-      minYear?: string;
-      maxYear?: string;
-      condition?: string;
-      minPrice?: string;
-      maxPrice?: string;
-      locationId?: string;
-      page?: number;
-      limit?: number;
-    } = {},
+    type?: string,
+    makeId?: string,
+    modelId?: string,
+    yearFrom?: number,
+    yearTo?: number,
+    fuelType?: string,
+    transmission?: string,
+    driveType?: string,
+    bodyType?: string,
+    condition?: string,
+    page = 1,
+    limit = 20,
   ) {
-    const { page = 1, limit = 20, ...filters } = options;
     const skip = (page - 1) * limit;
 
-    const where: any = { status: 'ACTIVE' };
+    const where: any = {
+      status: 'ACTIVE',
+      ...(q ? {
+        OR: [
+          { titleKu:       { contains: q, mode: 'insensitive' } },
+          { titleAr:       { contains: q, mode: 'insensitive' } },
+          { titleEn:       { contains: q, mode: 'insensitive' } },
+          { descriptionKu: { contains: q, mode: 'insensitive' } },
+          { descriptionEn: { contains: q, mode: 'insensitive' } },
+          { trim:          { contains: q, mode: 'insensitive' } },
+          { color:         { contains: q, mode: 'insensitive' } },
+        ],
+      } : {}),
+    };
 
-    // ── Full-text search across all localised title/description fields ───────
-    if (q?.trim()) {
-      where.OR = [
-        { titleKu:       { contains: q.trim(), mode: 'insensitive' } },
-        { titleAr:       { contains: q.trim(), mode: 'insensitive' } },
-        { titleEn:       { contains: q.trim(), mode: 'insensitive' } },
-        { descriptionKu: { contains: q.trim(), mode: 'insensitive' } },
-        { descriptionEn: { contains: q.trim(), mode: 'insensitive' } },
-      ];
-    }
+    if (type)         where.type         = type;
+    if (makeId)       where.makeId        = makeId;
+    if (modelId)      where.modelId       = modelId;
+    if (fuelType)     where.fuelType      = fuelType;
+    if (transmission) where.transmission  = transmission;
+    if (driveType)    where.driveType     = driveType;
+    if (bodyType)     where.bodyType      = bodyType;
+    if (condition)    where.condition     = condition;
 
-    // ── Structured filters (combinable with text search) ─────────────────────
-    if (filters.type)       where.type       = filters.type;
-    if (filters.condition)  where.condition  = filters.condition;
-    if (filters.locationId) where.locationId = filters.locationId;
-
-    // Vehicle hierarchy
-    if (filters.brandId) where.makeId  = filters.brandId;
-    if (filters.modelId) where.modelId = filters.modelId;
-    if (filters.trimId)  where.trimId  = filters.trimId;
-
-    // Year
-    if (filters.year) {
-      where.year = Number(filters.year);
-    } else if (filters.minYear || filters.maxYear) {
+    if (yearFrom || yearTo) {
       where.year = {};
-      if (filters.minYear) where.year.gte = Number(filters.minYear);
-      if (filters.maxYear) where.year.lte = Number(filters.maxYear);
-    }
-
-    // Price
-    if (filters.minPrice || filters.maxPrice) {
-      where.price = {};
-      if (filters.minPrice) where.price.gte = Number(filters.minPrice);
-      if (filters.maxPrice) where.price.lte = Number(filters.maxPrice);
+      if (yearFrom) where.year.gte = yearFrom;
+      if (yearTo)   where.year.lte = yearTo;
     }
 
     const [data, total] = await Promise.all([
       this.prisma.listing.findMany({
         where,
         skip,
-        take: limit,
+        take:    limit,
         orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
         include: {
           images:   { where: { isCover: true }, take: 1 },
           location: true,
-          make:     { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logo: true } },
-          model:    { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
-          trim:     { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+          carMake:  { select: { nameEn: true, nameKu: true, nameAr: true, logoUrl: true } },
+          carModel: { select: { name: true, bodyType: true } },
         },
       }),
       this.prisma.listing.count({ where }),
