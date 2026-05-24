@@ -9,33 +9,40 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RegisterDto = void 0;
-// apps/api/src/modules/auth/dto/register.dto.ts
+exports.TrimQueryDto = exports.ModelQueryDto = exports.BrandQueryDto = void 0;
+// apps/api/src/modules/vehicles/dto/vehicle-query.dto.ts
 const class_validator_1 = require("class-validator");
-const class_transformer_1 = require("class-transformer");
-class RegisterDto {
+class BrandQueryDto {
 }
-exports.RegisterDto = RegisterDto;
-__decorate([
-    (0, class_validator_1.IsString)({ message: 'ناو دەبێت دەق بێت' }),
-    (0, class_validator_1.MinLength)(2, { message: 'ناو دەبێت لانیکەم ٢ پیت بێت' }),
-    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
-    __metadata("design:type", String)
-], RegisterDto.prototype, "name", void 0);
-__decorate([
-    (0, class_validator_1.IsEmail)({}, { message: 'ئیمەیڵی دروست بنووسە' }),
-    (0, class_transformer_1.Transform)(({ value }) => value?.trim()?.toLowerCase()),
-    __metadata("design:type", String)
-], RegisterDto.prototype, "email", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(6, { message: 'پاسوۆرد دەبێت لانیکەم ٦ پیت بێت' }),
-    __metadata("design:type", String)
-], RegisterDto.prototype, "password", void 0);
+exports.BrandQueryDto = BrandQueryDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^[+\d\s\-()]{7,20}$/, { message: 'ژمارەی تەلەفۆن دروست نییە' }),
-    (0, class_transformer_1.Transform)(({ value }) => value?.trim() || undefined),
     __metadata("design:type", String)
-], RegisterDto.prototype, "phone", void 0);
+], BrandQueryDto.prototype, "q", void 0);
+class ModelQueryDto {
+}
+exports.ModelQueryDto = ModelQueryDto;
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ModelQueryDto.prototype, "q", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ModelQueryDto.prototype, "brandId", void 0);
+class TrimQueryDto {
+}
+exports.TrimQueryDto = TrimQueryDto;
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], TrimQueryDto.prototype, "q", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumberString)(),
+    __metadata("design:type", String)
+], TrimQueryDto.prototype, "year", void 0);

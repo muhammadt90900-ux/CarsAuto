@@ -2,3 +2,29 @@
 > @cars-auto/api@1.0.0 build
 > nest build
 
+Found 4 error(s).
+[96msrc/common/email/email.service.ts[0m:[93m2[0m:[93m29[0m - [91merror[0m[90m TS2307: [0mCannot find module 'nodemailer' or its corresponding type declarations.
+
+
+[7m2[0m import * as nodemailer from 'nodemailer';
+[7m [0m [91m                            ~~~~~~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m5[0m:[93m31[0m - [91merror[0m[90m TS2307: [0mCannot find module '@/prisma/prisma.service' or its corresponding type declarations.
+
+[7m5[0m import { PrismaService } from '@/prisma/prisma.service';
+[7m [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/vehicles/useVehicleFilters.ts[0m:[93m16[0m:[93m8[0m - [91merror[0m[90m TS2307: [0mCannot find module '../lib/vehicleFilters' or its corresponding type declarations.
+
+[7m16[0m } from '../lib/vehicleFilters';
+[7m  [0m [91m       ~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/vehicles/vehicleFilters.ts[0m:[93m4[0m:[93m21[0m - [91merror[0m[90m TS2307: [0mCannot find module './api' or its corresponding type declarations.
+
+[7m4[0m import { api } from './api';
+[7m [0m [91m                    ~~~~~~~[0m
+
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+npm error path /workspaces/Cars-Auto./apps/api
+npm error workspace @cars-auto/api@1.0.0
+npm error location /workspaces/Cars-Auto./apps/api
+npm error command failed
+npm error command sh -c nest build

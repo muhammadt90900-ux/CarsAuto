@@ -6,19 +6,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SearchModule = void 0;
-// apps/api/src/modules/search/search.module.ts
+exports.VehiclesModule = void 0;
+// apps/api/src/modules/vehicles/vehicles.module.ts
 const common_1 = require("@nestjs/common");
-const search_service_1 = require("./search.service");
-const search_controller_1 = require("./search.controller");
+const vehicles_service_1 = require("./vehicles.service");
+const vehicles_controller_1 = require("./vehicles.controller");
 const prisma_module_1 = require("../../common/prisma/prisma.module");
-let SearchModule = class SearchModule {
+let VehiclesModule = class VehiclesModule {
 };
-exports.SearchModule = SearchModule;
-exports.SearchModule = SearchModule = __decorate([
+exports.VehiclesModule = VehiclesModule;
+exports.VehiclesModule = VehiclesModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
-        controllers: [search_controller_1.SearchController],
-        providers: [search_service_1.SearchService],
+        controllers: [vehicles_controller_1.VehiclesController],
+        providers: [vehicles_service_1.VehiclesService],
+        exports: [vehicles_service_1.VehiclesService], // export so ListingsModule can reuse if needed
     })
-], SearchModule);
+], VehiclesModule);

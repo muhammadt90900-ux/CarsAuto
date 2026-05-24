@@ -13,14 +13,15 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SearchController = void 0;
+// apps/api/src/modules/search/search.controller.ts
 const common_1 = require("@nestjs/common");
 const search_service_1 = require("./search.service");
 let SearchController = class SearchController {
     constructor(searchService) {
         this.searchService = searchService;
     }
-    search(q, type, page, limit) {
-        return this.searchService.search(q ?? '', type, Number(page ?? 1), Number(limit ?? 20));
+    search(q, type, makeId, modelId, yearFrom, yearTo, fuelType, transmission, driveType, bodyType, condition, page, limit) {
+        return this.searchService.search(q ?? '', type, makeId, modelId, yearFrom ? Number(yearFrom) : undefined, yearTo ? Number(yearTo) : undefined, fuelType, transmission, driveType, bodyType, condition, Number(page ?? 1), Number(limit ?? 20));
     }
 };
 exports.SearchController = SearchController;
@@ -28,10 +29,19 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('q')),
     __param(1, (0, common_1.Query)('type')),
-    __param(2, (0, common_1.Query)('page')),
-    __param(3, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('makeId')),
+    __param(3, (0, common_1.Query)('modelId')),
+    __param(4, (0, common_1.Query)('yearFrom')),
+    __param(5, (0, common_1.Query)('yearTo')),
+    __param(6, (0, common_1.Query)('fuelType')),
+    __param(7, (0, common_1.Query)('transmission')),
+    __param(8, (0, common_1.Query)('driveType')),
+    __param(9, (0, common_1.Query)('bodyType')),
+    __param(10, (0, common_1.Query)('condition')),
+    __param(11, (0, common_1.Query)('page')),
+    __param(12, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], SearchController.prototype, "search", null);
 exports.SearchController = SearchController = __decorate([

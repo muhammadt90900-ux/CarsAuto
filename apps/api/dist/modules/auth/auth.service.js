@@ -41,75 +41,79 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
+// apps/api/src/modules/auth/auth.service.ts
+const bcrypt = __importStar(require("bcrypt"));
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
-const bcrypt = __importStar(require("bcrypt"));
-const prisma_service_1 = require("../../common/prisma/prisma.service");
+const prisma_service_1 = require("@/prisma/prisma.service");
 let AuthService = class AuthService {
-    constructor(prisma, jwtService) {
+    constructor(prisma, jwt) {
         this.prisma = prisma;
-        this.jwtService = jwtService;
+        this.jwt = jwt;
     }
+    // ── Register ────────────────────────────────────────────────────────────────
     async register(dto) {
-        const exists = await this.prisma.user.findUnique({
+        // 1. Duplicate-email guard
+        const existing = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
-        if (exists)
-            throw new common_1.ConflictException('Email already in use');
-        const hashed = await bcrypt.hash(dto.password, 10);
+        if (existing) {
+            throw new common_1.ConflictException('ئەم ئیمەیڵە پێشتر تۆمار کراوە / Email already registered');
+        }
+        // 2. Hash password
+        const hash = await bcrypt.hash(dto.password, 12);
+        // 3. Create user
         const user = await this.prisma.user.create({
             data: {
-                email: dto.email,
                 name: dto.name,
-                password: hashed,
-                phone: dto.phone,
-                locale: dto.locale ?? 'ku',
+                email: dto.email,
+                password: hash,
+                ...(dto.phone ? { phone: dto.phone } : {}),
             },
         });
-        return this.signTokens(user.id, user.email, user.role);
+        // 4. Issue JWT — auto-login after register
+        const token = this.jwt.sign({ sub: user.id, email: user.email });
+        return {
+            access_token: token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone ?? null,
+                role: user.role,
+            },
+        };
     }
+    // ── Login ───────────────────────────────────────────────────────────────────
     async login(dto) {
         const user = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
-        if (!user || !user.password)
-            throw new common_1.UnauthorizedException('Invalid credentials');
+        if (!user) {
+            throw new common_1.UnauthorizedException('ئیمەیڵ یان پاسوۆرد هەڵەیە');
+        }
         const valid = await bcrypt.compare(dto.password, user.password);
-        if (!valid)
-            throw new common_1.UnauthorizedException('Invalid credentials');
-        return this.signTokens(user.id, user.email, user.role);
-    }
-    async getMe(userId) {
-        return this.prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                phone: true,
-                avatar: true,
-                role: true,
-                verified: true,
-                locale: true,
-                createdAt: true,
+        if (!valid) {
+            throw new common_1.UnauthorizedException('ئیمەیڵ یان پاسوۆرد هەڵەیە');
+        }
+        const token = this.jwt.sign({ sub: user.id, email: user.email });
+        return {
+            access_token: token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone ?? null,
+                role: user.role,
             },
-        });
-    }
-    signTokens(userId, email, role) {
-        const payload = { sub: userId, email, role };
-        const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
-        const refresh_token = this.jwtService.sign(payload, {
-            expiresIn: '7d',
-            secret: process.env.JWT_REFRESH_SECRET,
-        });
-        return { access_token, refresh_token };
+        };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object, jwt_1.JwtService])
 ], AuthService);

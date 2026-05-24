@@ -16,7 +16,25 @@ export declare class CreateListingDto {
     makeId?: string;
     modelId?: string;
     year?: number;
+    trim?: string;
+    bodyType?: string;
+    fuelType?: string;
+    transmission?: string;
+    driveType?: string;
     condition?: ListingCondition;
     mileage?: number;
+    color?: string;
+    engineSize?: number;
+    doors?: number;
+    seats?: number;
+    features?: string[];
+    engineCC?: number;
+    categoryId?: string;
+    partNumber?: string;
+    compatibleMakes?: string[];
+    compatibleModels?: string[];
+    compatibleYearsFrom?: number;
+    compatibleYearsTo?: number;
+    quantity?: number;
     images?: string[];
 }

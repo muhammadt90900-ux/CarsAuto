@@ -12,11 +12,14 @@
     "lint": "turbo run lint"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
     "turbo": "latest"
   },
   "packageManager": "npm@11.9.0",
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "axios": "^1.16.1",
+    "nodemailer": "^8.0.8",
     "react-hook-form": "^7.76.0",
     "zod": "^4.4.3"
   }

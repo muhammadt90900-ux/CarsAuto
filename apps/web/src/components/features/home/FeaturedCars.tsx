@@ -3,7 +3,7 @@
 // Redesigned — Premium automotive card design
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { listingsApi } from '../../../lib/api';
 import Link from 'next/link';
 import { MapPin, Gauge, Fuel, Star, Heart, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
 
@@ -38,7 +38,7 @@ function CarCard({ car }: { car: any }) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <Link href={`/cars/${car.id}`} className="block group">
+    <Link ref={`/cars/${car.id}`} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col">
 
         {/* Image area */}
@@ -138,7 +138,7 @@ function CarCard({ car }: { car: any }) {
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-slate-100 dark:bg-white/[0.06] mb-3 mt-auto" />
+          <div classNalistingsApime="h-px bg-slate-100 dark:bg-white/[0.06] mb-3 mt-auto" />
 
           {/* Price row */}
           <div className="flex items-center justify-between">
@@ -177,7 +177,7 @@ export function FeaturedCars() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.listings.getAll({ type: 'car', limit: '8' })
+    listingsApi.getAll({ type: 'car', limit: '8' })
       .then(res => setCars(res.data || res || []))
       .catch(() => setCars([]))
       .finally(() => setLoading(false));
