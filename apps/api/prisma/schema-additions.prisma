@@ -1,0 +1,91 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// schema.prisma — Vehicle hierarchy models
+// Add these models to your existing schema.prisma file.
+// Run `npx prisma migrate dev --name add_vehicle_hierarchy` after adding.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model VehicleBrand {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameAr    String?
+  nameKu    String?
+  slug      String   @unique
+  logo      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models    VehicleModel[]
+  listings  Listing[]      @relation("ListingMake")
+
+  @@index([nameEn])
+  @@map("vehicle_brands")
+}
+
+model VehicleModel {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameAr    String?
+  nameKu    String?
+  slug      String
+  active    Boolean  @default(true)
+  startYear Int?     // first model year produced
+  endYear   Int?     // last model year (null = still in production)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brandId   String
+  brand     VehicleBrand  @relation(fields: [brandId], references: [id])
+  trims     VehicleTrim[]
+  listings  Listing[]     @relation("ListingModel")
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([nameEn])
+  @@map("vehicle_models")
+}
+
+model VehicleTrim {
+  id           String   @id @default(cuid())
+  nameEn       String
+  nameAr       String?
+  nameKu       String?
+  active       Boolean  @default(true)
+  yearStart    Int?
+  yearEnd      Int?
+  engine       String?
+  transmission String?
+  fuelType     String?
+  drivetrain   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  modelId      String
+  model        VehicleModel @relation(fields: [modelId], references: [id])
+  listings     Listing[]    @relation("ListingTrim")
+
+  @@index([modelId])
+  @@index([yearStart, yearEnd])
+  @@map("vehicle_trims")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Add these fields to your existing Listing model:
+// ─────────────────────────────────────────────────────────────────────────────
+//
+//   makeId   String?
+//   make     VehicleBrand?  @relation("ListingMake",  fields: [makeId],  references: [id])
+//
+//   modelId  String?
+//   model    VehicleModel?  @relation("ListingModel", fields: [modelId], references: [id])
+//
+//   trimId   String?
+//   trim     VehicleTrim?   @relation("ListingTrim",  fields: [trimId],  references: [id])
+//
+//   year     Int?
+//
+// And add indexes:
+//   @@index([makeId])
+//   @@index([modelId])
+//   @@index([trimId])
+//   @@index([year])
