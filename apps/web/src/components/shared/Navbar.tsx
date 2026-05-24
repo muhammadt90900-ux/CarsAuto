@@ -1,4 +1,7 @@
 'use client';
+// components/shared/Navbar.tsx
+// Redesigned — Unified Premium Design System (Gold / Midnight Navy)
+
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -7,45 +10,62 @@ import { Button } from '@auto-bazaar-pro/ui/components';
 import { useAuthStore } from '@/store/auth.store';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { Search, X, Menu, ChevronDown } from 'lucide-react';
+
+/* ── Logo SVG ────────────────────────────────────────────────── */
+const CarLogoIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path d="M3 13.5L6 6.5H14L17 13.5H3Z" fill="white" opacity=".92" />
+    <circle cx="6.5" cy="15" r="2" fill="white" />
+    <circle cx="13.5" cy="15" r="2" fill="white" />
+    <path d="M6 6.5L7.5 3H12.5L14 6.5" stroke="white" strokeWidth="1" opacity=".5" />
+  </svg>
+);
+
+/* ── NavLink with gold underline animation ───────────────────── */
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="relative px-3 py-2 text-[0.78rem] font-semibold tracking-[0.08em] uppercase
+                 text-white/65 hover:text-white transition-colors duration-200 group"
+    >
+      {label}
+      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] rounded-full
+                       bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a]
+                       transition-all duration-300 group-hover:w-4/5" />
+    </Link>
+  );
+}
 
 export function Navbar() {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
   const params = useParams();
-  // Normalize locale: useParams can return string | string[]; always use a plain string.
   const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? '');
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  // FIX 1 ─ scrolled must start `false` on both server and client so the
-  //          first paint matches SSR.  The scroll listener (client-only) will
-  //          update it after hydration is complete.
-  const [scrolled, setScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
-  // Track whether the component is mounted to avoid touching detached nodes.
-  const mountedRef = useRef(true);
-
-  // FIX 2 ─ isRTL is derived from `locale`, which comes from useParams().
-  //          useParams() returns `null` during SSR in some Next.js versions,
-  //          so guard the derivation so server and client agree on the initial
-  //          value (`false`) when locale is still an empty string.
   const isRTL = locale === 'ar' || locale === 'ku';
+
+  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [searchOpen, setSearchOpen]   = useState(false);
+  const [scrolled,   setScrolled]     = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchRef   = useRef<HTMLInputElement>(null);
+  const mountedRef  = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 
+  /* Scroll listener — reveals opaque bg after 60px */
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 12);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  /* Focus search input after drawer opens */
   useEffect(() => {
-    // Guard: only focus if still mounted and the node exists in the DOM.
-    // Defer by one frame so the CSS expand transition has started and the
-    // input is visible/interactable before focus fires.
     if (searchOpen) {
       const id = requestAnimationFrame(() => {
         if (mountedRef.current) searchRef.current?.focus();
@@ -54,6 +74,7 @@ export function Navbar() {
     }
   }, [searchOpen]);
 
+  /* Close mobile menu on resize */
   useEffect(() => {
     const close = () => { if (mountedRef.current) setMobileOpen(false); };
     window.addEventListener('resize', close);
@@ -61,130 +82,143 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { href: `/${locale}/cars`, label: t('cars') },
+    { href: `/${locale}/cars`,        label: t('cars') },
     { href: `/${locale}/motorcycles`, label: t('motorcycles') },
     { href: `/${locale}/spare-parts`, label: t('spareParts') },
   ];
 
+  /* Computed navbar classes — transparent atop hero, solid after scroll */
+  const navBg = scrolled
+    ? 'bg-[#070d18]/95 backdrop-blur-2xl shadow-[0_1px_0_rgba(201,168,76,0.15)]'
+    : 'bg-[#050b14]/80 backdrop-blur-md';
+
   return (
     <>
-      {/* ── Main bar ── */}
+      {/* ══ Main Navbar ══════════════════════════════════════════ */}
       <nav
         dir={isRTL ? 'rtl' : 'ltr'}
-        className={[
-          'fixed top-0 inset-x-0 z-50 transition-all duration-300',
-          scrolled
-            ? 'bg-white/95 dark:bg-[#0f0f1a]/95 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.08)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.06)]'
-            : 'bg-white/70 dark:bg-[#0f0f1a]/70 backdrop-blur-md',
-        ].join(' ')}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-400 ${navBg}`}
       >
-        {/* slim accent line at top */}
-        <div className="h-[2px] w-full bg-gradient-to-r from-[#e94560] via-[#ff6b35] to-[#e94560]" />
+        {/* Animated gold top accent line */}
+        <div className="gold-line h-[2px] w-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
+          <div className="flex items-center justify-between h-[66px] gap-4">
 
-            {/* ── Logo ── */}
+            {/* ── Logo ─────────────────────────────────────────── */}
             <Link
               href={`/${locale}`}
-              className="flex-shrink-0 flex items-center gap-1.5 group"
+              className="flex-shrink-0 flex items-center gap-2 group"
+              aria-label="AutoBazaarPro Home"
             >
-              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#e94560] shadow-[0_0_12px_rgba(233,69,96,0.45)] transition-transform duration-200 group-hover:scale-105">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M2 11L5 5h6l3 6H2Z" fill="white" opacity=".9"/>
-                  <circle cx="5.5" cy="12.5" r="1.5" fill="white"/>
-                  <circle cx="10.5" cy="12.5" r="1.5" fill="white"/>
-                </svg>
+              {/* Icon badge */}
+              <span className="flex items-center justify-center w-9 h-9 rounded-[10px]
+                               bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+                               shadow-[0_0_16px_rgba(201,168,76,0.40)]
+                               transition-all duration-300
+                               group-hover:shadow-[0_0_24px_rgba(201,168,76,0.60)]
+                               group-hover:scale-[1.06]">
+                <CarLogoIcon />
               </span>
-              <span className="text-[1.15rem] font-extrabold tracking-tight leading-none">
-                <span className="text-[#e94560]">Auto</span>
-                <span className="text-[#1a1a2e] dark:text-white">Bazaar</span>
-                <span className="text-[#e94560] font-black">Pro</span>
+              {/* Wordmark */}
+              <span className="text-[1.1rem] font-display font-extrabold tracking-tight leading-none">
+                <span className="text-[#c9a84c]">Auto</span>
+                <span className="text-white">Bazaar</span>
+                <span style={{
+                  background: 'linear-gradient(135deg,#c9a84c,#f0d278)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}>Pro</span>
               </span>
             </Link>
 
-            {/* ── Desktop nav links ── */}
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="relative px-3 py-1.5 text-[0.82rem] font-semibold tracking-wide uppercase text-gray-600 dark:text-gray-300 hover:text-[#e94560] dark:hover:text-[#e94560] transition-colors duration-150 rounded-md hover:bg-gray-100/60 dark:hover:bg-white/5 group"
-                >
-                  {label}
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-[#e94560] rounded-full transition-all duration-200 group-hover:w-4/5" />
-                </Link>
-              ))}
+            {/* ── Desktop nav links ─────────────────────────────── */}
+            <div className="hidden md:flex items-center">
+              {navLinks.map(l => <NavLink key={l.href} {...l} />)}
             </div>
 
-            {/* ── Search bar (desktop) ── */}
-            <div className="hidden md:flex flex-1 max-w-xs lg:max-w-sm xl:max-w-md">
+            {/* ── Desktop search ───────────────────────────────── */}
+            <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md">
               <div className="relative w-full group">
-                <span className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3' : 'left-3'} text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-[#e94560]`}>
-                  <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/>
-                  </svg>
-                </span>
+                <Search
+                  className={`absolute top-1/2 -translate-y-1/2 w-[15px] h-[15px]
+                              text-white/35 transition-colors duration-200
+                              group-focus-within:text-[#c9a84c]
+                              ${isRTL ? 'right-3' : 'left-3'}`}
+                />
                 <input
                   type="search"
                   placeholder={t('searchPlaceholder') ?? 'Search cars, motorcycles…'}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full h-9 ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'} text-sm bg-gray-100/80 dark:bg-white/[0.06] border border-transparent rounded-xl text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-[#e94560]/50 focus:bg-white dark:focus:bg-white/10 focus:shadow-[0_0_0_3px_rgba(233,69,96,0.12)] transition-all duration-200`}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className={`w-full h-9 text-sm text-white/85
+                              bg-white/[0.07] border border-white/[0.10]
+                              rounded-xl placeholder:text-white/30
+                              focus:outline-none
+                              focus:bg-white/[0.10]
+                              focus:border-[#c9a84c]/50
+                              focus:shadow-[0_0_0_3px_rgba(201,168,76,0.12)]
+                              transition-all duration-200
+                              ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
                 />
               </div>
             </div>
 
-            {/* ── Right cluster ── */}
+            {/* ── Right cluster ─────────────────────────────────── */}
             <div className="flex items-center gap-2 flex-shrink-0">
+
               {/* Mobile search toggle */}
               <button
                 aria-label="Search"
-                onClick={() => setSearchOpen((v) => !v)}
-                className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#e94560] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                onClick={() => setSearchOpen(v => !v)}
+                className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl
+                           text-white/50 hover:text-[#c9a84c] hover:bg-white/[0.08]
+                           transition-all duration-200"
               >
-                <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/>
-                </svg>
+                {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
               </button>
 
-              <div className="hidden md:flex items-center gap-1.5">
+              {/* Tools — desktop only */}
+              <div className="hidden md:flex items-center gap-1">
                 <LanguageSwitcher />
                 <ThemeToggle />
               </div>
 
-              {/* Auth buttons (desktop) */}
+              {/* Auth buttons — desktop */}
               <div className="hidden md:flex items-center gap-2">
                 {user ? (
                   <>
                     <Link
                       href={`/${locale}/dashboard`}
-                      className="text-[0.82rem] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#e94560] dark:hover:text-[#e94560] px-3 py-1.5 rounded-md hover:bg-gray-100/60 dark:hover:bg-white/5 transition-all"
+                      className="text-[0.78rem] font-semibold tracking-wide text-white/65
+                                 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.08]
+                                 transition-all duration-200"
                     >
                       {t('dashboard')}
                     </Link>
-                    <Button
-                      variant="accent"
-                      size="sm"
+                    <button
                       onClick={logout}
-                      className="h-8 px-4 text-xs font-bold rounded-lg bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_8px_rgba(233,69,96,0.35)] hover:shadow-[0_2px_12px_rgba(233,69,96,0.5)] transition-all"
+                      className="btn-gold h-8 px-4 text-xs rounded-lg"
                     >
                       {t('logout')}
-                    </Button>
+                    </button>
                   </>
                 ) : (
                   <>
-                    {/* Render as <Link> only — no <Button> child — so the DOM is
-                        a plain <a>, never the forbidden <a><button> nesting. */}
                     <Link
                       href={`/${locale}/login`}
-                      className="inline-flex items-center justify-center h-8 px-4 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 transition-all"
+                      className="inline-flex items-center justify-center h-8 px-4
+                                 text-xs font-semibold rounded-lg
+                                 border border-white/[0.15] text-white/70
+                                 hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
+                                 hover:bg-[#c9a84c]/[0.08]
+                                 transition-all duration-200"
                     >
                       {t('login')}
                     </Link>
                     <Link
                       href={`/${locale}/register`}
-                      className="inline-flex items-center justify-center h-8 px-4 text-xs font-bold rounded-lg bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_8px_rgba(233,69,96,0.35)] hover:shadow-[0_2px_12px_rgba(233,69,96,0.5)] transition-all"
+                      className="btn-gold inline-flex h-8 px-4 text-xs rounded-lg"
                     >
                       {t('register')}
                     </Link>
@@ -196,65 +230,79 @@ export function Navbar() {
               <button
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
-                onClick={() => setMobileOpen((v) => !v)}
-                className="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-[5px] rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                onClick={() => setMobileOpen(v => !v)}
+                className="md:hidden flex flex-col justify-center items-center
+                           w-9 h-9 gap-[5px] rounded-xl
+                           hover:bg-white/[0.08] transition-colors duration-200"
               >
-                <span className={`block w-5 h-[1.5px] bg-gray-700 dark:bg-gray-200 rounded-full transition-all duration-300 origin-center ${mobileOpen ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
-                <span className={`block w-5 h-[1.5px] bg-gray-700 dark:bg-gray-200 rounded-full transition-all duration-200 ${mobileOpen ? 'opacity-0 scale-x-0' : ''}`} />
-                <span className={`block w-5 h-[1.5px] bg-gray-700 dark:bg-gray-200 rounded-full transition-all duration-300 origin-center ${mobileOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+                <span className={`block w-[18px] h-[1.5px] bg-white/75 rounded-full
+                                  transition-all duration-300 origin-center
+                                  ${mobileOpen ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
+                <span className={`block w-[18px] h-[1.5px] bg-white/75 rounded-full
+                                  transition-all duration-200
+                                  ${mobileOpen ? 'opacity-0 scale-x-0' : ''}`} />
+                <span className={`block w-[18px] h-[1.5px] bg-white/75 rounded-full
+                                  transition-all duration-300 origin-center
+                                  ${mobileOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Mobile expandable search ── */}
-        <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${searchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}
-        >
-          <div className="px-4 pb-3 pt-1">
+        {/* ── Mobile expandable search ─────────────────────────── */}
+        <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out
+                         ${searchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="px-4 pb-3 pt-1 border-t border-white/[0.07]">
             <div className="relative">
-              <span className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`}>
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/>
-                </svg>
-              </span>
+              <Search className={`absolute top-1/2 -translate-y-1/2 w-[14px] h-[14px] text-white/35
+                                  ${isRTL ? 'right-3' : 'left-3'}`} />
               <input
                 ref={searchRef}
                 type="search"
                 placeholder={t('searchPlaceholder') ?? 'Search cars, motorcycles…'}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full h-10 ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'} text-sm bg-gray-100 dark:bg-white/[0.07] border border-transparent rounded-xl text-gray-800 dark:text-gray-200 placeholder:text-gray-400 focus:outline-none focus:border-[#e94560]/40 focus:shadow-[0_0_0_3px_rgba(233,69,96,0.1)] transition-all`}
+                onChange={e => setSearchQuery(e.target.value)}
+                className={`w-full h-10 text-sm text-white bg-white/[0.07] border border-white/10
+                            rounded-xl placeholder:text-white/30 focus:outline-none
+                            focus:border-[#c9a84c]/40 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
+                            transition-all duration-200
+                            ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
               />
             </div>
           </div>
         </div>
       </nav>
 
-      {/* ── Mobile slide-down menu ── */}
+      {/* ══ Mobile slide-down menu ═══════════════════════════════ */}
       <div
         dir={isRTL ? 'rtl' : 'ltr'}
-        className={[
-          'fixed inset-x-0 z-40 md:hidden transition-all duration-300 ease-in-out',
-          'bg-white dark:bg-[#0f0f1a] border-b border-gray-200 dark:border-gray-800',
-          'shadow-xl',
-          mobileOpen ? 'top-[4.125rem] opacity-100 pointer-events-auto' : '-top-full opacity-0 pointer-events-none',
-        ].join(' ')}
+        className={`fixed inset-x-0 z-40 md:hidden
+                    bg-[#070d18]/98 backdrop-blur-2xl
+                    border-b border-[#c9a84c]/15
+                    shadow-[0_8px_40px_rgba(0,0,0,0.60)]
+                    transition-all duration-350 ease-in-out
+                    ${mobileOpen
+                      ? 'top-[68px] opacity-100 pointer-events-auto'
+                      : '-top-full opacity-0 pointer-events-none'}`}
       >
         <div className="px-4 py-5 flex flex-col gap-1">
+          {/* Nav links */}
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#e94560] hover:bg-gray-100/80 dark:hover:bg-white/[0.07] transition-all ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-sm font-semibold text-white/65 hover:text-white
+                          hover:bg-white/[0.07] transition-all duration-200
+                          ${isRTL ? 'flex-row-reverse' : ''}`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#e94560] opacity-60 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] opacity-70 flex-shrink-0" />
               {label}
             </Link>
           ))}
 
-          <div className="my-3 border-t border-gray-100 dark:border-gray-800" />
+          <div className="my-3 border-t border-white/[0.08]" />
 
           <div className={`flex items-center gap-3 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <LanguageSwitcher />
@@ -264,39 +312,42 @@ export function Navbar() {
           <div className="mt-3 flex flex-col gap-2">
             {user ? (
               <>
-                {/* Render as <Link> only — no <Button> child — so the DOM is
-                    a plain <a>, never the forbidden <a><button> nesting. */}
                 <Link
                   href={`/${locale}/dashboard`}
                   onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
+                  className="inline-flex items-center justify-center w-full h-11
+                             text-sm font-semibold rounded-xl
+                             border border-white/[0.12] text-white/70
+                             hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                             transition-all duration-200"
                 >
                   {t('dashboard')}
                 </Link>
-                <Button
-                  variant="accent"
-                  size="sm"
+                <button
                   onClick={() => { logout(); setMobileOpen(false); }}
-                  className="w-full h-11 text-sm font-bold rounded-xl bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_10px_rgba(233,69,96,0.35)]"
+                  className="btn-gold w-full h-11 text-sm rounded-xl"
                 >
                   {t('logout')}
-                </Button>
+                </button>
               </>
             ) : (
               <>
-                {/* Render as <Link> only — no <Button> child — so the DOM is
-                    a plain <a>, never the forbidden <a><button> nesting. */}
                 <Link
                   href={`/${locale}/login`}
                   onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200"
+                  className="inline-flex items-center justify-center w-full h-11
+                             text-sm font-semibold rounded-xl
+                             border border-white/[0.12] text-white/70
+                             hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                             transition-all duration-200"
                 >
                   {t('login')}
                 </Link>
                 <Link
                   href={`/${locale}/register`}
                   onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-center w-full h-11 text-sm font-bold rounded-xl bg-[#e94560] hover:bg-[#c73652] text-white border-none shadow-[0_2px_10px_rgba(233,69,96,0.35)]"
+                  className="btn-gold inline-flex items-center justify-center w-full h-11
+                             text-sm rounded-xl"
                 >
                   {t('register')}
                 </Link>
@@ -306,19 +357,15 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ── Mobile menu backdrop ──
-          Always rendered (never conditionally mounted/unmounted) so React never
-          calls removeChild on a node that a concurrent CSS transition is still
-          referencing. Visibility is controlled entirely by CSS opacity +
-          pointer-events, matching the same pattern used by the menu itself. */}
+      {/* ══ Mobile backdrop ══════════════════════════════════════ */}
       <div
         aria-hidden="true"
         onClick={() => setMobileOpen(false)}
-        className={[
-          'fixed inset-0 z-30 md:hidden bg-black/20 dark:bg-black/40 backdrop-blur-sm',
-          'transition-opacity duration-300 ease-in-out',
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-        ].join(' ')}
+        className={`fixed inset-0 z-30 md:hidden bg-black/50 backdrop-blur-sm
+                    transition-opacity duration-300 ease-in-out
+                    ${mobileOpen
+                      ? 'opacity-100 pointer-events-auto'
+                      : 'opacity-0 pointer-events-none'}`}
       />
     </>
   );
