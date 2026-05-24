@@ -2,38 +2,392 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   AutoBazaarPro — Unified Premium Design System
+   Design Language: Dark Luxury Automotive Marketplace
+   Primary: Midnight Navy + Champagne Gold + Slate White
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap');
+
 @layer base {
+  /* ── Design Tokens ── */
   :root {
-    --font-inter: 'Inter Variable', sans-serif;
+    /* Brand Palette — Unified Gold Primary */
+    --brand-gold:         #c9a84c;
+    --brand-gold-light:   #e8cc7a;
+    --brand-gold-dim:     #9e7c2e;
+    --brand-gold-subtle:  rgba(201,168,76,0.12);
+    --brand-gold-glow:    rgba(201,168,76,0.25);
+
+    /* Neutral Dark Scale */
+    --ink-900:    #050b14;
+    --ink-800:    #080f1c;
+    --ink-750:    #0b1525;
+    --ink-700:    #0f1c2e;
+    --ink-600:    #142236;
+    --ink-500:    #1c2f45;
+    --ink-400:    #263d57;
+    --ink-300:    #3a5470;
+
+    /* Surface Scale (Light Mode) */
+    --surface-0:   #ffffff;
+    --surface-50:  #f8fafc;
+    --surface-100: #f1f5f9;
+    --surface-200: #e2e8f0;
+    --surface-300: #cbd5e1;
+
+    /* Text Scale (Light Mode) */
+    --text-primary:   #0f172a;
+    --text-secondary: #334155;
+    --text-muted:     #64748b;
+    --text-faint:     #94a3b8;
+
+    /* Functional */
+    --radius-sm:   8px;
+    --radius-md:   12px;
+    --radius-lg:   16px;
+    --radius-xl:   20px;
+    --radius-2xl:  28px;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:    0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    --shadow-lg:    0 12px 40px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-gold:  0 8px 32px rgba(201,168,76,0.25), 0 2px 8px rgba(201,168,76,0.15);
+    --shadow-gold-sm: 0 4px 16px rgba(201,168,76,0.20);
+
+    /* Transitions */
+    --transition-fast:   150ms cubic-bezier(0.4,0,0.2,1);
+    --transition-base:   250ms cubic-bezier(0.4,0,0.2,1);
+    --transition-slow:   400ms cubic-bezier(0.4,0,0.2,1);
+    --transition-spring: 300ms cubic-bezier(0.34,1.56,0.64,1);
+
+    /* Font families */
+    --font-display: 'Syne', 'Noto Sans Arabic', sans-serif;
+    --font-body:    'DM Sans', 'Noto Sans Arabic', sans-serif;
+    --font-inter:   'DM Sans', 'Noto Sans Arabic', sans-serif;
     --font-noto-arabic: 'Noto Sans Arabic', sans-serif;
     --font-noto-sc: 'Noto Sans SC', sans-serif;
     --font-jetbrains-mono: 'JetBrains Mono', monospace;
+
+    /* Navbar height — used by hero padding */
+    --navbar-h: 68px;
   }
-  html[dir="rtl"] {
-    direction: rtl;
+
+  /* ── Dark Mode Tokens ── */
+  .dark, [data-theme="dark"] {
+    --surface-0:   var(--ink-800);
+    --surface-50:  var(--ink-750);
+    --surface-100: var(--ink-700);
+    --surface-200: var(--ink-600);
+    --surface-300: var(--ink-500);
+
+    --text-primary:   rgba(255,255,255,0.95);
+    --text-secondary: rgba(255,255,255,0.70);
+    --text-muted:     rgba(255,255,255,0.45);
+    --text-faint:     rgba(255,255,255,0.25);
+
+    --shadow-sm:    0 1px 4px rgba(0,0,0,0.4);
+    --shadow-md:    0 4px 20px rgba(0,0,0,0.5);
+    --shadow-lg:    0 12px 48px rgba(0,0,0,0.6);
   }
-  html[dir="ltr"] {
-    direction: ltr;
+
+  /* ── HTML / Body baseline ── */
+  html {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
   }
-  ::-webkit-scrollbar {
-    width: 8px;
+
+  html[dir="rtl"] { direction: rtl; }
+  html[dir="ltr"] { direction: ltr; }
+
+  body {
+    background: var(--surface-50);
+    color: var(--text-primary);
+    transition: background var(--transition-slow), color var(--transition-slow);
   }
-  ::-webkit-scrollbar-track {
-    background: transparent;
+
+  .dark body {
+    background: var(--ink-900);
   }
+
+  /* ── Focus ring — accessible & gold-branded ── */
+  :focus-visible {
+    outline: 2px solid var(--brand-gold);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Selection color ── */
+  ::selection {
+    background: var(--brand-gold-glow);
+    color: var(--ink-900);
+  }
+
+  /* ── Custom scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
+    background: rgba(201,168,76,0.25);
+    border-radius: 99px;
   }
-  .dark ::-webkit-scrollbar-thumb {
-    background: #475569;
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(201,168,76,0.45);
+  }
+  .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.35); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Component Layer
+   ══════════════════════════════════════════════════════════════ */
+@layer components {
+
+  /* ── Glass surfaces ── */
+  .glass-dark {
+    background: rgba(8,15,28,0.65);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .glass-light {
+    background: rgba(255,255,255,0.80);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+
+  .glass-gold {
+    background: rgba(201,168,76,0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(201,168,76,0.20);
+  }
+
+  /* Legacy .glass kept for any imported components */
+  .glass {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+
+  /* ── Premium card surface ── */
+  .card-premium {
+    background: var(--surface-0);
+    border: 1px solid var(--surface-200);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-base),
+                box-shadow var(--transition-base),
+                border-color var(--transition-base);
+  }
+  .dark .card-premium {
+    background: var(--ink-750);
+    border-color: rgba(255,255,255,0.07);
+  }
+  .card-premium:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(201,168,76,0.15);
+    border-color: rgba(201,168,76,0.30);
+  }
+
+  /* ── Gold gradient text ── */
+  .text-gold {
+    background: linear-gradient(135deg, #c9a84c 0%, #f0d278 45%, #c9a84c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Gold CTA button ── */
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #b8922e 0%, #e0b84a 45%, #c9a84c 100%);
+    color: #080f1c;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: var(--shadow-gold-sm);
+    transition: transform var(--transition-fast),
+                box-shadow var(--transition-fast),
+                filter var(--transition-fast);
+    cursor: pointer;
+  }
+  .btn-gold:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: var(--shadow-gold);
+    filter: brightness(1.05);
+  }
+  .btn-gold:active {
+    transform: translateY(0) scale(0.99);
+    box-shadow: var(--shadow-gold-sm);
+  }
+
+  /* ── Ghost / outline button ── */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.30);
+    color: var(--brand-gold);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+    cursor: pointer;
+  }
+  .btn-ghost:hover {
+    background: var(--brand-gold-subtle);
+    border-color: rgba(201,168,76,0.60);
+    box-shadow: var(--shadow-gold-sm);
+  }
+
+  /* ── Section heading pattern ── */
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  /* ── Pill/badge ── */
+  .badge-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.28);
+    border-radius: var(--radius-full);
+    color: var(--brand-gold);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+  }
+
+  /* ── Shimmer skeleton ── */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+    border-radius: var(--radius-md);
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,255,255,0.06) 40%,
+      rgba(201,168,76,0.06) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+
+  /* ── Smooth fade-up reveal ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Animated gold shimmer line (decorative) ── */
+  .gold-line {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--brand-gold) 35%,
+      var(--brand-gold-light) 50%,
+      var(--brand-gold) 65%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: goldSlide 3s ease-in-out infinite;
+  }
+  @keyframes goldSlide {
+    0%, 100% { background-position: -100% 0; }
+    50%       { background-position:  100% 0; }
+  }
+
+  /* ── Pulse dot ── */
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-gold);
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%  { box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(201,168,76,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+  }
+
+  /* ── Navbar unified with hero ── */
+  .navbar-hero-blend {
+    /* When navbar sits above hero, use transparent bg that blends */
+    background: linear-gradient(180deg, rgba(5,11,20,0.90) 0%, rgba(5,11,20,0.0) 100%);
+    backdrop-filter: blur(0px);
+  }
+
+  /* ── Staggered animation helpers ── */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.10s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.20s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.30s; }
+
+  /* ── RTL typography tweaks ── */
+  [dir="rtl"] .section-heading,
+  [dir="rtl"] .badge-gold {
+    letter-spacing: 0;
   }
 }
 
-@layer components {
-  .glass {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+/* ══════════════════════════════════════════════════════════════
+   Utility overrides
+   ══════════════════════════════════════════════════════════════ */
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-body    { font-family: var(--font-body); }
+
+  /* Smooth number rendering in price displays */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  /* Line clamp */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
+
+  /* Hide scrollbar but allow scrolling */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
