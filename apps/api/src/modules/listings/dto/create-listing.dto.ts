@@ -1,59 +1,176 @@
 // apps/api/src/modules/listings/dto/create-listing.dto.ts
 import {
   IsNotEmpty, IsString, IsOptional, IsNumber,
-  IsBoolean, IsEnum, IsArray,
+  IsBoolean, IsEnum, IsArray, IsUrl, Min, Max,
+  IsInt, Length,
 } from 'class-validator';
-import { ListingType, ListingCondition, Currency } from '@auto-bazaar-pro/types';
+import { Type } from 'class-transformer';
+import {
+  ListingType, ListingCondition, FuelType,
+  TransmissionType, DrivetrainType, BodyType,
+} from '@prisma/client';
 
 export class CreateListingDto {
+  // ── Listing type ────────────────────────────────────────────────
   @IsEnum(ListingType)
   type: ListingType;
 
-  @IsNotEmpty() @IsString() titleKu: string;
-  @IsNotEmpty() @IsString() titleAr: string;
-  @IsNotEmpty() @IsString() titleEn: string;
-  @IsNotEmpty() @IsString() titleZh: string;
+  // ── Localised titles (at least Kurdish required) ────────────────
+  @IsNotEmpty()
+  @IsString()
+  @Length(3, 120)
+  titleKu: string;
 
-  @IsOptional() @IsString() descriptionKu?: string;
-  @IsOptional() @IsString() descriptionAr?: string;
-  @IsOptional() @IsString() descriptionEn?: string;
-  @IsOptional() @IsString() descriptionZh?: string;
+  @IsOptional()
+  @IsString()
+  @Length(3, 120)
+  titleAr?: string;
 
-  @IsNumber()  price: number;
-  @IsEnum(Currency) currency: Currency;
-  @IsBoolean() @IsOptional() negotiable?: boolean;
-  @IsString()  @IsOptional() locationId?: string;
+  @IsOptional()
+  @IsString()
+  @Length(3, 120)
+  titleEn?: string;
 
-  // ── Car identity ──────────────────────────────────────────────────────────
-  @IsString()  @IsOptional() makeId?: string;
-  @IsString()  @IsOptional() modelId?: string;
-  @IsNumber()  @IsOptional() year?: number;
-  @IsString()  @IsOptional() trim?: string;          // "LX" | "Sport" | "AMG Line" …
+  @IsOptional()
+  @IsString()
+  @Length(3, 120)
+  titleZh?: string;
 
-  // ── Car specs ─────────────────────────────────────────────────────────────
-  @IsString()  @IsOptional() bodyType?: string;      // Sedan | SUV | Hatchback | Pickup Truck …
-  @IsString()  @IsOptional() fuelType?: string;      // Gasoline | Diesel | Hybrid | Electric | LPG …
-  @IsString()  @IsOptional() transmission?: string;  // Automatic | Manual | CVT | DCT …
-  @IsString()  @IsOptional() driveType?: string;     // FWD | RWD | AWD | 4WD | Part-time 4WD
-  @IsEnum(ListingCondition) @IsOptional() condition?: ListingCondition;
-  @IsNumber()  @IsOptional() mileage?: number;
-  @IsString()  @IsOptional() color?: string;
-  @IsNumber()  @IsOptional() engineSize?: number;    // litres e.g. 2.0
-  @IsNumber()  @IsOptional() doors?: number;
-  @IsNumber()  @IsOptional() seats?: number;
-  @IsArray()   @IsOptional() features?: string[];    // ["Sunroof", "Leather Seats", …]
+  // ── Localised descriptions ──────────────────────────────────────
+  @IsOptional()
+  @IsString()
+  descriptionKu?: string;
 
-  // ── Motorcycle extra ──────────────────────────────────────────────────────
-  @IsNumber()  @IsOptional() engineCC?: number;
+  @IsOptional()
+  @IsString()
+  descriptionAr?: string;
 
-  // ── Spare-part fields ─────────────────────────────────────────────────────
-  @IsString()  @IsOptional() categoryId?: string;
-  @IsString()  @IsOptional() partNumber?: string;
-  @IsArray()   @IsOptional() compatibleMakes?: string[];
-  @IsArray()   @IsOptional() compatibleModels?: string[];
-  @IsNumber()  @IsOptional() compatibleYearsFrom?: number;
-  @IsNumber()  @IsOptional() compatibleYearsTo?: number;
-  @IsNumber()  @IsOptional() quantity?: number;
+  @IsOptional()
+  @IsString()
+  descriptionEn?: string;
 
-  @IsArray()   @IsOptional() images?: string[];
+  @IsOptional()
+  @IsString()
+  descriptionZh?: string;
+
+  // ── Pricing ─────────────────────────────────────────────────────
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  price: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string = 'USD';
+
+  @IsOptional()
+  @IsBoolean()
+  negotiable?: boolean;
+
+  // ── Location & category ─────────────────────────────────────────
+  @IsOptional()
+  @IsString()
+  locationId?: string;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  // ── Vehicle spec fields ─────────────────────────────────────────
+
+  // Structured path (preferred)
+  @IsOptional()
+  @IsString()
+  trimId?: string;
+
+  // Denormalized overrides / free-text path
+  @IsOptional()
+  @IsString()
+  brandId?: string;
+
+  @IsOptional()
+  @IsString()
+  modelId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 1)
+  @Type(() => Number)
+  year?: number;
+
+  @IsOptional()
+  @IsEnum(ListingCondition)
+  condition?: ListingCondition;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  mileageKm?: number;
+
+  @IsOptional()
+  @IsEnum(FuelType)
+  fuelType?: FuelType;
+
+  @IsOptional()
+  @IsEnum(TransmissionType)
+  transmission?: TransmissionType;
+
+  @IsOptional()
+  @IsEnum(DrivetrainType)
+  drivetrain?: DrivetrainType;
+
+  @IsOptional()
+  @IsEnum(BodyType)
+  bodyType?: BodyType;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  engineLabel?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  engineCC?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  powerKw?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @Type(() => Number)
+  doors?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  @Type(() => Number)
+  seats?: number;
+
+  @IsOptional()
+  @IsString()
+  vin?: string;
+
+  // ── Spare part only ─────────────────────────────────────────────
+  @IsOptional()
+  @IsString()
+  partNumber?: string;
+
+  // ── Images (array of URLs) ──────────────────────────────────────
+  @IsOptional()
+  @IsArray()
+  @IsUrl({}, { each: true })
+  images?: string[];
 }
