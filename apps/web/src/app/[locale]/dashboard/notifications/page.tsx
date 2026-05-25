@@ -1,34 +1,38 @@
-// apps/web/src/app/[locale]/dashboard/notifications/page.tsx
 'use client';
+// app/[locale]/dashboard/notifications/page.tsx — Fully localized
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Bell, MessageSquare, Eye, Star, CheckCircle2, Trash2, Settings, Check } from 'lucide-react';
 
-const notifications = [
-  { id: '1', type: 'message', title: 'New message from Ahmed', body: 'Is the Toyota Camry still available?', time: '2 minutes ago', read: false },
-  { id: '2', type: 'view', title: 'BMW 3 Series got 12 new views', body: 'Your listing is trending today!', time: '1 hour ago', read: false },
-  { id: '3', type: 'review', title: 'New 5-star review received', body: 'Sara Ali left a review on your profile', time: '3 hours ago', read: false },
-  { id: '4', type: 'approved', title: 'Honda CR-V listing approved', body: 'Your listing is now live on Auto Bazaar', time: '5 hours ago', read: true },
-  { id: '5', type: 'message', title: 'New message from Omar', body: 'I will come to see the car tomorrow.', time: '1 day ago', read: true },
-  { id: '6', type: 'view', title: 'Mercedes got 50 views', body: 'Your Mercedes listing is getting a lot of attention!', time: '2 days ago', read: true },
-];
+const INITIAL_NOTIFICATIONS = [
+  { id: '1', type: 'message',  titleKey: 'newMessage',   titleArgs: { name: 'Ahmed' },      body: 'Is the Toyota Camry still available?', time: '2m',  read: false },
+  { id: '2', type: 'view',     titleKey: 'newViews',     titleArgs: { listing: 'BMW 3 Series', count: 12 }, body: 'Your listing is trending!', time: '1h',  read: false },
+  { id: '3', type: 'review',   titleKey: 'newReview',    titleArgs: { stars: 5 },            body: 'Sara Ali left a review on your profile', time: '3h',  read: false },
+  { id: '4', type: 'approved', titleKey: 'listingApproved', titleArgs: { listing: 'Honda CR-V' }, body: 'Your listing is now live', time: '5h',  read: true  },
+  { id: '5', type: 'message',  titleKey: 'newMessage',   titleArgs: { name: 'Omar' },        body: 'I will come to see the car tomorrow.', time: '1d',  read: true  },
+  { id: '6', type: 'view',     titleKey: 'newViews',     titleArgs: { listing: 'Mercedes', count: 50 }, body: 'Getting a lot of attention!', time: '2d',  read: true  },
+] as const;
 
 const iconMap = {
-  message: { Icon: MessageSquare, bg: 'bg-blue-50 dark:bg-blue-500/10', color: 'text-blue-500' },
-  view: { Icon: Eye, bg: 'bg-purple-50 dark:bg-purple-500/10', color: 'text-purple-500' },
-  review: { Icon: Star, bg: 'bg-amber-50 dark:bg-amber-500/10', color: 'text-amber-500' },
-  approved: { Icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-500/10', color: 'text-emerald-500' },
-};
+  message:  { Icon: MessageSquare, bg: 'bg-blue-50 dark:bg-blue-500/10',    color: 'text-blue-500'    },
+  view:     { Icon: Eye,           bg: 'bg-purple-50 dark:bg-purple-500/10', color: 'text-purple-500'  },
+  review:   { Icon: Star,          bg: 'bg-amber-50 dark:bg-amber-500/10',  color: 'text-amber-500'   },
+  approved: { Icon: CheckCircle2,  bg: 'bg-emerald-50 dark:bg-emerald-500/10', color: 'text-emerald-500' },
+} as const;
 
 export default function NotificationsPage() {
-  const [items, setItems] = useState(notifications);
+  const t  = useTranslations('dashboard');
+  const tn = useTranslations('notifications');
+
+  const [items,  setItems]  = useState([...INITIAL_NOTIFICATIONS]);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   const markAllRead = () => setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  const markRead = (id: string) => setItems((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
-  const remove = (id: string) => setItems((prev) => prev.filter((n) => n.id !== id));
+  const markRead    = (id: string) => setItems((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+  const remove      = (id: string) => setItems((prev) => prev.filter((n) => n.id !== id));
 
-  const shown = filter === 'unread' ? items.filter((n) => !n.read) : items;
+  const shown       = filter === 'unread' ? items.filter((n) => !n.read) : items;
   const unreadCount = items.filter((n) => !n.read).length;
 
   return (
@@ -36,9 +40,13 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Notifications</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {t('notifications')}
+          </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {unreadCount > 0 ? `${unreadCount} unread notifications` : 'All caught up!'}
+            {unreadCount > 0
+              ? tn('unreadCount', { count: unreadCount })
+              : tn('allCaughtUp')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -47,31 +55,34 @@ export default function NotificationsPage() {
               onClick={markAllRead}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-[#e94560] hover:text-[#d63d57] transition-colors"
             >
-              <Check className="w-3.5 h-3.5" />
-              Mark all read
+              <Check className="w-3.5 h-3.5" aria-hidden />
+              {t('markAllRead')}
             </button>
           )}
-          <button className="p-2 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-            <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <button
+            aria-label="Notification settings"
+            className="p-2 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+          >
+            <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden />
           </button>
         </div>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100/70 dark:bg-white/5 rounded-xl w-fit">
+      <div className="flex gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5 w-fit">
         {(['all', 'unread'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all duration-200 ${
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
               filter === f
-                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'bg-white dark:bg-[#0f1b2d] text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
-            {f}
+            {f === 'all' ? t('allTab') : t('unreadTab')}
             {f === 'unread' && unreadCount > 0 && (
-              <span className="ml-1.5 text-[9px] bg-[#e94560] text-white rounded-full w-4 h-4 inline-flex items-center justify-center">
+              <span className="ms-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-[#e94560] text-white">
                 {unreadCount}
               </span>
             )}
@@ -79,53 +90,61 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      {/* Notification list */}
-      <div className="space-y-2">
-        {shown.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Bell className="w-10 h-10 text-gray-200 dark:text-gray-700 mb-3" />
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No notifications</p>
-          </div>
-        )}
-        {shown.map((notif) => {
-          const meta = iconMap[notif.type as keyof typeof iconMap] ?? iconMap.message;
-          return (
-            <div
-              key={notif.id}
-              onClick={() => markRead(notif.id)}
-              className={`group relative flex items-start gap-3.5 p-4 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-md hover:shadow-black/5 dark:hover:shadow-black/20 ${
-                !notif.read
-                  ? 'bg-white dark:bg-[#0f0f1a]/80 border-gray-100 dark:border-white/8'
-                  : 'bg-gray-50/50 dark:bg-white/2 border-gray-50 dark:border-white/3'
-              }`}
-            >
-              {/* Unread dot */}
-              {!notif.read && (
-                <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-[#e94560] flex-shrink-0" />
-              )}
-
-              <div className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                <meta.Icon className={`w-4 h-4 ${meta.color}`} />
-              </div>
-
-              <div className="flex-1 min-w-0 pr-4">
-                <p className={`text-sm font-semibold ${notif.read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white'} mb-0.5`}>
-                  {notif.title}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{notif.body}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-1.5">{notif.time}</p>
-              </div>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); remove(notif.id); }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-300 hover:text-red-400 flex-shrink-0 self-start"
+      {/* Notifications list */}
+      {shown.length === 0 ? (
+        <div className="text-center py-16">
+          <Bell className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" aria-hidden />
+          <p className="text-sm text-gray-400">{t('noNotifications')}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {shown.map((n) => {
+            const { Icon, bg, color } = iconMap[n.type as keyof typeof iconMap] ?? iconMap.message;
+            return (
+              <div
+                key={n.id}
+                onClick={() => markRead(n.id)}
+                className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer
+                            transition-all duration-200 group
+                            ${n.read
+                              ? 'border-gray-100 dark:border-white/[0.05] bg-white dark:bg-transparent'
+                              : 'border-[#c9a84c]/20 bg-[#c9a84c]/[0.03] dark:border-white/[0.08] dark:bg-white/[0.03]'
+                            }
+                            hover:border-gray-200 dark:hover:border-white/10`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${bg}`}>
+                  <Icon className={`w-5 h-5 ${color}`} aria-hidden />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-sm font-semibold leading-tight ${n.read ? 'text-gray-700 dark:text-white/60' : 'text-gray-900 dark:text-white'}`}>
+                      {tn(n.titleKey as any, n.titleArgs as any)}
+                    </p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {!n.read && (
+                        <span className="w-2 h-2 rounded-full bg-[#c9a84c] flex-shrink-0" aria-label="Unread" />
+                      )}
+                      <span className="text-xs text-gray-400">{n.time}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5 line-clamp-1">
+                    {n.body}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); remove(n.id); }}
+                  aria-label="Remove notification"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-400
+                             hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10
+                             transition-all duration-200 flex-shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
