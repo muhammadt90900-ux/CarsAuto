@@ -1,0 +1,199 @@
+/* globals.mobile.css  —  Add to your existing globals.css or @import this file
+   AutoBazaarPro — Mobile-Native UX Layer
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Safe-area utilities ───────────────────────────────────────── */
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mb-nav {
+  margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+}
+
+/* ── Prevent text selection on interactive elements ──────────── */
+.bottom-nav,
+.drawer-handle,
+[data-tap] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Momentum scrolling ───────────────────────────────────────── */
+.scroll-momentum {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+/* ── Horizontal scroll snap (carousels) ──────────────────────── */
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.scroll-snap-x > * {
+  scroll-snap-align: start;
+}
+
+/* ── Keyframes ────────────────────────────────────────────────── */
+@keyframes mobileShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes mobileFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mobileFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes mobileScaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes mobileSlideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes mobileSlideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes mobileSlideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mobileBounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.12); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes mobileSpinner {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes mobileSplashRing {
+  0%   { transform: scale(0.7); opacity: 0; }
+  50%  { transform: scale(1.15); opacity: 0.6; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  50%       { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0.12); }
+}
+
+/* ── Page-level entrance animations ──────────────────────────── */
+.page-enter {
+  animation: mobileFadeUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-enter-right {
+  animation: mobileSlideInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-enter-left {
+  animation: mobileSlideInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Staggered list animations ────────────────────────────────── */
+.stagger-list > *:nth-child(1)  { animation: mobileFadeUp 0.3s 0.00s ease-out both; }
+.stagger-list > *:nth-child(2)  { animation: mobileFadeUp 0.3s 0.05s ease-out both; }
+.stagger-list > *:nth-child(3)  { animation: mobileFadeUp 0.3s 0.10s ease-out both; }
+.stagger-list > *:nth-child(4)  { animation: mobileFadeUp 0.3s 0.15s ease-out both; }
+.stagger-list > *:nth-child(5)  { animation: mobileFadeUp 0.3s 0.20s ease-out both; }
+.stagger-list > *:nth-child(6)  { animation: mobileFadeUp 0.3s 0.25s ease-out both; }
+.stagger-list > *:nth-child(n+7){ animation: mobileFadeUp 0.3s 0.28s ease-out both; }
+
+/* ── Gold shimmer skeleton ────────────────────────────────────── */
+.m-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(201, 168, 76, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: mobileShimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Active press feedback (global) ──────────────────────────── */
+[data-tap]:active,
+.tap-scale:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease-out;
+}
+
+/* ── Touch target minimum size ────────────────────────────────── */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── iOS-style rubber-band overscroll containment ─────────────── */
+.overscroll-contain-y {
+  overscroll-behavior-y: contain;
+}
+
+/* ── Bottom nav safe area adjustment ─────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav-bar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  }
+}
+
+/* ── Drawer cubic-bezier transition ──────────────────────────── */
+.drawer-enter {
+  animation: mobileSlideUp 0.36s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* ── Card press feedback ─────────────────────────────────────── */
+.card-interactive {
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-interactive:active {
+  transform: scale(0.98);
+}
+
+/* ── Gold FAB pulse ──────────────────────────────────────────── */
+.fab-gold {
+  animation: goldPulse 2.4s ease-in-out infinite;
+}
+
+/* ── Prevent iOS callout on long press ───────────────────────── */
+img, a {
+  -webkit-touch-callout: none;
+}
+
+/* ── Native font size (prevent iOS auto-zoom on inputs) ──────── */
+input, select, textarea {
+  font-size: max(16px, 1em);
+}
+
+/* ── Cursor default on interactive draggable areas ───────────── */
+.drag-handle {
+  cursor: grab;
+  touch-action: pan-y;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
