@@ -5,8 +5,9 @@ import { SearchController } from './search.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 
 @Module({
-  imports:     [PrismaModule],
+  imports: [PrismaModule],
   controllers: [SearchController],
-  providers:   [SearchService],
+  providers: [SearchService],
+  exports: [SearchService],
 })
 export class SearchModule {}
