@@ -5,7 +5,7 @@ import { ListingsController } from './listings.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],          // was missing — needed for PrismaService DI
+  imports: [PrismaModule],
   controllers: [ListingsController],
   providers: [ListingsService],
   exports: [ListingsService],
