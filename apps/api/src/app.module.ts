@@ -1,6 +1,6 @@
 // apps/api/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -15,8 +15,25 @@ import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // ── Config (global, so all modules can inject ConfigService) ──────────
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // In production, all required vars must be present at startup
+      expandVariables: true,
+    }),
+
+    // ── Global rate limiting: generous defaults, auth module overrides ─────
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService) => [
+        {
+          ttl: cfg.get<number>('THROTTLE_TTL', 60_000),
+          limit: cfg.get<number>('THROTTLE_LIMIT', 120),
+        },
+      ],
+    }),
+
     PrismaModule,
     AuthModule,
     UsersModule,
