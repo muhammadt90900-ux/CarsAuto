@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { HeroSearch }   from '@/components/features/home/HeroSearch';
-import { FeaturedCars } from '@/components/features/home/FeaturedCars';
-import { RecentParts }  from '@/components/features/home/RecentParts';
+import { HeroSearch }        from '@/components/features/home/HeroSearch';
+import { FeaturedCars }      from '@/components/features/home/FeaturedCars';
+import { RecentParts }       from '@/components/features/home/RecentParts';
 import Link from 'next/link';
 
 type Props = { params: { locale: string } };
@@ -12,116 +12,797 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: t('homeTitle'), description: t('homeDesc') };
 }
 
-export default async function HomePage({ params }: Props) {
-  const t  = await getTranslations({ locale: params.locale, namespace: 'home' });
-  const tc = await getTranslations({ locale: params.locale, namespace: 'common' });
-  const locale = params.locale;
+/* ─────────────────────────────────────────────────────────────
+   Static data — categories, brands, dealers, testimonials, stats
+   ───────────────────────────────────────────────────────────── */
 
-  const trustItems = [
-    { icon: '🔐', key: 'safeSecure',      subKey: 'safeSecureSub'      },
-    { icon: '✅', key: 'verifiedDealers', subKey: 'verifiedDealersSub' },
-    { icon: '💬', key: 'directChat',      subKey: 'directChatSub'      },
-    { icon: '🌍', key: 'middleEastWide',  subKey: 'middleEastWideSub'  },
-  ] as const;
+const PREMIUM_CATEGORIES = [
+  { id: 'sedan',    icon: '🚗', label: 'سیدان',       labelEn: 'Sedan',       count: '4,200+', color: '#3b82f6' },
+  { id: 'suv',      icon: '🚙', label: 'SUV',          labelEn: 'SUV / 4×4',   count: '6,800+', color: '#c9a84c' },
+  { id: 'luxury',   icon: '💎', label: 'لوکس',         labelEn: 'Luxury',      count: '1,500+', color: '#a855f7' },
+  { id: 'electric', icon: '⚡', label: 'کارەبایی',     labelEn: 'Electric',    count: '820+',   color: '#10b981' },
+  { id: 'pickup',   icon: '🛻', label: 'پیکەپ',        labelEn: 'Pickup',      count: '2,100+', color: '#ef4444' },
+  { id: 'parts',    icon: '⚙️', label: 'پارچەکان',     labelEn: 'Parts',       count: '18,000+',color: '#f97316' },
+] as const;
+
+const TRENDING_BRANDS = [
+  { name: 'Toyota',   logoText: 'T',  color: '#eb0a1e', listings: '5,200+' },
+  { name: 'BMW',      logoText: 'BMW',color: '#1c69d3', listings: '2,800+' },
+  { name: 'Mercedes', logoText: '★',  color: '#c0c0c0', listings: '2,400+' },
+  { name: 'Lexus',    logoText: 'L',  color: '#1a1a2e', listings: '1,900+' },
+  { name: 'KIA',      logoText: 'K',  color: '#05141f', listings: '3,100+' },
+  { name: 'Hyundai',  logoText: 'H',  color: '#002c5f', listings: '2,700+' },
+  { name: 'BYD',      logoText: 'BYD',color: '#1db954', listings: '1,200+' },
+  { name: 'Nissan',   logoText: 'N',  color: '#c3002f', listings: '2,100+' },
+] as const;
+
+const FEATURED_DEALERS = [
+  {
+    id: 1,
+    name: 'Al-Najaf Premium Auto',
+    nameKu: 'ئەل-نەجەف پریمیئوم ئۆتۆ',
+    city: 'Erbil',
+    rating: 4.9,
+    reviews: 284,
+    listings: 142,
+    verified: true,
+    specialty: 'Luxury & Premium',
+    badge: '💎 Platinum Dealer',
+  },
+  {
+    id: 2,
+    name: 'Kurdistan Motors',
+    nameKu: 'کوردستان مۆتۆرز',
+    city: 'Sulaymaniyah',
+    rating: 4.8,
+    reviews: 196,
+    listings: 98,
+    verified: true,
+    specialty: 'Toyota & Lexus',
+    badge: '⭐ Top Rated',
+  },
+  {
+    id: 3,
+    name: 'Gulf Star Autos',
+    nameKu: 'گولف ستار ئۆتۆز',
+    city: 'Dubai',
+    rating: 4.9,
+    reviews: 421,
+    listings: 213,
+    verified: true,
+    specialty: 'Import Specialist',
+    badge: '🌟 Gold Dealer',
+  },
+  {
+    id: 4,
+    name: 'Tigris Auto Group',
+    nameKu: 'تیگریس ئۆتۆ گروپ',
+    city: 'Baghdad',
+    rating: 4.7,
+    reviews: 158,
+    listings: 87,
+    verified: true,
+    specialty: 'All Brands',
+    badge: '✅ Verified',
+  },
+] as const;
+
+const TESTIMONIALS = [
+  {
+    id: 1,
+    name: 'Ahmad Al-Rashidi',
+    nameKu: 'ئەحمەد ئەل-ڕاشیدی',
+    city: 'Erbil',
+    rating: 5,
+    text: 'Found my dream Land Cruiser within 24 hours. The platform is incredibly fast and the dealers are genuine. Best car marketplace in the region by far.',
+    textKu: 'ژەمەی دریمیمم لاند کروزەرەکەم دۆزیمەوە لە ٢٤ کاتژمێر. پلاتفۆرمەکە زۆر خێراو فرۆشەرەکانیش ڕاستییانە.',
+    car: 'Toyota Land Cruiser 2023',
+    avatar: '👨',
+  },
+  {
+    id: 2,
+    name: 'Sara Karim',
+    nameKu: 'سارا کەریم',
+    city: 'Sulaymaniyah',
+    rating: 5,
+    text: 'Sold my BMW in 3 days! The listing process was simple, secure, and I got the price I wanted. Will definitely use again.',
+    textKu: 'BMW ەکەم فرۆشتم لە ٣ رۆژ! پرۆسەی لیستکردن ئاسان، ئەمنی بوو و نرخی دەمەویستیشم گرتم.',
+    car: 'BMW 5 Series 2022',
+    avatar: '👩',
+  },
+  {
+    id: 3,
+    name: 'Mohammed Hassan',
+    nameKu: 'محەمەد حەسەن',
+    city: 'Baghdad',
+    rating: 5,
+    text: 'The verified dealer system gives me confidence. Bought 2 cars through this platform and both experiences were perfect. Highly recommended!',
+    textKu: 'سیستەمی دیلەری دڵنیاکراو باوەڕمان پێ دەبەخشێت. ٢ ئۆتۆمبێل کڕیم لە ئێستادا.',
+    car: 'Mercedes GLE 2022',
+    avatar: '👨‍💼',
+  },
+] as const;
+
+const PLATFORM_STATS = [
+  { value: '24,000',  suffix: '+', label: 'چالاک لیستینگ',    labelEn: 'Active Listings',   icon: '🚗' },
+  { value: '1,200',   suffix: '+', label: 'دیلەری دڵنیاکراو', labelEn: 'Verified Dealers',  icon: '🏪' },
+  { value: '98',      suffix: '%', label: 'دڵنیایی کڕینەوە',  labelEn: 'Satisfaction Rate', icon: '⭐' },
+  { value: '48',      suffix: 'h', label: 'مامناوەند فرۆشتن',  labelEn: 'Avg. Time to Sell', icon: '⚡' },
+  { value: '8',       suffix: '',  label: 'شار',               labelEn: 'Cities Covered',    icon: '📍' },
+  { value: '50,000',  suffix: '+', label: 'کڕیاری بەکارهێنر',  labelEn: 'Happy Customers',   icon: '🤝' },
+] as const;
+
+/* ─────────────────────────────────────────────────────────────
+   Page Component
+   ───────────────────────────────────────────────────────────── */
+export default async function HomePage({ params }: Props) {
+  const t      = await getTranslations({ locale: params.locale, namespace: 'home' });
+  const locale = params.locale;
 
   return (
     <>
-      {/* ── Hero ───────────────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════
+          01 · HERO
+      ═══════════════════════════════════════════════ */}
       <HeroSearch />
 
-      {/* ── Featured Cars ──────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <div className="flex items-end justify-between mb-8 gap-4">
-          <div>
-            <p className="text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
-              {t('featuredEyebrow')}
-            </p>
-            <h2 className="section-heading text-2xl sm:text-3xl text-[var(--text-primary)]">
-              {t('featuredCars')}
-            </h2>
-          </div>
-          <Link
-            href={`/${locale}/cars`}
-            className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold
-                       text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap"
-          >
-            {t('viewAll')} <span aria-hidden>→</span>
-          </Link>
-        </div>
-        <div className="h-px bg-gradient-to-r from-[#c9a84c]/30 via-[#c9a84c]/10 to-transparent mb-8" />
-        <FeaturedCars />
-      </section>
-
-      {/* ── Trust strip ────────────────────────────────────────── */}
-      <div className="border-y border-slate-100 dark:border-white/[0.06] bg-slate-50 dark:bg-[#080f1c] py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center sm:justify-between items-center gap-6">
-            {trustItems.map(({ icon, key, subKey }) => (
-              <div key={key} className="flex items-center gap-3">
-                <span className="text-2xl flex-shrink-0" aria-hidden>{icon}</span>
-                <div>
-                  <p className="text-[var(--text-primary)] text-sm font-semibold leading-tight">{t(key)}</p>
-                  <p className="text-[var(--text-faint)] text-xs">{t(subKey)}</p>
+      {/* ═══════════════════════════════════════════════
+          02 · ANIMATED STATS BANNER
+      ═══════════════════════════════════════════════ */}
+      <div className="relative overflow-hidden border-y border-[#c9a84c]/15"
+           style={{ background: 'linear-gradient(90deg, #050b14 0%, #080f1c 50%, #050b14 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.03]"
+             style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+            {PLATFORM_STATS.map(({ value, suffix, label, labelEn, icon }, i) => (
+              <div
+                key={labelEn}
+                className="text-center stat-animate"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div className="text-2xl mb-1">{icon}</div>
+                <div className="text-2xl sm:text-3xl font-black text-[#c9a84c] tabular-nums leading-none">
+                  {value}<span className="text-lg">{suffix}</span>
+                </div>
+                <div className="text-white/50 text-xs mt-1 leading-tight">
+                  {label}<br/>
+                  <span className="text-white/25">{labelEn}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
+        <style>{`
+          @keyframes statReveal { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+          .stat-animate { animation: statReveal 0.6s cubic-bezier(0.16,1,0.3,1) both }
+        `}</style>
       </div>
 
-      {/* ── Spare Parts ────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+      {/* ═══════════════════════════════════════════════
+          03 · PREMIUM CATEGORIES
+      ═══════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="text-center mb-12">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                           bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">
+            ● Browse by Category
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] leading-tight">
+            دۆزینەوە بە{' '}
+            <span className="text-[#c9a84c]">جۆر</span>
+          </h2>
+          <p className="text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
+            Explore thousands of listings across every vehicle category
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {PREMIUM_CATEGORIES.map(({ id, icon, label, labelEn, count, color }) => (
+            <Link
+              key={id}
+              href={`/${locale}/${id === 'parts' ? 'spare-parts' : 'cars'}?category=${id}`}
+              className="group relative rounded-2xl overflow-hidden cursor-pointer
+                         border border-white/[0.07] hover:border-[#c9a84c]/40
+                         transition-all duration-300 hover:-translate-y-1
+                         hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+              style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                   style={{ background: `radial-gradient(circle at 50% 0%, ${color}18 0%, transparent 70%)` }} />
+              <div className="relative p-5 text-center">
+                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">{icon}</div>
+                <div className="font-bold text-white text-sm mb-0.5">{label}</div>
+                <div className="text-white/40 text-[10px]">{labelEn}</div>
+                <div className="mt-3 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block"
+                     style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}>
+                  {count}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          04 · FEATURED CARS
+      ═══════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
-            <p className="text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+            <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+              <span className="w-6 h-px bg-[#c9a84c]" />
+              {t('featuredEyebrow')}
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
+              {t('featuredCars')}
+            </h2>
+          </div>
+          <Link
+            href={`/${locale}/cars`}
+            className="hidden sm:inline-flex items-center gap-2 text-sm font-bold
+                       text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap
+                       px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50
+                       hover:bg-[#c9a84c]/[0.06]"
+          >
+            {t('viewAll')} →
+          </Link>
+        </div>
+        <FeaturedCars />
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          05 · TRENDING BRANDS
+      ═══════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden py-16 sm:py-24"
+               style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(5,11,20,0.6) 30%, rgba(5,11,20,0.6) 70%, transparent 100%)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+                <span className="w-6 h-px bg-[#c9a84c]" />
+                Trending Brands
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
+                براندی{' '}<span className="text-[#c9a84c]">گەرم</span>
+              </h2>
+            </div>
+            <Link href={`/${locale}/cars`}
+                  className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c]
+                             hover:text-[#e8cc7a] transition-colors whitespace-nowrap
+                             px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50
+                             hover:bg-[#c9a84c]/[0.06]">
+              All Brands →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            {TRENDING_BRANDS.map(({ name, logoText, color, listings }) => (
+              <Link
+                key={name}
+                href={`/${locale}/cars?make=${name}`}
+                className="group relative rounded-xl overflow-hidden cursor-pointer
+                           border border-white/[0.07] hover:border-[#c9a84c]/40
+                           transition-all duration-300 hover:-translate-y-1
+                           hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+                style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}
+              >
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                     style={{ background: `radial-gradient(circle at 50% 50%, ${color}15 0%, transparent 70%)` }} />
+                <div className="relative p-4 text-center">
+                  <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center
+                                  text-white text-xs font-black border-2 transition-all duration-300
+                                  group-hover:scale-110"
+                       style={{ background: `${color}20`, borderColor: `${color}40`, color }}>
+                    {logoText}
+                  </div>
+                  <div className="font-bold text-white text-xs mb-1">{name}</div>
+                  <div className="text-white/35 text-[9px]">{listings}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          06 · LATEST LISTINGS  (spare parts)
+      ═══════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
+        <div className="flex items-end justify-between mb-8 gap-4">
+          <div>
+            <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+              <span className="w-6 h-px bg-[#c9a84c]" />
               {t('partsEyebrow')}
-            </p>
-            <h2 className="section-heading text-2xl sm:text-3xl text-[var(--text-primary)]">
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
               {t('recentParts')}
             </h2>
           </div>
           <Link
             href={`/${locale}/spare-parts`}
-            className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold
-                       text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap"
+            className="hidden sm:inline-flex items-center gap-2 text-sm font-bold
+                       text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap
+                       px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50
+                       hover:bg-[#c9a84c]/[0.06]"
           >
-            {t('viewAll')} <span aria-hidden>→</span>
+            {t('viewAll')} →
           </Link>
         </div>
-        <div className="h-px bg-gradient-to-r from-[#c9a84c]/30 via-[#c9a84c]/10 to-transparent mb-8" />
         <RecentParts />
       </section>
 
-      {/* ── CTA Banner ─────────────────────────────────────────── */}
-      <section className="mx-4 sm:mx-6 lg:mx-8 mb-16 rounded-2xl overflow-hidden relative"
-               style={{ background: 'linear-gradient(135deg, #080f1c 0%, #0f1c2e 50%, #080f1c 100%)' }}>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
-             style={{ backgroundImage: 'radial-gradient(circle,rgba(201,168,76,1) 1px,transparent 1px)', backgroundSize: '28px 28px' }}
-             aria-hidden />
-        <div className="relative px-8 py-12 sm:py-16 text-center space-y-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('sellCTATitle')}</h2>
-          <p className="text-white/60 max-w-md mx-auto">{t('sellCTASubtitle')}</p>
-          <div className="flex flex-wrap gap-3 justify-center pt-2">
+      {/* ═══════════════════════════════════════════════
+          07 · FEATURED DEALERS
+      ═══════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden py-16 sm:py-24">
+        <div className="absolute inset-0 opacity-[0.025]"
+             style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.6) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                             bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">
+              ● Featured Dealers
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
+              دیلەری{' '}<span className="text-[#c9a84c]">پشتیوانیکراو</span>
+            </h2>
+            <p className="text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
+              Trusted dealerships verified by our team — buy and sell with total confidence
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {FEATURED_DEALERS.map((dealer) => (
+              <div
+                key={dealer.id}
+                className="group relative rounded-2xl overflow-hidden cursor-pointer
+                           border border-white/[0.07] hover:border-[#c9a84c]/40
+                           transition-all duration-300 hover:-translate-y-1
+                           hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+                style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}
+              >
+                <div className="absolute top-0 inset-x-0 h-1"
+                     style={{ background: 'linear-gradient(90deg, #b8922e, #dab445, #b8922e)' }} />
+                <div className="p-6">
+                  {/* Avatar */}
+                  <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-2xl
+                                  bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5
+                                  border border-[#c9a84c]/20">
+                    🏪
+                  </div>
+
+                  {/* Badge */}
+                  <div className="text-[10px] font-bold text-[#c9a84c]/80 mb-2">{dealer.badge}</div>
+
+                  {/* Name */}
+                  <h3 className="font-bold text-white text-sm mb-0.5">{dealer.name}</h3>
+                  <p className="text-white/40 text-xs mb-4">{dealer.city} · {dealer.specialty}</p>
+
+                  {/* Stats row */}
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1 text-center rounded-xl py-2
+                                    bg-white/[0.04] border border-white/[0.06]">
+                      <div className="font-black text-[#c9a84c] text-base">{dealer.rating}★</div>
+                      <div className="text-white/30 text-[9px]">{dealer.reviews} reviews</div>
+                    </div>
+                    <div className="flex-1 text-center rounded-xl py-2
+                                    bg-white/[0.04] border border-white/[0.06]">
+                      <div className="font-black text-white text-base">{dealer.listings}</div>
+                      <div className="text-white/30 text-[9px]">listings</div>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <Link
+                    href={`/${locale}/dealers/${dealer.id}`}
+                    className="block text-center text-xs font-bold py-2.5 rounded-xl
+                               border border-[#c9a84c]/30 text-[#c9a84c]
+                               hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/60
+                               transition-all duration-200"
+                  >
+                    View Dealer →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
             <Link
-              href={`/${locale}/dashboard/listings/new`}
-              className="px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-200
-                         shadow-[0_4px_24px_rgba(201,168,76,0.3)] hover:shadow-[0_6px_32px_rgba(201,168,76,0.5)]
-                         hover:-translate-y-0.5 active:translate-y-0"
-              style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
-            >
-              {t('sellCTAButton')}
-            </Link>
-            <Link
-              href={`/${locale}/cars`}
-              className="px-6 py-3 rounded-xl text-sm font-semibold text-white/70
-                         border border-white/15 hover:border-white/30 hover:text-white
+              href={`/${locale}/dealers`}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold
+                         border border-white/15 text-white/60 hover:text-white hover:border-white/30
                          transition-all duration-200"
             >
-              {t('browseAll')}
+              View All Dealers →
             </Link>
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════
+          08 · TESTIMONIALS
+      ═══════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="text-center mb-12">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                           bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">
+            ● Customer Reviews
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
+            دەستەوێژی{' '}<span className="text-[#c9a84c]">کڕیارەکانمان</span>
+          </h2>
+          <p className="text-[var(--text-muted)] mt-3">What our customers say about us</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {TESTIMONIALS.map((t, i) => (
+            <div
+              key={t.id}
+              className="group relative rounded-2xl p-6 overflow-hidden
+                         border border-white/[0.07] hover:border-[#c9a84c]/30
+                         transition-all duration-300 hover:-translate-y-1"
+              style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.85), rgba(8,15,28,0.9))' }}
+            >
+              {/* Quote mark */}
+              <div className="absolute top-4 end-4 text-5xl text-[#c9a84c]/10 font-serif leading-none select-none">"</div>
+
+              {/* Stars */}
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: t.rating }).map((_, si) => (
+                  <span key={si} className="text-[#c9a84c] text-sm">★</span>
+                ))}
+              </div>
+
+              {/* Review text */}
+              <p className="text-white/70 text-sm leading-relaxed mb-4" dir="ltr">
+                {t.text}
+              </p>
+
+              {/* Divider */}
+              <div className="h-px bg-white/[0.06] mb-4" />
+
+              {/* Person */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5
+                                border border-[#c9a84c]/20 flex items-center justify-center text-xl">
+                  {t.avatar}
+                </div>
+                <div>
+                  <div className="font-semibold text-white text-sm">{t.name}</div>
+                  <div className="text-white/40 text-[10px]">{t.city} · {t.car}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          09 · STATISTICS / WHY US SECTION
+      ═══════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden mx-4 sm:mx-6 lg:mx-8 mb-12 rounded-3xl"
+               style={{ background: 'linear-gradient(135deg, #070e1b 0%, #0c1929 40%, #070e1b 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.04]"
+             style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+        {/* Gold accent line top */}
+        <div className="absolute top-0 inset-x-0 h-0.5"
+             style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, transparent)' }} />
+
+        <div className="relative px-8 sm:px-12 py-16 sm:py-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left: content */}
+            <div>
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                               bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">
+                ● Why Choose Us
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
+                چرا{' '}<span className="text-[#c9a84c]">پلاتفۆرمی ئێمە</span>{' '}
+                باشترینە؟
+              </h2>
+              <p className="text-white/50 mb-8 text-sm leading-relaxed max-w-md">
+                The most trusted automotive marketplace in Iraq, Kurdistan Region, and the Gulf — 
+                connecting buyers and sellers with confidence since 2020.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { icon: '🔐', title: 'ئەمنیت & کاوێربوون', sub: 'Secure & Verified' },
+                  { icon: '💬', title: 'چاتی ڕاستەوخۆ', sub: 'Direct Messaging' },
+                  { icon: '📱', title: 'ئەپی مۆبایل', sub: 'Mobile App' },
+                  { icon: '🌍', title: 'کشووی خاوەن دەستێ', sub: 'Regional Coverage' },
+                ].map(({ icon, title, sub }) => (
+                  <div key={sub}
+                       className="flex items-center gap-3 p-4 rounded-xl
+                                  bg-white/[0.04] border border-white/[0.07]
+                                  hover:border-[#c9a84c]/25 transition-colors duration-200">
+                    <span className="text-2xl flex-shrink-0">{icon}</span>
+                    <div>
+                      <div className="text-white text-sm font-semibold">{title}</div>
+                      <div className="text-white/40 text-xs">{sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: big numbers */}
+            <div className="grid grid-cols-2 gap-4">
+              {PLATFORM_STATS.slice(0, 4).map(({ value, suffix, label, labelEn, icon }) => (
+                <div
+                  key={labelEn}
+                  className="rounded-2xl p-6 text-center
+                             bg-white/[0.04] border border-white/[0.07]
+                             hover:border-[#c9a84c]/30 transition-all duration-300
+                             hover:bg-white/[0.06]"
+                >
+                  <div className="text-3xl mb-2">{icon}</div>
+                  <div className="text-3xl sm:text-4xl font-black text-[#c9a84c] tabular-nums leading-none">
+                    {value}<span className="text-2xl">{suffix}</span>
+                  </div>
+                  <div className="text-white/50 text-xs mt-2 font-medium">
+                    {label}
+                    <br />
+                    <span className="text-white/25">{labelEn}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          10 · DOWNLOAD APP
+      ═══════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="relative rounded-3xl overflow-hidden p-8 sm:p-12 lg:p-16"
+             style={{ background: 'linear-gradient(135deg, #080f1c 0%, #0f1c2e 50%, #080f1c 100%)' }}>
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-[0.04]"
+               style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="absolute top-0 end-0 w-64 h-64 rounded-full opacity-10"
+               style={{ background: 'radial-gradient(circle, #c9a84c 0%, transparent 60%)', filter: 'blur(60px)' }} />
+
+          <div className="relative flex flex-col lg:flex-row items-center gap-10">
+            {/* Phone mockup */}
+            <div className="flex-shrink-0 hidden sm:flex items-center justify-center">
+              <div className="w-36 h-64 rounded-[28px] border-2 border-[#c9a84c]/30
+                              bg-gradient-to-b from-[#0f1c2e] to-[#080f1c]
+                              flex flex-col items-center justify-center
+                              shadow-[0_0_60px_rgba(201,168,76,0.2)]
+                              relative overflow-hidden">
+                <div className="absolute top-3 w-16 h-1.5 rounded-full bg-white/10" />
+                <div className="text-4xl mb-3">🚗</div>
+                <div className="text-[#c9a84c] font-black text-lg">AutoIQ</div>
+                <div className="text-white/30 text-[10px] mt-1">App Preview</div>
+                <div className="absolute bottom-0 inset-x-0 h-1/3"
+                     style={{ background: 'linear-gradient(0deg, rgba(201,168,76,0.08), transparent)' }} />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 text-center lg:text-start">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                               bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">
+                📱 Mobile App
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
+                ئەپەکەمانت{' '}
+                <span className="text-[#c9a84c]">دابەزێنە</span>
+              </h2>
+              <p className="text-white/50 mb-8 max-w-md text-sm leading-relaxed">
+                Browse thousands of listings on the go. Get instant notifications for new cars, 
+                chat with dealers in real-time, and close deals faster than ever.
+              </p>
+
+              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+                {/* App Store */}
+                <Link href="#"
+                      className="flex items-center gap-3 px-5 py-3.5 rounded-xl
+                                 bg-white/[0.06] border border-white/[0.15]
+                                 hover:bg-white/[0.10] hover:border-white/30
+                                 transition-all duration-200 group">
+                  <span className="text-2xl">🍎</span>
+                  <div className="text-start">
+                    <div className="text-white/40 text-[9px] uppercase tracking-wider">Download on the</div>
+                    <div className="text-white font-bold text-sm">App Store</div>
+                  </div>
+                </Link>
+
+                {/* Play Store */}
+                <Link href="#"
+                      className="flex items-center gap-3 px-5 py-3.5 rounded-xl
+                                 bg-white/[0.06] border border-white/[0.15]
+                                 hover:bg-white/[0.10] hover:border-white/30
+                                 transition-all duration-200 group">
+                  <span className="text-2xl">🤖</span>
+                  <div className="text-start">
+                    <div className="text-white/40 text-[9px] uppercase tracking-wider">Get it on</div>
+                    <div className="text-white font-bold text-sm">Google Play</div>
+                  </div>
+                </Link>
+              </div>
+
+              {/* App stats */}
+              <div className="mt-8 flex gap-6 justify-center lg:justify-start flex-wrap">
+                {[
+                  { val: '4.9★', lbl: 'App Rating' },
+                  { val: '50k+', lbl: 'Downloads' },
+                  { val: 'Free', lbl: 'Forever' },
+                ].map(({ val, lbl }) => (
+                  <div key={lbl} className="text-center">
+                    <div className="font-black text-[#c9a84c] text-lg">{val}</div>
+                    <div className="text-white/35 text-[10px]">{lbl}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          11 · SELL CTA
+      ═══════════════════════════════════════════════ */}
+      <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">
+        <div className="relative rounded-3xl overflow-hidden py-14 sm:py-20 text-center"
+             style={{ background: 'linear-gradient(135deg, #080f1c 0%, #0f1c2e 50%, #080f1c 100%)' }}>
+          <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
+               style={{ backgroundImage: 'radial-gradient(circle,rgba(201,168,76,1) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+          <div className="absolute top-0 inset-x-0 h-0.5"
+               style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, transparent)' }} />
+          <div className="relative px-8 space-y-5">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase
+                             bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c]">
+              ● Sell Your Car
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-white">{t('sellCTATitle')}</h2>
+            <p className="text-white/50 max-w-md mx-auto text-sm">{t('sellCTASubtitle')}</p>
+            <div className="flex flex-wrap gap-3 justify-center pt-2">
+              <Link
+                href={`/${locale}/dashboard/listings/new`}
+                className="px-8 py-3.5 rounded-xl text-sm font-black text-[#050b14]
+                           shadow-[0_4px_24px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_40px_rgba(201,168,76,0.55)]
+                           hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+              >
+                {t('sellCTAButton')} →
+              </Link>
+              <Link
+                href={`/${locale}/cars`}
+                className="px-8 py-3.5 rounded-xl text-sm font-bold text-white/70
+                           border border-white/15 hover:border-white/30 hover:text-white
+                           transition-all duration-200"
+              >
+                {t('browseAll')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          12 · PREMIUM FOOTER
+      ═══════════════════════════════════════════════ */}
+      <footer className="relative overflow-hidden"
+              style={{ background: 'linear-gradient(180deg, #050b14 0%, #030710 100%)' }}>
+        {/* Top gradient line */}
+        <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent)' }} />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+          {/* Main grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+
+            {/* Brand column */}
+            <div className="col-span-2 md:col-span-4 lg:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black"
+                     style={{ background: 'linear-gradient(135deg, #c9a84c, #9e6e1e)', color: '#050b14' }}>
+                  A
+                </div>
+                <span className="font-black text-white text-lg">AutoIQ</span>
+              </div>
+              <p className="text-white/35 text-xs leading-relaxed mb-4 max-w-[200px]">
+                The #1 car marketplace in Iraq, Kurdistan & the Gulf region.
+              </p>
+              {/* Social links */}
+              <div className="flex gap-2">
+                {['𝕏', 'f', 'in', '📸'].map((s) => (
+                  <Link key={s} href="#"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs
+                                   bg-white/[0.05] border border-white/[0.08] text-white/40
+                                   hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                                   transition-all duration-200">
+                    {s}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Column: Browse */}
+            <div>
+              <h4 className="text-white font-bold text-sm mb-4">Browse</h4>
+              <ul className="space-y-2">
+                {['All Cars', 'SUVs & 4x4', 'Luxury', 'Electric', 'Spare Parts', 'Motorcycles'].map(item => (
+                  <li key={item}>
+                    <Link href={`/${locale}/cars`}
+                          className="text-white/40 hover:text-[#c9a84c] text-xs transition-colors duration-200">
+                      {item}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column: Services */}
+            <div>
+              <h4 className="text-white font-bold text-sm mb-4">Services</h4>
+              <ul className="space-y-2">
+                {['Sell Your Car', 'Dealer Portal', 'Premium Listing', 'Car Valuation', 'Import & Export', 'Financing'].map(item => (
+                  <li key={item}>
+                    <Link href="#"
+                          className="text-white/40 hover:text-[#c9a84c] text-xs transition-colors duration-200">
+                      {item}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column: Cities */}
+            <div>
+              <h4 className="text-white font-bold text-sm mb-4">Cities</h4>
+              <ul className="space-y-2">
+                {['Erbil', 'Sulaymaniyah', 'Duhok', 'Kirkuk', 'Baghdad', 'Basra', 'Dubai', 'Sharjah'].map(item => (
+                  <li key={item}>
+                    <Link href={`/${locale}/cars?city=${item}`}
+                          className="text-white/40 hover:text-[#c9a84c] text-xs transition-colors duration-200">
+                      {item}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column: Company */}
+            <div>
+              <h4 className="text-white font-bold text-sm mb-4">Company</h4>
+              <ul className="space-y-2">
+                {['About Us', 'Careers', 'Press', 'Blog', 'Contact', 'Help Center'].map(item => (
+                  <li key={item}>
+                    <Link href="#"
+                          className="text-white/40 hover:text-[#c9a84c] text-xs transition-colors duration-200">
+                      {item}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/[0.06] mb-8" />
+
+          {/* Bottom row */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-white/25 text-xs">
+              © 2025 AutoIQ. All rights reserved. Iraq · Kurdistan · UAE
+            </p>
+            <div className="flex gap-5">
+              {['Privacy Policy', 'Terms of Use', 'Cookie Policy'].map(item => (
+                <Link key={item} href="#"
+                      className="text-white/25 hover:text-white/50 text-xs transition-colors duration-200">
+                  {item}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }
