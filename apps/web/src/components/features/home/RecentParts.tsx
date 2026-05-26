@@ -1,20 +1,19 @@
 'use client';
 // components/features/home/RecentParts.tsx
-// Redesigned — Clean premium spare-parts grid
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
-import { Tag, ArrowLeft, Package } from 'lucide-react';
+import { Tag, Package, Zap } from 'lucide-react';
 
 const PART_CATEGORIES = [
   { id: 'engine',     emoji: '⚙️',  label: 'موتەر',    labelEn: 'Engine'     },
-  { id: 'suspension', emoji: '🔧',  label: 'سەسپێنشن',  labelEn: 'Suspension' },
-  { id: 'brakes',     emoji: '🔴',  label: 'فرێن',      labelEn: 'Brakes'     },
-  { id: 'body',       emoji: '🚗',  label: 'جەستە',     labelEn: 'Body'       },
-  { id: 'electrical', emoji: '⚡',  label: 'کارەبا',    labelEn: 'Electrical' },
-  { id: 'tires',      emoji: '⭕',  label: 'تایەر',     labelEn: 'Tires'      },
-];
+  { id: 'suspension', emoji: '🔧',  label: 'سەسپێنشن', labelEn: 'Suspension' },
+  { id: 'brakes',     emoji: '🔴',  label: 'فرێن',     labelEn: 'Brakes'     },
+  { id: 'body',       emoji: '🚗',  label: 'جەستە',    labelEn: 'Body'       },
+  { id: 'electrical', emoji: '⚡',  label: 'کارەبا',   labelEn: 'Electrical' },
+  { id: 'tires',      emoji: '⭕',  label: 'تایەر',    labelEn: 'Tires'      },
+] as const;
 
 /* ── Skeleton ─────────────────────────────────────────────────── */
 function PartCardSkeleton() {
@@ -50,6 +49,7 @@ function PartCard({ part }: { part: any }) {
                           hover:shadow-[var(--shadow-md)]
                           transition-all duration-250
                           hover:-translate-y-1">
+
         {/* Image */}
         <div className="h-32 overflow-hidden flex-shrink-0
                         bg-slate-50 dark:bg-[#060f1a] relative">
@@ -63,13 +63,26 @@ function PartCard({ part }: { part: any }) {
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center
+                            bg-gradient-to-br from-slate-50 to-slate-100
+                            dark:from-[#0b1525] dark:to-[#0f1c2e]">
               <Package className="w-8 h-8 text-slate-200 dark:text-white/10" />
             </div>
           )}
           <div className="absolute inset-0
                           bg-gradient-to-t from-black/30 to-transparent
                           opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          {/* New badge */}
+          {part.isNew && (
+            <div className="absolute top-2 start-2">
+              <span className="inline-flex items-center gap-0.5
+                               bg-emerald-500 text-white text-[8px] font-bold
+                               px-1.5 py-0.5 rounded-full">
+                <Zap className="w-2 h-2" />NEW
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -98,7 +111,7 @@ function PartCard({ part }: { part: any }) {
   );
 }
 
-/* ── RecentParts section ──────────────────────────────────────── */
+/* ── RecentParts ──────────────────────────────────────────────── */
 export function RecentParts() {
   const [parts,          setParts]          = useState<any[]>([]);
   const [loading,        setLoading]        = useState(true);
@@ -163,6 +176,11 @@ export function RecentParts() {
           {parts.map((part: any) => <PartCard key={part.id} part={part} />)}
         </div>
       )}
+
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none }
+      `}</style>
     </div>
   );
 }

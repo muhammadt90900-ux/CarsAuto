@@ -1,11 +1,10 @@
 'use client';
 // components/features/home/FeaturedCars.tsx
-// Redesigned — Premium automotive card design
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
-import { MapPin, Gauge, Fuel, Star, Heart, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { MapPin, Gauge, Fuel, Star, Heart, ArrowLeft, Zap, Shield } from 'lucide-react';
 
 /* ── Skeleton ─────────────────────────────────────────────────── */
 function CarCardSkeleton() {
@@ -39,7 +38,13 @@ function CarCard({ car }: { car: any }) {
 
   return (
     <Link href={`/cars/${car.id}`} className="block group">
-      <article className="card-premium overflow-hidden h-full flex flex-col">
+      <article className="card-premium overflow-hidden h-full flex flex-col
+                          rounded-2xl border border-slate-100 dark:border-white/[0.06]
+                          bg-white dark:bg-[#0b1525]
+                          shadow-[var(--shadow-md)]
+                          hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/30
+                          hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]
+                          transition-all duration-300 hover:-translate-y-1.5">
 
         {/* Image area */}
         <div className="relative h-52 overflow-hidden bg-slate-100 dark:bg-[#060f1a] flex-shrink-0">
@@ -53,20 +58,25 @@ function CarCard({ car }: { car: any }) {
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-slate-200 dark:text-white/10 text-6xl">🚗</span>
+            <div className="w-full h-full flex items-center justify-center
+                            bg-gradient-to-br from-slate-100 to-slate-200
+                            dark:from-[#0b1525] dark:to-[#0f1c2e]">
+              <span className="text-6xl opacity-20">🚗</span>
             </div>
           )}
 
-          {/* Image overlay gradient */}
+          {/* Gradient overlay on hover */}
           <div className="absolute inset-0
-                          bg-gradient-to-t from-black/50 via-transparent to-transparent
+                          bg-gradient-to-t from-black/60 via-transparent to-transparent
                           opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
 
-          {/* Badges top-right */}
+          {/* Badges top-end */}
           <div className="absolute top-3 end-3 flex flex-col gap-1.5 items-end">
             {car.featured && (
-              <span className="badge-gold !text-[9px] !py-0.5 !px-2.5">
+              <span className="inline-flex items-center gap-1
+                               bg-gradient-to-r from-[#b8922e] to-[#dab445]
+                               text-[#050b14] text-[9px] font-black
+                               px-2.5 py-0.5 rounded-full shadow-[0_2px_8px_rgba(201,168,76,0.4)]">
                 <Star className="w-2.5 h-2.5 fill-current" />
                 تایبەت
               </span>
@@ -79,9 +89,17 @@ function CarCard({ car }: { car: any }) {
                 نوێ / New
               </span>
             )}
+            {car.verified && (
+              <span className="inline-flex items-center gap-1
+                               bg-blue-500/90 text-white text-[9px] font-bold
+                               px-2.5 py-0.5 rounded-full">
+                <Shield className="w-2.5 h-2.5" />
+                Verified
+              </span>
+            )}
           </div>
 
-          {/* Heart button top-left */}
+          {/* Heart button */}
           <button
             onClick={e => { e.preventDefault(); setLiked(v => !v); }}
             aria-label={liked ? 'Remove from favorites' : 'Add to favorites'}
@@ -96,10 +114,10 @@ function CarCard({ car }: { car: any }) {
             <Heart className={`w-3.5 h-3.5 transition-all duration-200 ${liked ? 'fill-current scale-110' : ''}`} />
           </button>
 
-          {/* Year chip bottom-left */}
+          {/* Year chip */}
           {car.year && (
             <div className="absolute bottom-3 start-3
-                            bg-black/55 backdrop-blur-md
+                            bg-black/60 backdrop-blur-md
                             text-white/90 text-xs font-bold
                             px-2.5 py-1 rounded-lg tabular-nums">
               {car.year}
@@ -158,7 +176,7 @@ function CarCard({ car }: { car: any }) {
                             border border-[#c9a84c]/25
                             flex items-center justify-center
                             group-hover:bg-[#c9a84c] group-hover:border-[#c9a84c]
-                            transition-all duration-250 shadow-none
+                            transition-all duration-250
                             group-hover:shadow-[var(--shadow-gold-sm)]">
               <ArrowLeft className="w-3.5 h-3.5 text-[#c9a84c]/60
                                     group-hover:text-[#050b14]
@@ -171,7 +189,7 @@ function CarCard({ car }: { car: any }) {
   );
 }
 
-/* ── FeaturedCars section ─────────────────────────────────────── */
+/* ── FeaturedCars ─────────────────────────────────────────────── */
 export function FeaturedCars() {
   const [cars,    setCars]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
