@@ -6,20 +6,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SearchModule = void 0;
-// apps/api/src/modules/search/search.module.ts
+exports.JwtAuthGuard = void 0;
+// apps/api/src/modules/auth/guards/jwt-auth.guard.ts
 const common_1 = require("@nestjs/common");
-const search_service_1 = require("./search.service");
-const search_controller_1 = require("./search.controller");
-const prisma_module_1 = require("../../common/prisma/prisma.module");
-let SearchModule = class SearchModule {
+const passport_1 = require("@nestjs/passport");
+let JwtAuthGuard = class JwtAuthGuard extends (0, passport_1.AuthGuard)('jwt') {
 };
-exports.SearchModule = SearchModule;
-exports.SearchModule = SearchModule = __decorate([
-    (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
-        controllers: [search_controller_1.SearchController],
-        providers: [search_service_1.SearchService],
-        exports: [search_service_1.SearchService],
-    })
-], SearchModule);
+exports.JwtAuthGuard = JwtAuthGuard;
+exports.JwtAuthGuard = JwtAuthGuard = __decorate([
+    (0, common_1.Injectable)()
+], JwtAuthGuard);

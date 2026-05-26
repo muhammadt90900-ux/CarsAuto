@@ -27,8 +27,23 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({ isGlobal: true }),
-            throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+            // ── Config (global, so all modules can inject ConfigService) ──────────
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                // In production, all required vars must be present at startup
+                expandVariables: true,
+            }),
+            // ── Global rate limiting: generous defaults, auth module overrides ─────
+            throttler_1.ThrottlerModule.forRootAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (cfg) => [
+                    {
+                        ttl: cfg.get('THROTTLE_TTL', 60_000),
+                        limit: cfg.get('THROTTLE_LIMIT', 120),
+                    },
+                ],
+            }),
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,

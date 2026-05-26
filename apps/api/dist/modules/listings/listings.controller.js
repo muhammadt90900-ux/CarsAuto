@@ -13,6 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ListingsController = void 0;
+// apps/api/src/modules/listings/listings.controller.ts
 const common_1 = require("@nestjs/common");
 const listings_service_1 = require("./listings.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
@@ -21,18 +22,27 @@ let ListingsController = class ListingsController {
     constructor(listingsService) {
         this.listingsService = listingsService;
     }
+    /** GET /listings — public paginated list with filters */
     findAll(query) {
         return this.listingsService.findAll(query);
     }
-    findOne(id) {
-        return this.listingsService.findOne(id);
-    }
+    /** GET /listings/my — authenticated user's own listings */
     myListings(req) {
         return this.listingsService.myListings(req.user.userId);
     }
+    /** GET /listings/:id — single listing detail + view increment */
+    findOne(id) {
+        return this.listingsService.findOne(id);
+    }
+    /** POST /listings — create a new listing */
     create(req, dto) {
         return this.listingsService.create({ ...dto, userId: req.user.userId });
     }
+    /** PATCH /listings/:id — partial update (owner only) */
+    update(id, req, dto) {
+        return this.listingsService.update(id, req.user.userId, dto);
+    }
+    /** DELETE /listings/:id — soft or hard delete (owner only) */
     delete(id, req) {
         return this.listingsService.delete(id, req.user.userId);
     }
@@ -46,20 +56,20 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ListingsController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", void 0)
-], ListingsController.prototype, "findOne", null);
-__decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('my/listings'),
+    (0, common_1.Get)('my'),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ListingsController.prototype, "myListings", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
@@ -71,8 +81,19 @@ __decorate([
 ], ListingsController.prototype, "create", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Request)()),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "update", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),

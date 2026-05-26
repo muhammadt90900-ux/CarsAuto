@@ -18,18 +18,16 @@ let ListingsService = class ListingsService {
         this.prisma = prisma;
     }
     async findAll(query) {
-        const page = Number(query.page ?? 1);
-        const limit = Number(query.limit ?? 20);
+        const page = Math.max(1, Number(query.page ?? 1));
+        const limit = Math.min(100, Math.max(1, Number(query.limit ?? 20)));
         const skip = (page - 1) * limit;
         const where = { status: 'ACTIVE' };
-        // ── Basic filters ───────────────────────────────────────────────────────
+        // ── Listing-level filters ────────────────────────────────────────────────
         if (query.type)
             where.type = query.type;
         if (query.locationId)
             where.locationId = query.locationId;
-        if (query.condition)
-            where.condition = query.condition;
-        // ── Price range ─────────────────────────────────────────────────────────
+        // Price range
         if (query.minPrice || query.maxPrice) {
             where.price = {};
             if (query.minPrice)
@@ -37,29 +35,63 @@ let ListingsService = class ListingsService {
             if (query.maxPrice)
                 where.price.lte = Number(query.maxPrice);
         }
-        // ── Vehicle hierarchy filters ───────────────────────────────────────────
-        // Each level is independent so the frontend can filter at any granularity.
-        if (query.brandId)
-            where.makeId = query.brandId;
-        if (query.modelId)
-            where.modelId = query.modelId;
-        if (query.trimId)
-            where.trimId = query.trimId;
-        // ── Year range ──────────────────────────────────────────────────────────
+        // ── Vehicle spec filters ──────────────────────────────────────────────────
+        const specWhere = {};
+        let hasSpecFilter = false;
+        if (query.brandId) {
+            specWhere.brandId = query.brandId;
+            hasSpecFilter = true;
+        }
+        if (query.modelId) {
+            specWhere.modelId = query.modelId;
+            hasSpecFilter = true;
+        }
+        if (query.trimId) {
+            specWhere.trimId = query.trimId;
+            hasSpecFilter = true;
+        }
+        if (query.condition) {
+            specWhere.condition = query.condition;
+            hasSpecFilter = true;
+        }
+        if (query.fuelType) {
+            specWhere.fuelType = query.fuelType;
+            hasSpecFilter = true;
+        }
+        if (query.transmission) {
+            specWhere.transmission = query.transmission;
+            hasSpecFilter = true;
+        }
+        if (query.color) {
+            specWhere.color = { equals: query.color, mode: 'insensitive' };
+            hasSpecFilter = true;
+        }
+        // Year
         if (query.year) {
-            where.year = Number(query.year);
+            specWhere.year = Number(query.year);
+            hasSpecFilter = true;
         }
         else if (query.minYear || query.maxYear) {
-            where.year = {};
+            specWhere.year = {};
             if (query.minYear)
-                where.year.gte = Number(query.minYear);
+                specWhere.year.gte = Number(query.minYear);
             if (query.maxYear)
-                where.year.lte = Number(query.maxYear);
+                specWhere.year.lte = Number(query.maxYear);
+            hasSpecFilter = true;
         }
-        // ── Mileage cap ─────────────────────────────────────────────────────────
-        if (query.maxMileage) {
-            where.mileage = { lte: Number(query.maxMileage) };
+        // Mileage
+        if (query.minMileage || query.maxMileage) {
+            specWhere.mileageKm = {};
+            if (query.minMileage)
+                specWhere.mileageKm.gte = Number(query.minMileage);
+            if (query.maxMileage)
+                specWhere.mileageKm.lte = Number(query.maxMileage);
+            hasSpecFilter = true;
         }
+        if (hasSpecFilter) {
+            where.vehicleSpec = { is: specWhere };
+        }
+        // ── Execute ──────────────────────────────────────────────────────────────
         const [data, total] = await Promise.all([
             this.prisma.listing.findMany({
                 where,
@@ -67,13 +99,16 @@ let ListingsService = class ListingsService {
                 take: limit,
                 orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
                 include: {
-                    images: { where: { isCover: true }, take: 1 },
+                    images: { where: { isCover: true }, take: 1, orderBy: { order: 'asc' } },
                     location: true,
                     user: { select: { id: true, name: true, avatar: true, verified: true } },
-                    // Vehicle relations — lean selects to keep payload small
-                    make: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logo: true } },
-                    model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
-                    trim: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+                    vehicleSpec: {
+                        include: {
+                            brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
+                            model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+                            trim: { select: { id: true, name: true, fuelType: true, transmission: true, bodyType: true, engineLabel: true } },
+                        },
+                    },
                 },
             }),
             this.prisma.listing.count({ where }),
@@ -84,22 +119,30 @@ let ListingsService = class ListingsService {
         const listing = await this.prisma.listing.findUnique({
             where: { id },
             include: {
-                images: true,
+                images: { orderBy: { order: 'asc' } },
                 location: true,
-                user: {
-                    select: { id: true, name: true, avatar: true, verified: true, phone: true },
+                user: { select: { id: true, name: true, avatar: true, verified: true, phone: true } },
+                vehicleSpec: {
+                    include: {
+                        brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
+                        model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+                        trim: {
+                            select: {
+                                id: true, name: true, fuelType: true, transmission: true,
+                                bodyType: true, drivetrain: true, engineCC: true,
+                                engineLabel: true, powerKw: true, doors: true, seats: true,
+                            },
+                        },
+                    },
                 },
-                make: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logo: true } },
-                model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
-                trim: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, engine: true, transmission: true, fuelType: true } },
             },
         });
         if (!listing)
             throw new common_1.NotFoundException('Listing not found');
-        await this.prisma.listing.update({
-            where: { id },
-            data: { views: { increment: 1 } },
-        });
+        // Increment view count (fire-and-forget — don't await)
+        this.prisma.listing
+            .update({ where: { id }, data: { views: { increment: 1 } } })
+            .catch(() => { });
         return listing;
     }
     async create(data) {
@@ -114,10 +157,16 @@ let ListingsService = class ListingsService {
                             create: images.map((url, i) => ({
                                 url,
                                 isCover: i === 0,
+                                order: i,
                             })),
                         },
                     }
                     : {}),
+            },
+            include: {
+                images: { orderBy: { order: 'asc' } },
+                vehicleSpec: true,
+                location: true,
             },
         });
     }
@@ -127,15 +176,30 @@ let ListingsService = class ListingsService {
             orderBy: { createdAt: 'desc' },
             include: {
                 images: { where: { isCover: true }, take: 1 },
-                make: { select: { id: true, nameEn: true, logo: true } },
-                model: { select: { id: true, nameEn: true } },
+                vehicleSpec: {
+                    include: {
+                        brand: { select: { id: true, nameEn: true, logoUrl: true } },
+                        model: { select: { id: true, nameEn: true } },
+                    },
+                },
             },
         });
     }
-    async delete(id, userId) {
+    async update(id, userId, data) {
         const listing = await this.prisma.listing.findFirst({ where: { id, userId } });
         if (!listing)
             throw new common_1.NotFoundException('Listing not found');
+        return this.prisma.listing.update({
+            where: { id },
+            data: { ...data },
+        });
+    }
+    async delete(id, userId) {
+        const listing = await this.prisma.listing.findFirst({ where: { id } });
+        if (!listing)
+            throw new common_1.NotFoundException('Listing not found');
+        if (listing.userId !== userId)
+            throw new common_1.ForbiddenException('Not authorized');
         return this.prisma.listing.delete({ where: { id } });
     }
 };

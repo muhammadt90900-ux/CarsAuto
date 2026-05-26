@@ -10,16 +10,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoginDto = void 0;
+// apps/api/src/modules/auth/dto/login.dto.ts
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class LoginDto {
 }
 exports.LoginDto = LoginDto;
 __decorate([
-    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.IsEmail)({}, { message: 'ئیمەیڵی دروست بنووسە / Please enter a valid email address' }),
+    (0, class_validator_1.MaxLength)(254, { message: 'ئیمەیڵ زۆر درێژە / Email is too long' }),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()?.toLowerCase()),
     __metadata("design:type", String)
 ], LoginDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(6),
+    (0, class_validator_1.MinLength)(8, { message: 'پاسوۆرد دەبێت لانیکەم ٨ پیت بێت / Password must be at least 8 characters' }),
+    (0, class_validator_1.MaxLength)(128, { message: 'پاسوۆرد زۆر درێژە / Password is too long' }),
     __metadata("design:type", String)
 ], LoginDto.prototype, "password", void 0);

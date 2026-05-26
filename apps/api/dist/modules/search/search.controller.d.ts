@@ -2,11 +2,128 @@ import { SearchService } from './search.service';
 export declare class SearchController {
     private readonly searchService;
     constructor(searchService: SearchService);
-    search(q: string, type: string, makeId: string, modelId: string, yearFrom: string, yearTo: string, fuelType: string, transmission: string, driveType: string, bodyType: string, condition: string, page: string, limit: string): Promise<{
-        data: any;
-        total: any;
+    /**
+     * GET /search
+     *
+     * Query params (all optional, compose together):
+     *   q            – free-text keyword (searches all localised title/desc fields)
+     *   type         – listing type  : CAR | MOTORCYCLE | SPARE_PART
+     *   brandId      – vehicle brand UUID
+     *   modelId      – vehicle model UUID  (brand must match)
+     *   trimId       – specific trim UUID  (model must match)
+     *   year         – exact production year
+     *   minYear      – year range lower bound
+     *   maxYear      – year range upper bound
+     *   condition    – NEW | USED | SALVAGE
+     *   minPrice     – price lower bound  (USD)
+     *   maxPrice     – price upper bound  (USD)
+     *   locationId   – location UUID
+     *   fuelType     – PETROL | DIESEL | HYBRID | PLUG_IN_HYBRID | ELECTRIC | LPG | CNG
+     *   transmission – MANUAL | AUTOMATIC | SEMI_AUTOMATIC | CVT | DUAL_CLUTCH
+     *   color        – free-text color string (case-insensitive)
+     *   minMileage   – mileage lower bound (km)
+     *   maxMileage   – mileage upper bound (km)
+     *   page         – 1-based page number (default 1)
+     *   limit        – results per page    (default 20, max 100)
+     */
+    search(q: string, type: string, brandId: string, modelId: string, trimId: string, year: string, minYear: string, maxYear: string, condition: string, minPrice: string, maxPrice: string, locationId: string, fuelType: string, transmission: string, color: string, minMileage: string, maxMileage: string, page: string, limit: string): Promise<{
+        data: ({
+            location: {
+                id: string;
+                nameEn: string;
+                nameAr: string;
+                nameKu: string;
+                nameZh: string;
+                country: string;
+                governorate: string | null;
+                city: string;
+                lat: number;
+                lng: number;
+            };
+            vehicleSpec: {
+                trim: {
+                    name: string;
+                    id: string;
+                    fuelType: import(".prisma/client").$Enums.FuelType;
+                    transmission: import(".prisma/client").$Enums.TransmissionType;
+                    bodyType: import(".prisma/client").$Enums.BodyType;
+                    engineLabel: string;
+                };
+                brand: {
+                    id: string;
+                    nameEn: string;
+                    nameAr: string;
+                    nameKu: string;
+                    logoUrl: string;
+                };
+                model: {
+                    id: string;
+                    nameEn: string;
+                    nameAr: string;
+                    nameKu: string;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                trimId: string | null;
+                brandId: string | null;
+                modelId: string | null;
+                year: number | null;
+                condition: import(".prisma/client").$Enums.ListingCondition | null;
+                mileageKm: number | null;
+                fuelType: import(".prisma/client").$Enums.FuelType | null;
+                transmission: import(".prisma/client").$Enums.TransmissionType | null;
+                drivetrain: import(".prisma/client").$Enums.DrivetrainType | null;
+                bodyType: import(".prisma/client").$Enums.BodyType | null;
+                color: string | null;
+                engineLabel: string | null;
+                engineCC: number | null;
+                powerKw: number | null;
+                doors: number | null;
+                seats: number | null;
+                vin: string | null;
+                listingId: string;
+            };
+            images: {
+                id: string;
+                listingId: string;
+                order: number;
+                url: string;
+                isCover: boolean;
+            }[];
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: import(".prisma/client").$Enums.ListingType;
+            status: import(".prisma/client").$Enums.ListingStatus;
+            userId: string;
+            titleKu: string;
+            titleAr: string;
+            titleEn: string;
+            titleZh: string;
+            descriptionKu: string | null;
+            descriptionAr: string | null;
+            descriptionEn: string | null;
+            descriptionZh: string | null;
+            price: number;
+            currency: string;
+            negotiable: boolean;
+            locationId: string | null;
+            categoryId: string | null;
+            partNumber: string | null;
+            views: number;
+            featured: boolean;
+        })[];
+        total: number;
         page: number;
         limit: number;
         totalPages: number;
     }>;
+    /**
+     * GET /search/autocomplete?q=toy
+     * Returns up to 6 title suggestions for the search input dropdown.
+     */
+    autocomplete(q: string): Promise<string[]>;
 }

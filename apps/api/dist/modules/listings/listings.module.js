@@ -17,7 +17,7 @@ let ListingsModule = class ListingsModule {
 exports.ListingsModule = ListingsModule;
 exports.ListingsModule = ListingsModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule], // was missing — needed for PrismaService DI
+        imports: [prisma_module_1.PrismaModule],
         controllers: [listings_controller_1.ListingsController],
         providers: [listings_service_1.ListingsService],
         exports: [listings_service_1.ListingsService],

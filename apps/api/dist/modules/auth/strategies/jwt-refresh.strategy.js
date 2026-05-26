@@ -9,36 +9,34 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JwtStrategy = void 0;
-// apps/api/src/modules/auth/strategies/jwt.strategy.ts
+exports.JwtRefreshStrategy = void 0;
+// apps/api/src/modules/auth/strategies/jwt-refresh.strategy.ts
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const passport_1 = require("@nestjs/passport");
-const passport_jwt_1 = require("passport-jwt");
-let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'jwt') {
-    constructor(cfg) {
-        super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: cfg.getOrThrow('JWT_SECRET'),
-            issuer: 'car-platform',
-            audience: 'car-platform-client',
-        });
+const passport_custom_1 = require("passport-custom");
+const auth_service_1 = require("../auth.service");
+/**
+ * Custom strategy that reads the refresh token from an httpOnly cookie.
+ * Used exclusively on POST /auth/refresh.
+ */
+let JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_custom_1.Strategy, 'jwt-refresh') {
+    constructor(cfg, authService) {
+        super();
         this.cfg = cfg;
+        this.authService = authService;
     }
-    async validate(payload) {
-        if (!payload?.sub) {
-            throw new common_1.UnauthorizedException('Invalid token payload');
+    async validate(req) {
+        const token = req.cookies?.['refresh_token'];
+        if (!token) {
+            throw new common_1.UnauthorizedException('Refresh token missing');
         }
-        return {
-            userId: payload.sub,
-            email: payload.email,
-            role: payload.role,
-        };
+        return token; // raw token passed to the controller
     }
 };
-exports.JwtStrategy = JwtStrategy;
-exports.JwtStrategy = JwtStrategy = __decorate([
+exports.JwtRefreshStrategy = JwtRefreshStrategy;
+exports.JwtRefreshStrategy = JwtRefreshStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [config_1.ConfigService])
-], JwtStrategy);
+    __metadata("design:paramtypes", [config_1.ConfigService,
+        auth_service_1.AuthService])
+], JwtRefreshStrategy);

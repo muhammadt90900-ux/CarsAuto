@@ -17,45 +17,93 @@ let SearchService = class SearchService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async search(q, type, makeId, modelId, yearFrom, yearTo, fuelType, transmission, driveType, bodyType, condition, page = 1, limit = 20) {
+    async search(q, options = {}) {
+        const { page = 1, limit = 20, ...filters } = options;
         const skip = (page - 1) * limit;
-        const where = {
-            status: 'ACTIVE',
-            ...(q ? {
-                OR: [
-                    { titleKu: { contains: q, mode: 'insensitive' } },
-                    { titleAr: { contains: q, mode: 'insensitive' } },
-                    { titleEn: { contains: q, mode: 'insensitive' } },
-                    { descriptionKu: { contains: q, mode: 'insensitive' } },
-                    { descriptionEn: { contains: q, mode: 'insensitive' } },
-                    { trim: { contains: q, mode: 'insensitive' } },
-                    { color: { contains: q, mode: 'insensitive' } },
-                ],
-            } : {}),
-        };
-        if (type)
-            where.type = type;
-        if (makeId)
-            where.makeId = makeId;
-        if (modelId)
-            where.modelId = modelId;
-        if (fuelType)
-            where.fuelType = fuelType;
-        if (transmission)
-            where.transmission = transmission;
-        if (driveType)
-            where.driveType = driveType;
-        if (bodyType)
-            where.bodyType = bodyType;
-        if (condition)
-            where.condition = condition;
-        if (yearFrom || yearTo) {
-            where.year = {};
-            if (yearFrom)
-                where.year.gte = yearFrom;
-            if (yearTo)
-                where.year.lte = yearTo;
+        // ── Base where clause ────────────────────────────────────────────────────
+        const where = { status: 'ACTIVE' };
+        // ── Full-text search across all localised title/description fields ───────
+        if (q?.trim()) {
+            where.OR = [
+                { titleKu: { contains: q.trim(), mode: 'insensitive' } },
+                { titleAr: { contains: q.trim(), mode: 'insensitive' } },
+                { titleEn: { contains: q.trim(), mode: 'insensitive' } },
+                { titleZh: { contains: q.trim(), mode: 'insensitive' } },
+                { descriptionKu: { contains: q.trim(), mode: 'insensitive' } },
+                { descriptionAr: { contains: q.trim(), mode: 'insensitive' } },
+                { descriptionEn: { contains: q.trim(), mode: 'insensitive' } },
+            ];
         }
+        // ── Listing-level filters ────────────────────────────────────────────────
+        if (filters.type)
+            where.type = filters.type;
+        if (filters.locationId)
+            where.locationId = filters.locationId;
+        // ── Price range ──────────────────────────────────────────────────────────
+        if (filters.minPrice || filters.maxPrice) {
+            where.price = {};
+            if (filters.minPrice)
+                where.price.gte = Number(filters.minPrice);
+            if (filters.maxPrice)
+                where.price.lte = Number(filters.maxPrice);
+        }
+        // ── Vehicle spec filters (nested into vehicleSpec relation) ──────────────
+        const specWhere = {};
+        let hasSpecFilter = false;
+        if (filters.brandId) {
+            specWhere.brandId = filters.brandId;
+            hasSpecFilter = true;
+        }
+        if (filters.modelId) {
+            specWhere.modelId = filters.modelId;
+            hasSpecFilter = true;
+        }
+        if (filters.trimId) {
+            specWhere.trimId = filters.trimId;
+            hasSpecFilter = true;
+        }
+        if (filters.condition) {
+            specWhere.condition = filters.condition;
+            hasSpecFilter = true;
+        }
+        if (filters.fuelType) {
+            specWhere.fuelType = filters.fuelType;
+            hasSpecFilter = true;
+        }
+        if (filters.transmission) {
+            specWhere.transmission = filters.transmission;
+            hasSpecFilter = true;
+        }
+        if (filters.color) {
+            specWhere.color = { equals: filters.color, mode: 'insensitive' };
+            hasSpecFilter = true;
+        }
+        // Year
+        if (filters.year) {
+            specWhere.year = Number(filters.year);
+            hasSpecFilter = true;
+        }
+        else if (filters.minYear || filters.maxYear) {
+            specWhere.year = {};
+            if (filters.minYear)
+                specWhere.year.gte = Number(filters.minYear);
+            if (filters.maxYear)
+                specWhere.year.lte = Number(filters.maxYear);
+            hasSpecFilter = true;
+        }
+        // Mileage
+        if (filters.minMileage || filters.maxMileage) {
+            specWhere.mileageKm = {};
+            if (filters.minMileage)
+                specWhere.mileageKm.gte = Number(filters.minMileage);
+            if (filters.maxMileage)
+                specWhere.mileageKm.lte = Number(filters.maxMileage);
+            hasSpecFilter = true;
+        }
+        if (hasSpecFilter) {
+            where.vehicleSpec = { is: specWhere };
+        }
+        // ── Execute ──────────────────────────────────────────────────────────────
         const [data, total] = await Promise.all([
             this.prisma.listing.findMany({
                 where,
@@ -65,13 +113,43 @@ let SearchService = class SearchService {
                 include: {
                     images: { where: { isCover: true }, take: 1 },
                     location: true,
-                    carMake: { select: { nameEn: true, nameKu: true, nameAr: true, logoUrl: true } },
-                    carModel: { select: { name: true, bodyType: true } },
+                    vehicleSpec: {
+                        include: {
+                            brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
+                            model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+                            trim: { select: { id: true, name: true, fuelType: true, transmission: true, bodyType: true, engineLabel: true } },
+                        },
+                    },
                 },
             }),
             this.prisma.listing.count({ where }),
         ]);
-        return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return {
+            data,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+    // ── Autocomplete suggestions ─────────────────────────────────────────────
+    async autocomplete(q, limit = 6) {
+        if (!q || q.trim().length < 2)
+            return [];
+        const listings = await this.prisma.listing.findMany({
+            where: {
+                status: 'ACTIVE',
+                OR: [
+                    { titleEn: { contains: q.trim(), mode: 'insensitive' } },
+                    { titleKu: { contains: q.trim(), mode: 'insensitive' } },
+                    { titleAr: { contains: q.trim(), mode: 'insensitive' } },
+                ],
+            },
+            select: { titleEn: true, titleKu: true },
+            distinct: ['titleEn'],
+            take: limit,
+        });
+        return listings.map((l) => l.titleEn || l.titleKu);
     }
 };
 exports.SearchService = SearchService;

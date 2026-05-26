@@ -20,8 +20,59 @@ let SearchController = class SearchController {
     constructor(searchService) {
         this.searchService = searchService;
     }
-    search(q, type, makeId, modelId, yearFrom, yearTo, fuelType, transmission, driveType, bodyType, condition, page, limit) {
-        return this.searchService.search(q ?? '', type, makeId, modelId, yearFrom ? Number(yearFrom) : undefined, yearTo ? Number(yearTo) : undefined, fuelType, transmission, driveType, bodyType, condition, Number(page ?? 1), Number(limit ?? 20));
+    /**
+     * GET /search
+     *
+     * Query params (all optional, compose together):
+     *   q            – free-text keyword (searches all localised title/desc fields)
+     *   type         – listing type  : CAR | MOTORCYCLE | SPARE_PART
+     *   brandId      – vehicle brand UUID
+     *   modelId      – vehicle model UUID  (brand must match)
+     *   trimId       – specific trim UUID  (model must match)
+     *   year         – exact production year
+     *   minYear      – year range lower bound
+     *   maxYear      – year range upper bound
+     *   condition    – NEW | USED | SALVAGE
+     *   minPrice     – price lower bound  (USD)
+     *   maxPrice     – price upper bound  (USD)
+     *   locationId   – location UUID
+     *   fuelType     – PETROL | DIESEL | HYBRID | PLUG_IN_HYBRID | ELECTRIC | LPG | CNG
+     *   transmission – MANUAL | AUTOMATIC | SEMI_AUTOMATIC | CVT | DUAL_CLUTCH
+     *   color        – free-text color string (case-insensitive)
+     *   minMileage   – mileage lower bound (km)
+     *   maxMileage   – mileage upper bound (km)
+     *   page         – 1-based page number (default 1)
+     *   limit        – results per page    (default 20, max 100)
+     */
+    search(q, type, brandId, modelId, trimId, year, minYear, maxYear, condition, minPrice, maxPrice, locationId, fuelType, transmission, color, minMileage, maxMileage, page, limit) {
+        const parsedLimit = Math.min(Number(limit ?? 20), 100);
+        return this.searchService.search(q ?? '', {
+            type,
+            brandId,
+            modelId,
+            trimId,
+            year,
+            minYear,
+            maxYear,
+            condition,
+            minPrice,
+            maxPrice,
+            locationId,
+            fuelType,
+            transmission,
+            color,
+            minMileage,
+            maxMileage,
+            page: Number(page ?? 1),
+            limit: parsedLimit,
+        });
+    }
+    /**
+     * GET /search/autocomplete?q=toy
+     * Returns up to 6 title suggestions for the search input dropdown.
+     */
+    autocomplete(q) {
+        return this.searchService.autocomplete(q);
     }
 };
 exports.SearchController = SearchController;
@@ -29,21 +80,34 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('q')),
     __param(1, (0, common_1.Query)('type')),
-    __param(2, (0, common_1.Query)('makeId')),
+    __param(2, (0, common_1.Query)('brandId')),
     __param(3, (0, common_1.Query)('modelId')),
-    __param(4, (0, common_1.Query)('yearFrom')),
-    __param(5, (0, common_1.Query)('yearTo')),
-    __param(6, (0, common_1.Query)('fuelType')),
-    __param(7, (0, common_1.Query)('transmission')),
-    __param(8, (0, common_1.Query)('driveType')),
-    __param(9, (0, common_1.Query)('bodyType')),
-    __param(10, (0, common_1.Query)('condition')),
-    __param(11, (0, common_1.Query)('page')),
-    __param(12, (0, common_1.Query)('limit')),
+    __param(4, (0, common_1.Query)('trimId')),
+    __param(5, (0, common_1.Query)('year')),
+    __param(6, (0, common_1.Query)('minYear')),
+    __param(7, (0, common_1.Query)('maxYear')),
+    __param(8, (0, common_1.Query)('condition')),
+    __param(9, (0, common_1.Query)('minPrice')),
+    __param(10, (0, common_1.Query)('maxPrice')),
+    __param(11, (0, common_1.Query)('locationId')),
+    __param(12, (0, common_1.Query)('fuelType')),
+    __param(13, (0, common_1.Query)('transmission')),
+    __param(14, (0, common_1.Query)('color')),
+    __param(15, (0, common_1.Query)('minMileage')),
+    __param(16, (0, common_1.Query)('maxMileage')),
+    __param(17, (0, common_1.Query)('page')),
+    __param(18, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], SearchController.prototype, "search", null);
+__decorate([
+    (0, common_1.Get)('autocomplete'),
+    __param(0, (0, common_1.Query)('q')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SearchController.prototype, "autocomplete", null);
 exports.SearchController = SearchController = __decorate([
     (0, common_1.Controller)('search'),
     __metadata("design:paramtypes", [search_service_1.SearchService])

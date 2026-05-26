@@ -13,29 +13,44 @@ exports.RegisterDto = void 0;
 // apps/api/src/modules/auth/dto/register.dto.ts
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+/**
+ * Password must be 8-128 chars and contain at least:
+ *  - one uppercase letter
+ *  - one lowercase letter
+ *  - one digit
+ */
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/;
+const PASSWORD_MSG = 'پاسوۆردەکە دەبێت لانیکەم ٨ پیت بێت و لێکدانەوەی پیتی گەورە، بچووک و ژمارە تێدا بێت / ' +
+    'Password must be at least 8 characters and contain uppercase, lowercase, and a number';
+const PHONE_REGEX = /^[+\d\s\-()\u0660-\u0669]{7,20}$/;
 class RegisterDto {
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
-    (0, class_validator_1.IsString)({ message: 'ناو دەبێت دەق بێت' }),
-    (0, class_validator_1.MinLength)(2, { message: 'ناو دەبێت لانیکەم ٢ پیت بێت' }),
+    (0, class_validator_1.IsString)({ message: 'ناو دەبێت دەق بێت / Name must be a string' }),
+    (0, class_validator_1.MinLength)(2, { message: 'ناو دەبێت لانیکەم ٢ پیت بێت / Name must be at least 2 characters' }),
+    (0, class_validator_1.MaxLength)(80, { message: 'ناو زۆر درێژە / Name is too long' }),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "name", void 0);
 __decorate([
-    (0, class_validator_1.IsEmail)({}, { message: 'ئیمەیڵی دروست بنووسە' }),
+    (0, class_validator_1.IsEmail)({}, { message: 'ئیمەیڵی دروست بنووسە / Please enter a valid email address' }),
+    (0, class_validator_1.MaxLength)(254, { message: 'ئیمەیڵ زۆر درێژە / Email is too long' }),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()?.toLowerCase()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(6, { message: 'پاسوۆرد دەبێت لانیکەم ٦ پیت بێت' }),
+    (0, class_validator_1.MinLength)(8, { message: PASSWORD_MSG }),
+    (0, class_validator_1.MaxLength)(128, { message: 'پاسوۆرد زۆر درێژە / Password is too long' }),
+    (0, class_validator_1.Matches)(PASSWORD_REGEX, { message: PASSWORD_MSG }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "password", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^[+\d\s\-()]{7,20}$/, { message: 'ژمارەی تەلەفۆن دروست نییە' }),
+    (0, class_validator_1.Matches)(PHONE_REGEX, { message: 'ژمارەی تەلەفۆن دروست نییە / Invalid phone number' }),
+    (0, class_validator_1.MaxLength)(20),
     (0, class_transformer_1.Transform)(({ value }) => value?.trim() || undefined),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "phone", void 0);
