@@ -11,18 +11,17 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AiModule } from './modules/ai/ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SearchModule } from './modules/search/search.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { AppCacheModule } from './common/cache/cache.module';
 
 @Module({
   imports: [
-    // ── Config (global, so all modules can inject ConfigService) ──────────
     ConfigModule.forRoot({
       isGlobal: true,
-      // In production, all required vars must be present at startup
       expandVariables: true,
     }),
 
-    // ── Global rate limiting: generous defaults, auth module overrides ─────
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -34,6 +33,9 @@ import { PrismaModule } from './common/prisma/prisma.module';
       ],
     }),
 
+    // Global in-process cache (no Redis required)
+    AppCacheModule,
+
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -44,6 +46,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     AiModule,
     PaymentsModule,
     SearchModule,
+    VehiclesModule,
   ],
 })
 export class AppModule {}
