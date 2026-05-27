@@ -17,7 +17,7 @@
     "react-dom": "^18.0.0",
     "zustand": "^4.0.0",
     "@auto-bazaar-pro/utils": "*",
-    "@auto-bazaar-pro/types": "*",
+    "@auto-bazaar-pro/types": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
