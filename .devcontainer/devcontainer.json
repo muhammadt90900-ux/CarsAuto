@@ -1,11 +1,6 @@
 {
-  "name": "cars-auto",
-  "dockerComposeFile": ["../docker-compose.yml"],
-  "service": "web",
-  "workspaceFolder": "/workspace",
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-  ],
+  "name": "Cars-Auto Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
   "forwardPorts": [3000, 4000, 5432, 6379],
   "portsAttributes": {
     "3000": { "label": "Next.js Web", "onAutoForward": "openPreview" },
@@ -13,8 +8,7 @@
     "5432": { "label": "PostgreSQL" },
     "6379": { "label": "Redis" }
   },
-  "postCreateCommand": "npm ci",
-  "postStartCommand": "npm run dev",
+  "postCreateCommand": "npm install",
   "customizations": {
     "vscode": {
       "extensions": [
