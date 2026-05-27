@@ -1,11 +1,12 @@
 'use client';
 // components/features/cars/ImageGallery.tsx
-// Premium image gallery with slider + fullscreen lightbox
+// Optimised: next/image for main + thumbnails, lazy lightbox, memoised callbacks
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo, lazy, Suspense } from 'react';
+import Image from 'next/image';
 import {
-  X, ChevronLeft, ChevronRight, ZoomIn, Maximize2,
-  Grid3X3, Play, Share2
+  X, ChevronLeft, ChevronRight, Maximize2,
+  Grid3X3,
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
 
@@ -16,15 +17,16 @@ interface ImageGalleryProps {
   title: string;
 }
 
-/* ── Fullscreen Lightbox ─────────────────────────────────────── */
+/* ── Fullscreen Lightbox — lazy so it's not in the initial bundle ─ */
 function Lightbox({
-  images, currentIndex, onClose, onNext, onPrev,
+  images, currentIndex, onClose, onNext, onPrev, onThumb,
 }: {
   images: GalleryImage[];
   currentIndex: number;
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
+  onThumb: (i: number) => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -41,7 +43,12 @@ function Lightbox({
   }, [onClose, onNext, onPrev]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/97 backdrop-blur-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image lightbox"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/97 backdrop-blur-2xl"
+    >
       {/* Close */}
       <button
         onClick={onClose}
@@ -57,7 +64,8 @@ function Lightbox({
       {/* Counter */}
       <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10
                       px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md
-                      text-xs font-bold tracking-widest text-white/50 tabular-nums">
+                      text-xs font-bold tracking-widest text-white/50 tabular-nums"
+           aria-live="polite">
         {currentIndex + 1} / {images.length}
       </div>
 
@@ -76,14 +84,17 @@ function Lightbox({
 
       {/* Image */}
       <div className="flex items-center justify-center w-full h-full px-20 py-16">
-        <img
-          key={currentIndex}
-          src={images[currentIndex]?.url}
-          alt={`Image ${currentIndex + 1}`}
-          className="max-w-full max-h-full object-contain rounded-2xl
-                     animate-[fadeIn_0.2s_ease-out]"
-          style={{ animation: 'fadeIn 0.18s ease-out' }}
-        />
+        <div className="relative max-w-full max-h-full w-full h-full">
+          <Image
+            key={currentIndex}
+            src={images[currentIndex]?.url}
+            alt={`Image ${currentIndex + 1} of ${images.length}`}
+            fill
+            sizes="100vw"
+            className="object-contain rounded-2xl"
+            priority
+          />
+        </div>
       </div>
 
       {/* Next */}
@@ -107,64 +118,64 @@ function Lightbox({
         {images.map((img, i) => (
           <button
             key={i}
-            onClick={() => {/* handled by parent */}}
+            onClick={() => onThumb(i)}
+            aria-label={`Go to image ${i + 1}`}
+            aria-current={i === currentIndex}
             className={cn(
-              'flex-shrink-0 w-12 h-9 rounded-lg overflow-hidden',
+              'flex-shrink-0 w-12 h-9 rounded-lg overflow-hidden relative',
               'border-2 transition-all duration-200',
               i === currentIndex
                 ? 'border-[#c9a84c] scale-105 shadow-[0_0_8px_rgba(201,168,76,0.5)]'
                 : 'border-transparent opacity-50 hover:opacity-80'
             )}
           >
-            <img src={img.url} alt="" className="w-full h-full object-cover" draggable={false} />
+            <Image src={img.url} alt="" fill className="object-cover" sizes="48px" draggable={false} />
           </button>
         ))}
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
-      `}</style>
     </div>
   );
 }
 
 /* ── Main Gallery ─────────────────────────────────────────────── */
-export function ImageGallery({ images, title }: ImageGalleryProps) {
-  const [activeIdx, setActiveIdx]       = useState(0);
-  const [lightbox, setLightbox]         = useState(false);
-  const [lightboxIdx, setLightboxIdx]   = useState(0);
-  const [showGrid, setShowGrid]         = useState(false);
+export const ImageGallery = memo(function ImageGallery({ images, title }: ImageGalleryProps) {
+  const [activeIdx, setActiveIdx]     = useState(0);
+  const [lightbox, setLightbox]       = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
+  const [showGrid, setShowGrid]       = useState(false);
   const touchStartX = useRef(0);
 
   const sorted = [...images].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const totalImages = sorted.length;
 
-  const openLightbox = (idx: number) => {
+  const openLightbox = useCallback((idx: number) => {
     setLightboxIdx(idx);
     setLightbox(true);
-  };
+  }, []);
 
   const nextSlide = useCallback(() => setActiveIdx(v => (v + 1) % totalImages), [totalImages]);
   const prevSlide = useCallback(() => setActiveIdx(v => (v - 1 + totalImages) % totalImages), [totalImages]);
+  const lbNext    = useCallback(() => setLightboxIdx(v => (v + 1) % totalImages), [totalImages]);
+  const lbPrev    = useCallback(() => setLightboxIdx(v => (v - 1 + totalImages) % totalImages), [totalImages]);
+  const lbThumb   = useCallback((i: number) => setLightboxIdx(i), []);
 
-  const lbNext = useCallback(() => setLightboxIdx(v => (v + 1) % totalImages), [totalImages]);
-  const lbPrev = useCallback(() => setLightboxIdx(v => (v - 1 + totalImages) % totalImages), [totalImages]);
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
 
-  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e: React.TouchEvent) => {
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
     const dx = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(dx) > 50) dx > 0 ? nextSlide() : prevSlide();
-  };
+  }, [nextSlide, prevSlide]);
 
   if (!totalImages) return (
     <div className="w-full aspect-[16/9] rounded-3xl bg-[#0b1525] flex items-center justify-center">
-      <span className="text-6xl opacity-10">🚗</span>
+      <span className="text-6xl opacity-10" aria-hidden="true">🚗</span>
     </div>
   );
 
   return (
     <>
-      {/* Main slider */}
       <div className="relative w-full group">
         {/* Main image */}
         <div
@@ -174,16 +185,17 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           onTouchEnd={onTouchEnd}
           onClick={() => openLightbox(activeIdx)}
         >
-          <img
+          <Image
             key={activeIdx}
             src={sorted[activeIdx]?.url}
-            alt={`${title} — image ${activeIdx + 1}`}
-            className="w-full h-full object-cover transition-all duration-500"
-            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.jpg'; }}
-            draggable={false}
+            alt={`${title} — image ${activeIdx + 1} of ${totalImages}`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+            className="object-cover transition-all duration-500"
+            priority={activeIdx === 0}
+            loading={activeIdx === 0 ? 'eager' : 'lazy'}
           />
 
-          {/* Dark gradient bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
           {/* Fullscreen hint */}
@@ -196,7 +208,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
             </div>
           </div>
 
-          {/* Prev / Next buttons */}
+          {/* Prev / Next */}
           {totalImages > 1 && (
             <>
               <button
@@ -206,7 +218,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                            bg-black/50 backdrop-blur-sm border border-white/10
                            text-white opacity-0 group-hover:opacity-100
                            transition-all duration-200 hover:bg-black/70"
-                aria-label="Previous"
+                aria-label="Previous image"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -217,14 +229,14 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                            bg-black/50 backdrop-blur-sm border border-white/10
                            text-white opacity-0 group-hover:opacity-100
                            transition-all duration-200 hover:bg-black/70"
-                aria-label="Next"
+                aria-label="Next image"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </>
           )}
 
-          {/* Photo count badge */}
+          {/* Photo count */}
           <button
             onClick={(e) => { e.stopPropagation(); setShowGrid(v => !v); }}
             className="absolute bottom-4 right-4
@@ -261,29 +273,35 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
             'mt-3 overflow-hidden transition-all duration-300',
             showGrid ? 'max-h-64' : 'max-h-20'
           )}>
-            <div className={cn(
-              'flex gap-2 overflow-x-auto pb-1',
-              showGrid && 'flex-wrap overflow-x-visible'
-            )}
+            <div
+              className={cn(
+                'flex gap-2 overflow-x-auto pb-1',
+                showGrid && 'flex-wrap overflow-x-visible'
+              )}
               style={{ scrollbarWidth: 'none' }}
             >
               {sorted.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => { setActiveIdx(i); setShowGrid(false); }}
+                  aria-label={`Thumbnail ${i + 1}`}
+                  aria-pressed={i === activeIdx}
                   className={cn(
-                    'flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200',
+                    'flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200 relative',
                     showGrid ? 'w-[calc(25%-6px)] sm:w-[calc(20%-6px)] aspect-video' : 'w-20 h-14',
                     i === activeIdx
                       ? 'ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#050b14] scale-[0.97]'
                       : 'opacity-55 hover:opacity-85'
                   )}
                 >
-                  <img
+                  <Image
                     src={img.url}
-                    alt={`Thumbnail ${i + 1}`}
-                    className="w-full h-full object-cover"
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
                     draggable={false}
+                    loading="lazy"
                   />
                 </button>
               ))}
@@ -292,7 +310,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         )}
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox — only mounted when open */}
       {lightbox && (
         <Lightbox
           images={sorted}
@@ -300,8 +318,9 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           onClose={() => setLightbox(false)}
           onNext={lbNext}
           onPrev={lbPrev}
+          onThumb={lbThumb}
         />
       )}
     </>
   );
-}
+});

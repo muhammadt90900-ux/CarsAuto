@@ -1,15 +1,17 @@
 'use client';
 // components/features/cars/CarDetailClient.tsx
-// Elite interactive client layer for car details page
+// Optimised: next/image for seller avatar + similar cars, memoised sub-components,
+// useCallback on all handlers, stable refs for scroll.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   Heart, Share2, GitCompare, Phone, MessageCircle,
   MapPin, Eye, Calendar, CheckCircle2, Shield, Star,
   AlertTriangle, ChevronDown, ChevronUp, Copy,
   Gauge, Fuel, Settings, Palette, Car, Users,
-  DoorOpen, Zap, BarChart3, Banknote, ArrowLeft,
+  DoorOpen, Zap, Banknote, ArrowLeft,
   Flag, ExternalLink, TrendingDown, Clock,
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
@@ -21,26 +23,23 @@ const fmtPrice = (v: number, currency = 'USD') =>
 
 const fmtNum = (v: number) => new Intl.NumberFormat('en-US').format(v);
 
-/* ── Spec Row ─────────────────────────────────────────────────── */
-function SpecRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
+/* ── SpecRow ─────────────────────────────────────────────────── */
+const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
   if (!value) return null;
   return (
     <tr className="border-b border-white/[0.05] last:border-0 group">
-      <td className="py-3 pr-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35
-                     whitespace-nowrap w-1/2">
+      <td className="py-3 pr-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35 whitespace-nowrap w-1/2">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" />}
           {label}
         </div>
       </td>
-      <td className="py-3 text-sm font-semibold text-white/85">
-        {value}
-      </td>
+      <td className="py-3 text-sm font-semibold text-white/85">{value}</td>
     </tr>
   );
-}
+});
 
-/* ── Section Heading ──────────────────────────────────────────── */
+/* ── SectionHeading ──────────────────────────────────────────── */
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-3">
@@ -50,58 +49,49 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── Share Modal ─────────────────────────────────────────────── */
-function ShareModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
+/* ── ShareModal ──────────────────────────────────────────────── */
+const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
+  const copy = useCallback(() => {
     navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-  };
+  }, [url]);
+
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08]
-                      shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
+      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
         <h3 className="font-display font-bold text-white text-lg">Share this listing</h3>
         <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.05] border border-white/[0.07]">
           <span className="flex-1 text-xs text-white/50 truncate">{url}</span>
-          <button onClick={copy}
-            className={cn(
-              'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200',
-              copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#c9a84c]/20 text-[#c9a84c] hover:bg-[#c9a84c]/30'
-            )}>
-            <Copy className="w-3 h-3" />
-            {copied ? 'Copied!' : 'Copy'}
+          <button onClick={copy} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200', copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#c9a84c]/20 text-[#c9a84c] hover:bg-[#c9a84c]/30')}>
+            <Copy className="w-3 h-3" />{copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: 'WhatsApp', color: 'bg-[#25D366]/20 text-[#25D366]', href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}` },
             { label: 'Telegram', color: 'bg-blue-500/20 text-blue-400', href: `https://t.me/share/url?url=${encodeURIComponent(url)}` },
-            { label: 'Twitter', color: 'bg-sky-400/20 text-sky-400', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}` },
+            { label: 'Twitter',  color: 'bg-sky-400/20 text-sky-400',   href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}` },
           ].map(s => (
-            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-              className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-semibold transition-all hover:scale-105', s.color)}>
+            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-semibold transition-all hover:scale-105', s.color)}>
               {s.label}
             </a>
           ))}
         </div>
-        <button onClick={onClose} className="w-full py-3 rounded-xl bg-white/[0.05] text-white/50 text-sm font-semibold hover:bg-white/[0.09] transition-all">
-          Cancel
-        </button>
+        <button onClick={onClose} className="w-full py-3 rounded-xl bg-white/[0.05] text-white/50 text-sm font-semibold hover:bg-white/[0.09] transition-all">Cancel</button>
       </div>
     </div>
   );
-}
+});
 
-/* ── Report Modal ────────────────────────────────────────────── */
-function ReportModal({ onClose }: { onClose: () => void }) {
+/* ── ReportModal ─────────────────────────────────────────────── */
+const ReportModal = memo(function ReportModal({ onClose }: { onClose: () => void }) {
   const [reason, setReason] = useState('');
   const reasons = ['Incorrect information', 'Fraudulent listing', 'Already sold', 'Duplicate listing', 'Wrong price', 'Other'];
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08]
-                      shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
+      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
             <Flag className="w-5 h-5 text-red-400" />
@@ -110,42 +100,31 @@ function ReportModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-2">
           {reasons.map(r => (
-            <button key={r} onClick={() => setReason(r)}
-              className={cn(
-                'w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all duration-150',
-                reason === r
-                  ? 'bg-red-500/20 border border-red-500/40 text-red-300'
-                  : 'bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.07]'
-              )}>
+            <button key={r} onClick={() => setReason(r)} className={cn('w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all duration-150', reason === r ? 'bg-red-500/20 border border-red-500/40 text-red-300' : 'bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.07]')}>
               {r}
             </button>
           ))}
         </div>
-        <button disabled={!reason}
-          className="w-full py-3 rounded-xl bg-red-500 text-white text-sm font-bold
-                     disabled:opacity-30 disabled:cursor-not-allowed hover:bg-red-600 transition-all">
+        <button disabled={!reason} className="w-full py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-red-600 transition-all">
           Submit Report
         </button>
-        <button onClick={onClose} className="w-full py-2 text-white/40 text-sm hover:text-white/60 transition-colors">
-          Cancel
-        </button>
+        <button onClick={onClose} className="w-full py-2 text-white/40 text-sm hover:text-white/60 transition-colors">Cancel</button>
       </div>
     </div>
   );
-}
+});
 
-/* ── Financing Section ────────────────────────────────────────── */
-function FinancingSection({ price }: { price: number }) {
+/* ── FinancingSection ─────────────────────────────────────────── */
+const FinancingSection = memo(function FinancingSection({ price }: { price: number }) {
   const [down, setDown] = useState(20);
   const [months, setMonths] = useState(48);
-  const rate = 0.045; // 4.5% annual
+  const rate = 0.045;
   const loanAmt = price * (1 - down / 100);
   const monthly = (loanAmt * (rate / 12)) / (1 - Math.pow(1 + rate / 12, -months));
   const total = monthly * months + price * (down / 100);
 
   return (
-    <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e]
-                    border border-white/[0.07] p-6 space-y-5">
+    <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-white/[0.07] p-6 space-y-5">
       <div className="flex items-center gap-3 mb-1">
         <div className="w-10 h-10 rounded-xl bg-[#c9a84c]/10 flex items-center justify-center">
           <Banknote className="w-5 h-5 text-[#c9a84c]" />
@@ -155,113 +134,79 @@ function FinancingSection({ price }: { price: number }) {
           <p className="text-xs text-white/35">Estimate your monthly payments</p>
         </div>
       </div>
-
-      {/* Down payment slider */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Down Payment</label>
           <span className="text-sm font-bold text-[#c9a84c] tabular-nums">{down}% — {fmtPrice(price * down / 100)}</span>
         </div>
         <input type="range" min={5} max={60} value={down} onChange={e => setDown(+e.target.value)}
-          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer
-                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
-                     [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full
-                     [&::-webkit-slider-thumb]:bg-[#c9a84c] [&::-webkit-slider-thumb]:cursor-pointer" />
+          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#c9a84c]" />
       </div>
-
-      {/* Term slider */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Loan Term</label>
           <span className="text-sm font-bold text-[#c9a84c] tabular-nums">{months} months</span>
         </div>
         <input type="range" min={12} max={84} step={12} value={months} onChange={e => setMonths(+e.target.value)}
-          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer
-                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
-                     [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full
-                     [&::-webkit-slider-thumb]:bg-[#c9a84c] [&::-webkit-slider-thumb]:cursor-pointer" />
+          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#c9a84c]" />
       </div>
-
-      {/* Result */}
       <div className="rounded-2xl bg-[#c9a84c]/10 border border-[#c9a84c]/20 p-4 text-center">
         <p className="text-xs text-[#c9a84c]/60 uppercase tracking-wider mb-1">Estimated Monthly</p>
-        <p className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">
-          {fmtPrice(monthly)}
-        </p>
-        <p className="text-xs text-white/30 mt-1.5">
-          Total cost: {fmtPrice(total)} · APR: 4.5%
-        </p>
+        <p className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">{fmtPrice(monthly)}</p>
+        <p className="text-xs text-white/30 mt-1.5">Total cost: {fmtPrice(total)} · APR: 4.5%</p>
       </div>
-      <p className="text-[10px] text-white/20 leading-relaxed">
-        *Estimates are for informational purposes only. Actual rates depend on credit score and lender terms.
-      </p>
+      <p className="text-[10px] text-white/20 leading-relaxed">*Estimates are for informational purposes only.</p>
     </div>
   );
-}
+});
 
-/* ── Location Map ─────────────────────────────────────────────── */
-function LocationMap({ location }: { location: any }) {
+/* ── LocationMap ─────────────────────────────────────────────── */
+const LocationMap = memo(function LocationMap({ location }: { location: any }) {
   if (!location) return null;
   const query = encodeURIComponent(location.nameEn ?? location.city ?? 'Iraq');
   return (
     <div className="rounded-3xl overflow-hidden border border-white/[0.07] relative">
       <div className="h-52 bg-[#0b1525] relative overflow-hidden">
-        {/* Stylized map placeholder with grid */}
-        <div className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(201,168,76,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.3) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }} />
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(201,168,76,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.3) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b1525]/80 to-transparent" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center
-                          shadow-[0_0_24px_rgba(201,168,76,0.5)] animate-pulse">
+          <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center shadow-[0_0_24px_rgba(201,168,76,0.5)] animate-pulse">
             <MapPin className="w-5 h-5 text-[#050b14]" />
           </div>
           <p className="text-white font-semibold text-sm">{location.nameEn ?? location.city}</p>
-          <a
-            href={`https://maps.google.com?q=${query}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl
-                       bg-[#c9a84c]/15 border border-[#c9a84c]/30
-                       text-[#c9a84c] text-xs font-semibold
-                       hover:bg-[#c9a84c]/25 transition-all duration-200"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Open in Google Maps
+          <a href={`https://maps.google.com?q=${query}`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#c9a84c]/15 border border-[#c9a84c]/30 text-[#c9a84c] text-xs font-semibold hover:bg-[#c9a84c]/25 transition-all duration-200">
+            <ExternalLink className="w-3.5 h-3.5" />Open in Google Maps
           </a>
         </div>
       </div>
     </div>
   );
-}
+});
 
-/* ── Seller Card ─────────────────────────────────────────────── */
-function SellerCard({ user, phone, locale }: { user: any; phone?: string; locale: string }) {
+/* ── SellerCard ──────────────────────────────────────────────── */
+const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?: string; locale: string }) {
   const [showPhone, setShowPhone] = useState(false);
+  const togglePhone = useCallback(() => setShowPhone(v => !v), []);
   if (!user) return null;
 
   return (
     <div className="rounded-3xl bg-[#0b1525] border border-white/[0.07] overflow-hidden">
-      {/* Header */}
       <div className="relative p-5 pb-4">
         <div className="absolute inset-0 bg-gradient-to-br from-[#c9a84c]/[0.04] to-transparent pointer-events-none" />
         <div className="flex items-center gap-4 relative">
           <div className="relative flex-shrink-0">
             {user.avatar ? (
-              <img src={user.avatar} alt={user.name}
-                className="w-14 h-14 rounded-2xl object-cover border-2 border-[#c9a84c]/30" />
+              <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-[#c9a84c]/30">
+                <Image src={user.avatar} alt={user.name} fill sizes="56px" className="object-cover" />
+              </div>
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5
-                              border-2 border-[#c9a84c]/20 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border-2 border-[#c9a84c]/20 flex items-center justify-center">
                 <span className="text-[#c9a84c] text-xl font-bold">{user.name?.[0]}</span>
               </div>
             )}
             {user.verified && (
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full
-                              bg-emerald-500 border-2 border-[#0b1525]
-                              flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#0b1525] flex items-center justify-center">
                 <CheckCircle2 className="w-2.5 h-2.5 text-white fill-current" />
               </div>
             )}
@@ -285,42 +230,26 @@ function SellerCard({ user, phone, locale }: { user: any; phone?: string; locale
           </div>
         </div>
       </div>
-
-      {/* Action buttons */}
       <div className="px-5 pb-5 space-y-2.5">
-        {/* WhatsApp */}
-        <a
-          href={`https://wa.me/${(phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent('Hi, I am interested in this car listing.')}`}
+        <a href={`https://wa.me/${(phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent('Hi, I am interested in this car listing.')}`}
           target="_blank" rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl
-                     bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm
-                     transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)]
-                     hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] hover:-translate-y-0.5 active:translate-y-0">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
           </svg>
           Chat on WhatsApp
         </a>
-
-        {/* Call button */}
-        <button
-          onClick={() => setShowPhone(v => !v)}
-          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl
-                     bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm
-                     hover:bg-white/[0.10] hover:border-white/[0.16]
-                     transition-all duration-200"
-        >
-          <Phone className="w-4.5 h-4.5" />
+        <button onClick={togglePhone} className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm hover:bg-white/[0.10] transition-all duration-200">
+          <Phone className="w-4 h-4" />
           {showPhone && phone ? phone : 'Show Phone Number'}
         </button>
       </div>
     </div>
   );
-}
+});
 
-/* ── Similar Cars ─────────────────────────────────────────────── */
-function SimilarCars({ cars, locale }: { cars: any[]; locale: string }) {
+/* ── SimilarCars ─────────────────────────────────────────────── */
+const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; locale: string }) {
   if (!cars?.length) return null;
   return (
     <div>
@@ -330,25 +259,19 @@ function SimilarCars({ cars, locale }: { cars: any[]; locale: string }) {
           const cover = car.images?.[0]?.url;
           const title = car.titleEn ?? car.titleKu ?? 'Car';
           return (
-            <Link key={car.id} href={`/${locale}/cars/${car.id}`}
-              className="group rounded-2xl overflow-hidden
-                         bg-[#0b1525] border border-white/[0.06]
-                         hover:border-[#c9a84c]/30 transition-all duration-300
-                         hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
+            <Link key={car.id} href={`/${locale}/cars/${car.id}`} prefetch={false}
+              className="group rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
               <div className="relative h-40 overflow-hidden bg-[#060f1a]">
                 {cover ? (
-                  <img src={cover} alt={title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]" />
+                  <Image src={cover} alt={title} fill sizes="(max-width: 640px) 50vw, 33vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.06]" loading="lazy" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center opacity-10">
-                    <Car className="w-12 h-12" />
+                    <Car className="w-12 h-12 text-white" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 left-3">
-                  <span className="text-base font-display font-black text-[#c9a84c]">
-                    {fmtPrice(car.price, car.currency)}
-                  </span>
+                  <span className="text-base font-display font-black text-[#c9a84c]">{fmtPrice(car.price, car.currency)}</span>
                 </div>
               </div>
               <div className="p-3">
@@ -368,10 +291,10 @@ function SimilarCars({ cars, locale }: { cars: any[]; locale: string }) {
       </div>
     </div>
   );
-}
+});
 
 /* ══════════════════════════════════════════════════════════════ */
-/*  Main Component                                                */
+/*  Main CarDetailClient                                          */
 /* ══════════════════════════════════════════════════════════════ */
 export interface CarDetailClientProps {
   listing: any;
@@ -380,209 +303,159 @@ export interface CarDetailClientProps {
 }
 
 export function CarDetailClient({ listing, similarCars, locale }: CarDetailClientProps) {
-  const [isFavorite, setIsFavorite]   = useState(false);
-  const [showShare, setShowShare]     = useState(false);
-  const [showReport, setShowReport]   = useState(false);
-  const [descExpanded, setDescExpanded] = useState(false);
+  const [isFavorite,    setIsFavorite]    = useState(false);
+  const [showShare,     setShowShare]     = useState(false);
+  const [showReport,    setShowReport]    = useState(false);
+  const [descExpanded,  setDescExpanded]  = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
 
-  const spec   = listing.vehicleSpec ?? {};
-  const trim   = spec.trim ?? {};
-  const brand  = spec.brand ?? {};
-  const model  = spec.model ?? {};
+  const spec  = listing.vehicleSpec ?? {};
+  const trim  = spec.trim ?? {};
+  const brand = spec.brand ?? {};
+  const model = spec.model ?? {};
 
   const title = listing[`title${locale.charAt(0).toUpperCase() + locale.slice(1)}`] ?? listing.titleEn ?? 'Car Listing';
   const desc  = listing[`description${locale.charAt(0).toUpperCase() + locale.slice(1)}`] ?? listing.descriptionEn ?? '';
-
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
-  // Sticky bar on scroll
+  const toggleFavorite    = useCallback(() => setIsFavorite(v => !v), []);
+  const openShare         = useCallback(() => setShowShare(true), []);
+  const closeShare        = useCallback(() => setShowShare(false), []);
+  const openReport        = useCallback(() => setShowReport(true), []);
+  const closeReport       = useCallback(() => setShowReport(false), []);
+  const toggleDesc        = useCallback(() => setDescExpanded(v => !v), []);
+
   useEffect(() => {
-    const onScroll = () => {
-      if (headerRef.current) {
-        setStickyVisible(headerRef.current.getBoundingClientRect().bottom < 0);
-      }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const el = headerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setStickyVisible(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const specs = [
-    { label: 'Brand',        value: brand.nameEn,               icon: Car },
-    { label: 'Model',        value: model.nameEn,               icon: Car },
-    { label: 'Trim',         value: trim.name,                  icon: Settings },
-    { label: 'Year',         value: spec.year,                  icon: Calendar },
-    { label: 'Condition',    value: spec.condition,             icon: Shield },
+    { label: 'Brand',        value: brand.nameEn,                              icon: Car       },
+    { label: 'Model',        value: model.nameEn,                              icon: Car       },
+    { label: 'Trim',         value: trim.name,                                 icon: Settings  },
+    { label: 'Year',         value: spec.year,                                 icon: Calendar  },
+    { label: 'Condition',    value: spec.condition,                            icon: Shield    },
     { label: 'Mileage',      value: spec.mileageKm ? `${fmtNum(spec.mileageKm)} km` : null, icon: Gauge },
-    { label: 'Fuel Type',    value: trim.fuelType ?? spec.fuelType, icon: Fuel },
-    { label: 'Transmission', value: trim.transmission ?? spec.transmission, icon: Settings },
-    { label: 'Body Type',    value: trim.bodyType,              icon: Car },
-    { label: 'Drivetrain',   value: trim.drivetrain,            icon: Zap },
-    { label: 'Engine',       value: trim.engineLabel,           icon: Settings },
+    { label: 'Fuel Type',    value: trim.fuelType ?? spec.fuelType,            icon: Fuel      },
+    { label: 'Transmission', value: trim.transmission ?? spec.transmission,    icon: Settings  },
+    { label: 'Body Type',    value: trim.bodyType,                             icon: Car       },
+    { label: 'Drivetrain',   value: trim.drivetrain,                           icon: Zap       },
+    { label: 'Engine',       value: trim.engineLabel,                          icon: Settings  },
     { label: 'Power',        value: trim.powerKw ? `${trim.powerKw} kW (${Math.round(trim.powerKw * 1.341)} hp)` : null, icon: Zap },
-    { label: 'Doors',        value: trim.doors,                 icon: DoorOpen },
-    { label: 'Seats',        value: trim.seats,                 icon: Users },
-    { label: 'Color',        value: spec.color,                 icon: Palette },
+    { label: 'Doors',        value: trim.doors,                                icon: DoorOpen  },
+    { label: 'Seats',        value: trim.seats,                                icon: Users     },
+    { label: 'Color',        value: spec.color,                                icon: Palette   },
   ];
 
   return (
     <>
-      {/* ── Sticky action bar ─────────────────────────────────── */}
-      <div className={cn(
-        'fixed top-[66px] inset-x-0 z-40 transition-all duration-300',
-        stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
-      )}>
-        <div className="bg-[#070d18]/95 backdrop-blur-2xl border-b border-[#c9a84c]/15
-                        shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3
-                          flex items-center justify-between gap-4">
+      {/* Sticky bar */}
+      <div className={cn('fixed top-[66px] inset-x-0 z-40 transition-all duration-300', stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
+        <div className="bg-[#070d18]/95 backdrop-blur-2xl border-b border-[#c9a84c]/15 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{title}</p>
-              <p className="text-[#c9a84c] font-display font-black text-base tabular-nums">
-                {fmtPrice(listing.price, listing.currency)}
-              </p>
+              <p className="text-[#c9a84c] font-display font-black text-base tabular-nums">{fmtPrice(listing.price, listing.currency)}</p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl
-                           bg-[#25D366] text-white text-sm font-bold
-                           hover:bg-[#1fb659] transition-all duration-200">
-                <Phone className="w-4 h-4" /> Contact
-              </a>
-            </div>
+            <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] text-white text-sm font-bold hover:bg-[#1fb659] transition-all duration-200">
+              <Phone className="w-4 h-4" /> Contact
+            </a>
           </div>
         </div>
       </div>
 
       <div className="min-h-screen bg-[#050b14] pt-[66px]">
-        {/* ── Back breadcrumb ───────────────────────────────────── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-          <Link href={`/${locale}/cars`}
-            className="inline-flex items-center gap-2 text-sm text-white/35
-                       hover:text-[#c9a84c] transition-colors duration-200 group">
+          <Link href={`/${locale}/cars`} className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-[#c9a84c] transition-colors duration-200 group">
             <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Back to listings
           </Link>
         </div>
 
-        {/* ── Main content ─────────────────────────────────────── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-8 xl:gap-10">
 
-            {/* ═══ LEFT COLUMN ══════════════════════════════════ */}
+            {/* LEFT COLUMN */}
             <div className="space-y-8 min-w-0">
-
-              {/* Gallery */}
               <ImageGallery images={listing.images ?? []} title={title} />
 
-              {/* Title + price + badges */}
               <div ref={headerRef}>
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                  {/* Badges */}
                   <div className="flex flex-wrap gap-2">
                     {listing.featured && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full
-                                       bg-gradient-to-r from-[#b8922e] to-[#dab445]
-                                       text-[#050b14] text-xs font-black">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14] text-xs font-black">
                         <Star className="w-3 h-3 fill-current" /> Featured
                       </span>
                     )}
                     {spec.condition === 'new' && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full
-                                       bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
                         <Zap className="w-3 h-3" /> New
                       </span>
                     )}
                     {listing.user?.verified && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full
-                                       bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
                         <Shield className="w-3 h-3" /> Verified
                       </span>
                     )}
                   </div>
-
-                  {/* Action buttons */}
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setIsFavorite(v => !v)}
-                      className={cn(
-                        'flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200',
-                        isFavorite
-                          ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-                          : 'bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-red-400 hover:border-red-500/30'
-                      )}
-                      aria-label="Favorite">
+                    <button onClick={toggleFavorite} aria-label="Favorite" aria-pressed={isFavorite}
+                      className={cn('flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200', isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-red-400')}>
                       <Heart className={cn('w-4 h-4 transition-all', isFavorite && 'fill-current scale-110')} />
                     </button>
-                    <button onClick={() => setShowShare(true)}
-                      className="flex items-center justify-center w-9 h-9 rounded-xl
-                                 bg-white/[0.05] border border-white/[0.08] text-white/50
-                                 hover:text-[#c9a84c] hover:border-[#c9a84c]/30 transition-all duration-200"
-                      aria-label="Share">
+                    <button onClick={openShare} aria-label="Share"
+                      className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <Share2 className="w-4 h-4" />
                     </button>
                     <Link href={`/${locale}/compare?add=${listing.id}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
-                                 bg-white/[0.05] border border-white/[0.08] text-white/50
-                                 hover:text-[#c9a84c] hover:border-[#c9a84c]/30 transition-all duration-200">
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <GitCompare className="w-3.5 h-3.5" /> Compare
                     </Link>
                   </div>
                 </div>
 
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight mb-2">
-                  {title}
-                </h1>
+                <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight mb-2">{title}</h1>
 
-                {/* Meta row */}
                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/35 mb-4">
                   {listing.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[#c9a84c]/50" />
-                      {listing.location.nameEn ?? listing.location.city}
-                    </span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#c9a84c]/50" />{listing.location.nameEn ?? listing.location.city}</span>
                   )}
-                  {listing.views && (
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5" />{fmtNum(listing.views)} views
-                    </span>
-                  )}
+                  {listing.views && <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{fmtNum(listing.views)} views</span>}
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(listing.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
 
-                {/* Price */}
                 <div className="flex flex-wrap items-end gap-3">
-                  <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">
-                    {fmtPrice(listing.price, listing.currency)}
-                  </span>
+                  <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">{fmtPrice(listing.price, listing.currency)}</span>
                   {listing.negotiable && (
-                    <span className="flex items-center gap-1 px-3 py-1 rounded-full mb-1
-                                     bg-[#c9a84c]/10 border border-[#c9a84c]/20
-                                     text-[#c9a84c]/80 text-xs font-semibold">
+                    <span className="flex items-center gap-1 px-3 py-1 rounded-full mb-1 bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c]/80 text-xs font-semibold">
                       <TrendingDown className="w-3 h-3" /> Negotiable
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Quick specs strip */}
+              {/* Quick specs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Year',         value: spec.year,                          icon: Calendar },
+                  { label: 'Year',         value: spec.year,                                  icon: Calendar  },
                   { label: 'Mileage',      value: spec.mileageKm ? `${fmtNum(spec.mileageKm)} km` : null, icon: Gauge },
-                  { label: 'Fuel',         value: trim.fuelType ?? spec.fuelType,     icon: Fuel },
-                  { label: 'Transmission', value: trim.transmission ?? spec.transmission, icon: Settings },
+                  { label: 'Fuel',         value: trim.fuelType ?? spec.fuelType,             icon: Fuel      },
+                  { label: 'Transmission', value: trim.transmission ?? spec.transmission,     icon: Settings  },
                 ].filter(s => s.value).map(s => (
-                  <div key={s.label}
-                    className="flex flex-col items-center justify-center gap-1.5 py-4 px-3
-                               rounded-2xl bg-[#0b1525] border border-white/[0.06]
-                               text-center">
-                    <s.icon className="w-4.5 h-4.5 text-[#c9a84c]/60" />
+                  <div key={s.label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-3 rounded-2xl bg-[#0b1525] border border-white/[0.06] text-center">
+                    <s.icon className="w-4 h-4 text-[#c9a84c]/60" />
                     <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">{s.label}</span>
                     <span className="text-sm font-bold text-white">{s.value}</span>
                   </div>
@@ -595,22 +468,17 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                   <SectionHeading>Description</SectionHeading>
                   <div className={cn('relative overflow-hidden transition-all duration-500', !descExpanded && 'max-h-32')}>
                     <p className="text-sm text-white/60 leading-relaxed whitespace-pre-line">{desc}</p>
-                    {!descExpanded && (
-                      <div className="absolute bottom-0 inset-x-0 h-12
-                                      bg-gradient-to-t from-[#0b1525] to-transparent pointer-events-none" />
-                    )}
+                    {!descExpanded && <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[#0b1525] to-transparent pointer-events-none" />}
                   </div>
                   {desc.length > 200 && (
-                    <button onClick={() => setDescExpanded(v => !v)}
-                      className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c]
-                                 hover:text-[#e8cc7a] transition-colors duration-200">
+                    <button onClick={toggleDesc} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors">
                       {descExpanded ? <><ChevronUp className="w-3.5 h-3.5" /> Show less</> : <><ChevronDown className="w-3.5 h-3.5" /> Read more</>}
                     </button>
                   )}
                 </div>
               )}
 
-              {/* Specifications table */}
+              {/* Specs table */}
               <div className="rounded-3xl bg-[#0b1525] border border-white/[0.06] overflow-hidden">
                 <div className="px-6 py-5">
                   <SectionHeading>Full Specifications</SectionHeading>
@@ -626,10 +494,8 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
               </div>
 
-              {/* Financing */}
               <FinancingSection price={listing.price} />
 
-              {/* Location */}
               {listing.location && (
                 <div>
                   <SectionHeading>Location</SectionHeading>
@@ -637,77 +503,46 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
               )}
 
-              {/* Similar cars */}
               <SimilarCars cars={similarCars} locale={locale} />
 
-              {/* Report */}
               <div className="pt-2 pb-8">
-                <button onClick={() => setShowReport(true)}
-                  className="flex items-center gap-2 text-xs text-white/25
-                             hover:text-red-400 transition-colors duration-200">
+                <button onClick={openReport} className="flex items-center gap-2 text-xs text-white/25 hover:text-red-400 transition-colors duration-200">
                   <Flag className="w-3.5 h-3.5" /> Report this listing
                 </button>
               </div>
             </div>
 
-            {/* ═══ RIGHT SIDEBAR ════════════════════════════════ */}
+            {/* RIGHT SIDEBAR */}
             <div className="space-y-5 xl:sticky xl:top-[86px] xl:self-start">
-
-              {/* Price card */}
-              <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e]
-                              border border-[#c9a84c]/15 p-6">
-                <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums mb-1">
-                  {fmtPrice(listing.price, listing.currency)}
-                </div>
-                {listing.negotiable && (
-                  <p className="text-xs text-white/40 mb-4">Price is negotiable</p>
-                )}
-
-                {/* CTA buttons */}
+              <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-[#c9a84c]/15 p-6">
+                <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums mb-1">{fmtPrice(listing.price, listing.currency)}</div>
+                {listing.negotiable && <p className="text-xs text-white/40 mb-4">Price is negotiable</p>}
                 <div className="space-y-2.5 mt-4">
-                  <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent('Hi, I\'m interested in: ' + title)}`}
+                  <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent("Hi, I'm interested in: " + title)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full h-13 py-3.5 rounded-2xl
-                               bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm
-                               transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)]
-                               hover:-translate-y-0.5">
+                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] hover:-translate-y-0.5">
                     <MessageCircle className="w-5 h-5" /> WhatsApp Seller
                   </a>
-                  <button
-                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl
-                               bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm
-                               hover:bg-white/[0.10] transition-all duration-200">
+                  <button className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm hover:bg-white/[0.10] transition-all duration-200">
                     <Phone className="w-5 h-5" /> Call Seller
                   </button>
-                  <button onClick={() => setIsFavorite(v => !v)}
-                    className={cn(
-                      'flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200',
-                      isFavorite
-                        ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-                        : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-red-400 hover:border-red-500/30'
-                    )}>
+                  <button onClick={toggleFavorite}
+                    className={cn('flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200', isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-red-400 hover:border-red-500/30')}>
                     <Heart className={cn('w-5 h-5 transition-all', isFavorite && 'fill-current')} />
                     {isFavorite ? 'Saved to Favorites' : 'Save to Favorites'}
                   </button>
                 </div>
               </div>
 
-              {/* Seller card */}
               <SellerCard user={listing.user} phone={listing.user?.phone} locale={locale} />
 
-              {/* Safety tips */}
               <div className="rounded-2xl bg-amber-500/[0.07] border border-amber-500/20 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                   <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Safety Tips</span>
                 </div>
                 <ul className="space-y-1">
-                  {[
-                    'Meet in a safe, public location',
-                    'Always test drive before buying',
-                    'Verify all documents are authentic',
-                    'Never send money in advance',
-                  ].map(tip => (
+                  {['Meet in a safe, public location','Always test drive before buying','Verify all documents are authentic','Never send money in advance'].map(tip => (
                     <li key={tip} className="text-xs text-amber-200/50 flex items-start gap-1.5">
                       <span className="text-amber-400/60 mt-0.5">·</span> {tip}
                     </li>
@@ -715,7 +550,6 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </ul>
               </div>
 
-              {/* Listing ID */}
               <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3">
                 <p className="text-[10px] text-white/25 uppercase tracking-wider mb-0.5">Listing ID</p>
                 <p className="text-xs text-white/50 font-mono">{listing.id}</p>
@@ -725,9 +559,8 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
         </div>
       </div>
 
-      {/* Modals */}
-      {showShare  && <ShareModal  url={currentUrl} title={title} onClose={() => setShowShare(false)} />}
-      {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showShare  && <ShareModal  url={currentUrl} title={title} onClose={closeShare} />}
+      {showReport && <ReportModal onClose={closeReport} />}
     </>
   );
 }
