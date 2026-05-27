@@ -9,7 +9,7 @@ import {
   Noto_Sans_SC,
   JetBrains_Mono,
 } from 'next/font/google';
-import '../styles/globals.css';
+import '@/styles/globals.css';
 
 /* ── Font definitions ─────────────────────────────────────────── */
 const syne = Syne({
@@ -21,7 +21,6 @@ const syne = Syne({
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
-  axes: ['opsz'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-dm-sans',
   display: 'swap',
@@ -35,7 +34,7 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 const notoSC = Noto_Sans_SC({
-  subsets: ['chinese-simplified'],
+  subsets: ['latin'],
   weight: ['300', '400', '500', '700'],
   variable: '--font-noto-sc',
   display: 'swap',
