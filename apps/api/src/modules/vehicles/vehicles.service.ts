@@ -51,7 +51,7 @@ export class VehiclesService {
           { nameKu: { contains: q.trim(), mode: 'insensitive' } },
         ];
       }
-      const models = await this.prisma.carModel.findMany({
+      const models = await this.prisma.CarModelGeneration.findMany({
         where,
         orderBy: { nameEn: 'asc' },
         select: {
@@ -69,45 +69,42 @@ export class VehiclesService {
   }
 
   async getTrimsByModelAndYear(modelId: string, { year, q }: TrimQueryDto) {
-    const key = `vehicles:trims:${modelId}:${year ?? ''}:${q ?? ''}`;
-    return this.cache.getOrSet(key, async () => {
-      const yearNum = year ? Number(year) : undefined;
-      const where: any = { modelId, active: true };
-      if (yearNum) {
-        where.AND = [
-          { OR: [{ yearStart: { lte: yearNum } }, { yearStart: null }] },
-          { OR: [{ yearEnd: { gte: yearNum } }, { yearEnd: null }] },
-        ];
-      }
-      if (q?.trim()) {
-        where.OR = [
-          { nameEn: { contains: q.trim(), mode: 'insensitive' } },
-          { nameAr: { contains: q.trim(), mode: 'insensitive' } },
-          { nameKu: { contains: q.trim(), mode: 'insensitive' } },
-        ];
-      }
-      await this.prisma.carTrim.findMany({
-        where,
-        orderBy: { nameEn: 'asc' },
-        select: {
-          id: true, nameEn: true, nameAr: true, nameKu: true,
-          modelId: true, yearStart: true, yearEnd: true,
-          engine: true, transmission: true, fuelType: true, drivetrain: true,
-        },
-      });
-    }, 300_000);
-  }
+  const key = `vehicles:trims:${modelId}:${year ?? ''}:${q ?? ''}`;
+  return this.cache.getOrSet(key, async () => {
+    const yearNum = year ? Number(year) : undefined;
+    const where: any = {
+      isActive: true,
+      generation: {
+        modelId,
+        ...(yearNum ? {
+          yearFrom: { lte: yearNum },
+          OR: [{ yearTo: { gte: yearNum } }, { yearTo: null }],
+        } : {}),
+      },
+    };
+    if (q?.trim()) where.name = { contains: q.trim(), mode: 'insensitive' };
+    return this.prisma.carTrim.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      select: {
+        id: true, name: true,
+        fuelType: true, transmission: true, drivetrain: true,
+        engineCC: true, engineLabel: true,
+        generation: { select: { id: true, yearFrom: true, yearTo: true } },
+      },
+    });
+  }, 300_000);
+}
 
-  async getYearsByModel(modelId: string): Promise<number[]> {
-    const key = `vehicles:years:${modelId}`;
-    return this.cache.getOrSet(key, async () => {
-      const result = await this.prisma.listing.findMany({
-        where: { modelId, status: 'ACTIVE', year: { not: null } },
-        select: { year: true },
-        distinct: ['year'],
-        orderBy: { year: 'desc' },
-      });
-      return result.map((r) => r.year as number).filter(Boolean);
-    }, 120_000); // 2 min — changes more often
-  }
+async getYearsByModel(modelId: string): Promise<number[]> {
+  const key = `vehicles:years:${modelId}`;
+  return this.cache.getOrSet(key, async () => {
+    const result = await this.prisma.listingVehicleSpec.findMany({
+      where: { modelId, listing: { status: 'ACTIVE' }, year: { not: null } },
+      select: { year: true },
+      distinct: ['year'],
+      orderBy: { year: 'desc' },
+    });
+    return result.map(r => r.year as number).filter(Boolean);
+  }, 120_000);
 }
