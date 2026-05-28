@@ -1,37 +1,43 @@
-// apps/web/src/app/[locale]/(public)/dealers/page.tsx
+// apps/web/src/app/[locale]/(public)/dealers/[slug]/page.tsx
 
-import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { DealersMarketplaceClient } from '@/components/features/dealers/DealersMarketplaceClient';
+import { notFound } from 'next/navigation';
+import { DealerShowroomClient } from '@/components/features/dealers/DealerShowroomClient';
 
-type Props = { params: { locale: string } };
+type Props = { params: { locale: string; slug: string } };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return {
-    title: 'Verified Dealers | Auto Bazaar Pro',
-    description: 'Browse verified car dealers and showrooms across Iraq and the region.',
-  };
-}
-
-// Fetch from API (server component)
-async function getDealers(searchParams: Record<string, string>) {
-  const qs = new URLSearchParams(searchParams).toString();
+async function getDealer(slug: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dealers?${qs}`, {
-      next: { revalidate: 60 },
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dealers/${slug}`, {
+      next: { revalidate: 30 },
     });
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error('Failed');
     return res.json();
   } catch {
-    return { dealers: [], total: 0, page: 1, limit: 20, pages: 0 };
+    return null;
   }
 }
 
-export default async function DealersPage({
-  params,
-  searchParams,
-}: Props & { searchParams: Record<string, string> }) {
-  const data = await getDealers(searchParams);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const dealer = await getDealer(params.slug);
+  if (!dealer) return { title: 'Dealer Not Found' };
 
-  return <DealersMarketplaceClient initial={data} locale={params.locale} />;
+  const name = params.locale === 'ku' ? dealer.nameKu : dealer.nameEn;
+  return {
+    title: `${name} | Auto Bazaar Pro`,
+    description: dealer.taglineEn ?? `View ${dealer.nameEn}'s showroom — ${dealer.activeListings} active listings.`,
+    openGraph: {
+      title: name,
+      description: dealer.taglineEn ?? '',
+      images: dealer.coverUrl ? [dealer.coverUrl] : [],
+    },
+  };
+}
+
+export default async function DealerShowroomPage({ params }: Props) {
+  const dealer = await getDealer(params.slug);
+  if (!dealer) notFound();
+
+  return <DealerShowroomClient dealer={dealer} locale={params.locale} />;
 }
