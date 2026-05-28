@@ -7,7 +7,7 @@ const nextConfig = {
   // 'standalone' bundles only the files needed to run the app, ideal for Docker.
   // Remove or set to undefined when deploying to Vercel (Vercel handles this).
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
-
+  transpilePackages: ['@auto-bazaar-pro/ui', '@auto-bazaar-pro/utils'],
   // ── Experimental ───────────────────────────────────────────────────────────
   experimental: {
     // typedRoutes requires `strict` mode in tsconfig; disable if it causes
