@@ -15,8 +15,8 @@ const LIST_INCLUDE = {
   user:     { select: { id: true, name: true, avatar: true, verified: true } },
   vehicleSpec: {
     include: {
-      brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
-      model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+      brand: { select: { id: true, name: true, name: true, name: true, logoUrl: true } },
+      model: { select: { id: true, name: true, name: true, name: true } },
       trim:  { select: { id: true, name: true, fuelType: true, transmission: true, bodyType: true, engineLabel: true } },
     },
   },
@@ -112,8 +112,8 @@ export class ListingsService {
           user:     { select: { id: true, name: true, avatar: true, verified: true, phone: true } },
           vehicleSpec: {
             include: {
-              brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
-              model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+              brand: { select: { id: true, name: true, name: true, name: true, logoUrl: true } },
+              model: { select: { id: true, name: true, name: true, name: true } },
               trim: {
                 select: {
                   id: true, name: true, fuelType: true, transmission: true,
@@ -176,8 +176,8 @@ export class ListingsService {
         images: { where: { isCover: true }, take: 1 },
         vehicleSpec: {
           include: {
-            brand: { select: { id: true, nameEn: true, logoUrl: true } },
-            model: { select: { id: true, nameEn: true } },
+            brand: { select: { id: true, name: true, logoUrl: true } },
+            model: { select: { id: true, name: true } },
           },
         },
       },
