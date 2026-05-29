@@ -1,194 +1,126 @@
 'use client';
-// components/features/auth/LoginForm.tsx — Fully localized login form
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useTranslations } from 'next-intl';
-import { useAuthStore } from '@/store/auth.store';
-import { useRouter, useParams } from 'next/navigation';
+// components/features/auth/LoginForm.tsx — Enterprise login
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Mail, Lock, Shield, ArrowRight } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
 
-/** Build schema dynamically using translated error messages */
-function buildSchema(t: ReturnType<typeof useTranslations<'auth'>>) {
-  return z.object({
-    email:    z.string().min(1, t('emailRequired')).email(t('invalidEmail')),
-    password: z.string().min(1, t('passwordRequired')).min(6, t('passwordTooShort')),
-  });
-}
-
-export function LoginForm() {
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
-  const { login } = useAuthStore();
+export function LoginForm({ locale = 'en' }: { locale?: string }) {
   const router = useRouter();
-  const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
-
+  const { login } = useAuthStore();
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
-  const [srvError, setSrvError] = useState('');
+  const [error,    setError]    = useState('');
 
-  const schema = buildSchema(t);
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
-  });
-
-  const onSubmit = async (data: z.infer<typeof schema>) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setLoading(true);
-    setSrvError('');
     try {
-      await login(data.email, data.password);
+      await login(email, password);
       router.push(`/${locale}/dashboard`);
     } catch {
-      setSrvError(t('loginError'));
+      setError('Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password, login, router, locale]);
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
-      style={{ background: 'linear-gradient(175deg,#050b14 0%,#080f1c 40%,#0b1525 70%,#050b14 100%)' }}
-    >
-      {/* Background dots */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.025]"
-        style={{
-          backgroundImage: 'radial-gradient(circle,rgba(201,168,76,.8) 1px,transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-        aria-hidden
-      />
-      {/* Central glow */}
-      <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2
-                   w-[600px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse,rgba(201,168,76,.07) 0%,transparent 65%)', filter: 'blur(40px)' }}
-        aria-hidden
-      />
+    <div className="w-full max-w-md mx-auto">
+      {/* Brand mark */}
+      <div className="text-center mb-8">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[var(--ink-900)] text-xl mx-auto mb-4"
+             style={{ background:'linear-gradient(135deg,#c9a84c,#9e6e1e)', boxShadow:'0 8px 32px rgba(201,168,76,0.30)' }}>A</div>
+        <h1 className="text-2xl font-black text-[var(--text-primary)]">Welcome back</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Sign in to AutoBazaarPro</p>
+      </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Back link */}
-        <Link
-          href={`/${locale}`}
-          className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
-          {tc('back')}
-        </Link>
+      <div className="card-premium p-7">
+        <div className="h-0.5 -mx-7 -mt-7 mb-7 rounded-t-2xl" style={{ background:'linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)' }}/>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm p-8 space-y-6">
-          {/* Header */}
+        {error && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm text-[#ef4444] bg-[rgba(220,38,38,0.08)] border border-[rgba(220,38,38,0.18)]">
+            ⚠ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email */}
           <div>
-            <h1 className="text-2xl font-bold text-white">{t('loginTitle')}</h1>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"/>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                placeholder="your@email.com"
+                className="input-base pl-11 h-11"/>
+            </div>
           </div>
 
-          {/* Server error */}
-          {srvError && (
-            <div role="alert" className="rounded-xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/30 text-red-400">
-              {srvError}
+          {/* Password */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Password</label>
+              <Link href={`/${locale}/forgot-password`} className="text-xs text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors">
+                Forgot password?
+              </Link>
             </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            {/* Email */}
-            <div>
-              <label htmlFor="login-email" className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">
-                {t('email')}
-              </label>
-              <div className="relative">
-                <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" aria-hidden />
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? 'login-email-error' : undefined}
-                  {...register('email')}
-                  placeholder={t('email')}
-                  className={`w-full ps-10 pe-4 py-3.5 rounded-xl text-sm text-white placeholder-white/25
-                    bg-white/[0.05] border transition-all duration-200 outline-none
-                    focus:bg-white/[0.08] focus:border-[#c9a84c]/60 focus:shadow-[0_0_20px_rgba(201,168,76,0.1)]
-                    ${errors.email ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
-                />
-              </div>
-              {errors.email && (
-                <p id="login-email-error" role="alert" className="mt-1.5 text-xs text-red-400">
-                  {errors.email.message}
-                </p>
-              )}
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"/>
+              <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
+                placeholder="Enter your password"
+                className="input-base pl-11 pr-11 h-11"/>
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors">
+                {showPw ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+              </button>
             </div>
+          </div>
 
-            {/* Password */}
-            <div>
-              <label htmlFor="login-password" className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">
-                {t('password')}
-              </label>
-              <div className="relative">
-                <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" aria-hidden />
-                <input
-                  id="login-password"
-                  type={showPw ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? 'login-password-error' : undefined}
-                  {...register('password')}
-                  placeholder="••••••••"
-                  className={`w-full ps-10 pe-11 py-3.5 rounded-xl text-sm text-white placeholder-white/25
-                    bg-white/[0.05] border transition-all duration-200 outline-none
-                    focus:bg-white/[0.08] focus:border-[#c9a84c]/60 focus:shadow-[0_0_20px_rgba(201,168,76,0.1)]
-                    ${errors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p id="login-password-error" role="alert" className="mt-1.5 text-xs text-red-400">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+          {/* Demo notice */}
+          <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--gold-subtle)] border border-[var(--border-gold)] text-xs text-[var(--text-muted)]">
+            <Shield className="w-4 h-4 text-[var(--gold)] flex-shrink-0 mt-0.5"/>
+            <span><strong className="text-[var(--gold)]">Demo:</strong> seller@demo.com / buyer@demo.com — password: <strong>123456</strong></span>
+          </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white
-                         transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed
-                         shadow-[0_4px_24px_rgba(201,168,76,0.25)]
-                         hover:shadow-[0_6px_32px_rgba(201,168,76,0.40)]
-                         active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-                  {tc('loading')}
-                </span>
-              ) : t('loginLink')}
+          <button type="submit" disabled={loading}
+            className="btn-gold w-full h-11 text-sm rounded-xl flex items-center justify-center gap-2">
+            {loading ? <span className="w-4 h-4 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin"/> : (
+              <><span>Sign In</span><ArrowRight className="w-4 h-4"/></>
+            )}
+          </button>
+        </form>
+
+        <div className="relative my-6">
+          <div className="h-px bg-[var(--border-subtle)]"/>
+          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 bg-white dark:bg-[#0b1525] text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+            or continue with
+          </span>
+        </div>
+
+        {/* Social login */}
+        <div className="grid grid-cols-2 gap-3">
+          {[{ label:'Google', icon:'G' },{ label:'Apple', icon:'🍎' }].map(s => (
+            <button key={s.label}
+              className="flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold
+                         border border-[var(--border-default)] text-[var(--text-secondary)]
+                         hover:border-[var(--border-gold)] hover:text-[var(--gold)] hover:bg-[var(--gold-subtle)]
+                         transition-all duration-200">
+              <span>{s.icon}</span>{s.label}
             </button>
-          </form>
-
-          {/* Register link */}
-          <p className="text-center text-sm text-white/40">
-            {t('dontHaveAccount')}{' '}
-            <Link href={`/${locale}/register`} className="text-[#c9a84c] hover:text-[#e8cc7a] font-semibold transition-colors">
-              {t('registerLink')}
-            </Link>
-          </p>
+          ))}
         </div>
       </div>
+
+      <p className="text-center text-sm text-[var(--text-muted)] mt-6">
+        Don't have an account?{' '}
+        <Link href={`/${locale}/register`} className="text-[var(--gold)] font-semibold hover:text-[var(--gold-light)] transition-colors">
+          Sign up free
+        </Link>
+      </p>
     </div>
   );
 }

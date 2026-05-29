@@ -1,293 +1,153 @@
 'use client';
-// components/features/auth/RegisterForm.tsx — Fully localized register form
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useTranslations } from 'next-intl';
-import { useAuthStore } from '@/store/auth.store';
-import { useRouter, useParams } from 'next/navigation';
+// components/features/auth/RegisterForm.tsx
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
 
-function buildSchema(t: ReturnType<typeof useTranslations<'auth'>>) {
-  return z.object({
-    name: z.string().min(1, t('nameRequired')).min(2, t('nameTooShort')),
-    email: z.string().min(1, t('emailRequired')).email(t('invalidEmail')),
-    phone: z.string().optional().refine(
-      (v) => !v || /^[+\d\s\-()]{7,20}$/.test(v),
-      t('invalidPhone'),
-    ),
-    password: z.string().min(1, t('passwordRequired')).min(6, t('passwordTooShort')),
-    confirmPassword: z.string(),
-  }).refine((d) => d.password === d.confirmPassword, {
-    message: t('passwordMismatch'),
-    path: ['confirmPassword'],
-  });
-}
+const ROLES = [
+  { id:'BUYER',  label:'Buyer', desc:'Browse & purchase vehicles',      icon:'🛒' },
+  { id:'DEALER', label:'Seller / Dealer', desc:'List and sell vehicles', icon:'🏪' },
+];
 
-const inputClass = (hasError: boolean) => `
-  w-full ps-11 pe-4 py-3.5 rounded-xl text-sm text-white placeholder-white/25
-  bg-white/[0.05] border transition-all duration-200 outline-none
-  focus:bg-white/[0.08] focus:border-[#c9a84c]/60 focus:shadow-[0_0_20px_rgba(201,168,76,0.1)]
-  ${hasError ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}
-`;
-
-export function RegisterForm() {
-  const t = useTranslations('auth');
-  const tc = useTranslations('common');
-  const { register: registerUser } = useAuthStore();
+export function RegisterForm({ locale = 'en' }: { locale?: string }) {
   const router = useRouter();
-  const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
+  const { register } = useAuthStore();
+  const [name,     setName]     = useState('');
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [role,     setRole]     = useState<'BUYER'|'DEALER'>('BUYER');
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [agreed,   setAgreed]   = useState(false);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false);
-  const [isLoading,   setIsLoading]     = useState(false);
-  const [srvError,    setSrvError]      = useState('');
-  const [success,     setSuccess]       = useState('');
+  const pwStrength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
+  const pwColors = ['', '#ef4444', '#f59e0b', '#22c55e'];
+  const pwLabels = ['', 'Weak', 'Fair', 'Strong'];
 
-  const schema = buildSchema(t);
-  type FormData = z.infer<typeof schema>;
-
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
-
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
-    setSrvError('');
-    setSuccess('');
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agreed) { setError('Please accept the terms to continue.'); return; }
+    setError('');
+    setLoading(true);
     try {
-      await registerUser(data.name, data.email, data.password);
-      setSuccess(t('registerSuccess'));
-      setTimeout(() => router.push(`/${locale}/dashboard`), 1200);
+      await register(name, email, password, role);
+      router.push(`/${locale}/dashboard`);
     } catch {
-      setSrvError(t('registerError'));
+      setError('Registration failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }, [name, email, password, role, agreed, register, router, locale]);
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
-      style={{ background: 'linear-gradient(175deg,#050b14 0%,#080f1c 40%,#0b1525 70%,#050b14 100%)' }}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.025]"
-        style={{
-          backgroundImage: 'radial-gradient(circle,rgba(201,168,76,.8) 1px,transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-        aria-hidden
-      />
+    <div className="w-full max-w-md mx-auto">
+      <div className="text-center mb-8">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[var(--ink-900)] text-xl mx-auto mb-4"
+             style={{ background:'linear-gradient(135deg,#c9a84c,#9e6e1e)', boxShadow:'0 8px 32px rgba(201,168,76,0.30)' }}>A</div>
+        <h1 className="text-2xl font-black text-[var(--text-primary)]">Create Account</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Join AutoBazaarPro — it's free</p>
+      </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <Link
-          href={`/${locale}`}
-          className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
-          {tc('back')}
-        </Link>
+      <div className="card-premium p-7">
+        <div className="h-0.5 -mx-7 -mt-7 mb-7 rounded-t-2xl" style={{ background:'linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)' }}/>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm p-8 space-y-6">
+        {/* Role selector */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {ROLES.map(r => (
+            <button key={r.id} type="button" onClick={() => setRole(r.id as any)}
+              className={`p-4 rounded-xl border-2 text-left transition-all duration-200
+                ${role === r.id
+                  ? 'border-[var(--gold)] bg-[var(--gold-subtle)]'
+                  : 'border-[var(--border-default)] hover:border-[var(--border-gold)]'}`}>
+              <div className="text-2xl mb-1">{r.icon}</div>
+              <div className="font-bold text-[var(--text-primary)] text-sm">{r.label}</div>
+              <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{r.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {error && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm text-[#ef4444] bg-[rgba(220,38,38,0.08)] border border-[rgba(220,38,38,0.18)]">
+            ⚠ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">{t('registerTitle')}</h1>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">Full Name</label>
+            <div className="relative">
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"/>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                placeholder="Ahmad Al-Rashidi"
+                className="input-base pl-11 h-11"/>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"/>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                placeholder="your@email.com"
+                className="input-base pl-11 h-11"/>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"/>
+              <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                placeholder="Min. 6 characters"
+                className="input-base pl-11 pr-11 h-11"/>
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors">
+                {showPw ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+              </button>
+            </div>
+            {password && (
+              <div className="mt-2">
+                <div className="flex gap-1 h-1">
+                  {[1,2,3].map(n => (
+                    <div key={n} className="flex-1 rounded-full transition-all duration-300"
+                         style={{ background: n <= pwStrength ? pwColors[pwStrength] : 'var(--surface-200)' }}/>
+                  ))}
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: pwColors[pwStrength] }}>{pwLabels[pwStrength]}</p>
+              </div>
+            )}
           </div>
 
-          {srvError && (
-            <div role="alert" className="rounded-xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/30 text-red-400">
-              {srvError}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <div onClick={() => setAgreed(v => !v)}
+                 className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all
+                   ${agreed ? 'bg-[var(--gold)] border-[var(--gold)]' : 'border-[var(--border-strong)] hover:border-[var(--gold)]'}`}>
+              {agreed && <Check className="w-3 h-3 text-[var(--ink-900)]"/>}
             </div>
-          )}
-          {success && (
-            <div role="status" className="rounded-xl px-4 py-3 text-sm bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden />
-              {success}
-            </div>
-          )}
+            <span className="text-xs text-[var(--text-muted)] leading-relaxed">
+              I agree to the{' '}
+              <Link href={`/${locale}/terms`} className="text-[var(--gold)] hover:underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href={`/${locale}/privacy`} className="text-[var(--gold)] hover:underline">Privacy Policy</Link>
+            </span>
+          </label>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            {/* Name */}
-            <FormField
-              id="reg-name"
-              label={t('name')}
-              error={errors.name?.message}
-              icon={<User className="w-4 h-4 text-white/30" aria-hidden />}
-            >
-              <input
-                id="reg-name"
-                type="text"
-                autoComplete="name"
-                {...register('name')}
-                placeholder={t('name')}
-                className={inputClass(!!errors.name)}
-                aria-invalid={!!errors.name}
-                aria-describedby={errors.name ? 'reg-name-error' : undefined}
-              />
-            </FormField>
-
-            {/* Email */}
-            <FormField
-              id="reg-email"
-              label={t('email')}
-              error={errors.email?.message}
-              icon={<Mail className="w-4 h-4 text-white/30" aria-hidden />}
-            >
-              <input
-                id="reg-email"
-                type="email"
-                autoComplete="email"
-                {...register('email')}
-                placeholder={t('email')}
-                className={inputClass(!!errors.email)}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? 'reg-email-error' : undefined}
-              />
-            </FormField>
-
-            {/* Phone */}
-            <FormField
-              id="reg-phone"
-              label={t('phone')}
-              error={errors.phone?.message}
-              icon={<Phone className="w-4 h-4 text-white/30" aria-hidden />}
-            >
-              <input
-                id="reg-phone"
-                type="tel"
-                autoComplete="tel"
-                {...register('phone')}
-                placeholder={t('phone')}
-                className={inputClass(!!errors.phone)}
-                aria-invalid={!!errors.phone}
-                aria-describedby={errors.phone ? 'reg-phone-error' : undefined}
-              />
-            </FormField>
-
-            {/* Password */}
-            <FormField
-              id="reg-password"
-              label={t('password')}
-              error={errors.password?.message}
-              icon={<Lock className="w-4 h-4 text-white/30" aria-hidden />}
-              trailing={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              }
-            >
-              <input
-                id="reg-password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                {...register('password')}
-                placeholder="••••••••"
-                className={`${inputClass(!!errors.password)} pe-11`}
-                aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? 'reg-password-error' : undefined}
-              />
-            </FormField>
-
-            {/* Confirm Password */}
-            <FormField
-              id="reg-confirm"
-              label={t('confirmPassword')}
-              error={errors.confirmPassword?.message}
-              icon={<Lock className="w-4 h-4 text-white/30" aria-hidden />}
-              trailing={
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              }
-            >
-              <input
-                id="reg-confirm"
-                type={showConfirm ? 'text' : 'password'}
-                autoComplete="new-password"
-                {...register('confirmPassword')}
-                placeholder="••••••••"
-                className={`${inputClass(!!errors.confirmPassword)} pe-11`}
-                aria-invalid={!!errors.confirmPassword}
-                aria-describedby={errors.confirmPassword ? 'reg-confirm-error' : undefined}
-              />
-            </FormField>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white mt-2
-                         transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed
-                         shadow-[0_4px_24px_rgba(201,168,76,0.25)]
-                         hover:shadow-[0_6px_32px_rgba(201,168,76,0.40)]
-                         active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-                  {tc('loading')}
-                </span>
-              ) : t('registerLink')}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-white/40">
-            {t('alreadyHaveAccount')}{' '}
-            <Link href={`/${locale}/login`} className="text-[#c9a84c] hover:text-[#e8cc7a] font-semibold transition-colors">
-              {t('loginLink')}
-            </Link>
-          </p>
-        </div>
+          <button type="submit" disabled={loading || !agreed}
+            className="btn-gold w-full h-11 text-sm rounded-xl flex items-center justify-center gap-2">
+            {loading ? <span className="w-4 h-4 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin"/> : (
+              <><span>Create Account</span><ArrowRight className="w-4 h-4"/></>
+            )}
+          </button>
+        </form>
       </div>
-    </div>
-  );
-}
 
-/** Reusable form field wrapper */
-function FormField({
-  id,
-  label,
-  error,
-  icon,
-  trailing,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  icon: React.ReactNode;
-  trailing?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
-      <div className="relative">
-        <span className="absolute start-3 top-1/2 -translate-y-1/2">{icon}</span>
-        {children}
-        {trailing}
-      </div>
-      {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-xs text-red-400">
-          {error}
-        </p>
-      )}
+      <p className="text-center text-sm text-[var(--text-muted)] mt-6">
+        Already have an account?{' '}
+        <Link href={`/${locale}/login`} className="text-[var(--gold)] font-semibold hover:text-[var(--gold-light)] transition-colors">
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 }
