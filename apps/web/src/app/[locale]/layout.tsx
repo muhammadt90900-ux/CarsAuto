@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { locales, dir, type Locale } from '@/i18n/config';
 import { fontVariables } from '../layout';
+import { Providers } from '@/components/Providers';
 
 type Props = {
   children: React.ReactNode;
