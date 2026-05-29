@@ -1,131 +1,78 @@
 'use client';
-/**
- * Toast / Alert — AutoBazaarPro Design System
- *
- * Alert (inline):
- *   <Alert variant="success" title="Saved!" message="Your listing has been published." />
- *   <Alert variant="error"   message={error} onClose={() => setError(null)} />
- *
- * Toast (programmatic, via hook):
- *   const { toast } = useToast();
- *   toast.success('Listing published!');
- *   toast.error('Something went wrong.');
- */
+// components/ui/Toast.tsx — Enterprise toast notification system
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-import {
-  useState,
-  useCallback,
-  useEffect,
-  createContext,
-  useContext,
-  type ReactNode,
-} from 'react';
-import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Info,
-  X,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+interface Toast { id: string; type: ToastType; title: string; message?: string; duration?: number; }
+interface ToastContextValue { toast: (t: Omit<Toast, 'id'>) => void; dismiss: (id: string) => void; }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-export type AlertVariant = 'success' | 'warning' | 'error' | 'info';
+const ToastContext = createContext<ToastContextValue | null>(null);
 
-interface AlertProps {
-  variant:    AlertVariant;
-  title?:     string;
-  message:    ReactNode;
-  onClose?:   () => void;
-  className?: string;
-}
-
-// ─── Alert (inline) ───────────────────────────────────────────────────────────
-const icons: Record<AlertVariant, ReactNode> = {
-  success: <CheckCircle2 size={16} aria-hidden />,
-  warning: <AlertTriangle size={16} aria-hidden />,
-  error:   <XCircle      size={16} aria-hidden />,
-  info:    <Info         size={16} aria-hidden />,
+const ICONS = {
+  success: <CheckCircle2 className="w-4.5 h-4.5 text-[#16a34a]" />,
+  error:   <XCircle      className="w-4.5 h-4.5 text-[#dc2626]" />,
+  warning: <AlertTriangle className="w-4.5 h-4.5 text-[#d97706]" />,
+  info:    <Info          className="w-4.5 h-4.5 text-[#2563eb]" />,
 };
 
-export function Alert({ variant, title, message, onClose, className }: AlertProps) {
+const STYLES = {
+  success: 'border-[#16a34a]/25 bg-[#16a34a]/08',
+  error:   'border-[#dc2626]/25 bg-[#dc2626]/08',
+  warning: 'border-[#d97706]/25 bg-[#d97706]/08',
+  info:    'border-[#2563eb]/25 bg-[#2563eb]/08',
+};
+
+function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+    const timer = setTimeout(() => { setVisible(false); setTimeout(onDismiss, 300); }, t.duration ?? 4000);
+    return () => clearTimeout(timer);
+  }, [t.duration, onDismiss]);
+
   return (
     <div
-      role="alert"
-      className={cn('alert', `alert-${variant}`, className)}
+      className={`flex items-start gap-3 p-4 rounded-2xl border shadow-[var(--shadow-xl)] max-w-sm w-full
+                  backdrop-blur-xl transition-all duration-300
+                  ${STYLES[t.type]}
+                  ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+      style={{ background: 'rgba(8,15,28,0.92)' }}
     >
-      <span className="shrink-0 mt-0.5">{icons[variant]}</span>
+      <span className="flex-shrink-0 mt-0.5">{ICONS[t.type]}</span>
       <div className="flex-1 min-w-0">
-        {title   && <p className="font-semibold text-sm mb-0.5">{title}</p>}
-        <p className="text-sm opacity-90">{message}</p>
+        <p className="font-semibold text-white text-sm leading-snug">{t.title}</p>
+        {t.message && <p className="text-white/55 text-xs mt-0.5 leading-relaxed">{t.message}</p>}
       </div>
-      {onClose && (
-        <button
-          onClick={onClose}
-          aria-label="Dismiss"
-          className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-        >
-          <X size={14} aria-hidden />
-        </button>
-      )}
+      <button onClick={() => { setVisible(false); setTimeout(onDismiss, 300); }}
+        className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-white/30
+                   hover:text-white transition-colors mt-0.5">
+        <X className="w-3.5 h-3.5"/>
+      </button>
     </div>
   );
 }
 
-// ─── Toast system ─────────────────────────────────────────────────────────────
-interface ToastItem {
-  id:       string;
-  variant:  AlertVariant;
-  title?:   string;
-  message:  string;
-  duration: number;
-}
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-interface ToastContextValue {
-  toasts: ToastItem[];
-  add:    (item: Omit<ToastItem, 'id'>) => void;
-  remove: (id: string) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const remove = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const toast = useCallback((t: Omit<Toast, 'id'>) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { ...t, id }]);
   }, []);
 
-  const add = useCallback((item: Omit<ToastItem, 'id'>) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { ...item, id }]);
-    setTimeout(() => remove(id), item.duration);
-  }, [remove]);
+  const dismiss = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   return (
-    <ToastContext.Provider value={{ toasts, add, remove }}>
+    <ToastContext.Provider value={{ toast, dismiss }}>
       {children}
-      {/* Toast container — fixed top-right */}
-      <div
-        aria-live="polite"
-        className="fixed top-4 right-4 z-[60] flex flex-col gap-3 pointer-events-none"
-      >
-        {toasts.map((t) => (
+      <div className="fixed bottom-6 right-6 z-[300] flex flex-col gap-3 items-end pointer-events-none">
+        {toasts.map(t => (
           <div key={t.id} className="pointer-events-auto">
-            <div className={cn('toast', `toast-${t.variant}`)}>
-              <span className="shrink-0 mt-0.5">{icons[t.variant]}</span>
-              <div className="flex-1 min-w-0">
-                {t.title   && <p className="font-semibold text-sm mb-0.5">{t.title}</p>}
-                <p className="text-sm text-[var(--text-secondary)]">{t.message}</p>
-              </div>
-              <button
-                onClick={() => remove(t.id)}
-                aria-label="Dismiss"
-                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <X size={14} aria-hidden />
-              </button>
-            </div>
+            <ToastItem toast={t} onDismiss={() => dismiss(t.id)}/>
           </div>
         ))}
       </div>
@@ -133,23 +80,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** useToast hook — call toast.success / toast.error etc. */
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
-
-  const { add } = ctx;
-
-  return {
-    toast: {
-      success: (message: string, title?: string, duration = 4000) =>
-        add({ variant: 'success', message, title, duration }),
-      error:   (message: string, title?: string, duration = 5000) =>
-        add({ variant: 'error',   message, title, duration }),
-      warning: (message: string, title?: string, duration = 4500) =>
-        add({ variant: 'warning', message, title, duration }),
-      info:    (message: string, title?: string, duration = 4000) =>
-        add({ variant: 'info',    message, title, duration }),
-    },
-  };
+  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  return ctx;
 }

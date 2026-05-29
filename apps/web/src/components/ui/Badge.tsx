@@ -1,70 +1,50 @@
-'use client';
-/**
- * Badge — AutoBazaarPro Design System
- *
- * Usage:
- *   <Badge variant="gold">Premium</Badge>
- *   <Badge variant="success" dot>Active</Badge>
- *   <Badge variant="error">Sold</Badge>
- */
+// components/ui/Badge.tsx — Enterprise badge system
+import { cn } from '@auto-bazaar-pro/utils';
+import { HTMLAttributes } from 'react';
 
-import { type ReactNode } from 'react';
-import { cn } from '@/lib/utils';
+type Variant = 'gold' | 'green' | 'blue' | 'red' | 'purple' | 'grey' | 'outline';
+type Size    = 'sm' | 'md';
 
-export type BadgeVariant = 'gold' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
-export type BadgeSize    = 'sm' | 'md';
-
-interface BadgeProps {
-  variant?:   BadgeVariant;
-  size?:      BadgeSize;
-  dot?:       boolean;
-  icon?:      ReactNode;
-  className?: string;
-  children:   ReactNode;
+interface BadgeProps extends HTMLAttributes<'span'> {
+  variant?: Variant;
+  size?: Size;
+  dot?: boolean;
 }
 
-const variantClasses: Record<BadgeVariant, string> = {
-  gold:    'badge-gold',
-  success: 'badge-success',
-  warning: 'badge-warning',
-  error:   'badge-error',
-  info:    'badge-info',
-  neutral: 'badge-neutral',
+const VARIANTS: Record<Variant, string> = {
+  gold:    'bg-[rgba(201,168,76,0.14)] text-[#c9a84c] border-[rgba(201,168,76,0.25)]',
+  green:   'bg-[rgba(22,163,74,0.12)] text-[#16a34a] border-[rgba(22,163,74,0.22)]',
+  blue:    'bg-[rgba(37,99,235,0.12)] text-[#3b82f6] border-[rgba(37,99,235,0.22)]',
+  red:     'bg-[rgba(220,38,38,0.12)] text-[#ef4444] border-[rgba(220,38,38,0.22)]',
+  purple:  'bg-[rgba(168,85,247,0.12)] text-[#a855f7] border-[rgba(168,85,247,0.22)]',
+  grey:    'bg-[rgba(100,116,139,0.12)] text-[#64748b] border-[rgba(100,116,139,0.22)]',
+  outline: 'bg-transparent text-[var(--text-muted)] border-[var(--border-default)]',
 };
 
-const dotColors: Record<BadgeVariant, string> = {
-  gold:    'bg-[var(--gold)]',
-  success: 'bg-[var(--status-success)]',
-  warning: 'bg-[var(--status-warning)]',
-  error:   'bg-[var(--status-error)]',
-  info:    'bg-[var(--status-info)]',
-  neutral: 'bg-[var(--text-muted)]',
+const SIZES: Record<Size, string> = {
+  sm: 'text-[9px] tracking-[0.14em] px-2 py-0.5',
+  md: 'text-[10px] tracking-[0.12em] px-2.5 py-0.5',
 };
 
-export function Badge({
-  variant   = 'neutral',
-  size      = 'md',
-  dot       = false,
-  icon,
-  className,
-  children,
-}: BadgeProps) {
+export function Badge({ variant = 'grey', size = 'sm', dot, className, children, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'badge',
-        variantClasses[variant],
-        size === 'sm' && 'text-[0.60rem] px-2 py-[2px]',
-        className,
+        'inline-flex items-center gap-1 font-bold uppercase rounded-full border',
+        VARIANTS[variant],
+        SIZES[size],
+        className
       )}
+      {...props}
     >
-      {dot && (
-        <span
-          className={cn('inline-block w-[5px] h-[5px] rounded-full shrink-0', dotColors[variant])}
-          aria-hidden
-        />
-      )}
-      {icon && <span className="shrink-0" aria-hidden>{icon}</span>}
+      {dot && <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', {
+        'bg-[#c9a84c]': variant === 'gold',
+        'bg-[#16a34a]': variant === 'green',
+        'bg-[#3b82f6]': variant === 'blue',
+        'bg-[#ef4444]': variant === 'red',
+        'bg-[#a855f7]': variant === 'purple',
+        'bg-[#64748b]': variant === 'grey' || variant === 'outline',
+      })} />}
       {children}
     </span>
   );

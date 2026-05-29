@@ -1,223 +1,54 @@
 'use client';
-/**
- * Input / Textarea / Select — AutoBazaarPro Design System
- *
- * Usage:
- *   <Input placeholder="Search..." leftIcon={<Search />} />
- *   <Textarea label="Description" hint="Max 500 chars" />
- *   <Select label="Category" options={[…]} />
- *
- *   <Field label="Email" error={errors.email?.message} required>
- *     <Input type="email" {...register('email')} />
- *   </Field>
- */
-
-import {
-  forwardRef,
-  type InputHTMLAttributes,
-  type TextareaHTMLAttributes,
-  type SelectHTMLAttributes,
-  type ReactNode,
-} from 'react';
-import { cn } from '@/lib/utils';
-
-// ─── Field wrapper ────────────────────────────────────────────────────────────
-interface FieldProps {
-  label?:    string;
-  hint?:     string;
-  error?:    string;
-  required?: boolean;
-  children:  ReactNode;
-  className?: string;
-}
-
-export function Field({ label, hint, error, required, children, className }: FieldProps) {
-  return (
-    <div className={cn('field', className)}>
-      {label && (
-        <label>
-          {label}
-          {required && <span className="text-status-error ml-1" aria-hidden>*</span>}
-        </label>
-      )}
-      {children}
-      {error  && <p className="error" role="alert">{error}</p>}
-      {!error && hint && <p className="hint">{hint}</p>}
-    </div>
-  );
-}
-
-// ─── Input ────────────────────────────────────────────────────────────────────
-export type InputSize = 'sm' | 'md' | 'lg';
+// components/ui/Input.tsx — Enterprise input system
+import { cn } from '@auto-bazaar-pro/utils';
+import { InputHTMLAttributes, forwardRef } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  inputSize?: InputSize;
-  leftIcon?:  ReactNode;
-  rightIcon?: ReactNode;
-  error?:     boolean;
-  /** Shorthand: wrap in a Field with label/hint/error */
-  label?:    string;
-  hint?:     string;
-  errorMsg?: string;
+  label?: string;
+  error?: string;
+  hint?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  (
-    {
-      inputSize = 'md',
-      leftIcon,
-      rightIcon,
-      error,
-      label,
-      hint,
-      errorMsg,
-      className,
-      ...props
-    },
-    ref,
-  ) => {
-    const sizeClass = inputSize === 'sm' ? 'input-sm' : inputSize === 'lg' ? 'input-lg' : '';
-    const hasError  = error || !!errorMsg;
-
-    const inputEl = (
-      <div className="input-wrapper">
-        {leftIcon  && <span className="input-icon-left"  aria-hidden>{leftIcon}</span>}
-        {rightIcon && <span className="input-icon-right" aria-hidden>{rightIcon}</span>}
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, hint, leftIcon, rightIcon, className, id, ...props },
+  ref
+) {
+  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  return (
+    <div className="w-full">
+      {label && (
+        <label htmlFor={inputId} className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wide">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        {leftIcon && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none">
+            {leftIcon}
+          </span>
+        )}
         <input
           ref={ref}
+          id={inputId}
           className={cn(
-            'input',
-            sizeClass,
-            leftIcon  && 'input-has-icon-left',
-            rightIcon && 'input-has-icon-right',
-            hasError  && 'input-error',
-            className,
+            'input-base w-full',
+            leftIcon  && 'pl-10',
+            rightIcon && 'pr-10',
+            error     && 'border-[rgba(220,38,38,0.55)] focus:border-[rgba(220,38,38,0.75)] focus:shadow-[0_0_0_3px_rgba(220,38,38,0.10)]',
+            className
           )}
-          aria-invalid={hasError ? true : undefined}
           {...props}
         />
-      </div>
-    );
-
-    if (label || hint || errorMsg) {
-      return (
-        <Field label={label} hint={hint} error={errorMsg} required={props.required}>
-          {inputEl}
-        </Field>
-      );
-    }
-    return inputEl;
-  },
-);
-Input.displayName = 'Input';
-
-// ─── Textarea ─────────────────────────────────────────────────────────────────
-interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?:    string;
-  hint?:     string;
-  errorMsg?: string;
-  error?:    boolean;
-}
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, hint, errorMsg, error, className, ...props }, ref) => {
-    const hasError = error || !!errorMsg;
-
-    const el = (
-      <textarea
-        ref={ref}
-        className={cn('textarea', hasError && 'input-error', className)}
-        aria-invalid={hasError ? true : undefined}
-        {...props}
-      />
-    );
-
-    if (label || hint || errorMsg) {
-      return (
-        <Field label={label} hint={hint} error={errorMsg} required={props.required}>
-          {el}
-        </Field>
-      );
-    }
-    return el;
-  },
-);
-Textarea.displayName = 'Textarea';
-
-// ─── Select ───────────────────────────────────────────────────────────────────
-interface SelectOption {
-  value: string | number;
-  label: string;
-  disabled?: boolean;
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  options:   SelectOption[];
-  placeholder?: string;
-  label?:    string;
-  hint?:     string;
-  errorMsg?: string;
-  error?:    boolean;
-}
-
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ options, placeholder, label, hint, errorMsg, error, className, ...props }, ref) => {
-    const hasError = error || !!errorMsg;
-
-    const el = (
-      <select
-        ref={ref}
-        className={cn('input select', hasError && 'input-error', className)}
-        aria-invalid={hasError ? true : undefined}
-        {...props}
-      >
-        {placeholder && (
-          <option value="" disabled>{placeholder}</option>
+        {rightIcon && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+            {rightIcon}
+          </span>
         )}
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    );
-
-    if (label || hint || errorMsg) {
-      return (
-        <Field label={label} hint={hint} error={errorMsg} required={props.required}>
-          {el}
-        </Field>
-      );
-    }
-    return el;
-  },
-);
-Select.displayName = 'Select';
-
-// ─── Checkbox ─────────────────────────────────────────────────────────────────
-interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?:    string;
-  hint?:     string;
-  errorMsg?: string;
-}
-
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ label, hint, errorMsg, className, ...props }, ref) => (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <input
-        type="checkbox"
-        ref={ref}
-        className={cn('checkbox mt-0.5', className)}
-        {...props}
-      />
-      {(label || hint) && (
-        <div className="flex flex-col gap-0.5">
-          {label && <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>}
-          {hint  && <span className="text-xs text-[var(--text-muted)]">{hint}</span>}
-          {errorMsg && <span className="text-xs text-[var(--status-error)]">{errorMsg}</span>}
-        </div>
-      )}
-    </label>
-  ),
-);
-Checkbox.displayName = 'Checkbox';
+      </div>
+      {error && <p className="mt-1.5 text-xs text-[#ef4444] flex items-center gap-1">⚠ {error}</p>}
+      {hint && !error && <p className="mt-1.5 text-xs text-[var(--text-muted)]">{hint}</p>}
+    </div>
+  );
+});

@@ -1,72 +1,38 @@
 'use client';
-/**
- * Modal / Drawer — AutoBazaarPro Design System
- *
- * Usage (Modal):
- *   <Modal open={open} onClose={() => setOpen(false)} title="Confirm Delete" size="sm">
- *     <p>Are you sure?</p>
- *     <Modal.Footer>
- *       <Button variant="outline" onClick={onClose}>Cancel</Button>
- *       <Button variant="danger">Delete</Button>
- *     </Modal.Footer>
- *   </Modal>
- *
- * Usage (Drawer — mobile bottom-sheet):
- *   <Drawer open={open} onClose={() => setOpen(false)} title="Filter">
- *     ...
- *   </Drawer>
- */
-
-import { useEffect, useCallback, type ReactNode } from 'react';
+// components/ui/Modal.tsx — Enterprise modal system
+import { useEffect, useCallback, HTMLAttributes } from 'react';
 import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-type ModalSize = 'sm' | 'default' | 'lg' | 'xl' | 'full';
+import { cn } from '@auto-bazaar-pro/utils';
 
 interface ModalProps {
-  open:         boolean;
-  onClose:      () => void;
-  title?:       ReactNode;
-  description?: ReactNode;
-  size?:        ModalSize;
-  /** Prevent close on overlay click */
-  persistent?:  boolean;
-  className?:   string;
-  children:     ReactNode;
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  description?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  children: React.ReactNode;
+  className?: string;
+  closeOnBackdrop?: boolean;
 }
 
-const sizeClasses: Record<ModalSize, string> = {
-  sm:      'modal-sm',
-  default: '',
-  lg:      'modal-lg',
-  xl:      'modal-xl',
-  full:    'modal-full',
+const SIZES = {
+  sm:   'max-w-sm',
+  md:   'max-w-md',
+  lg:   'max-w-2xl',
+  xl:   'max-w-4xl',
+  full: 'max-w-[95vw]',
 };
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-export function Modal({
-  open,
-  onClose,
-  title,
-  description,
-  size = 'default',
-  persistent = false,
-  className,
-  children,
-}: ModalProps) {
-  // Close on Escape
-  const handleKey = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !persistent) onClose();
-    },
-    [onClose, persistent],
-  );
+export function Modal({ open, onClose, title, description, size = 'md', children, className, closeOnBackdrop = true }: ModalProps) {
+  const handleKey = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
 
   useEffect(() => {
-    if (!open) return;
-    document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
+    if (open) {
+      document.addEventListener('keydown', handleKey);
+      document.body.style.overflow = 'hidden';
+    }
     return () => {
       document.removeEventListener('keydown', handleKey);
       document.body.style.overflow = '';
@@ -76,104 +42,63 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="modal-overlay"
-      onClick={persistent ? undefined : onClose}
-    >
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className={cn('modal', sizeClasses[size], className)}
-        onClick={(e) => e.stopPropagation()}
+        className="absolute inset-0 bg-black/70 backdrop-blur-md anim-fade-in"
+        onClick={closeOnBackdrop ? onClose : undefined}
+        aria-hidden="true"
+      />
+      {/* Panel */}
+      <div
+        className={cn(
+          'relative w-full rounded-3xl overflow-hidden anim-scale-in',
+          'bg-white dark:bg-[#0b1525]',
+          'border border-[var(--border-default)] dark:border-white/[0.08]',
+          'shadow-[var(--shadow-xl)]',
+          SIZES[size],
+          className
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
       >
-        {/* Header */}
+        {/* Top accent */}
+        <div className="h-0.5 bg-gradient-to-r from-transparent via-[rgba(201,168,76,0.5)] to-transparent" />
+
         {(title || description) && (
-          <div className="modal-header">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-[var(--border-subtle)]">
             <div>
-              {title       && <h2 className="modal-title">{title}</h2>}
+              {title && <h2 id="modal-title" className="text-lg font-bold text-[var(--text-primary)]">{title}</h2>}
               {description && <p className="text-sm text-[var(--text-muted)] mt-1">{description}</p>}
             </div>
             <button
-              className="modal-close"
               onClick={onClose}
+              className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl
+                         text-[var(--text-muted)] hover:text-[var(--text-primary)]
+                         bg-[var(--surface-100)] hover:bg-[var(--surface-200)]
+                         transition-all duration-150"
               aria-label="Close"
             >
-              <X size={16} aria-hidden />
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Modal.Body ───────────────────────────────────────────────────────────────
-Modal.Body = function ModalBody({
-  className,
-  children,
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
-  return <div className={cn('modal-body', className)}>{children}</div>;
-};
-
-// ─── Modal.Footer ─────────────────────────────────────────────────────────────
-Modal.Footer = function ModalFooter({
-  className,
-  children,
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
-  return <div className={cn('modal-footer', className)}>{children}</div>;
-};
-
-// ─── Drawer (bottom-sheet) ───────────────────────────────────────────────────
-interface DrawerProps {
-  open:      boolean;
-  onClose:   () => void;
-  title?:    ReactNode;
-  className?: string;
-  children:  ReactNode;
-}
-
-export function Drawer({ open, onClose, title, className, children }: DrawerProps) {
-  useEffect(() => {
-    if (!open) return;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="drawer-overlay"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className={cn('drawer', className)}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="drawer-handle" aria-hidden />
-        {title && (
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-[var(--text-primary)]">{title}</h2>
-            <button
-              className="modal-close"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <X size={16} aria-hidden />
-            </button>
-          </div>
+        {!title && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-xl
+                       text-[var(--text-muted)] hover:text-[var(--text-primary)]
+                       bg-[var(--surface-100)] hover:bg-[var(--surface-200)]
+                       transition-all duration-150"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
         )}
-        {children}
+
+        <div className="overflow-y-auto max-h-[80vh] no-scrollbar">{children}</div>
       </div>
     </div>
   );
