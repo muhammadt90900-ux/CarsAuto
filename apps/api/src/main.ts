@@ -10,6 +10,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  app.use(helmet());
+app.use(compression());
+app.use(cookieParser());
   // ── CORS ──────────────────────────────────────────────────────────────────
   // Allow comma-separated list of origins from FRONTEND_URL env var.
   const rawOrigins = process.env.FRONTEND_URL ?? 'http://localhost:3000';
@@ -54,6 +57,4 @@ async function bootstrap() {
 
 bootstrap();
 
- app.use(helmet());
-app.use(compression());
-app.use(cookieParser());
+ 
