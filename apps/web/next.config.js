@@ -59,8 +59,9 @@ const nextConfig = {
   // ── Bundle analyser: run with ANALYZE=true npx next build ─────────────────
   ...(process.env.ANALYZE === 'true' && {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    ...require("@next/bundle-analyzer": "^14.0.0")({ enabled: true }),
-  }),
+    const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 
   // ── ESLint / TypeScript: don't fail the production build on warnings ────────
   // Remove these once all warnings are resolved in your codebase.
