@@ -1,232 +1,227 @@
 'use client';
-// components/features/dealers/DealersMarketplaceClient.tsx
-
+// components/features/dealers/DealersMarketplaceClient.tsx — Enterprise dealer directory
 import { useState, useCallback } from 'react';
-import { Search, SlidersHorizontal, Star, ChevronDown, X } from 'lucide-react';
-import { DealerCard } from './DealerCard';
-import { cn } from '@auto-bazaar-pro/utils';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { Search, Star, Shield, MapPin, Phone, ArrowRight, Filter, X, Grid3X3, List } from 'lucide-react';
 
-const TIER_OPTIONS = [
-  { value: '',         label: 'All Tiers' },
-  { value: 'PLATINUM', label: '💎 Platinum' },
-  { value: 'GOLD',     label: '⭐ Gold' },
-  { value: 'STANDARD', label: '✓ Standard' },
-];
+const CITIES = ['Erbil','Sulaymaniyah','Duhok','Kirkuk','Baghdad','Basra','Dubai','Sharjah'];
+const SPECIALTIES = ['All Brands','Luxury','Toyota & Lexus','Import Specialist','Electric','Budget'];
+const TIERS = ['Platinum','Gold','Verified'];
 
-const SORT_OPTIONS = [
-  { value: 'rating',   label: 'Top Rated' },
-  { value: 'reviews',  label: 'Most Reviewed' },
-  { value: 'listings', label: 'Most Listings' },
-  { value: 'newest',   label: 'Newest' },
-];
+const MOCK_DEALERS = Array.from({ length: 12 }, (_, i) => ({
+  id: i + 1,
+  slug: `dealer-${i + 1}`,
+  name: ['Al-Najaf Premium Auto','Kurdistan Motors','Gulf Star Autos','Tigris Auto Group',
+         'Baghdad Premium Cars','Erbil Luxury Motors','Sulaymaniyah Rides','Basra Auto Hub',
+         'Dubai Select Cars','KRG Motors','Mesopotamia Auto','Silk Road Autos'][i],
+  nameKu: 'ئۆتۆمبێل پریمیئوم',
+  city: CITIES[i % CITIES.length],
+  rating: parseFloat((4.5 + (i % 5) * 0.1).toFixed(1)),
+  reviews: 80 + i * 23,
+  listings: 40 + i * 12,
+  verified: true,
+  specialty: SPECIALTIES[i % SPECIALTIES.length],
+  tier: i % 3 === 0 ? 'Platinum' : i % 3 === 1 ? 'Gold' : 'Verified',
+  yearEstablished: 2010 + (i % 13),
+  phone: '+964 750 XXX XXXX',
+}));
 
-interface Props {
-  initial: { dealers: any[]; total: number; page: number; pages: number };
-  locale: string;
-}
+const TIER_COLORS: Record<string, string> = {
+  Platinum: '#a855f7',
+  Gold:     '#c9a84c',
+  Verified: '#22c55e',
+};
+const TIER_LABELS: Record<string, string> = {
+  Platinum: '💎 Platinum',
+  Gold:     '🌟 Gold',
+  Verified: '✅ Verified',
+};
 
-export function DealersMarketplaceClient({ initial, locale }: Props) {
-  const [dealers, setDealers] = useState(initial.dealers);
-  const [total, setTotal]     = useState(initial.total);
-  const [loading, setLoading] = useState(false);
+function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; view: 'grid' | 'list' }) {
+  const color = TIER_COLORS[dealer.tier];
 
-  const [search,    setSearch]    = useState('');
-  const [tier,      setTier]      = useState('');
-  const [sortBy,    setSortBy]    = useState('rating');
-  const [minRating, setMinRating] = useState(0);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const fetchDealers = useCallback(async (params: Record<string, string>) => {
-    setLoading(true);
-    try {
-      const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v))).toString();
-      const res = await fetch(`/api/dealers?${qs}`);
-      const data = await res.json();
-      setDealers(data.dealers);
-      setTotal(data.total);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const applyFilters = useCallback(() => {
-    fetchDealers({ search, tier, sortBy, minRating: minRating ? String(minRating) : '' });
-  }, [search, tier, sortBy, minRating, fetchDealers]);
-
-  const clearFilters = useCallback(() => {
-    setSearch(''); setTier(''); setSortBy('rating'); setMinRating(0);
-    fetchDealers({});
-  }, [fetchDealers]);
-
-  const activeFilters = !!(search || tier || minRating);
+  if (view === 'list') {
+    return (
+      <Link href={`/${locale}/dealers/${dealer.slug}`} className="block group">
+        <div className="card-premium flex items-center gap-5 p-5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+               style={{ background: `${color}15`, border: `1px solid ${color}25` }}>🏪</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h3 className="font-bold text-[var(--text-primary)] truncate">{dealer.name}</h3>
+              <span className="text-[9px] font-black uppercase tracking-widest rounded-full px-2 py-0.5 flex-shrink-0"
+                    style={{ background:`${color}15`, border:`1px solid ${color}25`, color }}>{TIER_LABELS[dealer.tier]}</span>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] flex items-center gap-2">
+              <MapPin className="w-3 h-3"/>{dealer.city} · {dealer.specialty}
+            </p>
+          </div>
+          <div className="flex items-center gap-6 text-center flex-shrink-0">
+            <div><p className="font-black text-[var(--gold)] text-lg flex items-center gap-0.5">{dealer.rating}<Star className="w-3.5 h-3.5 fill-[var(--gold)] text-[var(--gold)]"/></p><p className="text-[10px] text-[var(--text-muted)]">{dealer.reviews} reviews</p></div>
+            <div><p className="font-black text-[var(--text-primary)] text-lg">{dealer.listings}</p><p className="text-[10px] text-[var(--text-muted)]">listings</p></div>
+            <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--gold)] group-hover:translate-x-0.5 transition-all"/>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#060e1a]">
-
-      {/* ── Page header ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#0b1a2e] to-[#060e1a] border-b border-white/[0.06] py-12 px-4">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,rgba(201,168,76,0.06),transparent_70%)]" />
-        <div className="max-w-5xl mx-auto relative">
-          <div className="flex items-center gap-2 text-[#c9a84c] text-xs font-semibold uppercase tracking-widest mb-3">
-            <span className="w-6 h-px bg-[#c9a84c]" />
-            Verified Dealers
+    <Link href={`/${locale}/dealers/${dealer.slug}`} className="block group">
+      <div className="relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5
+                      hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)] cursor-pointer"
+           style={{ background:'linear-gradient(145deg,rgba(11,21,37,0.92),rgba(8,15,28,0.97))', border:`1px solid ${color}25` }}>
+        <div className="absolute top-0 inset-x-0 h-0.5" style={{ background:`linear-gradient(90deg,transparent,${color},transparent)` }}/>
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+             style={{ background:`radial-gradient(ellipse at 50% 0%,${color}10 0%,transparent 65%)` }}/>
+        <div className="relative p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                 style={{ background:`${color}12`, border:`1px solid ${color}22` }}>🏪</div>
+            <span className="text-[9px] font-black uppercase tracking-widest rounded-full px-2.5 py-0.5"
+                  style={{ background:`${color}15`, border:`1px solid ${color}28`, color }}>{TIER_LABELS[dealer.tier]}</span>
           </div>
-          <h1 className="font-display font-black text-white text-3xl md:text-4xl mb-2">
-            Find Trusted Dealerships
+          <h3 className="font-bold text-white text-sm mb-0.5 leading-tight group-hover:text-[var(--gold)] transition-colors">{dealer.name}</h3>
+          <p className="flex items-center gap-1 text-[10px] text-white/35 mb-4"><MapPin className="w-2.5 h-2.5"/>{dealer.city} · Est. {dealer.yearEstablished}</p>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[
+              { val: dealer.rating + '★', lbl: 'Rating' },
+              { val: dealer.reviews,       lbl: 'Reviews' },
+              { val: dealer.listings,      lbl: 'Listings' },
+            ].map(s => (
+              <div key={s.lbl} className="text-center rounded-xl py-2 bg-white/[0.04] border border-white/[0.06]">
+                <div className="font-black text-white text-sm">{s.val}</div>
+                <div className="text-white/30 text-[9px]">{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-xs font-bold py-2.5 px-3 rounded-xl border transition-all"
+               style={{ borderColor:`${color}28`, color, background:`${color}08` }}>
+            View Dealer<ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"/>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export function DealersMarketplaceClient({ locale }: { locale: string }) {
+  const [query, setQuery]   = useState('');
+  const [city, setCity]     = useState('');
+  const [tier, setTier]     = useState('');
+  const [spec, setSpec]     = useState('');
+  const [view, setView]     = useState<'grid'|'list'>('grid');
+
+  const dealers = MOCK_DEALERS.filter(d => {
+    if (query && !d.name.toLowerCase().includes(query.toLowerCase())) return false;
+    if (city && d.city !== city) return false;
+    if (tier && d.tier !== tier) return false;
+    if (spec && d.specialty !== spec) return false;
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
+      {/* Header */}
+      <div className="relative overflow-hidden border-b border-[var(--border-default)]"
+           style={{ background:'linear-gradient(135deg,#050b14 0%,#0b1525 60%,#050b14 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.025] bg-dot-grid"/>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
+            <Link href={`/${locale}`} className="hover:text-[var(--gold)] transition-colors">Home</Link>
+            <span>/</span><span className="text-white/60">Dealers</span>
+          </nav>
+          <h1 className="text-3xl sm:text-4xl font-display font-black text-white mb-2">
+            فرۆشیارەکان / <span className="text-[var(--gold)]">Dealers</span>
           </h1>
-          <p className="text-white/50 text-sm max-w-xl">
-            Browse {total.toLocaleString()} verified dealers across the region. Premium showrooms, genuine vehicles, professional service.
-          </p>
+          <p className="text-white/45 text-sm mb-6">Connect with {MOCK_DEALERS.length}+ verified dealerships</p>
+          {/* Search */}
+          <div className="relative max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"/>
+            <input value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Search dealers by name, city, specialty…"
+              className="w-full h-12 bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] rounded-2xl
+                         pl-11 pr-4 text-white placeholder-white/30 text-sm outline-none
+                         focus:border-[var(--gold)]/50 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)] transition-all"/>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-
-        {/* ── Search + filter bar ── */}
-        <div className="flex flex-col md:flex-row gap-3 mb-6">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && applyFilters()}
-              placeholder="Search dealers, brands, city…"
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0d1b2e] border border-white/[0.09] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#c9a84c]/40"
-            />
-          </div>
-
-          {/* Sort */}
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={e => { setSortBy(e.target.value); }}
-              className="appearance-none pl-4 pr-9 py-3 rounded-xl bg-[#0d1b2e] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[#c9a84c]/40 cursor-pointer"
-            >
-              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Filter bar */}
+        <div className="flex flex-wrap gap-3 mb-7 items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            {/* City */}
+            <select value={city} onChange={e => setCity(e.target.value)}
+              className="input-base h-9 text-xs w-36">
+              <option value="">All Cities</option>
+              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-          </div>
-
-          {/* Filter toggle */}
-          <button
-            onClick={() => setFiltersOpen(p => !p)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition-all',
-              filtersOpen || activeFilters
-                ? 'bg-[#c9a84c]/15 border-[#c9a84c]/40 text-[#e8cc7a]'
-                : 'bg-[#0d1b2e] border-white/[0.09] text-white/60 hover:border-white/20',
-            )}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-            {activeFilters && <span className="w-2 h-2 rounded-full bg-[#c9a84c]" />}
-          </button>
-
-          <button
-            onClick={applyFilters}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
-          >
-            Search
-          </button>
-        </div>
-
-        {/* ── Expandable filter panel ── */}
-        {filtersOpen && (
-          <div className="mb-6 p-5 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] flex flex-wrap gap-6">
             {/* Tier */}
-            <div>
-              <div className="text-[0.7rem] text-white/40 uppercase tracking-wider mb-2">Dealer Tier</div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {TIER_OPTIONS.map(o => (
-                  <button
-                    key={o.value}
-                    onClick={() => setTier(o.value)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-semibold transition-all border',
-                      tier === o.value
-                        ? 'bg-[#c9a84c]/20 border-[#c9a84c]/50 text-[#e8cc7a]'
-                        : 'bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20',
-                    )}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Min rating */}
-            <div>
-              <div className="text-[0.7rem] text-white/40 uppercase tracking-wider mb-2">Min. Rating</div>
-              <div className="flex items-center gap-2">
-                {[0, 3, 4, 4.5].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setMinRating(r)}
-                    className={cn(
-                      'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border',
-                      minRating === r
-                        ? 'bg-[#c9a84c]/20 border-[#c9a84c]/50 text-[#e8cc7a]'
-                        : 'bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20',
-                    )}
-                  >
-                    {r === 0 ? 'Any' : (
-                      <><Star className="w-3 h-3 fill-current" />{r}+</>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {activeFilters && (
-              <button onClick={clearFilters} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 ml-auto mt-auto transition-colors">
-                <X className="w-3 h-3" /> Clear filters
+            <select value={tier} onChange={e => setTier(e.target.value)}
+              className="input-base h-9 text-xs w-32">
+              <option value="">All Tiers</option>
+              {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {/* Specialty */}
+            <select value={spec} onChange={e => setSpec(e.target.value)}
+              className="input-base h-9 text-xs w-44">
+              <option value="">All Specialties</option>
+              {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {(city || tier || spec) && (
+              <button onClick={() => { setCity(''); setTier(''); setSpec(''); }}
+                className="flex items-center gap-1 px-3 h-9 rounded-xl text-xs text-red-400 border border-red-200 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                <X className="w-3 h-3"/>Clear
               </button>
             )}
           </div>
-        )}
-
-        {/* ── Tier filter pills ── */}
-        <div className="flex items-center gap-2 flex-wrap mb-6">
-          {['All', '💎 Platinum', '⭐ Gold', '✓ Standard'].map((t, i) => {
-            const val = ['', 'PLATINUM', 'GOLD', 'STANDARD'][i];
-            return (
-              <button
-                key={t}
-                onClick={() => { setTier(val); fetchDealers({ tier: val, sortBy }); }}
-                className={cn(
-                  'px-4 py-1.5 rounded-full text-xs font-semibold transition-all border',
-                  tier === val
-                    ? 'bg-[#c9a84c]/20 border-[#c9a84c]/40 text-[#e8cc7a]'
-                    : 'bg-transparent border-white/[0.09] text-white/50 hover:border-white/20',
-                )}
-              >
-                {t}
-              </button>
-            );
-          })}
-          <span className="ml-auto text-xs text-white/30">{total.toLocaleString()} dealers</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[var(--text-muted)] hidden sm:block"><strong className="text-[var(--text-primary)]">{dealers.length}</strong> dealers</span>
+            <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+              {(['grid','list'] as const).map(v => (
+                <button key={v} onClick={() => setView(v)}
+                  className={`p-2 transition-colors ${view===v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                  {v === 'grid' ? <Grid3X3 className="w-4 h-4"/> : <List className="w-4 h-4"/>}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* ── Grid ── */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="h-72 rounded-2xl bg-[#0d1b2e] border border-white/[0.06] animate-pulse" />
-            ))}
-          </div>
-        ) : dealers.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {dealers.map(d => (
-              <DealerCard key={d.id} dealer={d} locale={locale} />
-            ))}
+        {dealers.length === 0 ? (
+          <div className="text-center py-24">
+            <div className="text-6xl mb-4">🏪</div>
+            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No dealers found</h3>
+            <button onClick={() => { setQuery(''); setCity(''); setTier(''); setSpec(''); }}
+              className="btn-ghost mt-4">Clear Filters</button>
           </div>
         ) : (
-          <div className="py-20 text-center">
-            <div className="text-5xl mb-4">🏢</div>
-            <p className="text-white/40 text-sm">No dealers found. Try adjusting filters.</p>
+          <div className={view === 'grid'
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5'
+            : 'flex flex-col gap-3'}>
+            {dealers.map(d => <DealerCard key={d.id} dealer={d} locale={locale} view={view}/>)}
           </div>
         )}
+
+        {/* Become a dealer CTA */}
+        <div className="mt-16 relative rounded-3xl overflow-hidden p-10 text-center"
+             style={{ background:'linear-gradient(135deg,#070e1b 0%,#0f1c2e 50%,#070e1b 100%)' }}>
+          <div className="absolute inset-0 opacity-[0.03] bg-dot-grid"/>
+          <div className="absolute top-0 inset-x-0 h-0.5 divider-gold"/>
+          <div className="relative">
+            <span className="section-eyebrow">🏪 Dealer Portal</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">List Your Dealership</h2>
+            <p className="text-white/45 text-sm max-w-md mx-auto mb-6">
+              Join 1,200+ verified dealers reaching thousands of buyers across Iraq, Kurdistan & UAE.
+            </p>
+            <Link href={`/${locale}/dealers/register`}
+              className="btn-gold inline-flex px-8 py-3.5 text-sm rounded-xl">
+              Register as Dealer →
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
