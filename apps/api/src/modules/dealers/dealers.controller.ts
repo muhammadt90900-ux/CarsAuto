@@ -10,9 +10,9 @@ import { UpdateDealerDto } from './dto/update-dealer.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { DealerQueryDto } from './dto/dealer-query.dto';
 import { ContactDealerDto } from './dto/contact-dealer.dto';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { OptionalJwtGuard } from '@/auth/guards/optional-jwt.guard';
-import { AdminGuard } from '@/auth/guards/admin.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtGuard } from '../auth/guards/optional-jwt.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { DealerTier } from '@prisma/client';
 
 @Controller('dealers')
