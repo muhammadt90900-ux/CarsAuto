@@ -77,9 +77,9 @@ export default async function LocaleLayout({ children, params }: Props) {
         className={`${bodyFontClass} antialiased`}
         suppressHydrationWarning
       >
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <Providers>
           {children}
-        </NextIntlClientProvider>
+        </Providers>
       </body>
     </html>
   );
