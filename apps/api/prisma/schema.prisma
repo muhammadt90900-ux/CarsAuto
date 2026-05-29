@@ -367,6 +367,9 @@ model User {
   payments        Payment[]
   reports         Report[]
   refreshTokens   RefreshToken[]
+  dealer          Dealer?
+  dealerReviews       DealerReview[]       @relation("DealerReviewer")
+  messageReadReceipts MessageReadReceipt[]
 }
 
 // ── Refresh token store ─────────────────────────────────────────────────────
@@ -412,6 +415,7 @@ model Message {
   mediaUrl  String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
+  readReceipts MessageReadReceipt[]
 
   @@index([chatId])
   @@index([senderId])
@@ -469,4 +473,320 @@ model Report {
 
   @@index([reporterId])
   @@index([targetType, targetId])
+}
+
+// ── Dealer & Showroom System ────────────────────────────────────────────────
+
+enum DealerTier {
+  BASIC       // free, limited listings
+  STANDARD    // paid, enhanced visibility
+  GOLD        // top-rated badge, priority placement
+  PLATINUM    // maximum features, dedicated support
+}
+
+enum DealerStatus {
+  PENDING     // submitted, awaiting admin review
+  VERIFIED    // approved, badge shown
+  SUSPENDED   // temporarily disabled
+  REJECTED    // application denied
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER     // 20 active listings
+  BUSINESS    // 100 active listings + analytics
+  ENTERPRISE  // unlimited + API access + white-label
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+// ─── DEALER PROFILE ──────────────────────────────────────────────────────────
+
+model Dealer {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identity
+  slug        String       @unique          // e.g. "kurdistan-motors"
+  nameEn      String
+  nameAr      String
+  nameKu      String
+  taglineEn   String?
+  taglineAr   String?
+  taglineKu   String?
+  descriptionEn String?
+  descriptionAr String?
+  descriptionKu String?
+
+  // Branding
+  logoUrl     String?
+  coverUrl    String?
+  brandColors Json?                         // { primary: "#c9a84c", accent: "#fff" }
+
+  // Status & tier
+  status      DealerStatus  @default(PENDING)
+  tier        DealerTier    @default(BASIC)
+  verifiedAt  DateTime?
+  verifiedBy  String?       // admin user id
+
+  // Contact
+  phone       String?
+  whatsapp    String?       // full intl number e.g. +9647xxxxxxxx
+  email       String?
+  website     String?
+  instagram   String?
+  facebook    String?
+  telegram    String?
+
+  // Location
+  locationId  String?
+  location    Location?     @relation(fields: [locationId], references: [id])
+  address     String?
+  lat         Float?
+  lng         Float?
+
+  // Opening hours (JSON: { mon: "09:00-18:00", ... })
+  openingHours Json?
+
+  // Aggregated stats (denormalised for fast reads)
+  totalListings   Int     @default(0)
+  activeListings  Int     @default(0)
+  totalReviews    Int     @default(0)
+  averageRating   Float   @default(0)
+  totalViews      Int     @default(0)
+  responseRate    Float   @default(0)   // 0-100 %
+  responseTimeMin Int?                  // median minutes to reply
+
+  // Specialties (array of strings)
+  specialties     String[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  showroomImages  ShowroomImage[]
+  reviews         DealerReview[]
+  analytics       DealerAnalytic[]
+  subscription    DealerSubscription?
+  contactRequests DealerContactRequest[]
+  badges          DealerBadge[]
+
+  @@index([slug])
+  @@index([status, tier])
+  @@index([locationId])
+  @@index([averageRating])
+}
+
+// ─── SHOWROOM IMAGES ─────────────────────────────────────────────────────────
+
+model ShowroomImage {
+  id        String  @id @default(uuid())
+  dealerId  String
+  dealer    Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  order     Int     @default(0)
+  isCover   Boolean @default(false)
+
+  @@index([dealerId])
+}
+
+// ─── DEALER REVIEWS ──────────────────────────────────────────────────────────
+
+model DealerReview {
+  id          String   @id @default(uuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User     @relation("DealerReviewer", fields: [reviewerId], references: [id])
+
+  rating      Int      // 1-5
+  title       String?
+  body        String
+  // Sub-ratings
+  ratingService   Int?  // 1-5
+  ratingPrice     Int?
+  ratingQuality   Int?
+
+  helpful     Int     @default(0)
+  verified    Boolean @default(false)  // buyer verified via chat/payment
+  flagged     Boolean @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([dealerId, reviewerId])
+  @@index([dealerId, rating])
+  @@index([reviewerId])
+}
+
+// ─── DEALER BADGES ───────────────────────────────────────────────────────────
+
+model DealerBadge {
+  id          String   @id @default(uuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  code        String   // e.g. "TOP_RATED", "FAST_RESPONDER", "TRUSTED_SELLER"
+  label       String
+  icon        String?
+  awardedAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  @@index([dealerId])
+  @@index([code])
+}
+
+// ─── DEALER ANALYTICS ────────────────────────────────────────────────────────
+
+model DealerAnalytic {
+  id          String   @id @default(uuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date         // day granularity
+
+  profileViews    Int  @default(0)
+  listingViews    Int  @default(0)
+  contactClicks   Int  @default(0)
+  whatsappClicks  Int  @default(0)
+  phoneClicks     Int  @default(0)
+  searchImpressions Int @default(0)
+  newLeads        Int  @default(0)
+  newReviews      Int  @default(0)
+
+  @@unique([dealerId, date])
+  @@index([dealerId, date])
+}
+
+// ─── DEALER SUBSCRIPTION ─────────────────────────────────────────────────────
+
+model DealerSubscription {
+  id          String             @id @default(uuid())
+  dealerId    String             @unique
+  dealer      Dealer             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  plan        SubscriptionPlan   @default(FREE)
+  status      SubscriptionStatus @default(ACTIVE)
+
+  // Billing
+  amount      Float?
+  currency    String             @default("USD")
+  interval    String             @default("month")  // "month" | "year"
+  trialEndsAt DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt        DateTime?
+
+  // Limits (derived from plan, stored for quick checks)
+  maxListings     Int  @default(5)
+  analyticsEnabled Boolean @default(false)
+  featuredSlots   Int  @default(0)
+  prioritySupport Boolean @default(false)
+
+  // Gateway reference
+  gatewayCustomerId    String?
+  gatewaySubscriptionId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+// ─── CONTACT REQUESTS ────────────────────────────────────────────────────────
+
+model DealerContactRequest {
+  id          String   @id @default(uuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  senderId    String?
+  sender      User?    @relation("DealerContacts", fields: [senderId], references: [id])
+
+  name        String
+  phone       String?
+  email       String?
+  message     String
+  channel     String   @default("form")  // "form" | "whatsapp" | "phone"
+  listingId   String?  // optional — enquiry about specific car
+  status      String   @default("new")   // "new" | "read" | "replied"
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([dealerId, status])
+  @@index([senderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADD TO User model:
+//
+//   dealer             Dealer?
+//   dealerReviews      DealerReview[]  @relation("DealerReviewer")
+//   dealerContacts     DealerContactRequest[] @relation("DealerContacts")
+//
+// ADD TO Location model:
+//
+//   dealers            Dealer[]
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Admin utility models ──────────────────────────────────────────────────────
+
+model Ad {
+  id          String   @id @default(uuid())
+  title       String
+  imageUrl    String?
+  linkUrl     String?
+  placement   String   @default("home") // home | listing | sidebar
+  isActive    Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ads")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string | number | boolean | json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Translation {
+  id        String   @id @default(uuid())
+  locale    String   // en | ku | ar | zh
+  namespace String   // common | listing | auth …
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([locale, namespace, key])
+  @@index([locale, namespace])
+  @@map("translations")
+}
+
+// ── Chat read receipts ────────────────────────────────────────────────────────
+
+model MessageReadReceipt {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@map("message_read_receipts")
 }
