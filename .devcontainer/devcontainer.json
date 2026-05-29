@@ -8,7 +8,7 @@
     "5432": { "label": "PostgreSQL" },
     "6379": { "label": "Redis" }
   },
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && cd apps/api && npx prisma generate && cd ../..",
   "customizations": {
     "vscode": {
       "extensions": [
