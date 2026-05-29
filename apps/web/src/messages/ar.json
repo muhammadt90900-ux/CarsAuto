@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "homeTitle": "AutoBazaar Pro — سوق السيارات الفاخر",
+    "homeDesc": "أكثر سوق سيارات فاخر موثوقاً في الشرق الأوسط — العراق، كوردستان، دبي.",
+    "carsTitle": "شراء وبيع السيارات",
+    "carsDesc": "تصفح آلاف السيارات الجديدة والمستعملة في العراق وكوردستان."
+  },
+  "home": {
+    "title": "AutoBazaar Pro",
+    "hero": "ابحث عن سيارتك المثالية",
+    "subtitle": "سوق السيارات الفاخر في العراق وكوردستان"
+  },
+  "common": {
+    "cars": "سيارات",
+    "motorcycles": "دراجات نارية",
+    "spareParts": "قطع غيار",
+    "searchPlaceholder": "ابحث عن سيارات، دراجات نارية…",
+    "dashboard": "لوحة التحكم",
+    "logout": "تسجيل الخروج",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "home": "الرئيسية",
+    "search": "بحث",
+    "sell": "بيع",
+    "messages": "الرسائل",
+    "profile": "الملف الشخصي",
+    "language": "اللغة"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "overview": "نظرة عامة",
+    "myListings": "إعلاناتي",
+    "favorites": "المفضلة",
+    "notifications": "الإشعارات",
+    "reviews": "التقييمات",
+    "subscription": "الاشتراك"
+  },
+  "listing": {
+    "new": "إعلان جديد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "price": "السعر",
+    "year": "السنة",
+    "mileage": "الكيلومترات",
+    "condition": "الحالة",
+    "contactSeller": "تواصل مع البائع"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "empty": "لا توجد إشعارات حتى الآن"
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "save": "حفظ التغييرات"
+  }
+}

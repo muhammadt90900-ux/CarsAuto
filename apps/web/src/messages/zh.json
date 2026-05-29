@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "homeTitle": "AutoBazaar Pro — 高端汽车市场",
+    "homeDesc": "中东最值得信赖的高端汽车市场 — 伊拉克、库尔德斯坦、迪拜。",
+    "carsTitle": "买卖汽车",
+    "carsDesc": "浏览伊拉克和库尔德斯坦数千辆新车和二手车。"
+  },
+  "home": {
+    "title": "AutoBazaar Pro",
+    "hero": "找到您的理想汽车",
+    "subtitle": "伊拉克和库尔德斯坦高端汽车市场"
+  },
+  "common": {
+    "cars": "汽车",
+    "motorcycles": "摩托车",
+    "spareParts": "零配件",
+    "searchPlaceholder": "搜索汽车、摩托车…",
+    "dashboard": "仪表板",
+    "logout": "退出登录",
+    "login": "登录",
+    "register": "注册",
+    "home": "首页",
+    "search": "搜索",
+    "sell": "出售",
+    "messages": "消息",
+    "profile": "个人资料",
+    "language": "语言"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "overview": "概览",
+    "myListings": "我的列表",
+    "favorites": "收藏",
+    "notifications": "通知",
+    "reviews": "评价",
+    "subscription": "订阅"
+  },
+  "listing": {
+    "new": "新建列表",
+    "edit": "编辑",
+    "delete": "删除",
+    "price": "价格",
+    "year": "年份",
+    "mileage": "里程",
+    "condition": "状况",
+    "contactSeller": "联系卖家"
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "全部标为已读",
+    "empty": "暂无通知"
+  },
+  "profile": {
+    "title": "我的资料",
+    "editProfile": "编辑资料",
+    "save": "保存更改"
+  }
+}

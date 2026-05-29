@@ -1,5 +1,58 @@
 {
+  "meta": {
+    "homeTitle": "AutoBazaar Pro — Premium Automotive Marketplace",
+    "homeDesc": "The Middle East's most trusted premium auto marketplace — Iraq, Kurdistan, Dubai.",
+    "carsTitle": "Buy & Sell Cars",
+    "carsDesc": "Browse thousands of new and used cars across Iraq and Kurdistan."
+  },
   "home": {
-    "title": "Cars Auto"
+    "title": "AutoBazaar Pro",
+    "hero": "Find Your Perfect Car",
+    "subtitle": "Iraq & Kurdistan's premium automotive marketplace"
+  },
+  "common": {
+    "cars": "Cars",
+    "motorcycles": "Motorcycles",
+    "spareParts": "Spare Parts",
+    "searchPlaceholder": "Search cars, motorcycles…",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Register",
+    "home": "Home",
+    "search": "Search",
+    "sell": "Sell",
+    "messages": "Messages",
+    "profile": "Profile",
+    "language": "Language"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "myListings": "My Listings",
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "reviews": "Reviews",
+    "subscription": "Subscription"
+  },
+  "listing": {
+    "new": "New Listing",
+    "edit": "Edit",
+    "delete": "Delete",
+    "price": "Price",
+    "year": "Year",
+    "mileage": "Mileage",
+    "condition": "Condition",
+    "contactSeller": "Contact Seller"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet"
+  },
+  "profile": {
+    "title": "My Profile",
+    "editProfile": "Edit Profile",
+    "save": "Save Changes"
   }
 }
