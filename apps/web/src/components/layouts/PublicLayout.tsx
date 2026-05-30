@@ -8,7 +8,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white dark:bg-[#050b14]">
       <Navbar />
-      <main className="pt-16">
+      <main className="pt-[68px]">
         {children}
       </main>
     </div>
