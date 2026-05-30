@@ -11,7 +11,7 @@ interface AuthState {
   isLoading: boolean;
   isHydrated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; name: string; phone?: string }) => Promise<void>;
+  register: (name: string, email: string, password: string, role?: string, phone?: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   setHydrated: () => void;
@@ -36,10 +36,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (data) => {
+      register: async (name, email, password, role?, phone?) => {
         set({ isLoading: true });
         try {
-          const res = await authApi.register(data);
+          const res = await authApi.register({ name, email, password, role, phone });
           set({ user: res.user });
         } finally {
           set({ isLoading: false });
