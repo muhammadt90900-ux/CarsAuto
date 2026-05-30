@@ -136,7 +136,7 @@ async function cachedGet<T>(url: string, params?: Record<string, unknown>): Prom
 
 // ── Auth API ───────────────────────────────────────────────────────────────
 export const authApi = {
-  register: async (data: { name: string; email: string; password: string; phone?: string }) => {
+  register: async (data: { name: string; email: string; password: string; role?: string; phone?: string }) => {
     const res = await api.post<{ access_token: string; user: AuthUser }>('/auth/register', data);
     setAccessToken(res.data.access_token);
     return res.data;
