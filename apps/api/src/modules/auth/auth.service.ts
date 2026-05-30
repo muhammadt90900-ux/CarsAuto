@@ -51,6 +51,7 @@ export class AuthService {
         email: dto.email.toLowerCase(),
         password: hash,
         ...(dto.phone ? { phone: dto.phone } : {}),
+        ...(dto.role ? { role: dto.role as any } : {}),
       },
       select: {
         id: true,

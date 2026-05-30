@@ -16,7 +16,6 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
     ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
-    // ── Access-token JWT (15 min) ──────────────────────────────────────────
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -30,13 +29,8 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
       }),
     }),
 
-    // ── Per-route rate limiting (stricter for auth endpoints) ──────────────
-   ThrottlerModule.forRoot([
-  {
-    ttl: 60000,
-    limit: 10,
-  },
-])
+    // Auth endpoints: max 10 requests / 60s (stricter than global)
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
 
     UsersModule,
     PrismaModule,
