@@ -6,11 +6,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
-import { Button } from '@auto-bazaar-pro/ui/components';
 import { useAuthStore } from '@/store/auth.store';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Menu, ChevronDown } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 /* ── Logo SVG ────────────────────────────────────────────────── */
 const CarLogoIcon = () => (
@@ -87,7 +86,7 @@ export function Navbar() {
     { href: `/${locale}/spare-parts`, label: t('spareParts') },
   ];
 
-  /* Computed navbar classes — transparent atop hero, solid after scroll */
+  /* Computed navbar classes */
   const navBg = scrolled
     ? 'bg-[#070d18]/95 backdrop-blur-2xl shadow-[0_1px_0_rgba(201,168,76,0.15)]'
     : 'bg-[#050b14]/80 backdrop-blur-md';
@@ -97,7 +96,7 @@ export function Navbar() {
       {/* ══ Main Navbar ══════════════════════════════════════════ */}
       <nav
         dir={isRTL ? 'rtl' : 'ltr'}
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-400 ${navBg}`}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${navBg}`}
       >
         {/* Animated gold top accent line */}
         <div className="gold-line h-[2px] w-full" />
@@ -111,7 +110,6 @@ export function Navbar() {
               className="flex-shrink-0 flex items-center gap-2 group"
               aria-label="AutoBazaarPro Home"
             >
-              {/* Icon badge */}
               <span className="flex items-center justify-center w-9 h-9 rounded-[10px]
                                bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
                                shadow-[0_0_16px_rgba(201,168,76,0.40)]
@@ -120,7 +118,6 @@ export function Navbar() {
                                group-hover:scale-[1.06]">
                 <CarLogoIcon />
               </span>
-              {/* Wordmark */}
               <span className="text-[1.1rem] font-display font-extrabold tracking-tight leading-none">
                 <span className="text-[#c9a84c]">Auto</span>
                 <span className="text-white">Bazaar</span>
@@ -280,13 +277,12 @@ export function Navbar() {
                     bg-[#070d18]/98 backdrop-blur-2xl
                     border-b border-[#c9a84c]/15
                     shadow-[0_8px_40px_rgba(0,0,0,0.60)]
-                    transition-all duration-350 ease-in-out
+                    transition-all duration-300 ease-in-out
                     ${mobileOpen
                       ? 'top-[68px] opacity-100 pointer-events-auto'
                       : '-top-full opacity-0 pointer-events-none'}`}
       >
         <div className="px-4 py-5 flex flex-col gap-1">
-          {/* Nav links */}
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
