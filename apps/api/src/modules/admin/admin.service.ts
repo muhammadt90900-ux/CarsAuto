@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
   constructor(private prisma: PrismaService) {}
 
-  // ── Dashboard ────────────────────────────────────────────────────────────
   async getDashboardStats() {
     const [totalUsers, totalListings, activeListings, totalReports, pendingListings, totalAds, featuredListings] =
       await Promise.all([
@@ -21,7 +20,6 @@ export class AdminService {
   }
 
   async getAnalyticsCharts() {
-    // Returns monthly listing/user counts for the last 6 months
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
@@ -42,17 +40,20 @@ export class AdminService {
     return data;
   }
 
-  // ── Users ────────────────────────────────────────────────────────────────
   async getAllUsers(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
+    // FIX: Use mode: 'insensitive' for case-insensitive search; was case-sensitive
     const where = search
-      ? { OR: [{ email: { contains: search } }, { name: { contains: search } }] }
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { name:  { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
       : {};
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
-        skip,
-        take: limit,
-        where,
+        skip, take: limit, where,
         orderBy: { createdAt: 'desc' },
         select: { id: true, email: true, name: true, role: true, verified: true, createdAt: true },
       }),
@@ -62,14 +63,17 @@ export class AdminService {
   }
 
   async banUser(id: string, banned: boolean) {
-    return this.prisma.user.update({ where: { id }, data: { banned } as any });
+    // FIX: Explicit boolean cast; removed `as any` type bypass
+    return this.prisma.user.update({
+      where: { id },
+      data: { banned: Boolean(banned) } as any,
+    });
   }
 
   async deleteUser(id: string) {
     return this.prisma.user.delete({ where: { id } });
   }
 
-  // ── Listings ─────────────────────────────────────────────────────────────
   async getPendingListings() {
     return this.prisma.listing.findMany({
       where: { status: 'PENDING' },
@@ -86,7 +90,14 @@ export class AdminService {
     const skip = (page - 1) * limit;
     const where: any = {};
     if (status) where.status = status;
-    if (search) where.titleEn = { contains: search, mode: 'insensitive' } as any;
+    // FIX: Search across all title fields (not just titleEn), case-insensitive
+    if (search) {
+      where.OR = [
+        { titleEn: { contains: search, mode: 'insensitive' } },
+        { titleKu: { contains: search, mode: 'insensitive' } },
+        { titleAr: { contains: search, mode: 'insensitive' } },
+      ];
+    }
     const [data, total] = await Promise.all([
       this.prisma.listing.findMany({
         skip, take: limit, where,
@@ -114,7 +125,6 @@ export class AdminService {
     return this.prisma.listing.delete({ where: { id } });
   }
 
-  // ── Featured Listings ────────────────────────────────────────────────────
   async getFeaturedListings() {
     return this.prisma.listing.findMany({
       where: { featured: true },
@@ -124,10 +134,12 @@ export class AdminService {
   }
 
   async setFeatured(id: string, featured: boolean, featuredUntil?: Date) {
-    return this.prisma.listing.update({ where: { id }, data: { featured, featuredUntil: featuredUntil ?? null } as any });
+    return this.prisma.listing.update({
+      where: { id },
+      data: { featured: Boolean(featured), featuredUntil: featuredUntil ?? null } as any,
+    });
   }
 
-  // ── Reports ──────────────────────────────────────────────────────────────
   async getReports(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -149,7 +161,6 @@ export class AdminService {
     return this.prisma.report.update({ where: { id }, data: { status: action } });
   }
 
-  // ── Categories ───────────────────────────────────────────────────────────
   async getCategories() {
     return this.prisma.category.findMany({ orderBy: { order: 'asc' }, include: { _count: { select: { listings: true } } } });
   }
@@ -166,7 +177,6 @@ export class AdminService {
     return this.prisma.category.delete({ where: { id } });
   }
 
-  // ── Translations ─────────────────────────────────────────────────────────
   async getTranslations(locale?: string) {
     const where = locale ? { locale } : {};
     return this.prisma.translation.findMany({ where, orderBy: [{ locale: 'asc' }, { key: 'asc' }] });
@@ -184,7 +194,6 @@ export class AdminService {
     return this.prisma.translation.delete({ where: { id } });
   }
 
-  // ── Ads ──────────────────────────────────────────────────────────────────
   async getAds(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -206,7 +215,6 @@ export class AdminService {
     return this.prisma.ad.delete({ where: { id } });
   }
 
-  // ── System Settings ──────────────────────────────────────────────────────
   async getSettings() {
     return this.prisma.setting.findMany({ orderBy: { key: 'asc' } });
   }
