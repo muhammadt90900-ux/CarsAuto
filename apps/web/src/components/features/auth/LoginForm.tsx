@@ -22,8 +22,12 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
     try {
       await login(email, password);
       router.push(`/${locale}/dashboard`);
-    } catch {
-      setError('Invalid email or password. Please try again.');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Invalid email or password. Please try again.';
+      setError(Array.isArray(msg) ? msg.join(' ') : msg);
     } finally {
       setLoading(false);
     }
@@ -83,7 +87,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
           {/* Demo notice */}
           <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--gold-subtle)] border border-[var(--border-gold)] text-xs text-[var(--text-muted)]">
             <Shield className="w-4 h-4 text-[var(--gold)] flex-shrink-0 mt-0.5"/>
-            <span><strong className="text-[var(--gold)]">Demo:</strong> seller@demo.com / buyer@demo.com — password: <strong>123456</strong></span>
+            <span><strong className="text-[var(--gold)]">Demo:</strong> seller@demo.com / buyer@demo.com — password: <strong>Demo1234!</strong></span>
           </div>
 
           <button type="submit" disabled={loading}
