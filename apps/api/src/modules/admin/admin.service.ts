@@ -54,7 +54,7 @@ export class AdminService {
         take: limit,
         where,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, email: true, name: true, role: true, verified: true, createdAt: true, banned: true },
+        select: { id: true, email: true, name: true, role: true, verified: true, createdAt: true },
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -62,7 +62,7 @@ export class AdminService {
   }
 
   async banUser(id: string, banned: boolean) {
-    return this.prisma.user.update({ where: { id }, data: { banned } });
+    return this.prisma.user.update({ where: { id }, data: { banned } as any });
   }
 
   async deleteUser(id: string) {
@@ -86,7 +86,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
     const where: any = {};
     if (status) where.status = status;
-    if (search) where.title = { contains: search, mode: 'insensitive' };
+    if (search) where.titleEn = { contains: search, mode: 'insensitive' } as any;
     const [data, total] = await Promise.all([
       this.prisma.listing.findMany({
         skip, take: limit, where,
@@ -118,13 +118,13 @@ export class AdminService {
   async getFeaturedListings() {
     return this.prisma.listing.findMany({
       where: { featured: true },
-      orderBy: { featuredUntil: 'asc' },
+      orderBy: { createdAt: 'desc' },
       include: { user: { select: { id: true, name: true, email: true } }, images: { where: { isCover: true }, take: 1 } },
     });
   }
 
   async setFeatured(id: string, featured: boolean, featuredUntil?: Date) {
-    return this.prisma.listing.update({ where: { id }, data: { featured, featuredUntil: featuredUntil ?? null } });
+    return this.prisma.listing.update({ where: { id }, data: { featured, featuredUntil: featuredUntil ?? null } as any });
   }
 
   // ── Reports ──────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           reporter: { select: { id: true, name: true, email: true } },
-          listing: { select: { id: true, title: true } },
+          listing: { select: { id: true, titleEn: true, titleKu: true } },
         },
       }),
       this.prisma.report.count({ where: { status: 'pending' } }),
