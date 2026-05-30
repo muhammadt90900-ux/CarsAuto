@@ -262,7 +262,7 @@ export class AiService {
 
       /* Country / region affinity */
       if (spec?.brand?.name) {
-        const brandNameLower = spec.brand.name.toLowerCase();
+        const brandNameLower = spec.brand.nameEn.toLowerCase();
         const idx = preferredBrands.indexOf(brandNameLower);
         if (idx !== -1) {
           // Top brands get full points, decreasing
