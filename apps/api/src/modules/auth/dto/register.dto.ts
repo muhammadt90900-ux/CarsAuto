@@ -5,16 +5,11 @@ import {
   MinLength,
   MaxLength,
   IsOptional,
+  IsIn,
   Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-/**
- * Password must be 8-128 chars and contain at least:
- *  - one uppercase letter
- *  - one lowercase letter
- *  - one digit
- */
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/;
 const PASSWORD_MSG =
   'پاسوۆردەکە دەبێت لانیکەم ٨ پیت بێت و لێکدانەوەی پیتی گەورە، بچووک و ژمارە تێدا بێت / ' +
@@ -23,20 +18,20 @@ const PASSWORD_MSG =
 const PHONE_REGEX = /^[+\d\s\-()\u0660-\u0669]{7,20}$/;
 
 export class RegisterDto {
-  @IsString({ message: 'ناو دەبێت دەق بێت / Name must be a string' })
+  @IsString()
   @MinLength(2, { message: 'ناو دەبێت لانیکەم ٢ پیت بێت / Name must be at least 2 characters' })
   @MaxLength(80, { message: 'ناو زۆر درێژە / Name is too long' })
   @Transform(({ value }) => value?.trim())
   name: string;
 
   @IsEmail({}, { message: 'ئیمەیڵی دروست بنووسە / Please enter a valid email address' })
-  @MaxLength(254, { message: 'ئیمەیڵ زۆر درێژە / Email is too long' })
+  @MaxLength(254)
   @Transform(({ value }) => value?.trim()?.toLowerCase())
   email: string;
 
   @IsString()
   @MinLength(8, { message: PASSWORD_MSG })
-  @MaxLength(128, { message: 'پاسوۆرد زۆر درێژە / Password is too long' })
+  @MaxLength(128)
   @Matches(PASSWORD_REGEX, { message: PASSWORD_MSG })
   password: string;
 
@@ -46,4 +41,15 @@ export class RegisterDto {
   @MaxLength(20)
   @Transform(({ value }) => value?.trim() || undefined)
   phone?: string;
+
+  // BUYER is default; DEALER requires additional verification later
+  @IsOptional()
+  @IsIn(['USER', 'BUYER', 'DEALER'])
+  @Transform(({ value }) => {
+    // Map front-end role names to prisma enum
+    if (value === 'BUYER') return 'USER';
+    if (value === 'DEALER') return 'DEALER';
+    return 'USER';
+  })
+  role?: 'USER' | 'DEALER';
 }
