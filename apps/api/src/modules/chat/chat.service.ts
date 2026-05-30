@@ -5,15 +5,22 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class ChatService {
   constructor(private prisma: PrismaService) {}
 
-  // ---------------------------------------------------------------------------
-  // Chat CRUD
-  // ---------------------------------------------------------------------------
+  // Helper: verify the requesting user is a participant in the chat
+  private async assertMembership(chatId: string, userId: string) {
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      select: { buyerId: true, sellerId: true },
+    });
+    if (!chat) throw new NotFoundException('Chat not found');
+    if (chat.buyerId !== userId && chat.sellerId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+    return chat;
+  }
 
   async getOrCreateChat(listingId: string, buyerId: string) {
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) throw new NotFoundException('Listing not found');
-
-    // Prevent a seller from chatting with themselves
     if (listing.userId === buyerId) throw new ForbiddenException('You cannot chat with yourself');
 
     const existing = await this.prisma.chat.findFirst({
@@ -53,7 +60,6 @@ export class ChatService {
       },
     });
 
-    // Attach per-chat unread count
     const withUnread = await Promise.all(
       chats.map(async (chat) => {
         const unreadCount = await this.prisma.message.count({
@@ -66,7 +72,6 @@ export class ChatService {
         return { ...chat, unreadCount };
       }),
     );
-
     return withUnread;
   }
 
@@ -75,16 +80,17 @@ export class ChatService {
     if (!chat) throw new NotFoundException('Chat not found');
     if (chat.buyerId !== userId && chat.sellerId !== userId)
       throw new ForbiddenException('Access denied');
-
     await this.prisma.chat.update({
       where: { id: chatId },
       data: { archivedBy: { push: userId } },
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Messages
-  // ---------------------------------------------------------------------------
+  // FIX: Membership enforced — was missing, any user could read any chat's messages
+  async getChatMessagesSecure(chatId: string, userId: string, cursor?: string, limit = 50) {
+    await this.assertMembership(chatId, userId);
+    return this.getChatMessages(chatId, cursor, limit);
+  }
 
   async getChatMessages(chatId: string, cursor?: string, limit = 50) {
     const messages = await this.prisma.message.findMany({
@@ -97,7 +103,6 @@ export class ChatService {
         readBy: { select: { userId: true } },
       },
     });
-
     const hasMore = messages.length > limit;
     return {
       messages: hasMore ? messages.slice(0, limit) : messages,
@@ -106,23 +111,25 @@ export class ChatService {
     };
   }
 
+  // FIX: Membership enforced before sending — was missing
+  async sendMessageSecure(chatId: string, senderId: string, content: string, type = 'text') {
+    await this.assertMembership(chatId, senderId);
+    return this.sendMessage(chatId, senderId, content, type);
+  }
+
   async sendMessage(chatId: string, senderId: string, content: string, type = 'text') {
+    // FIX: Whitelist allowed message types
+    const safeType = ['text', 'image', 'offer'].includes(type) ? type : 'text';
     const msg = await this.prisma.message.create({
-      data: { chatId, senderId, content, type },
+      data: { chatId, senderId, content, type: safeType },
       include: { sender: { select: { id: true, name: true, avatar: true } } },
     });
-
     await this.prisma.chat.update({
       where: { id: chatId },
       data: { updatedAt: new Date() },
     });
-
     return msg;
   }
-
-  // ---------------------------------------------------------------------------
-  // Read receipts & unread counts
-  // ---------------------------------------------------------------------------
 
   async markChatRead(chatId: string, userId: string) {
     const unreadMessages = await this.prisma.message.findMany({
@@ -133,9 +140,7 @@ export class ChatService {
       },
       select: { id: true },
     });
-
     if (unreadMessages.length === 0) return;
-
     await this.prisma.$transaction(
       unreadMessages.map((msg) =>
         this.prisma.messageReadReceipt.upsert({
@@ -157,10 +162,6 @@ export class ChatService {
     });
     return { count };
   }
-
-  // ---------------------------------------------------------------------------
-  // Utility
-  // ---------------------------------------------------------------------------
 
   async getOtherParticipant(chatId: string, userId: string): Promise<string | null> {
     const chat = await this.prisma.chat.findUnique({
