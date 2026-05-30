@@ -12,6 +12,8 @@
     "@auto-bazaar-pro/ui": "^0.0.1",
     "@auto-bazaar-pro/utils": "*",
     "@auto-bazaar-pro/types": "*",
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.0.0",
     "lucide-react": "^0.383.0",
     "next": "^14.0.0",
     "next-intl": "^3.0.0",
@@ -20,8 +22,6 @@
     "zustand": "^4.0.0"
   },
   "devDependencies": {
-    "@tanstack/react-query": "^5.0.0",
-    "@tanstack/react-query-devtools": "^5.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
