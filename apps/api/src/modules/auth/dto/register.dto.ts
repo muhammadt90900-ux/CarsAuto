@@ -1,12 +1,7 @@
 // apps/api/src/modules/auth/dto/register.dto.ts
 import {
-  IsEmail,
-  IsString,
-  MinLength,
-  MaxLength,
-  IsOptional,
-  IsIn,
-  Matches,
+  IsEmail, IsString, MinLength, MaxLength,
+  IsOptional, IsIn, Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -16,6 +11,9 @@ const PASSWORD_MSG =
   'Password must be at least 8 characters and contain uppercase, lowercase, and a number';
 
 const PHONE_REGEX = /^[+\d\s\-()\u0660-\u0669]{7,20}$/;
+
+// FIX: ADMIN is not in the allowed set — prevents privilege escalation via registration
+const ALLOWED_ROLES = ['USER', 'BUYER', 'DEALER'] as const;
 
 export class RegisterDto {
   @IsString()
@@ -42,11 +40,9 @@ export class RegisterDto {
   @Transform(({ value }) => value?.trim() || undefined)
   phone?: string;
 
-  // BUYER is default; DEALER requires additional verification later
   @IsOptional()
-  @IsIn(['USER', 'BUYER', 'DEALER'])
+  @IsIn(ALLOWED_ROLES, { message: 'Invalid role' })
   @Transform(({ value }) => {
-    // Map front-end role names to prisma enum
     if (value === 'BUYER') return 'USER';
     if (value === 'DEALER') return 'DEALER';
     return 'USER';
