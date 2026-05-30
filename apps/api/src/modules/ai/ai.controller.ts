@@ -2,34 +2,77 @@
 import {
   Controller, Post, Get, Body, Query,
   UseGuards, Request, ParseIntPipe,
-  DefaultValuePipe, Optional,
+  DefaultValuePipe,
 } from '@nestjs/common';
+import { IsString, IsNumber, Min, Max, MaxLength, IsOptional, IsArray, ArrayMaxSize } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AiService, RecommendationContext } from './ai.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
+// FIX: Typed DTO for price suggestion — was @Body() body: any (no validation)
+class SuggestPriceDto {
+  @IsString()
+  @MaxLength(80)
+  make: string;
+
+  @IsString()
+  @MaxLength(80)
+  model: string;
+
+  @IsNumber()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 1)
+  @Type(() => Number)
+  year: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(2_000_000)
+  @Type(() => Number)
+  mileage: number;
+}
+
+// FIX: Typed DTO for search history — was untyped, arrays of arbitrary size accepted
+class SearchHistoryDto {
+  @IsArray()
+  @ArrayMaxSize(20, { message: 'Too many search terms' })
+  @IsString({ each: true })
+  searches: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  locale?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(20)
+  @Type(() => Number)
+  limit?: number;
+}
+
 @Controller('ai')
+@UseGuards(ThrottlerGuard)   // FIX: Rate-limit AI endpoints globally
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  /* POST /ai/suggest-price */
   @Post('suggest-price')
-  suggestPrice(
-    @Body() body: { make: string; model: string; year: number; mileage: number },
-  ) {
+  suggestPrice(@Body() body: SuggestPriceDto) {
     return this.aiService.suggestPrice(body.make, body.model, body.year, body.mileage);
   }
 
-  /* GET /ai/similar?listingId=&locale=&limit= */
   @Get('similar')
   similarCars(
     @Query('listingId') listingId: string,
     @Query('locale') locale = 'en',
     @Query('limit', new DefaultValuePipe(6), ParseIntPipe) limit: number,
   ) {
-    return this.aiService.similarCars(listingId, locale, limit);
+    // FIX: Clamp limit
+    return this.aiService.similarCars(listingId, locale, Math.min(limit, 20));
   }
 
-  /* GET /ai/budget?budget=&currency=&country=&locale=&limit= */
   @Get('budget')
   byBudget(
     @Query('budget', ParseIntPipe) budget: number,
@@ -38,33 +81,30 @@ export class AiController {
     @Query('locale') locale = 'en',
     @Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number,
   ) {
-    return this.aiService.byBudget(budget, currency, country, locale, limit);
+    return this.aiService.byBudget(budget, currency, country, locale, Math.min(limit, 20));
   }
 
-  /* POST /ai/search-history  — body: { searches: string[], locale?, limit? } */
+  // FIX: Typed DTO replaces untyped body
   @Post('search-history')
-  bySearchHistory(
-    @Body() body: { searches: string[]; locale?: string; limit?: number },
-  ) {
+  bySearchHistory(@Body() body: SearchHistoryDto) {
     return this.aiService.bySearchHistory(
       body.searches,
       undefined,
       body.locale ?? 'en',
-      body.limit ?? 8,
+      Math.min(body.limit ?? 8, 20),
     );
   }
 
-  /* GET /ai/country?country=IQ&locale=ku&limit=8 */
   @Get('country')
   byCountry(
     @Query('country') country: string,
     @Query('locale') locale = 'en',
     @Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number,
   ) {
-    return this.aiService.byCountry(country, locale, limit);
+    return this.aiService.byCountry(country, locale, Math.min(limit, 20));
   }
 
-  /* POST /ai/personalised  — authenticated; combines all signals */
+  // FIX: Authenticated endpoint — unchanged
   @UseGuards(JwtAuthGuard)
   @Post('personalised')
   personalised(
@@ -74,7 +114,8 @@ export class AiController {
     return this.aiService.personalised({ ...body, userId: req.user.userId });
   }
 
-  /* POST /ai/recommend  — public all-in-one endpoint */
+  // FIX: /ai/recommend moved behind auth to prevent anonymous scraping
+  @UseGuards(JwtAuthGuard)
   @Post('recommend')
   recommend(@Body() body: RecommendationContext) {
     return this.aiService.recommend(body);
