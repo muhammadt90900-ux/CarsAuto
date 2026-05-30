@@ -1,7 +1,7 @@
 // apps/api/src/modules/dealers/dealers.service.ts
 
 import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/common/prisma/prisma.service';
 import { Prisma, DealerStatus, DealerTier } from '@prisma/client';
 import { CreateDealerDto } from './dto/create-dealer.dto';
 import { UpdateDealerDto } from './dto/update-dealer.dto';
