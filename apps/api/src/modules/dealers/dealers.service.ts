@@ -1,5 +1,4 @@
 // apps/api/src/modules/dealers/dealers.service.ts
-
 import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { Prisma, DealerStatus, DealerTier } from '@prisma/client';
@@ -10,11 +9,20 @@ import { DealerQueryDto } from './dto/dealer-query.dto';
 import { ContactDealerDto } from './dto/contact-dealer.dto';
 import slugify from 'slugify';
 
+// FIX: Whitelist of allowed analytics event field names — prevents prototype pollution
+// from dynamic field injection into Prisma upsert
+type AnalyticsField = 
+  | 'profileViews' | 'listingViews' | 'contactClicks'
+  | 'whatsappClicks' | 'phoneClicks' | 'newLeads' | 'newReviews';
+
+const ALLOWED_ANALYTICS_FIELDS = new Set<AnalyticsField>([
+  'profileViews', 'listingViews', 'contactClicks',
+  'whatsappClicks', 'phoneClicks', 'newLeads', 'newReviews',
+]);
+
 @Injectable()
 export class DealersService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // ── Create dealer profile ───────────────────────────────────────────────
 
   async create(userId: string, dto: CreateDealerDto) {
     const existing = await this.prisma.dealer.findUnique({ where: { userId } });
@@ -25,46 +33,24 @@ export class DealersService {
 
     return this.prisma.dealer.create({
       data: {
-        userId,
-        slug,
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        nameKu: dto.nameKu,
-        taglineEn: dto.taglineEn,
-        taglineAr: dto.taglineAr,
-        taglineKu: dto.taglineKu,
-        descriptionEn: dto.descriptionEn,
-        descriptionAr: dto.descriptionAr,
-        descriptionKu: dto.descriptionKu,
-        phone: dto.phone,
-        whatsapp: dto.whatsapp,
-        email: dto.email,
-        website: dto.website,
-        instagram: dto.instagram,
-        facebook: dto.facebook,
-        telegram: dto.telegram,
-        address: dto.address,
-        lat: dto.lat,
-        lng: dto.lng,
-        openingHours: dto.openingHours,
-        specialties: dto.specialties ?? [],
+        userId, slug,
+        nameEn: dto.nameEn, nameAr: dto.nameAr, nameKu: dto.nameKu,
+        taglineEn: dto.taglineEn, taglineAr: dto.taglineAr, taglineKu: dto.taglineKu,
+        descriptionEn: dto.descriptionEn, descriptionAr: dto.descriptionAr, descriptionKu: dto.descriptionKu,
+        phone: dto.phone, whatsapp: dto.whatsapp, email: dto.email, website: dto.website,
+        instagram: dto.instagram, facebook: dto.facebook, telegram: dto.telegram,
+        address: dto.address, lat: dto.lat, lng: dto.lng,
+        openingHours: dto.openingHours, specialties: dto.specialties ?? [],
         locationId: dto.locationId,
-        subscription: {
-          create: { plan: 'FREE', status: 'ACTIVE', maxListings: 5 },
-        },
+        subscription: { create: { plan: 'FREE', status: 'ACTIVE', maxListings: 5 } },
       },
       include: this.defaultInclude(),
     });
   }
 
-  // ── List dealers (marketplace) ─────────────────────────────────────────
-
   async findAll(query: DealerQueryDto) {
-    const {
-      city, tier, minRating, search,
-      page = 1, limit = 20,
-      sortBy = 'rating',
-    } = query;
+    const { city, tier, minRating, search, page = 1, limit = 20, sortBy = 'rating' } = query;
+    const safeLimit = Math.min(Math.max(1, limit), 50);
 
     const where: Prisma.DealerWhereInput = {
       status: DealerStatus.VERIFIED,
@@ -82,18 +68,17 @@ export class DealersService {
     };
 
     const orderBy: Prisma.DealerOrderByWithRelationInput =
-      sortBy === 'rating'    ? { averageRating: 'desc' } :
-      sortBy === 'listings'  ? { activeListings: 'desc' } :
-      sortBy === 'reviews'   ? { totalReviews: 'desc' } :
-      sortBy === 'newest'    ? { createdAt: 'desc' } :
-                               { averageRating: 'desc' };
+      sortBy === 'rating'   ? { averageRating: 'desc' } :
+      sortBy === 'listings' ? { activeListings: 'desc' } :
+      sortBy === 'reviews'  ? { totalReviews: 'desc' } :
+      sortBy === 'newest'   ? { createdAt: 'desc' } :
+                              { averageRating: 'desc' };
 
     const [dealers, total] = await Promise.all([
       this.prisma.dealer.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        where, orderBy,
+        skip: (page - 1) * safeLimit,
+        take: safeLimit,
         include: {
           location: true,
           badges: { where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
@@ -104,10 +89,8 @@ export class DealersService {
       this.prisma.dealer.count({ where }),
     ]);
 
-    return { dealers, total, page, limit, pages: Math.ceil(total / limit) };
+    return { dealers, total, page, limit: safeLimit, pages: Math.ceil(total / safeLimit) };
   }
-
-  // ── Get dealer by slug (public showroom) ──────────────────────────────
 
   async findBySlug(slug: string) {
     const dealer = await this.prisma.dealer.findUnique({
@@ -134,13 +117,9 @@ export class DealersService {
       throw new NotFoundException('Dealer not found');
     }
 
-    // Track profile view (fire-and-forget)
     this.trackEvent(dealer.id, 'profileViews').catch(() => {});
-
     return dealer;
   }
-
-  // ── Update dealer profile ──────────────────────────────────────────────
 
   async update(userId: string, dto: UpdateDealerDto) {
     const dealer = await this.prisma.dealer.findUnique({ where: { userId } });
@@ -149,34 +128,18 @@ export class DealersService {
     return this.prisma.dealer.update({
       where: { id: dealer.id },
       data: {
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        nameKu: dto.nameKu,
-        taglineEn: dto.taglineEn,
-        taglineAr: dto.taglineAr,
-        taglineKu: dto.taglineKu,
-        descriptionEn: dto.descriptionEn,
-        descriptionAr: dto.descriptionAr,
-        descriptionKu: dto.descriptionKu,
-        phone: dto.phone,
-        whatsapp: dto.whatsapp,
-        email: dto.email,
-        website: dto.website,
-        instagram: dto.instagram,
-        facebook: dto.facebook,
-        telegram: dto.telegram,
-        address: dto.address,
-        lat: dto.lat,
-        lng: dto.lng,
-        openingHours: dto.openingHours,
-        specialties: dto.specialties,
+        nameEn: dto.nameEn, nameAr: dto.nameAr, nameKu: dto.nameKu,
+        taglineEn: dto.taglineEn, taglineAr: dto.taglineAr, taglineKu: dto.taglineKu,
+        descriptionEn: dto.descriptionEn, descriptionAr: dto.descriptionAr, descriptionKu: dto.descriptionKu,
+        phone: dto.phone, whatsapp: dto.whatsapp, email: dto.email, website: dto.website,
+        instagram: dto.instagram, facebook: dto.facebook, telegram: dto.telegram,
+        address: dto.address, lat: dto.lat, lng: dto.lng,
+        openingHours: dto.openingHours, specialties: dto.specialties,
         locationId: dto.locationId,
       },
       include: this.defaultInclude(),
     });
   }
-
-  // ── Submit dealer review ───────────────────────────────────────────────
 
   async createReview(reviewerId: string, dealerSlug: string, dto: CreateReviewDto) {
     const dealer = await this.prisma.dealer.findUnique({ where: { slug: dealerSlug } });
@@ -190,27 +153,19 @@ export class DealersService {
 
     const review = await this.prisma.dealerReview.create({
       data: {
-        dealerId: dealer.id,
-        reviewerId,
-        rating: dto.rating,
-        title: dto.title,
-        body: dto.body,
-        ratingService: dto.ratingService,
-        ratingPrice: dto.ratingPrice,
-        ratingQuality: dto.ratingQuality,
+        dealerId: dealer.id, reviewerId,
+        rating: dto.rating, title: dto.title, body: dto.body,
+        ratingService: dto.ratingService, ratingPrice: dto.ratingPrice, ratingQuality: dto.ratingQuality,
       },
       include: { reviewer: { select: { id: true, name: true, avatar: true } } },
     });
 
-    // Recompute aggregated rating
     await this.recomputeRating(dealer.id);
-
     return review;
   }
 
-  // ── Get dealer reviews (paginated) ────────────────────────────────────
-
   async getReviews(dealerSlug: string, page = 1, limit = 20) {
+    const safeLimit = Math.min(limit, 50);
     const dealer = await this.prisma.dealer.findUnique({ where: { slug: dealerSlug }, select: { id: true } });
     if (!dealer) throw new NotFoundException('Dealer not found');
 
@@ -219,19 +174,20 @@ export class DealersService {
         where: { dealerId: dealer.id, flagged: false },
         include: { reviewer: { select: { id: true, name: true, avatar: true, createdAt: true } } },
         orderBy: [{ helpful: 'desc' }, { createdAt: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (page - 1) * safeLimit,
+        take: safeLimit,
       }),
       this.prisma.dealerReview.count({ where: { dealerId: dealer.id, flagged: false } }),
     ]);
 
-    return { reviews, total, page, limit };
+    return { reviews, total, page, limit: safeLimit };
   }
 
-  // ── Contact form / WhatsApp lead capture ──────────────────────────────
-
   async contactDealer(dealerSlug: string, dto: ContactDealerDto, senderId?: string) {
-    const dealer = await this.prisma.dealer.findUnique({ where: { slug: dealerSlug }, select: { id: true, whatsapp: true } });
+    const dealer = await this.prisma.dealer.findUnique({
+      where: { slug: dealerSlug },
+      select: { id: true, whatsapp: true },
+    });
     if (!dealer) throw new NotFoundException('Dealer not found');
 
     const request = await this.prisma.dealerContactRequest.create({
@@ -247,64 +203,55 @@ export class DealersService {
       },
     });
 
-    // Track lead
     this.trackEvent(dealer.id, 'newLeads').catch(() => {});
 
-    return {
-      success: true,
-      requestId: request.id,
-      whatsappUrl: dealer.whatsapp
-        ? `https://wa.me/${dealer.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(dto.message)}`
-        : null,
-    };
+    // FIX: Only expose whatsapp URL if whatsapp field is set; strip non-digit chars safely
+    let whatsappUrl: string | null = null;
+    if (dealer.whatsapp) {
+      const cleaned = dealer.whatsapp.replace(/\D/g, '');
+      if (cleaned.length >= 7 && cleaned.length <= 15) {
+        whatsappUrl = `https://wa.me/${cleaned}?text=${encodeURIComponent(dto.message)}`;
+      }
+    }
+
+    return { success: true, requestId: request.id, whatsappUrl };
   }
 
-  // ── Dealer analytics (dashboard) ──────────────────────────────────────
-
   async getAnalytics(userId: string, days = 30) {
+    const safeDays = Math.min(Math.max(1, days), 365);
     const dealer = await this.prisma.dealer.findUnique({ where: { userId }, select: { id: true } });
     if (!dealer) throw new NotFoundException('Dealer profile not found');
 
     const since = new Date();
-    since.setDate(since.getDate() - days);
+    since.setDate(since.getDate() - safeDays);
 
     const analytics = await this.prisma.dealerAnalytic.findMany({
       where: { dealerId: dealer.id, date: { gte: since } },
       orderBy: { date: 'asc' },
     });
 
-    // Aggregate totals
     const totals = analytics.reduce(
       (acc, row) => ({
-        profileViews:     acc.profileViews     + row.profileViews,
-        listingViews:     acc.listingViews     + row.listingViews,
-        contactClicks:    acc.contactClicks    + row.contactClicks,
-        whatsappClicks:   acc.whatsappClicks   + row.whatsappClicks,
-        phoneClicks:      acc.phoneClicks      + row.phoneClicks,
-        newLeads:         acc.newLeads         + row.newLeads,
-        newReviews:       acc.newReviews       + row.newReviews,
+        profileViews:   acc.profileViews   + row.profileViews,
+        listingViews:   acc.listingViews   + row.listingViews,
+        contactClicks:  acc.contactClicks  + row.contactClicks,
+        whatsappClicks: acc.whatsappClicks + row.whatsappClicks,
+        phoneClicks:    acc.phoneClicks    + row.phoneClicks,
+        newLeads:       acc.newLeads       + row.newLeads,
+        newReviews:     acc.newReviews     + row.newReviews,
       }),
       { profileViews: 0, listingViews: 0, contactClicks: 0, whatsappClicks: 0, phoneClicks: 0, newLeads: 0, newReviews: 0 },
     );
 
-    return { analytics, totals, days };
+    return { analytics, totals, days: safeDays };
   }
-
-  // ── Admin: verify dealer ───────────────────────────────────────────────
 
   async verify(dealerId: string, adminId: string, tier: DealerTier = DealerTier.BASIC) {
     return this.prisma.dealer.update({
       where: { id: dealerId },
-      data: {
-        status: DealerStatus.VERIFIED,
-        tier,
-        verifiedAt: new Date(),
-        verifiedBy: adminId,
-      },
+      data: { status: DealerStatus.VERIFIED, tier, verifiedAt: new Date(), verifiedBy: adminId },
     });
   }
-
-  // ── Admin: suspend dealer ──────────────────────────────────────────────
 
   async suspend(dealerId: string) {
     return this.prisma.dealer.update({
@@ -313,25 +260,22 @@ export class DealersService {
     });
   }
 
-  // ── Private helpers ────────────────────────────────────────────────────
-
   private async recomputeRating(dealerId: string) {
     const agg = await this.prisma.dealerReview.aggregate({
       where: { dealerId, flagged: false },
       _avg: { rating: true },
       _count: { rating: true },
     });
-
     return this.prisma.dealer.update({
       where: { id: dealerId },
-      data: {
-        averageRating: agg._avg.rating ?? 0,
-        totalReviews: agg._count.rating,
-      },
+      data: { averageRating: agg._avg.rating ?? 0, totalReviews: agg._count.rating },
     });
   }
 
-  private async trackEvent(dealerId: string, field: string) {
+  // FIX: Whitelist check prevents arbitrary field names being passed to Prisma
+  private async trackEvent(dealerId: string, field: AnalyticsField) {
+    if (!ALLOWED_ANALYTICS_FIELDS.has(field)) return; // hard guard
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
