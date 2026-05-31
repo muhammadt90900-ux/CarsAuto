@@ -3,7 +3,13 @@
     "homeTitle": "AutoBazaar Pro — 高端汽车市场",
     "homeDesc": "中东最值得信赖的高端汽车市场 — 伊拉克、库尔德斯坦、迪拜。",
     "carsTitle": "买卖汽车",
-    "carsDesc": "浏览伊拉克和库尔德斯坦数千辆新车和二手车。"
+    "carsDesc": "浏览伊拉克和库尔德斯坦数千辆新车和二手车。",
+    "dealersTitle": "认证汽车经销商",
+    "dealersDesc": "在伊拉克、库尔德斯坦和迪拜找到1200多家认证汽车经销商。",
+    "partsTitle": "汽车零件",
+    "partsDesc": "在伊拉克和阿联酋查找所有品牌车型的原厂和售后汽车零件。",
+    "motoTitle": "摩托车",
+    "motoDesc": "在伊拉克和库尔德斯坦买卖摩托车。"
   },
   "home": {
     "title": "AutoBazaar Pro",

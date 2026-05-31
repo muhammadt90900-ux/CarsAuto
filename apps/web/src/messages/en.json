@@ -3,7 +3,13 @@
     "homeTitle": "AutoBazaar Pro — Premium Automotive Marketplace",
     "homeDesc": "The Middle East's most trusted premium auto marketplace — Iraq, Kurdistan, Dubai.",
     "carsTitle": "Buy & Sell Cars",
-    "carsDesc": "Browse thousands of new and used cars across Iraq and Kurdistan."
+    "carsDesc": "Browse thousands of new and used cars across Iraq and Kurdistan.",
+    "dealersTitle": "Verified Car Dealers",
+    "dealersDesc": "Find over 1,200 verified auto dealers across Iraq, Kurdistan, and Dubai.",
+    "partsTitle": "Spare Parts for Sale",
+    "partsDesc": "Find genuine and aftermarket auto parts for all makes and models.",
+    "motoTitle": "Motorcycles for Sale",
+    "motoDesc": "Buy and sell motorcycles in Iraq and Kurdistan."
   },
   "home": {
     "title": "AutoBazaar Pro",
