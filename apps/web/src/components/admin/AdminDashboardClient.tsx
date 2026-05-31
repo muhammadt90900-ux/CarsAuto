@@ -1,17 +1,20 @@
 'use client';
 // components/admin/AdminDashboardClient.tsx — Enterprise admin dashboard
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import {
   TrendingUp, TrendingDown, Users, Car, Package, Store,
   DollarSign, Eye, CheckCircle2, XCircle, Clock, BarChart3,
   ArrowUpRight, Shield, Bell, Search, Filter, RefreshCw,
+  ShieldCheck, FileWarning, ClipboardList, Megaphone,
 } from 'lucide-react';
 
+// ─── Mock data ────────────────────────────────────────────────────────────────
 const MOCK_STATS = {
   totalListings:   { value: 24_187, change: +8.4,  icon: Car,        color: '#3b82f6' },
   activeUsers:     { value: 50_432, change: +12.1, icon: Users,      color: '#22c55e' },
-  totalRevenue:    { value: 142_800, change: +5.3,  icon: DollarSign, color: '#c9a84c' },
+  totalRevenue:    { value: 142_800, change: +5.3, icon: DollarSign, color: '#c9a84c' },
   verifiedDealers: { value: 1_243,  change: +3.8,  icon: Store,      color: '#a855f7' },
 };
 
@@ -42,14 +45,37 @@ const CHART_DATA = [
   { month: 'Jun', listings: 3100, users: 5400 },
 ];
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export function AdminDashboardClient() {
   const [period, setPeriod] = useState<'7d'|'30d'|'90d'>('30d');
+  const params   = useParams();
+  const locale   = Array.isArray(params?.locale) ? params.locale[0] : (params?.locale ?? 'ku');
 
   const fmtNum = (v: number) => new Intl.NumberFormat('en-US').format(v);
   const fmtCur = (v: number) => '$' + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v);
 
+  const quickActions = [
+    { label: 'Review Pending Listings',  count: 23,  color: '#d97706', icon: Clock,        href: `/${locale}/admin/moderation`    },
+    { label: 'Verify New Dealers',       count: 7,   color: '#a855f7', icon: Store,        href: `/${locale}/admin/dealers`       },
+    { label: 'Open User Reports',        count: 12,  color: '#dc2626', icon: FileWarning,  href: `/${locale}/admin/reports`       },
+    { label: 'Approve Spare Parts',      count: 8,   color: '#3b82f6', icon: Package,      href: `/${locale}/admin/moderation`    },
+    { label: 'Unread Notifications',     count: 3,   color: '#c9a84c', icon: Bell,         href: `/${locale}/admin/notifications` },
+    { label: 'Critical Audit Events',    count: 5,   color: '#ef4444', icon: ClipboardList, href: `/${locale}/admin/audit-logs`   },
+  ];
+
+  const featureCards = [
+    { label: 'User Management',  desc: '50,432 accounts',     icon: Users,        color: '#22c55e', href: `/${locale}/admin/users`         },
+    { label: 'Dealer Management',desc: '1,243 dealers',       icon: Store,        color: '#c9a84c', href: `/${locale}/admin/dealers`       },
+    { label: 'Reports',          desc: '23 open reports',     icon: FileWarning,  color: '#ef4444', href: `/${locale}/admin/reports`       },
+    { label: 'Analytics',        desc: '+12.1% this month',   icon: BarChart3,    color: '#3b82f6', href: `/${locale}/admin/analytics`     },
+    { label: 'Audit Logs',       desc: '5 critical events',   icon: ClipboardList,color: '#8b5cf6', href: `/${locale}/admin/audit-logs`    },
+    { label: 'Moderation',       desc: '14 items pending',    icon: ShieldCheck,  color: '#f59e0b', href: `/${locale}/admin/moderation`    },
+    { label: 'Notifications',    desc: '3 drafts queued',     icon: Bell,         color: '#f43f5e', href: `/${locale}/admin/notifications` },
+  ];
+
   return (
     <div className="space-y-6 sm:space-y-8">
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -107,7 +133,40 @@ export function AdminDashboardClient() {
         })}
       </div>
 
-      {/* Chart + Activity */}
+      {/* Feature section cards — shortcut to every feature */}
+      <div>
+        <h2 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-[var(--gold)]"/>
+          Admin Sections
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+          {featureCards.map(card => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={card.label}
+                href={card.href}
+                className="card-premium p-4 flex items-start gap-3 hover:border-[var(--border-gold)]
+                           hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all group"
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: `${card.color}15`, border: `1px solid ${card.color}22` }}>
+                  <Icon className="w-4 h-4" style={{ color: card.color }}/>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--gold)] transition-colors truncate">
+                    {card.label}
+                  </p>
+                  <p className="text-[0.68rem] text-[var(--text-muted)] truncate">{card.desc}</p>
+                </div>
+                <ArrowUpRight className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--gold)] ml-auto flex-shrink-0 transition-colors opacity-0 group-hover:opacity-100"/>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Chart + Quick actions */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Mini bar chart */}
         <div className="lg:col-span-2 card-premium p-6">
@@ -140,21 +199,22 @@ export function AdminDashboardClient() {
               );
             })}
           </div>
+          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-right">
+            <Link href={`/${locale}/admin/analytics`}
+                  className="text-xs font-semibold text-[var(--gold)] hover:underline flex items-center gap-1 justify-end">
+              Full analytics <ArrowUpRight className="w-3 h-3"/>
+            </Link>
+          </div>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions — all link to real pages */}
         <div className="card-premium p-6">
           <h2 className="font-bold text-[var(--text-primary)] mb-4">Quick Actions</h2>
           <div className="space-y-2">
-            {[
-              { label:'Review Pending Listings', count: 23, color:'#d97706', icon: Clock },
-              { label:'Verify New Dealers',      count: 7,  color:'#a855f7', icon: Store },
-              { label:'User Reports',            count: 12, color:'#dc2626', icon: Bell  },
-              { label:'Approve Parts',           count: 8,  color:'#3b82f6', icon: Package},
-            ].map(a => {
+            {quickActions.map(a => {
               const Icon = a.icon;
               return (
-                <button key={a.label}
+                <Link key={a.label} href={a.href}
                   className="w-full flex items-center justify-between p-3 rounded-xl
                              bg-[var(--surface-50)] dark:bg-white/[0.04]
                              border border-[var(--border-subtle)]
@@ -168,9 +228,15 @@ export function AdminDashboardClient() {
                         style={{ background:`${a.color}15`, color:a.color }}>
                     {a.count}
                   </span>
-                </button>
+                </Link>
               );
             })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+            <Link href={`/${locale}/admin/audit-logs`}
+                  className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--gold)] flex items-center gap-1 transition-colors">
+              <ClipboardList className="w-3 h-3"/> View audit log
+            </Link>
           </div>
         </div>
       </div>
@@ -237,16 +303,22 @@ export function AdminDashboardClient() {
         </div>
         <div className="flex items-center justify-between px-6 py-3 border-t border-[var(--border-subtle)]">
           <p className="text-xs text-[var(--text-muted)]">Showing 8 of 243 listings</p>
-          <div className="flex gap-1">
-            {[1,2,3,'…',31].map((p,i) => (
-              <button key={i}
-                className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all
-                  ${p === 1
-                    ? 'bg-[var(--gold)] text-[var(--ink-900)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--gold)] hover:bg-[var(--gold-subtle)]'}`}>
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {[1,2,3,'…',31].map((p,i) => (
+                <button key={i}
+                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all
+                    ${p === 1
+                      ? 'bg-[var(--gold)] text-[var(--ink-900)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--gold)] hover:bg-[var(--gold-subtle)]'}`}>
+                  {p}
+                </button>
+              ))}
+            </div>
+            <Link href={`/${locale}/admin/moderation`}
+                  className="text-xs font-semibold text-[var(--gold)] hover:underline flex items-center gap-1">
+              Full moderation queue <ArrowUpRight className="w-3 h-3"/>
+            </Link>
           </div>
         </div>
       </div>

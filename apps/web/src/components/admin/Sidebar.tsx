@@ -1,54 +1,70 @@
 'use client';
-// components/admin/Sidebar.tsx — Locale-aware admin sidebar
+// components/admin/Sidebar.tsx — Full-featured admin sidebar with all 7 sections
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@auto-bazaar-pro/utils';
 import {
   LayoutDashboard, Users, Car, ListChecks, Settings,
   BarChart3, ShieldCheck, ChevronRight, Tag, Languages,
-  Megaphone, Star, FileWarning,
+  Megaphone, Star, FileWarning, Store, Bell, ClipboardList,
+  Shield,
 } from 'lucide-react';
+
+// Badge counts — in production these would come from a real-time API call
+const BADGE_COUNTS: Record<string, number> = {
+  moderation: 14,
+  reports: 23,
+  notifications: 3,
+};
 
 export function AdminSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
-  const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
+  const params   = useParams();
+  const locale   = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
 
   const groups = [
     {
       label: 'Overview',
       items: [
-        { href: `/${locale}/admin`,            label: 'Dashboard',    icon: LayoutDashboard },
-        { href: `/${locale}/admin/analytics`,  label: 'Analytics',    icon: BarChart3       },
+        { href: `/${locale}/admin`,               label: 'Dashboard',    icon: LayoutDashboard },
+        { href: `/${locale}/admin/analytics`,     label: 'Analytics',    icon: BarChart3       },
+      ],
+    },
+    {
+      label: 'People',
+      items: [
+        { href: `/${locale}/admin/users`,         label: 'Users',        icon: Users           },
+        { href: `/${locale}/admin/dealers`,       label: 'Dealers',      icon: Store           },
       ],
     },
     {
       label: 'Content',
       items: [
-        { href: `/${locale}/admin/users`,      label: 'Users',        icon: Users           },
-        { href: `/${locale}/admin/listings`,   label: 'Listings',     icon: Car             },
-        { href: `/${locale}/admin/featured`,   label: 'Featured',     icon: Star            },
-        { href: `/${locale}/admin/categories`, label: 'Categories',   icon: Tag             },
+        { href: `/${locale}/admin/listings`,      label: 'Listings',     icon: Car             },
+        { href: `/${locale}/admin/featured`,      label: 'Featured',     icon: Star            },
+        { href: `/${locale}/admin/categories`,    label: 'Categories',   icon: Tag             },
       ],
     },
     {
-      label: 'Moderation',
+      label: 'Trust & Safety',
       items: [
-        { href: `/${locale}/admin/moderation`, label: 'Moderation',   icon: ShieldCheck     },
-        { href: `/${locale}/admin/reports`,    label: 'Reports',      icon: FileWarning     },
+        { href: `/${locale}/admin/moderation`,    label: 'Moderation',   icon: ShieldCheck,    badge: BADGE_COUNTS.moderation   },
+        { href: `/${locale}/admin/reports`,       label: 'Reports',      icon: FileWarning,    badge: BADGE_COUNTS.reports      },
+        { href: `/${locale}/admin/audit-logs`,    label: 'Audit Logs',   icon: ClipboardList   },
       ],
     },
     {
-      label: 'Marketing',
+      label: 'Engagement',
       items: [
-        { href: `/${locale}/admin/ads`,        label: 'Ads',          icon: Megaphone       },
+        { href: `/${locale}/admin/notifications`, label: 'Notifications',icon: Bell,           badge: BADGE_COUNTS.notifications },
+        { href: `/${locale}/admin/ads`,           label: 'Ads',          icon: Megaphone       },
       ],
     },
     {
       label: 'System',
       items: [
-        { href: `/${locale}/admin/translations`, label: 'Translations', icon: Languages     },
-        { href: `/${locale}/admin/settings`,   label: 'Settings',     icon: Settings        },
+        { href: `/${locale}/admin/translations`,  label: 'Translations', icon: Languages       },
+        { href: `/${locale}/admin/settings`,      label: 'Settings',     icon: Settings        },
       ],
     },
   ];
@@ -67,7 +83,7 @@ export function AdminSidebar({ className }: { className?: string }) {
             className="w-9 h-9 rounded-[10px] flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
-            <ShieldCheck className="w-4 h-4 text-white" aria-hidden />
+            <Shield className="w-4 h-4 text-white" aria-hidden />
           </div>
           <div>
             <p className="text-[.82rem] font-bold text-slate-900 dark:text-white tracking-tight">
@@ -79,14 +95,14 @@ export function AdminSidebar({ className }: { className?: string }) {
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 space-y-4 overflow-y-auto">
+      <nav className="flex-1 space-y-4 overflow-y-auto pb-4">
         {groups.map((group) => (
           <div key={group.label}>
             <p className="px-3 mb-1 text-[9px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/25">
               {group.label}
             </p>
             <div className="space-y-0.5">
-              {group.items.map(({ href, label, icon: Icon }) => {
+              {group.items.map(({ href, label, icon: Icon, badge }: any) => {
                 const active =
                   pathname === href ||
                   (href !== `/${locale}/admin` && pathname.startsWith(href));
@@ -109,13 +125,26 @@ export function AdminSidebar({ className }: { className?: string }) {
                       />
                       {label}
                     </span>
-                    <ChevronRight
-                      className={cn(
-                        'w-3 h-3 transition-all',
-                        active ? 'text-[#c9a84c] opacity-100' : 'opacity-0 group-hover:opacity-60',
+                    <span className="flex items-center gap-1.5">
+                      {badge ? (
+                        <span className={cn(
+                          'min-w-[18px] h-[18px] px-1 rounded-full text-[0.6rem] font-black flex items-center justify-center',
+                          active
+                            ? 'bg-[#c9a84c] text-[#0d1b2e]'
+                            : 'bg-red-500 text-white',
+                        )}>
+                          {badge > 99 ? '99+' : badge}
+                        </span>
+                      ) : (
+                        <ChevronRight
+                          className={cn(
+                            'w-3 h-3 transition-all',
+                            active ? 'text-[#c9a84c] opacity-100' : 'opacity-0 group-hover:opacity-60',
+                          )}
+                          aria-hidden
+                        />
                       )}
-                      aria-hidden
-                    />
+                    </span>
                   </Link>
                 );
               })}
