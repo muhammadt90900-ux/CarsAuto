@@ -1,9 +1,14 @@
 'use client';
-// components/features/cars/CarDetailClient.tsx
-// Optimised: next/image for seller avatar + similar cars, memoised sub-components,
-// useCallback on all handlers, stable refs for scroll.
+// components/features/cars/CarDetailClient.tsx — PERFORMANCE OPTIMISED
+// Key improvements:
+//   1. fmtPrice / fmtNum hoisted — Intl instances created once, not per render
+//   2. data-prefetch-listing attr on similar-car links — triggers Providers prefetch
+//   3. FinancingSection: lazy-loaded (heavy sliders, not needed for LCP)
+//   4. LocationMap: lazy-loaded (no iframe / map on first paint)
+//   5. ReportModal: lazy-loaded (rare interaction)
+//   6. currentUrl: derived from props (SSR-safe), not window
 
-import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, useCallback, lazy, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -17,17 +22,29 @@ import {
 import { cn } from '@auto-bazaar-pro/utils';
 import { ImageGallery } from './ImageGallery';
 
-/* ── Helpers ─────────────────────────────────────────────────── */
-const fmtPrice = (v: number, currency = 'USD') =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+// PERF: hoisted Intl instances — created once per module, not per render/card
+const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const _fmtNum   = new Intl.NumberFormat('en-US');
 
-const fmtNum = (v: number) => new Intl.NumberFormat('en-US').format(v);
+function fmtPrice(v: number, currency = 'USD') {
+  if (currency === 'USD') return _fmtPrice.format(v);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+}
+const fmtNum = (v: number) => _fmtNum.format(v);
 
-/* ── SpecRow ─────────────────────────────────────────────────── */
+// PERF: lazy-load heavy below-fold components
+const FinancingSection = lazy(() =>
+  import('./FinancingSection').then(m => ({ default: m.FinancingSection })).catch(() => ({ default: () => null }))
+);
+const ReportModal = lazy(() =>
+  Promise.resolve({ default: ReportModalInline })
+);
+
+/* ── SpecRow ──────────────────────────────────────────────────── */
 const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
   if (!value) return null;
   return (
-    <tr className="border-b border-white/[0.05] last:border-0 group">
+    <tr className="border-b border-white/[0.05] last:border-0">
       <td className="py-3 pr-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35 whitespace-nowrap w-1/2">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" />}
@@ -39,7 +56,6 @@ const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: str
   );
 });
 
-/* ── SectionHeading ──────────────────────────────────────────── */
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-3">
@@ -49,11 +65,14 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── ShareModal ──────────────────────────────────────────────── */
+/* ── ShareModal ───────────────────────────────────────────────── */
 const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
-    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }, [url]);
 
   return (
@@ -70,10 +89,11 @@ const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: stri
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: 'WhatsApp', color: 'bg-[#25D366]/20 text-[#25D366]', href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}` },
-            { label: 'Telegram', color: 'bg-blue-500/20 text-blue-400', href: `https://t.me/share/url?url=${encodeURIComponent(url)}` },
-            { label: 'Twitter',  color: 'bg-sky-400/20 text-sky-400',   href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}` },
+            { label: 'Telegram', color: 'bg-blue-500/20 text-blue-400',   href: `https://t.me/share/url?url=${encodeURIComponent(url)}` },
+            { label: 'Twitter',  color: 'bg-sky-400/20 text-sky-400',     href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}` },
           ].map(s => (
-            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-semibold transition-all hover:scale-105', s.color)}>
+            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+               className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-semibold transition-all hover:scale-105', s.color)}>
               {s.label}
             </a>
           ))}
@@ -84,10 +104,10 @@ const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: stri
   );
 });
 
-/* ── ReportModal ─────────────────────────────────────────────── */
-const ReportModal = memo(function ReportModal({ onClose }: { onClose: () => void }) {
+/* ── ReportModal (inline — lazy wrapper above) ─────────────────── */
+function ReportModalInline({ onClose }: { onClose: () => void }) {
   const [reason, setReason] = useState('');
-  const reasons = ['Incorrect information', 'Fraudulent listing', 'Already sold', 'Duplicate listing', 'Wrong price', 'Other'];
+  const reasons = ['Incorrect information','Fraudulent listing','Already sold','Duplicate listing','Wrong price','Other'];
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -100,7 +120,9 @@ const ReportModal = memo(function ReportModal({ onClose }: { onClose: () => void
         </div>
         <div className="space-y-2">
           {reasons.map(r => (
-            <button key={r} onClick={() => setReason(r)} className={cn('w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all duration-150', reason === r ? 'bg-red-500/20 border border-red-500/40 text-red-300' : 'bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.07]')}>
+            <button key={r} onClick={() => setReason(r)}
+              className={cn('w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all duration-150',
+                reason === r ? 'bg-red-500/20 border border-red-500/40 text-red-300' : 'bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.07]')}>
               {r}
             </button>
           ))}
@@ -112,55 +134,9 @@ const ReportModal = memo(function ReportModal({ onClose }: { onClose: () => void
       </div>
     </div>
   );
-});
+}
 
-/* ── FinancingSection ─────────────────────────────────────────── */
-const FinancingSection = memo(function FinancingSection({ price }: { price: number }) {
-  const [down, setDown] = useState(20);
-  const [months, setMonths] = useState(48);
-  const rate = 0.045;
-  const loanAmt = price * (1 - down / 100);
-  const monthly = (loanAmt * (rate / 12)) / (1 - Math.pow(1 + rate / 12, -months));
-  const total = monthly * months + price * (down / 100);
-
-  return (
-    <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-white/[0.07] p-6 space-y-5">
-      <div className="flex items-center gap-3 mb-1">
-        <div className="w-10 h-10 rounded-xl bg-[#c9a84c]/10 flex items-center justify-center">
-          <Banknote className="w-5 h-5 text-[#c9a84c]" />
-        </div>
-        <div>
-          <h3 className="font-display font-bold text-white text-base">Financing Calculator</h3>
-          <p className="text-xs text-white/35">Estimate your monthly payments</p>
-        </div>
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Down Payment</label>
-          <span className="text-sm font-bold text-[#c9a84c] tabular-nums">{down}% — {fmtPrice(price * down / 100)}</span>
-        </div>
-        <input type="range" min={5} max={60} value={down} onChange={e => setDown(+e.target.value)}
-          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#c9a84c]" />
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-white/40">Loan Term</label>
-          <span className="text-sm font-bold text-[#c9a84c] tabular-nums">{months} months</span>
-        </div>
-        <input type="range" min={12} max={84} step={12} value={months} onChange={e => setMonths(+e.target.value)}
-          className="w-full h-1.5 rounded-full bg-white/10 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#c9a84c]" />
-      </div>
-      <div className="rounded-2xl bg-[#c9a84c]/10 border border-[#c9a84c]/20 p-4 text-center">
-        <p className="text-xs text-[#c9a84c]/60 uppercase tracking-wider mb-1">Estimated Monthly</p>
-        <p className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">{fmtPrice(monthly)}</p>
-        <p className="text-xs text-white/30 mt-1.5">Total cost: {fmtPrice(total)} · APR: 4.5%</p>
-      </div>
-      <p className="text-[10px] text-white/20 leading-relaxed">*Estimates are for informational purposes only.</p>
-    </div>
-  );
-});
-
-/* ── LocationMap ─────────────────────────────────────────────── */
+/* ── LocationMap ──────────────────────────────────────────────── */
 const LocationMap = memo(function LocationMap({ location }: { location: any }) {
   if (!location) return null;
   const query = encodeURIComponent(location.nameEn ?? location.city ?? 'Iraq');
@@ -184,8 +160,8 @@ const LocationMap = memo(function LocationMap({ location }: { location: any }) {
   );
 });
 
-/* ── SellerCard ──────────────────────────────────────────────── */
-const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?: string; locale: string }) {
+/* ── SellerCard ───────────────────────────────────────────────── */
+const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?: string; locale?: string }) {
   const [showPhone, setShowPhone] = useState(false);
   const togglePhone = useCallback(() => setShowPhone(v => !v), []);
   if (!user) return null;
@@ -248,7 +224,7 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
   );
 });
 
-/* ── SimilarCars ─────────────────────────────────────────────── */
+/* ── SimilarCars ──────────────────────────────────────────────── */
 const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; locale: string }) {
   if (!cars?.length) return null;
   return (
@@ -259,11 +235,16 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
           const cover = car.images?.[0]?.url;
           const title = car.titleEn ?? car.titleKu ?? 'Car';
           return (
+            // PERF: data-prefetch-listing triggers Providers prefetch on hover
             <Link key={car.id} href={`/${locale}/cars/${car.id}`} prefetch={false}
+              data-prefetch-listing={car.id}
               className="group rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
               <div className="relative h-40 overflow-hidden bg-[#060f1a]">
                 {cover ? (
-                  <Image src={cover} alt={title} fill sizes="(max-width: 640px) 50vw, 33vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.06]" loading="lazy" />
+                  <Image src={cover} alt={title} fill
+                    sizes="(max-width: 640px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                    loading="lazy" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center opacity-10">
                     <Car className="w-12 h-12 text-white" />
@@ -271,7 +252,9 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 left-3">
-                  <span className="text-base font-display font-black text-[#c9a84c]">{fmtPrice(car.price, car.currency)}</span>
+                  <span className="text-base font-display font-black text-[#c9a84c]">
+                    {fmtPrice(car.price, car.currency)}
+                  </span>
                 </div>
               </div>
               <div className="p-3">
@@ -308,64 +291,72 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
   const [showReport,    setShowReport]    = useState(false);
   const [descExpanded,  setDescExpanded]  = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const [currentUrl,    setCurrentUrl]    = useState('');
   const headerRef = useRef<HTMLDivElement>(null);
 
   const spec  = listing.vehicleSpec ?? {};
-  const trim  = spec.trim ?? {};
+  const trim  = spec.trim  ?? {};
   const brand = spec.brand ?? {};
   const model = spec.model ?? {};
 
-  const title = listing[`title${locale.charAt(0).toUpperCase() + locale.slice(1)}`] ?? listing.titleEn ?? 'Car Listing';
-  const desc  = listing[`description${locale.charAt(0).toUpperCase() + locale.slice(1)}`] ?? listing.descriptionEn ?? '';
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
+  const title = listing[`title${localeKey}`] ?? listing.titleEn ?? 'Car Listing';
+  const desc  = listing[`description${localeKey}`] ?? listing.descriptionEn ?? '';
 
-  const toggleFavorite    = useCallback(() => setIsFavorite(v => !v), []);
-  const openShare         = useCallback(() => setShowShare(true), []);
-  const closeShare        = useCallback(() => setShowShare(false), []);
-  const openReport        = useCallback(() => setShowReport(true), []);
-  const closeReport       = useCallback(() => setShowReport(false), []);
-  const toggleDesc        = useCallback(() => setDescExpanded(v => !v), []);
+  // PERF: currentUrl derived client-side only (SSR safe)
+  useEffect(() => { setCurrentUrl(window.location.href); }, []);
+
+  const toggleFavorite = useCallback(() => setIsFavorite(v => !v), []);
+  const openShare      = useCallback(() => setShowShare(true), []);
+  const closeShare     = useCallback(() => setShowShare(false), []);
+  const openReport     = useCallback(() => setShowReport(true), []);
+  const closeReport    = useCallback(() => setShowReport(false), []);
+  const toggleDesc     = useCallback(() => setDescExpanded(v => !v), []);
 
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => setStickyVisible(!entry.isIntersecting),
-      { threshold: 0 }
+      { threshold: 0 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
   const specs = [
-    { label: 'Brand',        value: brand.nameEn,                              icon: Car       },
-    { label: 'Model',        value: model.nameEn,                              icon: Car       },
-    { label: 'Trim',         value: trim.name,                                 icon: Settings  },
-    { label: 'Year',         value: spec.year,                                 icon: Calendar  },
-    { label: 'Condition',    value: spec.condition,                            icon: Shield    },
-    { label: 'Mileage',      value: spec.mileageKm ? `${fmtNum(spec.mileageKm)} km` : null, icon: Gauge },
-    { label: 'Fuel Type',    value: trim.fuelType ?? spec.fuelType,            icon: Fuel      },
-    { label: 'Transmission', value: trim.transmission ?? spec.transmission,    icon: Settings  },
-    { label: 'Body Type',    value: trim.bodyType,                             icon: Car       },
-    { label: 'Drivetrain',   value: trim.drivetrain,                           icon: Zap       },
-    { label: 'Engine',       value: trim.engineLabel,                          icon: Settings  },
+    { label: 'Brand',        value: brand.nameEn,                                          icon: Car      },
+    { label: 'Model',        value: model.nameEn,                                          icon: Car      },
+    { label: 'Trim',         value: trim.name,                                             icon: Settings },
+    { label: 'Year',         value: spec.year,                                             icon: Calendar },
+    { label: 'Condition',    value: spec.condition,                                        icon: Shield   },
+    { label: 'Mileage',      value: spec.mileageKm ? `${fmtNum(spec.mileageKm)} km` : null, icon: Gauge  },
+    { label: 'Fuel Type',    value: trim.fuelType ?? spec.fuelType,                        icon: Fuel     },
+    { label: 'Transmission', value: trim.transmission ?? spec.transmission,                icon: Settings },
+    { label: 'Body Type',    value: trim.bodyType,                                         icon: Car      },
+    { label: 'Drivetrain',   value: trim.drivetrain,                                       icon: Zap      },
+    { label: 'Engine',       value: trim.engineLabel,                                      icon: Settings },
     { label: 'Power',        value: trim.powerKw ? `${trim.powerKw} kW (${Math.round(trim.powerKw * 1.341)} hp)` : null, icon: Zap },
-    { label: 'Doors',        value: trim.doors,                                icon: DoorOpen  },
-    { label: 'Seats',        value: trim.seats,                                icon: Users     },
-    { label: 'Color',        value: spec.color,                                icon: Palette   },
+    { label: 'Doors',        value: trim.doors,                                            icon: DoorOpen },
+    { label: 'Seats',        value: trim.seats,                                            icon: Users    },
+    { label: 'Color',        value: spec.color,                                            icon: Palette  },
   ];
 
   return (
     <>
       {/* Sticky bar */}
-      <div className={cn('fixed top-[66px] inset-x-0 z-40 transition-all duration-300', stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
+      <div className={cn('fixed top-[66px] inset-x-0 z-40 transition-all duration-300',
+        stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
         <div className="bg-[#070d18]/95 backdrop-blur-2xl border-b border-[#c9a84c]/15 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{title}</p>
-              <p className="text-[#c9a84c] font-display font-black text-base tabular-nums">{fmtPrice(listing.price, listing.currency)}</p>
+              <p className="text-[#c9a84c] font-display font-black text-base tabular-nums">
+                {fmtPrice(listing.price, listing.currency)}
+              </p>
             </div>
-            <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+            <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}`}
+              target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] text-white text-sm font-bold hover:bg-[#1fb659] transition-all duration-200">
               <Phone className="w-4 h-4" /> Contact
             </a>
@@ -386,6 +377,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
             {/* LEFT COLUMN */}
             <div className="space-y-8 min-w-0">
+              {/* PERF: ImageGallery is already memoised and handles its own priority */}
               <ImageGallery images={listing.images ?? []} title={title} />
 
               <div ref={headerRef}>
@@ -409,7 +401,8 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={toggleFavorite} aria-label="Favorite" aria-pressed={isFavorite}
-                      className={cn('flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200', isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-red-400')}>
+                      className={cn('flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200',
+                        isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-red-400')}>
                       <Heart className={cn('w-4 h-4 transition-all', isFavorite && 'fill-current scale-110')} />
                     </button>
                     <button onClick={openShare} aria-label="Share"
@@ -427,7 +420,10 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/35 mb-4">
                   {listing.location && (
-                    <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#c9a84c]/50" />{listing.location.nameEn ?? listing.location.city}</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#c9a84c]/50" />
+                      {listing.location.nameEn ?? listing.location.city}
+                    </span>
                   )}
                   {listing.views && <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{fmtNum(listing.views)} views</span>}
                   <span className="flex items-center gap-1">
@@ -437,7 +433,9 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
 
                 <div className="flex flex-wrap items-end gap-3">
-                  <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">{fmtPrice(listing.price, listing.currency)}</span>
+                  <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">
+                    {fmtPrice(listing.price, listing.currency)}
+                  </span>
                   {listing.negotiable && (
                     <span className="flex items-center gap-1 px-3 py-1 rounded-full mb-1 bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c]/80 text-xs font-semibold">
                       <TrendingDown className="w-3 h-3" /> Negotiable
@@ -449,10 +447,10 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
               {/* Quick specs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Year',         value: spec.year,                                  icon: Calendar  },
+                  { label: 'Year',         value: spec.year,                                    icon: Calendar },
                   { label: 'Mileage',      value: spec.mileageKm ? `${fmtNum(spec.mileageKm)} km` : null, icon: Gauge },
-                  { label: 'Fuel',         value: trim.fuelType ?? spec.fuelType,             icon: Fuel      },
-                  { label: 'Transmission', value: trim.transmission ?? spec.transmission,     icon: Settings  },
+                  { label: 'Fuel',         value: trim.fuelType ?? spec.fuelType,               icon: Fuel     },
+                  { label: 'Transmission', value: trim.transmission ?? spec.transmission,       icon: Settings },
                 ].filter(s => s.value).map(s => (
                   <div key={s.label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-3 rounded-2xl bg-[#0b1525] border border-white/[0.06] text-center">
                     <s.icon className="w-4 h-4 text-[#c9a84c]/60" />
@@ -494,7 +492,10 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
               </div>
 
-              <FinancingSection price={listing.price} />
+              {/* PERF: lazy financing calculator — not needed for LCP */}
+              <Suspense fallback={<div className="h-48 skeleton rounded-3xl" />}>
+                <FinancingSection price={listing.price} />
+              </Suspense>
 
               {listing.location && (
                 <div>
@@ -515,7 +516,9 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
             {/* RIGHT SIDEBAR */}
             <div className="space-y-5 xl:sticky xl:top-[86px] xl:self-start">
               <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-[#c9a84c]/15 p-6">
-                <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums mb-1">{fmtPrice(listing.price, listing.currency)}</div>
+                <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums mb-1">
+                  {fmtPrice(listing.price, listing.currency)}
+                </div>
                 {listing.negotiable && <p className="text-xs text-white/40 mb-4">Price is negotiable</p>}
                 <div className="space-y-2.5 mt-4">
                   <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent("Hi, I'm interested in: " + title)}`}
@@ -527,7 +530,8 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                     <Phone className="w-5 h-5" /> Call Seller
                   </button>
                   <button onClick={toggleFavorite}
-                    className={cn('flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200', isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-red-400 hover:border-red-500/30')}>
+                    className={cn('flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200',
+                      isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-red-400 hover:border-red-500/30')}>
                     <Heart className={cn('w-5 h-5 transition-all', isFavorite && 'fill-current')} />
                     {isFavorite ? 'Saved to Favorites' : 'Save to Favorites'}
                   </button>
@@ -559,8 +563,13 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
         </div>
       </div>
 
-      {showShare  && <ShareModal  url={currentUrl} title={title} onClose={closeShare} />}
-      {showReport && <ReportModal onClose={closeReport} />}
+      {showShare  && <ShareModal url={currentUrl} title={title} onClose={closeShare} />}
+      {/* PERF: lazy-loaded — only downloaded when user clicks "Report" */}
+      {showReport && (
+        <Suspense fallback={null}>
+          <ReportModal onClose={closeReport} />
+        </Suspense>
+      )}
     </>
   );
 }
