@@ -24,12 +24,19 @@ export class ChatService {
     if (listing.userId === buyerId) throw new ForbiddenException('You cannot chat with yourself');
 
     const existing = await this.prisma.chat.findFirst({
-      where: { listingId, buyerId, archivedBy: { has: buyerId } ? { not: { has: buyerId } } : undefined },
+      where: { listingId, buyerId },
       include: {
         listing: { include: { images: { where: { isCover: true }, take: 1 } } },
         buyer: { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
-        messages: { orderBy: { createdAt: 'asc' }, take: 50 },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          take: 50,
+          include: {
+            sender: { select: { id: true, name: true, avatar: true } },
+            readReceipts: { select: { userId: true, readAt: true } },
+          },
+        },
       },
     });
     if (existing) return existing;
@@ -56,7 +63,11 @@ export class ChatService {
         listing: { include: { images: { where: { isCover: true }, take: 1 } } },
         buyer: { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
-        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: { readReceipts: { select: { userId: true } } },
+        },
       },
     });
 
@@ -66,7 +77,7 @@ export class ChatService {
           where: {
             chatId: chat.id,
             senderId: { not: userId },
-            readBy: { none: { userId } },
+            readReceipts: { none: { userId } },
           },
         });
         return { ...chat, unreadCount };
@@ -86,7 +97,7 @@ export class ChatService {
     });
   }
 
-  // FIX: Membership enforced — was missing, any user could read any chat's messages
+  // Membership enforced — any user could read any chat's messages
   async getChatMessagesSecure(chatId: string, userId: string, cursor?: string, limit = 50) {
     await this.assertMembership(chatId, userId);
     return this.getChatMessages(chatId, cursor, limit);
@@ -100,7 +111,8 @@ export class ChatService {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         sender: { select: { id: true, name: true, avatar: true } },
-        readBy: { select: { userId: true } },
+        // Include read receipts for delivery/read status
+        readReceipts: { select: { userId: true, readAt: true } },
       },
     });
     const hasMore = messages.length > limit;
@@ -111,18 +123,46 @@ export class ChatService {
     };
   }
 
-  // FIX: Membership enforced before sending — was missing
+  // ─── Message delivery guarantee: get messages since a timestamp ─────────────
+  async getMessagesSince(chatId: string, userId: string, since: Date) {
+    await this.assertMembership(chatId, userId);
+    return this.prisma.message.findMany({
+      where: {
+        chatId,
+        createdAt: { gt: since },
+      },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        sender: { select: { id: true, name: true, avatar: true } },
+        readReceipts: { select: { userId: true, readAt: true } },
+      },
+    });
+  }
+
+  // Membership enforced before sending
   async sendMessageSecure(chatId: string, senderId: string, content: string, type = 'text') {
     await this.assertMembership(chatId, senderId);
     return this.sendMessage(chatId, senderId, content, type);
   }
 
   async sendMessage(chatId: string, senderId: string, content: string, type = 'text') {
-    // FIX: Whitelist allowed message types
+    // Whitelist allowed message types
     const safeType = ['text', 'image', 'offer'].includes(type) ? type : 'text';
     const msg = await this.prisma.message.create({
-      data: { chatId, senderId, content, type: safeType },
-      include: { sender: { select: { id: true, name: true, avatar: true } } },
+      data: {
+        chatId,
+        senderId,
+        content,
+        type: safeType,
+        // Auto-mark as read by sender
+        readReceipts: {
+          create: { userId: senderId },
+        },
+      },
+      include: {
+        sender: { select: { id: true, name: true, avatar: true } },
+        readReceipts: { select: { userId: true, readAt: true } },
+      },
     });
     await this.prisma.chat.update({
       where: { id: chatId },
@@ -131,21 +171,38 @@ export class ChatService {
     return msg;
   }
 
+  // ─── Read receipts ──────────────────────────────────────────────────────────
+
   async markChatRead(chatId: string, userId: string) {
     const unreadMessages = await this.prisma.message.findMany({
       where: {
         chatId,
         senderId: { not: userId },
-        readBy: { none: { userId } },
+        readReceipts: { none: { userId } },
       },
       select: { id: true },
     });
-    if (unreadMessages.length === 0) return;
+    if (unreadMessages.length === 0) return 0;
+
     await this.prisma.$transaction(
       unreadMessages.map((msg) =>
         this.prisma.messageReadReceipt.upsert({
           where: { messageId_userId: { messageId: msg.id, userId } },
           create: { messageId: msg.id, userId },
+          update: {},
+        }),
+      ),
+    );
+    return unreadMessages.length;
+  }
+
+  async markSpecificMessagesRead(messageIds: string[], userId: string) {
+    if (!messageIds.length) return;
+    await this.prisma.$transaction(
+      messageIds.map((messageId) =>
+        this.prisma.messageReadReceipt.upsert({
+          where: { messageId_userId: { messageId, userId } },
+          create: { messageId, userId },
           update: {},
         }),
       ),
@@ -157,7 +214,7 @@ export class ChatService {
       where: {
         senderId: { not: userId },
         chat: { OR: [{ buyerId: userId }, { sellerId: userId }] },
-        readBy: { none: { userId } },
+        readReceipts: { none: { userId } },
       },
     });
     return { count };
