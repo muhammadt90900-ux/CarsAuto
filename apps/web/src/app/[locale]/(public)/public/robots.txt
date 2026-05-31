@@ -1,0 +1,31 @@
+# AutoBazaar Pro — robots.txt
+# https://autobazaarpro.com
+
+User-agent: *
+Allow: /
+
+# Block private/dashboard areas
+Disallow: /ku/dashboard/
+Disallow: /ar/dashboard/
+Disallow: /en/dashboard/
+Disallow: /zh/dashboard/
+Disallow: /ku/admin/
+Disallow: /ar/admin/
+Disallow: /en/admin/
+Disallow: /zh/admin/
+Disallow: /ku/(auth)/
+Disallow: /ar/(auth)/
+Disallow: /en/(auth)/
+Disallow: /zh/(auth)/
+Disallow: /api/
+
+# Block search/filter duplicates that don't add SEO value
+Disallow: /*?page=*&*
+Disallow: /*?sort=*
+
+# Crawl-delay for well-behaved bots
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://autobazaarpro.com/sitemap.xml
+Sitemap: https://autobazaarpro.com/sitemap-listings.xml
