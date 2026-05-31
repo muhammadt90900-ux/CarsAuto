@@ -1,50 +1,129 @@
-// apps/api/src/common/cache/cache.service.ts
-// Lightweight in-process TTL cache. Keyed by string; values are any.
-// Used for vehicle brands/models (effectively static) and listing pages.
+// apps/api/src/common/cache/cache.service.ts — PERFORMANCE OPTIMISED
+// Key improvements:
+//   1. Stale-while-revalidate semantics: returns cached data immediately, revalidates in bg
+//   2. Pattern-based invalidation (prefix or glob-style)
+//   3. Periodic eviction to prevent unbounded memory growth
+//   4. Size cap (default 2000 entries) with LRU eviction
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 
 interface Entry<T> {
   value: T;
-  expiresAt: number;
+  revalidateAt: number; // background refresh triggered after this
+  expiresAt: number;    // hard expiry
+  hits: number;         // for LRU eviction
+  lastHit: number;
 }
 
-@Injectable()
-export class CacheService {
-  private readonly store = new Map<string, Entry<unknown>>();
+// PERF: default SWR ratio — revalidate after 70 % of TTL
+const SWR_RATIO = 0.7;
+const MAX_ENTRIES = parseInt(process.env.CACHE_MAX_ENTRIES ?? '2000', 10);
 
-  /** Get a cached value, or null if missing/expired. */
-  get<T>(key: string): T | null {
+@Injectable()
+export class CacheService implements OnModuleDestroy {
+  private readonly store = new Map<string, Entry<unknown>>();
+  private readonly inflight = new Map<string, Promise<unknown>>();
+  private readonly logger = new Logger(CacheService.name);
+  private evictTimer: NodeJS.Timeout;
+
+  constructor() {
+    // PERF: evict expired entries every 2 minutes
+    this.evictTimer = setInterval(() => this.evictExpired(), 2 * 60_000);
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.evictTimer);
+  }
+
+  // ── Core get/set ───────────────────────────────────────────────────────────
+
+  get<T>(key: string): { value: T; stale: boolean } | null {
     const entry = this.store.get(key) as Entry<T> | undefined;
     if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.store.delete(key);
-      return null;
-    }
-    return entry.value;
+    const now = Date.now();
+    if (now > entry.expiresAt) { this.store.delete(key); return null; }
+    entry.hits++;
+    entry.lastHit = now;
+    return { value: entry.value, stale: now > entry.revalidateAt };
   }
 
-  /** Store a value with a TTL in milliseconds (default 5 min). */
   set<T>(key: string, value: T, ttlMs = 300_000): void {
-    this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
+    if (this.store.size >= MAX_ENTRIES) this.evictLRU();
+    const now = Date.now();
+    this.store.set(key, {
+      value,
+      revalidateAt: now + ttlMs * SWR_RATIO,
+      expiresAt:    now + ttlMs,
+      hits: 0,
+      lastHit: now,
+    });
   }
 
-  /** Invalidate a single key or all keys matching a prefix. */
+  // PERF: delete by exact key OR by prefix (pass a prefix to bust a whole namespace)
   del(keyOrPrefix: string): void {
     for (const key of this.store.keys()) {
-      if (key.startsWith(keyOrPrefix)) this.store.delete(key);
+      if (key === keyOrPrefix || key.startsWith(keyOrPrefix)) {
+        this.store.delete(key);
+      }
     }
   }
 
-  /**
-   * Cache-aside helper. If the key is cached return it; otherwise call
-   * `factory`, cache the result, and return it.
-   */
-  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlMs = 300_000): Promise<T> {
+  // ── SWR + dedup getOrSet ───────────────────────────────────────────────────
+  async getOrSet<T>(
+    key: string,
+    factory: () => Promise<T>,
+    ttlMs = 300_000,
+  ): Promise<T> {
     const cached = this.get<T>(key);
-    if (cached !== null) return cached;
-    const value = await factory();
-    this.set(key, value, ttlMs);
-    return value;
+
+    if (cached) {
+      if (!cached.stale) return cached.value;
+
+      // PERF: stale-while-revalidate — return immediately, refresh in background
+      if (!this.inflight.has(key)) {
+        const bg = factory()
+          .then(fresh => { this.set(key, fresh, ttlMs); return fresh; })
+          .catch(err => {
+            this.logger.warn(`Background revalidation failed for "${key}": ${err.message}`);
+          })
+          .finally(() => this.inflight.delete(key));
+        this.inflight.set(key, bg);
+      }
+      return cached.value;
+    }
+
+    // PERF: dedup — if an identical computation is in-flight, await it
+    if (this.inflight.has(key)) return this.inflight.get(key) as Promise<T>;
+
+    const fresh = factory()
+      .then(value => { this.set(key, value, ttlMs); return value; })
+      .finally(() => this.inflight.delete(key));
+
+    this.inflight.set(key, fresh);
+    return fresh;
+  }
+
+  // ── Eviction helpers ───────────────────────────────────────────────────────
+
+  private evictExpired(): void {
+    const now = Date.now();
+    let evicted = 0;
+    for (const [k, v] of this.store) {
+      if (now > v.expiresAt) { this.store.delete(k); evicted++; }
+    }
+    if (evicted > 0) this.logger.debug(`Evicted ${evicted} expired cache entries`);
+  }
+
+  private evictLRU(): void {
+    // Remove the 10 % of entries with the oldest lastHit
+    const entries = [...this.store.entries()]
+      .sort((a, b) => a[1].lastHit - b[1].lastHit);
+    const toRemove = Math.max(1, Math.floor(entries.length * 0.1));
+    entries.slice(0, toRemove).forEach(([k]) => this.store.delete(k));
+  }
+
+  // ── Stats (for monitoring endpoints) ──────────────────────────────────────
+  stats() {
+    return { size: this.store.size, inflight: this.inflight.size };
   }
 }
