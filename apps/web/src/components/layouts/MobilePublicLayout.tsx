@@ -13,7 +13,9 @@ export function MobilePublicLayout({ children }: { children: React.ReactNode }) 
       <Navbar />
 
       {/* Content with bottom nav spacing on mobile */}
-      <main className="flex-1 pt-[66px] pb-20 md:pb-0">
+      <main className="flex-1 pt-[66px]"
+            style={{ paddingBottom: 'max(80px, calc(env(safe-area-inset-bottom, 0px) + 64px))' }}
+            id="main-content">
         <PageTransition>
           {children}
         </PageTransition>
