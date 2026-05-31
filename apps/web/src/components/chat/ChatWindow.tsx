@@ -1,5 +1,17 @@
 'use client';
 
+/**
+ * ChatWindow — production-grade realtime chat component
+ *
+ * Features implemented:
+ *  ✓ Typing indicators (debounced, server-side timeout safety net)
+ *  ✓ Read receipts (✓ sent / ✓✓ delivered / ✓✓ read, shown in blue)
+ *  ✓ Reconnection logic (exponential back-off, catch-up on reconnect)
+ *  ✓ Message delivery guarantees (optimistic UI + tempId ACK, retry on failure)
+ *  ✓ Presence tracking (online dot + offline timestamp)
+ *  ✓ Infinite scroll / pagination
+ */
+
 import React, {
   useCallback,
   useEffect,
@@ -9,15 +21,15 @@ import React, {
 } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ChatUser {
   id: string;
   name: string;
   avatar?: string;
 }
+
+export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface ChatMessage {
   id: string;
@@ -27,7 +39,10 @@ export interface ChatMessage {
   type: 'text' | 'image' | 'offer';
   createdAt: string;
   sender: ChatUser;
-  readBy?: { userId: string }[];
+  readReceipts?: { userId: string; readAt?: string }[];
+  // client-only
+  status?: MessageStatus;
+  tempId?: string;
 }
 
 export interface Chat {
@@ -48,9 +63,17 @@ interface Props {
   onClose?: () => void;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const TYPING_DEBOUNCE_MS = 1_500;
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_TIMEOUT_MS = 8_000;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function nanoid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -63,17 +86,15 @@ function Avatar({ user, size = 32 }: { user: ChatUser; size?: number }) {
       alt={user.name}
       width={size}
       height={size}
-      className="chat-avatar"
       style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
     />
   ) : (
     <div
-      className="chat-avatar chat-avatar--initials"
       style={{
         width: size,
         height: size,
         borderRadius: '50%',
-        background: 'var(--color-accent)',
+        background: 'var(--color-accent, #2563eb)',
         color: '#fff',
         display: 'flex',
         alignItems: 'center',
@@ -88,9 +109,49 @@ function Avatar({ user, size = 32 }: { user: ChatUser; size?: number }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
+/** Read receipt tick icon */
+function ReadTick({ status }: { status: MessageStatus }) {
+  if (status === 'pending') return <span style={tickStyle}>🕐</span>;
+  if (status === 'failed') return <span style={{ ...tickStyle, color: '#ef4444' }}>✕</span>;
+  if (status === 'sent') return <span style={tickStyle}>✓</span>;
+  if (status === 'delivered') return <span style={tickStyle}>✓✓</span>;
+  if (status === 'read')
+    return <span style={{ ...tickStyle, color: '#3b82f6' }}>✓✓</span>;
+  return null;
+}
+
+const tickStyle: React.CSSProperties = {
+  marginLeft: 4,
+  fontSize: 11,
+  color: '#94a3b8',
+};
+
+/** Animated typing bubble */
+function TypingBubble({ user }: { user: ChatUser }) {
+  return (
+    <div style={{ ...styles.messageRow, justifyContent: 'flex-start', marginBottom: 4 }}>
+      <div style={{ width: 32, marginRight: 8 }}>
+        <Avatar user={user} size={32} />
+      </div>
+      <div
+        style={{
+          ...styles.bubble,
+          background: 'var(--color-surface-2, #f1f5f9)',
+          padding: '10px 14px',
+          display: 'inline-flex',
+          gap: 4,
+          alignItems: 'center',
+        }}
+      >
+        <span className="typing-dot" />
+        <span className="typing-dot" style={{ animationDelay: '0.2s' }} />
+        <span className="typing-dot" style={{ animationDelay: '0.4s' }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ChatWindow({
   chat,
@@ -103,93 +164,210 @@ export default function ChatWindow({
   const [messages, setMessages] = useState<ChatMessage[]>(chat.messages ?? []);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [online, setOnline] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 
   const socketRef = useRef<Socket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastConnectedAtRef = useRef<string | null>(null);
 
-  const otherUser =
-    currentUser.id === chat.buyer.id ? chat.seller : chat.buyer;
+  const otherUser = currentUser.id === chat.buyer.id ? chat.seller : chat.buyer;
 
-  // ---------------------------------------------------------------------------
-  // Socket connection
-  // ---------------------------------------------------------------------------
+  // ─── Helpers: message state mutations ──────────────────────────────────────
+
+  const upsertMessage = useCallback((incoming: ChatMessage) => {
+    setMessages((prev) => {
+      // Replace pending optimistic message by tempId, or add if new
+      const idx = prev.findIndex(
+        (m) => (incoming.tempId && m.tempId === incoming.tempId) || m.id === incoming.id,
+      );
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...prev[idx], ...incoming };
+        return updated;
+      }
+      return [...prev, incoming];
+    });
+  }, []);
+
+  const updateMessageStatus = useCallback((idOrTempId: string, status: MessageStatus) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === idOrTempId || m.tempId === idOrTempId ? { ...m, status } : m,
+      ),
+    );
+  }, []);
+
+  // ─── Socket setup ───────────────────────────────────────────────────────────
+
   useEffect(() => {
-    const socket = io(`${wsUrl}/chat`, { auth: { token }, transports: ['websocket'] });
+    const socket = io(`${wsUrl}/chat`, {
+      auth: { token },
+      // Allow polling fallback for restrictive networks
+      transports: ['websocket', 'polling'],
+      // Built-in reconnection with exponential back-off
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1_000,
+      reconnectionDelayMax: 30_000,
+      randomizationFactor: 0.5,
+    });
     socketRef.current = socket;
 
-    socket.emit('joinChat', chat.id);
+    // ── Connection lifecycle ────────────────────────────────────────────────
 
-    socket.on('newMessage', (msg: ChatMessage) => {
-      if (msg.chatId !== chat.id) return;
-      setMessages((prev) =>
-        prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
-      );
-      // Auto mark read since window is open
+    socket.on('connect', () => {
+      setConnectionState('connected');
+      socket.emit('joinChat', chat.id);
+
+      // Catch up on missed messages since last disconnect
+      if (lastConnectedAtRef.current) {
+        socket.emit('catchUp', { chatId: chat.id, since: lastConnectedAtRef.current });
+      }
+
+      // Query presence of the other user
+      socket.emit('getOnlineStatus', [otherUser.id]);
+
+      // Mark chat as read
       socket.emit('markRead', { chatId: chat.id });
     });
 
-    socket.on('userTyping', (data: { userId: string }) => {
-      if (data.userId === currentUser.id) return;
-      setTypingUsers((prev) => (prev.includes(data.userId) ? prev : [...prev, data.userId]));
+    socket.on('connected', ({ serverTime }: { userId: string; serverTime: number }) => {
+      lastConnectedAtRef.current = new Date(serverTime).toISOString();
     });
 
-    socket.on('userStoppedTyping', (data: { userId: string }) => {
-      setTypingUsers((prev) => prev.filter((id) => id !== data.userId));
+    socket.on('disconnect', () => {
+      setConnectionState('disconnected');
+      lastConnectedAtRef.current = new Date().toISOString();
     });
 
-    socket.on('messagesRead', () => {
-      setMessages((prev) =>
-        prev.map((m) => ({
-          ...m,
-          readBy: m.senderId === currentUser.id
-            ? [{ userId: otherUser.id }]
-            : m.readBy ?? [],
-        })),
-      );
+    socket.on('connect_error', () => {
+      setConnectionState('reconnecting');
     });
 
-    socket.on('userOnline', (data: { userId: string }) => {
-      if (data.userId === otherUser.id) setOnline(true);
+    socket.io.on('reconnect_attempt', () => {
+      setConnectionState('reconnecting');
     });
 
-    socket.on('userOffline', (data: { userId: string }) => {
-      if (data.userId === otherUser.id) setOnline(false);
+    socket.io.on('reconnect', () => {
+      setConnectionState('connected');
     });
 
-    // Query initial online status
-    socket.emit('getOnlineStatus', [otherUser.id], (result: Record<string, boolean>) => {
+    // ── Messages ───────────────────────────────────────────────────────────
+
+    socket.on('newMessage', (msg: ChatMessage) => {
+      if (msg.chatId !== chat.id) return;
+      upsertMessage({ ...msg, status: 'delivered' });
+      // Auto-read since window is open
+      socket.emit('markRead', { chatId: chat.id });
+    });
+
+    // ACK back to sender: server persisted the message
+    socket.on('messageSent', (msg: ChatMessage & { tempId?: string }) => {
+      upsertMessage({ ...msg, status: 'sent' });
+    });
+
+    // Recipient was online and event was pushed
+    socket.on(
+      'messageDelivered',
+      ({ messageId }: { messageId: string; chatId: string; deliveredAt: string }) => {
+        updateMessageStatus(messageId, 'delivered');
+      },
+    );
+
+    socket.on('messageError', ({ tempId, error }: { tempId?: string; error: string }) => {
+      if (tempId) updateMessageStatus(tempId, 'failed');
+      console.error('[chat] message error:', error);
+    });
+
+    // Catch-up after reconnect
+    socket.on('missedMessages', ({ messages: missed }: { chatId: string; messages: ChatMessage[] }) => {
+      missed.forEach((m) => upsertMessage({ ...m, status: 'delivered' }));
+    });
+
+    // ── Read receipts ──────────────────────────────────────────────────────
+
+    socket.on(
+      'messagesRead',
+      ({ readBy }: { chatId: string; readBy: string; readAt: string; messageIds: string[] | null }) => {
+        if (readBy === currentUser.id) return;
+        // Mark all our sent messages as read
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.senderId === currentUser.id && (m.status === 'sent' || m.status === 'delivered')
+              ? { ...m, status: 'read' }
+              : m,
+          ),
+        );
+      },
+    );
+
+    // ── Typing ─────────────────────────────────────────────────────────────
+
+    socket.on('userTyping', ({ userId }: { userId: string }) => {
+      if (userId === currentUser.id) return;
+      setTypingUsers((prev) => new Set([...prev, userId]));
+    });
+
+    socket.on('userStoppedTyping', ({ userId }: { userId: string }) => {
+      setTypingUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    });
+
+    // ── Presence ───────────────────────────────────────────────────────────
+
+    socket.on('userOnline', ({ userId }: { userId: string }) => {
+      if (userId === otherUser.id) {
+        setOnline(true);
+        setLastSeen(null);
+      }
+    });
+
+    socket.on('userOffline', ({ userId, lastSeen: ls }: { userId: string; lastSeen: string }) => {
+      if (userId === otherUser.id) {
+        setOnline(false);
+        setLastSeen(ls);
+      }
+    });
+
+    socket.on('presenceSync', ({ onlineUsers: ou }: { chatId: string; onlineUsers: string[] }) => {
+      if (ou.includes(otherUser.id)) setOnline(true);
+    });
+
+    // Legacy getOnlineStatus response (callback style not always supported; listen for presenceSync instead)
+    socket.on('onlineStatus', (result: Record<string, boolean>) => {
       setOnline(result[otherUser.id] ?? false);
     });
 
-    // Mark chat read on open
-    socket.emit('markRead', { chatId: chat.id });
-
     return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       socket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat.id, token, wsUrl]);
 
-  // ---------------------------------------------------------------------------
-  // Scroll to bottom on new messages
-  // ---------------------------------------------------------------------------
+  // ─── Scroll to bottom ──────────────────────────────────────────────────────
+
   useLayoutEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages.length, typingUsers.size]);
 
-  // ---------------------------------------------------------------------------
-  // Load older messages
-  // ---------------------------------------------------------------------------
+  // ─── Load older messages ───────────────────────────────────────────────────
+
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
+    const prevScrollHeight = containerRef.current?.scrollHeight ?? 0;
 
     try {
       const params = new URLSearchParams({ limit: '30' });
@@ -202,36 +380,97 @@ export default function ChatWindow({
       setMessages((prev) => [...json.messages, ...prev]);
       setHasMore(json.hasMore);
       setNextCursor(json.nextCursor);
+
+      // Restore scroll position so older messages appear above
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop =
+            containerRef.current.scrollHeight - prevScrollHeight;
+        }
+      });
     } finally {
       setLoadingMore(false);
     }
   }, [apiBase, chat.id, hasMore, loadingMore, nextCursor, token]);
 
-  // Scroll-to-top triggers load more
   const handleScroll = useCallback(() => {
     if (containerRef.current && containerRef.current.scrollTop < 80) {
       loadMore();
     }
   }, [loadMore]);
 
-  // ---------------------------------------------------------------------------
-  // Send message
-  // ---------------------------------------------------------------------------
-  const sendMessage = useCallback(() => {
-    const content = input.trim();
-    if (!content || !socketRef.current) return;
-    setInput('');
-    socketRef.current.emit('sendMessage', { chatId: chat.id, content });
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    if (isTyping) {
-      socketRef.current.emit('stopTyping', { chatId: chat.id });
-      setIsTyping(false);
-    }
-  }, [chat.id, input, isTyping]);
+  // ─── Send message with optimistic UI + retry ───────────────────────────────
 
-  // ---------------------------------------------------------------------------
-  // Typing indicator
-  // ---------------------------------------------------------------------------
+  const sendMessage = useCallback(
+    (retryTempId?: string, retryContent?: string) => {
+      const content = retryContent ?? input.trim();
+      if (!content || !socketRef.current) return;
+
+      const tempId = retryTempId ?? nanoid();
+
+      // Optimistic render
+      if (!retryTempId) {
+        const optimistic: ChatMessage = {
+          id: tempId, // will be replaced by real id on ACK
+          chatId: chat.id,
+          senderId: currentUser.id,
+          content,
+          type: 'text',
+          createdAt: new Date().toISOString(),
+          sender: currentUser,
+          status: 'pending',
+          tempId,
+        };
+        setMessages((prev) => [...prev, optimistic]);
+        setInput('');
+      } else {
+        updateMessageStatus(tempId, 'pending');
+      }
+
+      // Stop typing
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (isTyping) {
+        socketRef.current.emit('stopTyping', { chatId: chat.id });
+        setIsTyping(false);
+      }
+
+      // Emit with tempId for server ACK
+      socketRef.current.emit('sendMessage', { chatId: chat.id, content, tempId });
+
+      // Delivery timeout — retry up to MAX_RETRY_ATTEMPTS
+      let attempt = 0;
+      const scheduleRetry = () => {
+        setTimeout(() => {
+          setMessages((prev) => {
+            const msg = prev.find((m) => m.tempId === tempId);
+            if (!msg || msg.status === 'sent' || msg.status === 'delivered' || msg.status === 'read') {
+              return prev; // already ACKed
+            }
+            attempt++;
+            if (attempt >= MAX_RETRY_ATTEMPTS) {
+              return prev.map((m) => (m.tempId === tempId ? { ...m, status: 'failed' } : m));
+            }
+            // Retry
+            socketRef.current?.emit('sendMessage', { chatId: chat.id, content, tempId });
+            scheduleRetry();
+            return prev;
+          });
+        }, RETRY_TIMEOUT_MS);
+      };
+      scheduleRetry();
+    },
+    [chat.id, currentUser, input, isTyping, updateMessageStatus],
+  );
+
+  const retrySend = useCallback(
+    (msg: ChatMessage) => {
+      if (msg.tempId && msg.content) sendMessage(msg.tempId, msg.content);
+    },
+    [sendMessage],
+  );
+
+  // ─── Typing indicator ──────────────────────────────────────────────────────
+
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setInput(e.target.value);
@@ -246,7 +485,7 @@ export default function ChatWindow({
       typingTimerRef.current = setTimeout(() => {
         setIsTyping(false);
         socketRef.current?.emit('stopTyping', { chatId: chat.id });
-      }, 2000);
+      }, TYPING_DEBOUNCE_MS);
     },
     [chat.id, isTyping],
   );
@@ -261,9 +500,21 @@ export default function ChatWindow({
     [sendMessage],
   );
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  const connectionBanner =
+    connectionState === 'reconnecting'
+      ? 'Reconnecting…'
+      : connectionState === 'disconnected'
+      ? 'Offline — messages will send when reconnected'
+      : null;
+
+  const presenceLabel = online
+    ? 'Online'
+    : lastSeen
+    ? `Last seen ${formatTime(lastSeen)}`
+    : 'Offline';
+
   return (
     <div className="chat-window" style={styles.window}>
       {/* Header */}
@@ -276,7 +527,7 @@ export default function ChatWindow({
           <div style={{ marginLeft: 12 }}>
             <div style={styles.headerName}>{otherUser.name}</div>
             <div style={styles.headerSub}>
-              {online ? 'Online' : 'Offline'} · {chat.listing.title}
+              {presenceLabel} · {chat.listing.title}
             </div>
           </div>
         </div>
@@ -286,6 +537,13 @@ export default function ChatWindow({
           </button>
         )}
       </div>
+
+      {/* Connection banner */}
+      {connectionBanner && (
+        <div style={styles.connectionBanner}>
+          <span style={styles.bannerDot} /> {connectionBanner}
+        </div>
+      )}
 
       {/* Listing context strip */}
       <div style={styles.listingStrip}>
@@ -318,14 +576,17 @@ export default function ChatWindow({
           const isMine = msg.senderId === currentUser.id;
           const showAvatar =
             !isMine && (idx === 0 || messages[idx - 1].senderId !== msg.senderId);
-          const isRead =
-            isMine && msg.readBy?.some((r) => r.userId !== currentUser.id);
+          const status: MessageStatus = msg.status ?? 'sent';
+          const isFailed = status === 'failed';
 
           return (
             <div
-              key={msg.id}
-              className={`chat-message ${isMine ? 'chat-message--mine' : ''}`}
-              style={{ ...styles.messageRow, justifyContent: isMine ? 'flex-end' : 'flex-start' }}
+              key={msg.tempId ?? msg.id}
+              style={{
+                ...styles.messageRow,
+                justifyContent: isMine ? 'flex-end' : 'flex-start',
+                opacity: status === 'pending' ? 0.7 : 1,
+              }}
             >
               {!isMine && (
                 <div style={{ width: 32, marginRight: 8 }}>
@@ -334,12 +595,16 @@ export default function ChatWindow({
               )}
               <div style={{ maxWidth: '70%' }}>
                 <div
-                  className="chat-bubble"
                   style={{
                     ...styles.bubble,
-                    background: isMine ? 'var(--color-accent, #2563eb)' : 'var(--color-surface-2, #f1f5f9)',
-                    color: isMine ? '#fff' : 'inherit',
+                    background: isMine
+                      ? isFailed
+                        ? '#fee2e2'
+                        : 'var(--color-accent, #2563eb)'
+                      : 'var(--color-surface-2, #f1f5f9)',
+                    color: isMine && !isFailed ? '#fff' : 'inherit',
                     borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                    border: isFailed ? '1px solid #fca5a5' : 'none',
                   }}
                 >
                   {msg.content}
@@ -348,31 +613,31 @@ export default function ChatWindow({
                   style={{
                     ...styles.messageTime,
                     textAlign: isMine ? 'right' : 'left',
+                    display: 'flex',
+                    justifyContent: isMine ? 'flex-end' : 'flex-start',
+                    alignItems: 'center',
+                    gap: 2,
                   }}
                 >
                   {formatTime(msg.createdAt)}
-                  {isMine && <span style={{ marginLeft: 4 }}>{isRead ? '✓✓' : '✓'}</span>}
+                  {isMine && <ReadTick status={status} />}
+                  {isFailed && (
+                    <button
+                      onClick={() => retrySend(msg)}
+                      style={styles.retryBtn}
+                      title="Retry sending"
+                    >
+                      ↩ Retry
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
 
-        {/* Typing indicator */}
-        {typingUsers.length > 0 && (
-          <div style={{ ...styles.messageRow, justifyContent: 'flex-start' }}>
-            <div style={{ width: 32, marginRight: 8 }}>
-              <Avatar user={otherUser} size={32} />
-            </div>
-            <div style={{ ...styles.bubble, background: 'var(--color-surface-2, #f1f5f9)', padding: '8px 14px' }}>
-              <span style={styles.typingDots}>
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Typing indicators */}
+        {typingUsers.size > 0 && <TypingBubble user={otherUser} />}
 
         <div ref={bottomRef} />
       </div>
@@ -387,9 +652,10 @@ export default function ChatWindow({
           placeholder="Type a message…"
           style={styles.input}
           aria-label="Message input"
+          disabled={connectionState === 'disconnected'}
         />
         <button
-          onClick={sendMessage}
+          onClick={() => sendMessage()}
           disabled={!input.trim()}
           style={{
             ...styles.sendBtn,
@@ -402,15 +668,13 @@ export default function ChatWindow({
         </button>
       </div>
 
-      {/* Typing indicator CSS */}
-      <style>{typingCSS}</style>
+      {/* Styles */}
+      <style>{css}</style>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
   window: {
@@ -452,6 +716,23 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#22c55e',
     border: '2px solid var(--color-surface, #fff)',
   },
+  connectionBanner: {
+    background: '#fef3c7',
+    color: '#92400e',
+    fontSize: 12,
+    padding: '5px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    borderBottom: '1px solid #fde68a',
+  },
+  bannerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    background: '#f59e0b',
+    flexShrink: 0,
+  } as React.CSSProperties,
   listingStrip: {
     display: 'flex',
     alignItems: 'center',
@@ -467,7 +748,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    color: 'var(--color-text, #1e293b)',
     fontWeight: 500,
   },
   listingPrice: { fontWeight: 700, color: 'var(--color-accent, #2563eb)' },
@@ -536,23 +816,31 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  typingDots: { display: 'inline-flex', gap: 4, alignItems: 'center' },
+  retryBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#ef4444',
+    fontSize: 11,
+    cursor: 'pointer',
+    padding: '0 2px',
+    marginLeft: 4,
+  },
 };
 
-const typingCSS = `
-  .chat-bubble { transition: background 0.15s; }
-  span[style*="display: inline-flex"] span {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--color-muted, #94a3b8);
-    animation: bounce 1.2s infinite;
-  }
-  span[style*="display: inline-flex"] span:nth-child(2) { animation-delay: 0.2s; }
-  span[style*="display: inline-flex"] span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-6px); }
-  }
+const css = `
   .chat-messages::-webkit-scrollbar { width: 4px; }
   .chat-messages::-webkit-scrollbar-track { background: transparent; }
   .chat-messages::-webkit-scrollbar-thumb { background: var(--color-border, #e2e8f0); border-radius: 4px; }
+
+  .typing-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--color-muted, #94a3b8);
+    animation: typingBounce 1.2s infinite;
+  }
+  @keyframes typingBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
 `;
