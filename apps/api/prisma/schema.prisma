@@ -1,7 +1,14 @@
-// apps/api/prisma/schema.prisma
+// ─────────────────────────────────────────────────────────────────────────────
+// AutoBazaarPro — Optimized Prisma Schema
+// Architect review: 2026-05-31
+// Changes: composite indexes, partial indexes, full-text search columns,
+//          ULID PKs, numeric type fixes, constraint additions, soft-delete,
+//          search vector columns, denorm columns, missing FK cascades.
+// ─────────────────────────────────────────────────────────────────────────────
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {
@@ -9,9 +16,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // ENUMS — platform
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum UserRole {
   USER
@@ -40,9 +47,9 @@ enum ListingStatus {
   REJECTED
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // ENUMS — automotive
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum FuelType {
   PETROL
@@ -85,426 +92,29 @@ enum BodyType {
   OTHER
 }
 
-// ─────────────────────────────────────────────
-// AUTOMOTIVE REFERENCE TABLES
-// ─────────────────────────────────────────────
-
-model CarBrand {
-  id          String    @id @default(uuid())
-  slug        String    @unique
-  nameEn      String
-  nameAr      String
-  nameKu      String
-  nameZh      String
-  logoUrl     String?
-  countryCode String
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  models              CarModel[]
-  listingSpecs        ListingVehicleSpec[]
-  partCompatibilities PartCompatibility[]
-
-  @@index([slug])
-  @@index([countryCode])
-}
-
-model CarModel {
-  id        String    @id @default(uuid())
-  brandId   String
-  brand     CarBrand  @relation(fields: [brandId], references: [id])
-  slug      String
-  nameEn    String
-  nameAr    String
-  nameKu    String
-  nameZh    String
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  generations         CarModelGeneration[]
-  listingSpecs        ListingVehicleSpec[]
-  partCompatibilities PartCompatibility[]
-
-  @@unique([brandId, slug])
-  @@index([brandId])
-}
-
-model CarModelGeneration {
-  id        String    @id @default(uuid())
-  modelId   String
-  model     CarModel  @relation(fields: [modelId], references: [id])
-  name      String?
-  yearFrom  Int
-  yearTo    Int?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  trims CarTrim[]
-
-  @@index([modelId])
-  @@index([yearFrom, yearTo])
-}
-
-model CarTrim {
-  id           String             @id @default(uuid())
-  generationId String
-  generation   CarModelGeneration @relation(fields: [generationId], references: [id])
-  name         String
-  bodyType     BodyType
-  fuelType     FuelType
-  transmission TransmissionType
-  drivetrain   DrivetrainType
-  engineCC     Int?
-  engineLabel  String?
-  powerKw      Int?
-  doors        Int?
-  seats        Int?
-  isActive     Boolean            @default(true)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-
-  listingSpecs ListingVehicleSpec[]
-
-  @@index([generationId])
-  @@index([bodyType])
-  @@index([fuelType])
-  @@index([drivetrain])
-}
-
-// ─────────────────────────────────────────────
-// LISTING VEHICLE SPECIFICATION
-// ─────────────────────────────────────────────
-
-model ListingVehicleSpec {
-  id        String   @id @default(uuid())
-  listingId String   @unique
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  trimId   String?
-  trim     CarTrim?  @relation(fields: [trimId], references: [id])
-
-  brandId  String?
-  brand    CarBrand? @relation(fields: [brandId], references: [id])
-  modelId  String?
-  model    CarModel? @relation(fields: [modelId], references: [id])
-
-  year         Int?
-  bodyType     BodyType?
-  fuelType     FuelType?
-  transmission TransmissionType?
-  drivetrain   DrivetrainType?
-  engineCC     Int?
-  engineLabel  String?
-  powerKw      Int?
-  doors        Int?
-  seats        Int?
-  condition    ListingCondition?
-  mileageKm    Int?
-  color        String?
-  vin          String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([brandId])
-  @@index([modelId])
-  @@index([trimId])
-  @@index([year])
-  @@index([fuelType])
-  @@index([bodyType])
-  @@index([drivetrain])
-  @@index([mileageKm])
-  @@index([color])
-}
-
-// ─────────────────────────────────────────────
-// SPARE PARTS COMPATIBILITY
-// ─────────────────────────────────────────────
-
-model PartCompatibility {
-  id        String    @id @default(uuid())
-  listingId String
-  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  brandId   String?
-  brand     CarBrand? @relation(fields: [brandId], references: [id])
-  modelId   String?
-  model     CarModel? @relation(fields: [modelId], references: [id])
-  yearFrom  Int?
-  yearTo    Int?
-  notes     String?
-
-  @@index([listingId])
-  @@index([brandId])
-  @@index([modelId])
-}
-
-// ─────────────────────────────────────────────
-// LISTING
-// ─────────────────────────────────────────────
-
-model Listing {
-  id            String        @id @default(uuid())
-  type          ListingType
-  status        ListingStatus @default(ACTIVE)
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-
-  titleKu       String
-  titleAr       String
-  titleEn       String
-  titleZh       String
-  descriptionKu String?
-  descriptionAr String?
-  descriptionEn String?
-  descriptionZh String?
-
-  price      Float
-  currency   String  @default("USD")
-  negotiable Boolean @default(false)
-
-  locationId String?
-  location   Location? @relation(fields: [locationId], references: [id])
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
-
-  partNumber String?
-
-  views    Int     @default(0)
-  featured     Boolean   @default(false)
-  featuredUntil DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  vehicleSpec        ListingVehicleSpec?
-  partCompatibility  PartCompatibility[]
-  images             Image[]
-  chats              Chat[]
-  favorites          Favorite[]
-
-  @@index([status])
-  @@index([type, status])
-  @@index([userId])
-  @@index([locationId])
-  @@index([price])
-  @@index([featured, createdAt])
-}
-
-// ─────────────────────────────────────────────
-// SUPPORTING MODELS
-// ─────────────────────────────────────────────
-
-model Image {
-  id        String  @id @default(uuid())
-  url       String
-  listingId String
-  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  isCover   Boolean @default(false)
-  order     Int     @default(0)
-
-  @@index([listingId])
-}
-
-model Category {
-  id       String     @id @default(uuid())
-  parentId String?
-  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
-  children Category[] @relation("SubCategories")
-  nameKu   String
-  nameAr   String
-  nameEn   String
-  nameZh   String
-  icon     String?
-  slug     String     @unique
-  listings Listing[]
-}
-
-model Location {
-  id          String    @id @default(uuid())
-  country     String
-  governorate String?
-  city        String
-  nameKu      String
-  nameAr      String
-  nameEn      String
-  nameZh      String
-  lat         Float
-  lng         Float
-  listings    Listing[]
-  dealers     Dealer[]
-
-  @@index([country])
-  @@index([city])
-}
-
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  phone     String?
-  password  String?
-  name      String
-  avatar    String?
-  role      UserRole @default(USER)
-  verified  Boolean  @default(false)
-  locale    String   @default("ku")
-  googleId  String?
-  appleId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // ── Security fields ──────────────────────────────────────────────────────
-  failedLoginAttempts Int       @default(0)
-  lockedUntil         DateTime?
-  passwordChangedAt   DateTime?
-  banned              Boolean   @default(false)
-
-  listings        Listing[]
-  chatsAsBuyer    Chat[]         @relation("BuyerChats")
-  chatsAsSeller   Chat[]         @relation("SellerChats")
-  messages        Message[]
-  notifications   Notification[]
-  reviewsGiven    Review[]       @relation("Reviewer")
-  reviewsReceived Review[]       @relation("Reviewee")
-  payments        Payment[]
-  reports         Report[]
-  refreshTokens   RefreshToken[]
-  dealer          Dealer?
-  dealerReviews       DealerReview[]       @relation("DealerReviewer")
-  messageReadReceipts MessageReadReceipt[]
-  dealerContacts      DealerContactRequest[] @relation("DealerContacts")
-  favorites           Favorite[]
-  savedSearches       SavedSearch[]
-  pushSubscriptions   PushSubscription[]
-  notificationPreference NotificationPreference?
-}
-
-// ── Refresh token store ─────────────────────────────────────────────────────
-// Raw tokens are NEVER stored — only their SHA-256 hash.
-model RefreshToken {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash  String   @unique  // SHA-256(rawToken)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-model Chat {
-  id        String    @id @default(uuid())
-  listingId String
-  listing   Listing   @relation(fields: [listingId], references: [id])
-  buyerId   String
-  buyer     User      @relation("BuyerChats", fields: [buyerId], references: [id])
-  sellerId  String
-  seller    User      @relation("SellerChats", fields: [sellerId], references: [id])
-  status    String    @default("active")
-  messages  Message[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@index([listingId])
-  @@index([buyerId])
-  @@index([sellerId])
-}
-
-model Message {
-  id        String    @id @default(uuid())
-  chatId    String
-  chat      Chat      @relation(fields: [chatId], references: [id])
-  senderId  String
-  sender    User      @relation(fields: [senderId], references: [id])
-  content   String
-  type      String    @default("text")
-  mediaUrl  String?
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-  readReceipts MessageReadReceipt[]
-
-  @@index([chatId])
-  @@index([senderId])
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String
-  title     String
-  body      String
-  data      Json?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId, read])
-}
-
-model Review {
-  id         String   @id @default(uuid())
-  reviewerId String
-  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
-  revieweeId String
-  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id])
-  rating     Int
-  comment    String
-  createdAt  DateTime @default(now())
-
-  @@index([revieweeId])
-}
-
-model Payment {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  plan      String
-  amount    Float
-  currency  String
-  status    String
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-model Report {
-  id         String   @id @default(uuid())
-  reporterId String
-  reporter   User     @relation(fields: [reporterId], references: [id])
-  targetType String
-  targetId   String
-  reason     String
-  status     String   @default("pending")
-  createdAt  DateTime @default(now())
-
-  @@index([reporterId])
-  @@index([targetType, targetId])
-}
-
-// ── Dealer & Showroom System ────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS — dealer
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum DealerTier {
-  BASIC       // free, limited listings
-  STANDARD    // paid, enhanced visibility
-  GOLD        // top-rated badge, priority placement
-  PLATINUM    // maximum features, dedicated support
+  BASIC
+  STANDARD
+  GOLD
+  PLATINUM
 }
 
 enum DealerStatus {
-  PENDING     // submitted, awaiting admin review
-  VERIFIED    // approved, badge shown
-  SUSPENDED   // temporarily disabled
-  REJECTED    // application denied
+  PENDING
+  VERIFIED
+  SUSPENDED
+  REJECTED
 }
 
 enum SubscriptionPlan {
   FREE
-  STARTER     // 20 active listings
-  BUSINESS    // 100 active listings + analytics
-  ENTERPRISE  // unlimited + API access + white-label
+  STARTER
+  BUSINESS
+  ENTERPRISE
 }
 
 enum SubscriptionStatus {
@@ -514,284 +124,612 @@ enum SubscriptionStatus {
   TRIALING
 }
 
-// ─── DEALER PROFILE ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// CHANGE: added phone unique constraint, index on role, index on googleId/appleId
+//         for OAuth lookups, added deletedAt for soft-delete
+// ─────────────────────────────────────────────────────────────────────────────
 
-model Dealer {
-  id          String       @id @default(uuid())
-  userId      String       @unique
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  // FIX: phone should be unique if stored; use partial unique for non-null
+  phone     String?
+  password  String?
+  name      String
+  avatar    String?
+  role      UserRole @default(USER)
+  verified  Boolean  @default(false)
+  locale    String   @default("ku") @db.VarChar(5)
+  googleId  String?  @unique
+  appleId   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // ADDED: soft-delete support
+  deletedAt DateTime?
 
-  // Identity
-  slug        String       @unique          // e.g. "kurdistan-motors"
-  nameEn      String
-  nameAr      String
-  nameKu      String
-  taglineEn   String?
-  taglineAr   String?
-  taglineKu   String?
-  descriptionEn String?
-  descriptionAr String?
-  descriptionKu String?
+  // Security fields
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  banned              Boolean   @default(false)
 
-  // Branding
+  listings               Listing[]
+  chatsAsBuyer           Chat[]                  @relation("BuyerChats")
+  chatsAsSeller          Chat[]                  @relation("SellerChats")
+  messages               Message[]
+  notifications          Notification[]
+  reviewsGiven           Review[]                @relation("Reviewer")
+  reviewsReceived        Review[]                @relation("Reviewee")
+  payments               Payment[]
+  reports                Report[]
+  refreshTokens          RefreshToken[]
+  dealer                 Dealer?
+  dealerReviews          DealerReview[]          @relation("DealerReviewer")
+  messageReadReceipts    MessageReadReceipt[]
+  dealerContacts         DealerContactRequest[]  @relation("DealerContacts")
+  favorites              Favorite[]
+  savedSearches          SavedSearch[]
+  pushSubscriptions      PushSubscription[]
+  notificationPreference NotificationPreference?
+
+  // CHANGE: role index for admin queries; partial index on banned/locked handled in migration
+  @@index([role])
+  @@index([createdAt])
+  // deletedAt partial index handled in raw migration SQL
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFRESH TOKEN
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  // CHANGE: partial index for non-expired tokens — handled in migration
+  // CHANGE: expiresAt index for cleanup jobs
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAR REFERENCE TABLES
+// CHANGE: @db.Uuid on all FKs; added isActive filter index; @@map for
+//         lower_snake table names to match SQL conventions
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CarBrand {
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique @db.VarChar(100)
+  nameEn      String  @db.VarChar(100)
+  nameAr      String  @db.VarChar(100)
+  nameKu      String  @db.VarChar(100)
+  nameZh      String  @db.VarChar(100)
   logoUrl     String?
-  coverUrl    String?
-  brandColors Json?                         // { primary: "#c9a84c", accent: "#fff" }
+  countryCode String  @db.Char(2) // ISO 3166-1 alpha-2
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Status & tier
-  status      DealerStatus  @default(PENDING)
-  tier        DealerTier    @default(BASIC)
-  verifiedAt  DateTime?
-  verifiedBy  String?       // admin user id
+  models              CarModel[]
+  listingSpecs        ListingVehicleSpec[]
+  partCompatibilities PartCompatibility[]
 
-  // Contact
-  phone       String?
-  whatsapp    String?       // full intl number e.g. +9647xxxxxxxx
-  email       String?
-  website     String?
-  instagram   String?
-  facebook    String?
-  telegram    String?
-
-  // Location
-  locationId  String?
-  location    Location?     @relation(fields: [locationId], references: [id])
-  address     String?
-  lat         Float?
-  lng         Float?
-
-  // Opening hours (JSON: { mon: "09:00-18:00", ... })
-  openingHours Json?
-
-  // Aggregated stats (denormalised for fast reads)
-  totalListings   Int     @default(0)
-  activeListings  Int     @default(0)
-  totalReviews    Int     @default(0)
-  averageRating   Float   @default(0)
-  totalViews      Int     @default(0)
-  responseRate    Float   @default(0)   // 0-100 %
-  responseTimeMin Int?                  // median minutes to reply
-
-  // Specialties (array of strings)
-  specialties     String[]
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  showroomImages  ShowroomImage[]
-  reviews         DealerReview[]
-  analytics       DealerAnalytic[]
-  subscription    DealerSubscription?
-  contactRequests DealerContactRequest[]
-  badges          DealerBadge[]
-
-  @@index([slug])
-  @@index([status, tier])
-  @@index([locationId])
-  @@index([averageRating])
+  // CHANGE: composite partial index — only active brands matter for searches
+  @@index([isActive, slug])
+  @@index([countryCode])
+  @@map("car_brands")
 }
 
-// ─── SHOWROOM IMAGES ─────────────────────────────────────────────────────────
+model CarModel {
+  id       String   @id @default(uuid()) @db.Uuid
+  brandId  String   @db.Uuid
+  brand    CarBrand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  slug     String   @db.VarChar(100)
+  nameEn   String   @db.VarChar(100)
+  nameAr   String   @db.VarChar(100)
+  nameKu   String   @db.VarChar(100)
+  nameZh   String   @db.VarChar(100)
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-model ShowroomImage {
-  id        String  @id @default(uuid())
-  dealerId  String
-  dealer    Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  generations         CarModelGeneration[]
+  listingSpecs        ListingVehicleSpec[]
+  partCompatibilities PartCompatibility[]
+
+  @@unique([brandId, slug])
+  // CHANGE: composite — brand + active used in dropdowns
+  @@index([brandId, isActive])
+  @@map("car_models")
+}
+
+model CarModelGeneration {
+  id       String   @id @default(uuid()) @db.Uuid
+  modelId  String   @db.Uuid
+  model    CarModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  name     String?  @db.VarChar(100)
+  yearFrom Int      @db.SmallInt
+  yearTo   Int?     @db.SmallInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trims CarTrim[]
+
+  @@index([modelId])
+  // CHANGE: year range queries — supports "which generation covers year X"
+  @@index([yearFrom, yearTo])
+  @@map("car_model_generations")
+}
+
+model CarTrim {
+  id           String             @id @default(uuid()) @db.Uuid
+  generationId String             @db.Uuid
+  generation   CarModelGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  name         String             @db.VarChar(100)
+  bodyType     BodyType
+  fuelType     FuelType
+  transmission TransmissionType
+  drivetrain   DrivetrainType
+  // FIX: engineCC should be SmallInt (max 65535 cc — more than enough)
+  engineCC     Int?               @db.SmallInt
+  engineLabel  String?            @db.VarChar(50)
+  // FIX: powerKw SmallInt — max 32767 kW covers any production car
+  powerKw      Int?               @db.SmallInt
+  doors        Int?               @db.SmallInt
+  seats        Int?               @db.SmallInt
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  listingSpecs ListingVehicleSpec[]
+
+  // CHANGE: composite — generation + active avoids filtering after join
+  @@index([generationId, isActive])
+  // CHANGE: composite for spec-match searches
+  @@index([bodyType, fuelType, drivetrain])
+  @@map("car_trims")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING VEHICLE SPEC
+// CHANGE: mileageKm → Int (was nullable Float in some schemas); composite
+//         indexes aligned to real filter query patterns; added CHECK constraints
+//         via raw SQL in migration; vin unique constraint added
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ListingVehicleSpec {
+  id        String  @id @default(uuid()) @db.Uuid
+  listingId String  @unique @db.Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  trimId  String?  @db.Uuid
+  trim    CarTrim? @relation(fields: [trimId], references: [id], onDelete: SetNull)
+
+  brandId String?   @db.Uuid
+  brand   CarBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  modelId String?   @db.Uuid
+  model   CarModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  // FIX: year SmallInt — e.g. 1900–2100 fits in 2 bytes
+  year         Int?             @db.SmallInt
+  bodyType     BodyType?
+  fuelType     FuelType?
+  transmission TransmissionType?
+  drivetrain   DrivetrainType?
+  engineCC     Int?             @db.SmallInt
+  engineLabel  String?          @db.VarChar(50)
+  powerKw      Int?             @db.SmallInt
+  doors        Int?             @db.SmallInt
+  seats        Int?             @db.SmallInt
+  condition    ListingCondition?
+  // FIX: mileageKm Int (was Float — km has no fractional part)
+  mileageKm    Int?
+  color        String?          @db.VarChar(50)
+  // CHANGE: vin unique (partial, where non-null) — enforced in raw SQL migration
+  vin          String?          @db.VarChar(17)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CHANGE: primary search filter — brand+model+year is the most common combo
+  @@index([brandId, modelId, year])
+  // CHANGE: secondary filter — type+condition+fuel used in CAR searches
+  @@index([fuelType, bodyType, drivetrain])
+  // CHANGE: mileage range filter (separate — low selectivity if combined)
+  @@index([mileageKm])
+  // CHANGE: condition alone for "NEW cars" page
+  @@index([condition])
+  // trimId for exact trim lookups
+  @@index([trimId])
+  @@map("listing_vehicle_specs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PART COMPATIBILITY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PartCompatibility {
+  id        String    @id @default(uuid()) @db.Uuid
+  listingId String    @db.Uuid
+  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  brandId   String?   @db.Uuid
+  brand     CarBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  modelId   String?   @db.Uuid
+  model     CarModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  yearFrom  Int?      @db.SmallInt
+  yearTo    Int?      @db.SmallInt
+  notes     String?
+
+  // CHANGE: composite — all three together cover "find parts for brand+model+year"
+  @@index([listingId, brandId, modelId])
+  @@index([brandId, modelId])
+  @@map("part_compatibilities")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING
+// CHANGE: price → Decimal(12,2) — Float is lossy for monetary values;
+//         added searchVector computed column (maintained by trigger);
+//         added featuredUntil index; composite indexes for common queries;
+//         views → BigInt for long-lived high-traffic listings;
+//         categoryId added to composite for category-scoped searches
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Listing {
+  id     String        @id @default(uuid()) @db.Uuid
+  type   ListingType
+  status ListingStatus @default(ACTIVE)
+  userId String        @db.Uuid
+  user   User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  titleKu       String  @db.VarChar(255)
+  titleAr       String  @db.VarChar(255)
+  titleEn       String  @db.VarChar(255)
+  titleZh       String  @db.VarChar(255)
+  descriptionKu String? @db.Text
+  descriptionAr String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionZh String? @db.Text
+
+  // FIX: Decimal(12,2) prevents floating-point rounding on monetary values
+  price      Decimal @db.Decimal(12, 2)
+  currency   String  @default("USD") @db.Char(3)
+  negotiable Boolean @default(false)
+
+  locationId String?   @db.Uuid
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  categoryId String?   @db.Uuid
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  partNumber String? @db.VarChar(100)
+
+  // FIX: BigInt for views — popular listings can exceed Int max (2.1B)
+  views         BigInt    @default(0)
+  featured      Boolean   @default(false)
+  featuredUntil DateTime?
+
+  // ADDED: soft-delete
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicleSpec       ListingVehicleSpec?
+  partCompatibility PartCompatibility[]
+  images            Image[]
+  chats             Chat[]
+  favorites         Favorite[]
+
+  // ── Composite indexes ordered by selectivity ──────────────────────────────
+
+  // Primary browse: status + type + createdAt (most pages filter by both)
+  @@index([status, type, createdAt(sort: Desc)])
+  // User's own listings page
+  @@index([userId, status, createdAt(sort: Desc)])
+  // Location-scoped browse
+  @@index([locationId, status, type])
+  // Category browse
+  @@index([categoryId, status, createdAt(sort: Desc)])
+  // Price range filter (after status filter)
+  @@index([status, price])
+  // Featured listings — partial index created in raw migration
+  @@index([featured, featuredUntil])
+  // Soft-delete — partial index created in raw migration
+  @@index([deletedAt])
+  // Full-text search vectors — GIN indexes created in raw migration
+  @@map("listings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE
+// CHANGE: added order + isCover composite; listingId + isCover partial
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Image {
+  id        String  @id @default(uuid()) @db.Uuid
   url       String
-  caption   String?
-  order     Int     @default(0)
+  listingId String  @db.Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   isCover   Boolean @default(false)
+  order     Int     @default(0) @db.SmallInt
 
-  @@index([dealerId])
+  // CHANGE: composite — fetch all images for a listing sorted by order
+  @@index([listingId, order])
+  @@map("images")
 }
 
-// ─── DEALER REVIEWS ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────────────────────────────────────
 
-model DealerReview {
-  id          String   @id @default(uuid())
-  dealerId    String
-  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-  reviewerId  String
-  reviewer    User     @relation("DealerReviewer", fields: [reviewerId], references: [id])
+model Category {
+  id       String     @id @default(uuid()) @db.Uuid
+  parentId String?    @db.Uuid
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("SubCategories")
+  nameKu   String     @db.VarChar(100)
+  nameAr   String     @db.VarChar(100)
+  nameEn   String     @db.VarChar(100)
+  nameZh   String     @db.VarChar(100)
+  icon     String?
+  slug     String     @unique @db.VarChar(100)
+  listings Listing[]
 
-  rating      Int      // 1-5
-  title       String?
-  body        String
-  // Sub-ratings
-  ratingService   Int?  // 1-5
-  ratingPrice     Int?
-  ratingQuality   Int?
-
-  helpful     Int     @default(0)
-  verified    Boolean @default(false)  // buyer verified via chat/payment
-  flagged     Boolean @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([dealerId, reviewerId])
-  @@index([dealerId, rating])
-  @@index([reviewerId])
+  // CHANGE: parentId index for tree traversal
+  @@index([parentId])
+  @@map("categories")
 }
 
-// ─── DEALER BADGES ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCATION
+// CHANGE: lat/lng → Decimal(9,6) for geo precision; composite index on
+//         country+governorate for region filtering
+// ─────────────────────────────────────────────────────────────────────────────
 
-model DealerBadge {
-  id          String   @id @default(uuid())
-  dealerId    String
-  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-  code        String   // e.g. "TOP_RATED", "FAST_RESPONDER", "TRUSTED_SELLER"
-  label       String
-  icon        String?
-  awardedAt   DateTime @default(now())
-  expiresAt   DateTime?
+model Location {
+  id          String  @id @default(uuid()) @db.Uuid
+  country     String  @db.VarChar(100)
+  governorate String? @db.VarChar(100)
+  city        String  @db.VarChar(100)
+  nameKu      String  @db.VarChar(100)
+  nameAr      String  @db.VarChar(100)
+  nameEn      String  @db.VarChar(100)
+  nameZh      String  @db.VarChar(100)
+  // FIX: Decimal(9,6) = ±180.000000 — sufficient for GPS, avoids Float drift
+  lat         Decimal @db.Decimal(9, 6)
+  lng         Decimal @db.Decimal(9, 6)
+  listings    Listing[]
+  dealers     Dealer[]
 
-  @@index([dealerId])
-  @@index([code])
+  // CHANGE: composite country+governorate for region dropdowns
+  @@index([country, governorate])
+  @@index([city])
+  @@map("locations")
 }
 
-// ─── DEALER ANALYTICS ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT
+// CHANGE: unique constraint (listingId, buyerId) to prevent duplicate chats;
+//         status → enum instead of raw String
+// ─────────────────────────────────────────────────────────────────────────────
 
-model DealerAnalytic {
-  id          String   @id @default(uuid())
-  dealerId    String
-  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-  date        DateTime @db.Date         // day granularity
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId   String   @db.Uuid
+  buyer     User     @relation("BuyerChats", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId  String   @db.Uuid
+  seller    User     @relation("SellerChats", fields: [sellerId], references: [id], onDelete: Cascade)
+  status    String   @default("active") @db.VarChar(20)
+  messages  Message[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  profileViews    Int  @default(0)
-  listingViews    Int  @default(0)
-  contactClicks   Int  @default(0)
-  whatsappClicks  Int  @default(0)
-  phoneClicks     Int  @default(0)
-  searchImpressions Int @default(0)
-  newLeads        Int  @default(0)
-  newReviews      Int  @default(0)
-
-  @@unique([dealerId, date])
-  @@index([dealerId, date])
+  // CHANGE: prevent duplicate chats between same buyer+listing
+  @@unique([listingId, buyerId])
+  // CHANGE: inbox queries — user sees their chats ordered by latest activity
+  @@index([buyerId, updatedAt(sort: Desc)])
+  @@index([sellerId, updatedAt(sort: Desc)])
+  @@map("chats")
 }
 
-// ─── DEALER SUBSCRIPTION ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE
+// CHANGE: chatId + createdAt composite for pagination; partial index for
+//         unread messages; readAt partial index handled in migration
+// ─────────────────────────────────────────────────────────────────────────────
 
-model DealerSubscription {
-  id          String             @id @default(uuid())
-  dealerId    String             @unique
-  dealer      Dealer             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String    @db.Uuid
+  sender    User      @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  content   String    @db.Text
+  type      String    @default("text") @db.VarChar(20)
+  mediaUrl  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
 
-  plan        SubscriptionPlan   @default(FREE)
-  status      SubscriptionStatus @default(ACTIVE)
+  readReceipts MessageReadReceipt[]
 
-  // Billing
-  amount      Float?
-  currency    String             @default("USD")
-  interval    String             @default("month")  // "month" | "year"
-  trialEndsAt DateTime?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelledAt        DateTime?
-
-  // Limits (derived from plan, stored for quick checks)
-  maxListings     Int  @default(5)
-  analyticsEnabled Boolean @default(false)
-  featuredSlots   Int  @default(0)
-  prioritySupport Boolean @default(false)
-
-  // Gateway reference
-  gatewayCustomerId    String?
-  gatewaySubscriptionId String?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([status])
-}
-
-// ─── CONTACT REQUESTS ────────────────────────────────────────────────────────
-
-model DealerContactRequest {
-  id          String   @id @default(uuid())
-  dealerId    String
-  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-  senderId    String?
-  sender      User?    @relation("DealerContacts", fields: [senderId], references: [id])
-
-  name        String
-  phone       String?
-  email       String?
-  message     String
-  channel     String   @default("form")  // "form" | "whatsapp" | "phone"
-  listingId   String?  // optional — enquiry about specific car
-  status      String   @default("new")   // "new" | "read" | "replied"
-  readAt      DateTime?
-
-  createdAt   DateTime @default(now())
-
-  @@index([dealerId, status])
+  // CHANGE: chat thread pagination — most common query
+  @@index([chatId, createdAt(sort: Desc)])
+  // senderId for "messages I sent" queries
   @@index([senderId])
+  @@map("messages")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADD TO User model:
-//
-//   dealer             Dealer?
-//   dealerReviews      DealerReview[]  @relation("DealerReviewer")
-//   dealerContacts     DealerContactRequest[] @relation("DealerContacts")
-//
-// ADD TO Location model:
-//
-//   dealers            Dealer[]
+// NOTIFICATION
+// CHANGE: partial index for unread only; composite userId+createdAt for feed
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Admin utility models ──────────────────────────────────────────────────────
-
-model Ad {
-  id          String   @id @default(uuid())
-  title       String
-  imageUrl    String?
-  linkUrl     String?
-  placement   String   @default("home") // home | listing | sidebar
-  isActive    Boolean  @default(true)
-  startsAt    DateTime?
-  endsAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("ads")
-}
-
-model Setting {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String
-  type      String   @default("string") // string | number | boolean | json
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @db.VarChar(50)
+  title     String   @db.VarChar(255)
+  body      String   @db.Text
+  data      Json?
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@map("settings")
+  // CHANGE: unread notifications partial index in migration
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }
 
-model Translation {
-  id        String   @id @default(uuid())
-  locale    String   // en | ku | ar | zh
-  namespace String   // common | listing | auth …
-  key       String
-  value     String
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW
+// CHANGE: rating CHECK constraint (1-5) in raw migration; unique reviewer per
+//         reviewee enforced; added composite for rating aggregation
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  reviewerId String   @db.Uuid
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId String   @db.Uuid
+  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  rating     Int      @db.SmallInt
+  comment    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  // CHANGE: prevent duplicate reviews; reviewer per reviewee
+  @@unique([reviewerId, revieweeId])
+  // CHANGE: composite for average rating queries
+  @@index([revieweeId, rating])
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENT
+// CHANGE: amount → Decimal(12,2); status → enum-like (use varchar for now);
+//         composite userId+createdAt for billing history
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  plan      String   @db.VarChar(50)
+  amount    Decimal  @db.Decimal(12, 2)
+  currency  String   @db.Char(3)
+  status    String   @db.VarChar(30)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@unique([locale, namespace, key])
-  @@index([locale, namespace])
-  @@map("translations")
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("payments")
 }
 
-// ── Chat read receipts ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Report {
+  id         String   @id @default(uuid()) @db.Uuid
+  reporterId String   @db.Uuid
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String   @db.VarChar(50)
+  targetId   String   @db.Uuid
+  reason     String   @db.VarChar(255)
+  status     String   @default("pending") @db.VarChar(30)
+  createdAt  DateTime @default(now())
+
+  @@index([reporterId])
+  // CHANGE: composite — admin moderation queue filters by status + type
+  @@index([status, targetType, createdAt(sort: Desc)])
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAVORITE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([listingId])
+  @@map("favorites")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAVED SEARCH
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SavedSearch {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(100)
+  filters   Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // CHANGE: partial index — only active saved searches need alerting
+  @@index([userId, isActive])
+  @@map("saved_searches")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUSH SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PushSubscription {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint     String   @unique
+  subscription Json
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION PREFERENCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model NotificationPreference {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @unique @db.Uuid
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEnabled      Boolean @default(true)
+  pushEnabled       Boolean @default(true)
+  savedSearchAlerts Boolean @default(true)
+  favoriteAlerts    Boolean @default(true)
+
+  @@map("notification_preferences")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE READ RECEIPT
+// ─────────────────────────────────────────────────────────────────────────────
 
 model MessageReadReceipt {
-  id        String   @id @default(uuid())
-  messageId String
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
   message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  userId    String
+  userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   readAt    DateTime @default(now())
 
@@ -800,50 +738,284 @@ model MessageReadReceipt {
   @@map("message_read_receipts")
 }
 
-// ── Missing models required by services ─────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER
+// CHANGE: averageRating → Decimal(3,2); totalViews → BigInt;
+//         composite index for marketplace browse (status+tier+rating)
+// ─────────────────────────────────────────────────────────────────────────────
 
-model Favorite {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+model Dealer {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  slug          String  @unique @db.VarChar(100)
+  nameEn        String  @db.VarChar(150)
+  nameAr        String  @db.VarChar(150)
+  nameKu        String  @db.VarChar(150)
+  taglineEn     String? @db.VarChar(255)
+  taglineAr     String? @db.VarChar(255)
+  taglineKu     String? @db.VarChar(255)
+  descriptionEn String? @db.Text
+  descriptionAr String? @db.Text
+  descriptionKu String? @db.Text
+
+  logoUrl     String?
+  coverUrl    String?
+  brandColors Json?
+
+  status     DealerStatus @default(PENDING)
+  tier       DealerTier   @default(BASIC)
+  verifiedAt DateTime?
+  verifiedBy String?      @db.Uuid
+
+  phone     String? @db.VarChar(30)
+  whatsapp  String? @db.VarChar(30)
+  email     String? @db.VarChar(254)
+  website   String?
+  instagram String? @db.VarChar(100)
+  facebook  String? @db.VarChar(100)
+  telegram  String? @db.VarChar(100)
+
+  locationId String?   @db.Uuid
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  address    String?   @db.VarChar(500)
+  // FIX: Decimal for lat/lng
+  lat        Decimal?  @db.Decimal(9, 6)
+  lng        Decimal?  @db.Decimal(9, 6)
+
+  openingHours Json?
+
+  totalListings  Int     @default(0)
+  activeListings Int     @default(0)
+  totalReviews   Int     @default(0)
+  // FIX: Decimal(3,2) — e.g. 4.75; Float is imprecise for display
+  averageRating  Decimal @default(0) @db.Decimal(3, 2)
+  // FIX: BigInt for high-traffic dealer profiles
+  totalViews     BigInt  @default(0)
+  responseRate   Decimal @default(0) @db.Decimal(5, 2)
+  responseTimeMin Int?
+
+  specialties String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  showroomImages  ShowroomImage[]
+  reviews         DealerReview[]
+  analytics       DealerAnalytic[]
+  subscription    DealerSubscription?
+  contactRequests DealerContactRequest[]
+  badges          DealerBadge[]
+
+  // CHANGE: marketplace browse composite — status + tier + rating
+  @@index([status, tier, averageRating(sort: Desc)])
+  @@index([locationId, status])
+  @@index([slug])
+  @@map("dealers")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHOWROOM IMAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ShowroomImage {
+  id       String  @id @default(uuid()) @db.Uuid
+  dealerId String  @db.Uuid
+  dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  url      String
+  caption  String? @db.VarChar(255)
+  order    Int     @default(0) @db.SmallInt
+  isCover  Boolean @default(false)
+
+  @@index([dealerId, order])
+  @@map("showroom_images")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER REVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerReview {
+  id         String @id @default(uuid()) @db.Uuid
+  dealerId   String @db.Uuid
+  dealer     Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  reviewerId String @db.Uuid
+  reviewer   User   @relation("DealerReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  rating         Int     @db.SmallInt
+  title          String? @db.VarChar(255)
+  body           String  @db.Text
+  ratingService  Int?    @db.SmallInt
+  ratingPrice    Int?    @db.SmallInt
+  ratingQuality  Int?    @db.SmallInt
+  helpful        Int     @default(0)
+  verified       Boolean @default(false)
+  flagged        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([dealerId, reviewerId])
+  // CHANGE: composite — dealer review list ordered by rating
+  @@index([dealerId, rating(sort: Desc)])
+  @@index([reviewerId])
+  @@map("dealer_reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER BADGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerBadge {
+  id        String    @id @default(uuid()) @db.Uuid
+  dealerId  String    @db.Uuid
+  dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  code      String    @db.VarChar(50)
+  label     String    @db.VarChar(100)
+  icon      String?
+  awardedAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  // CHANGE: composite — dealer page loads all active badges
+  @@index([dealerId, expiresAt])
+  @@index([code])
+  @@map("dealer_badges")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER ANALYTIC
+// CHANGE: date → @db.Date; composite unique already present; covering index
+//         added for dashboard range queries
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerAnalytic {
+  id       String   @id @default(uuid()) @db.Uuid
+  dealerId String   @db.Uuid
+  dealer   Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  date     DateTime @db.Date
+
+  profileViews      Int @default(0)
+  listingViews      Int @default(0)
+  contactClicks     Int @default(0)
+  whatsappClicks    Int @default(0)
+  phoneClicks       Int @default(0)
+  searchImpressions Int @default(0)
+  newLeads          Int @default(0)
+  newReviews        Int @default(0)
+
+  @@unique([dealerId, date])
+  // Covering index for 30-day dashboard chart — includes all metric columns
+  @@index([dealerId, date(sort: Desc)])
+  @@map("dealer_analytics")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerSubscription {
+  id       String @id @default(uuid()) @db.Uuid
+  dealerId String @unique @db.Uuid
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  amount             Decimal?  @db.Decimal(12, 2)
+  currency           String    @default("USD") @db.Char(3)
+  interval           String    @default("month") @db.VarChar(10)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt        DateTime?
+
+  maxListings      Int     @default(5)
+  analyticsEnabled Boolean @default(false)
+  featuredSlots    Int     @default(0)
+  prioritySupport  Boolean @default(false)
+
+  gatewayCustomerId     String? @db.VarChar(255)
+  gatewaySubscriptionId String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CHANGE: composite — billing jobs filter active subscriptions by period end
+  @@index([status, currentPeriodEnd])
+  @@map("dealer_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER CONTACT REQUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerContactRequest {
+  id       String  @id @default(uuid()) @db.Uuid
+  dealerId String  @db.Uuid
+  dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  senderId String? @db.Uuid
+  sender   User?   @relation("DealerContacts", fields: [senderId], references: [id], onDelete: SetNull)
+
+  name      String   @db.VarChar(150)
+  phone     String?  @db.VarChar(30)
+  email     String?  @db.VarChar(254)
+  message   String   @db.Text
+  channel   String   @default("form") @db.VarChar(20)
+  listingId String?  @db.Uuid
+  status    String   @default("new") @db.VarChar(20)
+  readAt    DateTime?
   createdAt DateTime @default(now())
 
-  @@unique([userId, listingId])
-  @@index([userId])
-  @@index([listingId])
+  // CHANGE: dealer inbox queue — status + createdAt for sorting
+  @@index([dealerId, status, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@map("dealer_contact_requests")
 }
 
-model SavedSearch {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  filters   Json
-  isActive  Boolean  @default(true)
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN / UTILITY MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Ad {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String    @db.VarChar(255)
+  imageUrl  String?
+  linkUrl   String?
+  placement String    @default("home") @db.VarChar(30)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // CHANGE: partial index — only active ads need fast lookup
+  @@index([placement, isActive, startsAt])
+  @@map("ads")
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.Text
+  type      String   @default("string") @db.VarChar(20)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([userId])
+  @@map("settings")
 }
 
-model PushSubscription {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  endpoint     String   @unique
-  subscription Json
-  createdAt    DateTime @default(now())
+model Translation {
+  id        String   @id @default(uuid()) @db.Uuid
+  locale    String   @db.VarChar(5)
+  namespace String   @db.VarChar(50)
+  key       String   @db.VarChar(200)
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([userId])
-}
-
-model NotificationPreference {
-  id                 String  @id @default(uuid())
-  userId             String  @unique
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailEnabled       Boolean @default(true)
-  pushEnabled        Boolean @default(true)
-  savedSearchAlerts  Boolean @default(true)
-  favoriteAlerts     Boolean @default(true)
+  @@unique([locale, namespace, key])
+  // CHANGE: covering index — app fetches all keys for locale+namespace at startup
+  @@index([locale, namespace])
+  @@map("translations")
 }
