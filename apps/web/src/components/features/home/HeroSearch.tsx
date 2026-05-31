@@ -387,7 +387,7 @@ export function HeroSearch() {
                 onFocus={() => { setFocused(true); setShowDropdown(true); }}
                 placeholder="گەڕان بکە... Toyota Land Cruiser، بەغدا، BMW 2023..."
                 className="flex-1 bg-transparent text-white placeholder-white/25
-                           outline-none text-sm md:text-base font-medium caret-[#c9a84c]"
+                           outline-none text-base font-medium caret-[#c9a84c] hero-search-input"
                 dir="rtl"
               />
               {query && (
@@ -475,7 +475,8 @@ export function HeroSearch() {
 
           {/* Filter row */}
           <div className="p-3">
-            <div className="flex flex-wrap md:flex-nowrap gap-2 items-stretch">
+            {/* Mobile: 2-col grid; md+: single flex row */}
+            <div className="grid grid-cols-2 md:flex md:flex-nowrap gap-2 items-stretch">
               <Dropdown label="براند" value={make} options={MAKES}
                 onChange={v => { setMake(v); setModel(''); }} placeholder="هەموو براندەکان" />
               <Dropdown label="مۆدێل" value={model} options={activeModels}
@@ -487,7 +488,7 @@ export function HeroSearch() {
               <button
                 type="button"
                 onClick={() => handleSearch()}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap flex-shrink-0
+                className="col-span-2 md:col-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap flex-shrink-0
                            bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14]
                            hover:from-[#c9a84c] hover:to-[#e6c258]
                            shadow-[0_4px_20px_rgba(201,168,76,0.30)]
