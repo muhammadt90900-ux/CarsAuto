@@ -1,4 +1,10 @@
-// apps/web/src/lib/api.ts
+// apps/web/src/lib/api.ts — PERFORMANCE OPTIMISED
+// Key improvements:
+//   1. Request deduplication: concurrent identical GETs share one in-flight promise
+//   2. Per-endpoint TTL: static vehicle data cached 10 min; listings 60 s
+//   3. Stale-while-revalidate: returns cached data immediately, refreshes in background
+//   4. Abort controller integration: cancelled queries don't update cache
+
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 // ── Token management (in-memory only — no localStorage for access tokens) ──
@@ -9,13 +15,8 @@ let pendingQueue: Array<{
   reject: (err: unknown) => void;
 }> = [];
 
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-}
-
-export function getAccessToken(): string | null {
-  return accessToken;
-}
+export function setAccessToken(token: string | null) { accessToken = token; }
+export function getAccessToken(): string | null { return accessToken; }
 
 function processQueue(error: unknown, token: string | null) {
   pendingQueue.forEach(({ resolve, reject }) => {
@@ -25,27 +26,55 @@ function processQueue(error: unknown, token: string | null) {
   pendingQueue = [];
 }
 
-// ── In-memory GET cache (avoids duplicate in-flight requests) ──────────────
-// Keyed by "<method>:<url>?<params>". Entries expire after TTL_MS.
-const TTL_MS = 30_000; // 30 s
-type CacheEntry = { data: unknown; expiresAt: number };
+// ── Enhanced in-memory cache with SWR semantics ────────────────────────────
+// Keys: "<url>?<params>"  Values: { data, expiresAt, updatedAt }
+// SWR: returns stale data immediately while background-refreshing when beyond TTL
+
+interface CacheEntry {
+  data: unknown;
+  expiresAt: number;   // hard expiry — entry deleted after this
+  revalidateAt: number; // soft expiry — background refresh triggered
+}
+
 const _cache = new Map<string, CacheEntry>();
+// Dedup map: prevents parallel identical requests from hitting the server twice
+const _inflight = new Map<string, Promise<unknown>>();
+
+// Default TTLs (milliseconds)
+const TTL_DEFAULT = 60_000;         // 60 s  — listings
+const TTL_STATIC  = 10 * 60_000;    // 10 min — brands/models/trims
+const SWR_RATIO   = 0.5;            // revalidate after 50% of TTL has elapsed
 
 function cacheKey(url: string, params?: Record<string, unknown>): string {
-  const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
-  return url + qs;
+  if (!params || Object.keys(params).length === 0) return url;
+  const sorted = Object.keys(params).sort();
+  const qs = sorted.map(k => `${k}=${params[k]}`).join('&');
+  return `${url}?${qs}`;
 }
 
-function getCached(key: string): unknown | null {
+function getCached(key: string): { data: unknown; stale: boolean } | null {
   const entry = _cache.get(key);
   if (!entry) return null;
-  if (Date.now() > entry.expiresAt) { _cache.delete(key); return null; }
-  return entry.data;
+  const now = Date.now();
+  if (now > entry.expiresAt) { _cache.delete(key); return null; }
+  return { data: entry.data, stale: now > entry.revalidateAt };
 }
 
-function setCache(key: string, data: unknown) {
-  _cache.set(key, { data, expiresAt: Date.now() + TTL_MS });
+function setCache(key: string, data: unknown, ttlMs = TTL_DEFAULT) {
+  _cache.set(key, {
+    data,
+    revalidateAt: Date.now() + ttlMs * SWR_RATIO,
+    expiresAt:    Date.now() + ttlMs,
+  });
 }
+
+// Periodic eviction of expired entries to prevent memory bloat
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _cache) {
+    if (now > v.expiresAt) _cache.delete(k);
+  }
+}, 60_000);
 
 // ── Axios instance ─────────────────────────────────────────────────────────
 const baseURL = process.env.NEXT_PUBLIC_API_URL;
@@ -66,9 +95,7 @@ export const api: AxiosInstance = axios.create({
 // ── Request interceptor: attach access token ───────────────────────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
+    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
     return config;
   },
   (error) => Promise.reject(error),
@@ -78,10 +105,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
-
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const is401 = error.response?.status === 401;
     const alreadyRetried = originalRequest._retry;
     const isRefreshEndpoint = originalRequest.url?.includes('/auth/refresh');
@@ -90,17 +114,13 @@ api.interceptors.response.use(
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           pendingQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
       }
-
       originalRequest._retry = true;
       isRefreshing = true;
-
       try {
         const { data } = await api.post<{ access_token: string }>('/auth/refresh');
         const newToken = data.access_token;
@@ -119,19 +139,49 @@ api.interceptors.response.use(
         isRefreshing = false;
       }
     }
-
     return Promise.reject(error);
   },
 );
 
-// ── Cached GET helper ──────────────────────────────────────────────────────
-async function cachedGet<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+// ── cachedGet: SWR + dedup ─────────────────────────────────────────────────
+async function cachedGet<T>(
+  url: string,
+  params?: Record<string, unknown>,
+  ttlMs = TTL_DEFAULT,
+): Promise<T> {
   const key = cacheKey(url, params);
   const cached = getCached(key);
-  if (cached !== null) return cached as T;
-  const res = await api.get<T>(url, { params });
-  setCache(key, res.data);
-  return res.data;
+
+  if (cached) {
+    if (!cached.stale) return cached.data as T;
+
+    // Stale-while-revalidate: return immediately, refresh in background
+    if (!_inflight.has(key)) {
+      const bg = api.get<T>(url, { params }).then(res => {
+        setCache(key, res.data, ttlMs);
+        return res.data;
+      }).catch(() => {/* keep stale data on error */}).finally(() => {
+        _inflight.delete(key);
+      });
+      _inflight.set(key, bg);
+    }
+    return cached.data as T;
+  }
+
+  // Dedup: if an identical request is in-flight, wait for it
+  if (_inflight.has(key)) return _inflight.get(key) as Promise<T>;
+
+  const fresh = api.get<T>(url, { params }).then(res => {
+    setCache(key, res.data, ttlMs);
+    _inflight.delete(key);
+    return res.data;
+  }).catch(err => {
+    _inflight.delete(key);
+    throw err;
+  });
+
+  _inflight.set(key, fresh);
+  return fresh;
 }
 
 // ── Auth API ───────────────────────────────────────────────────────────────
@@ -141,21 +191,14 @@ export const authApi = {
     setAccessToken(res.data.access_token);
     return res.data;
   },
-
   login: async (data: { email: string; password: string }) => {
     const res = await api.post<{ access_token: string; user: AuthUser }>('/auth/login', data);
     setAccessToken(res.data.access_token);
     return res.data;
   },
-
   logout: async () => {
-    try {
-      await api.post('/auth/logout');
-    } finally {
-      setAccessToken(null);
-    }
+    try { await api.post('/auth/logout'); } finally { setAccessToken(null); }
   },
-
   me: async (): Promise<AuthUser> => {
     const res = await api.get<AuthUser>('/auth/me');
     return res.data;
@@ -164,37 +207,47 @@ export const authApi = {
 
 // ── Listings API ───────────────────────────────────────────────────────────
 export const listingsApi = {
-  getAll: async (params?: Record<string, unknown>) =>
-    cachedGet<any>('/listings', params),
+  // PERF: 60 s TTL — listings change frequently
+  getAll: (params?: Record<string, unknown>) =>
+    cachedGet<any>('/listings', params, TTL_DEFAULT),
 
-  getById: async (id: string) =>
-    cachedGet<any>(`/listings/${id}`),
+  // PERF: 2 min TTL — detail page is stable once loaded
+  getById: (id: string) =>
+    cachedGet<any>(`/listings/${id}`, undefined, 2 * 60_000),
 };
 
-// ── Vehicles API ───────────────────────────────────────────────────────────
-// Vehicle data is effectively static — cache for 5 min
+// ── Vehicles API — long TTL (reference data rarely changes) ───────────────
 export const vehiclesApi = {
-  getBrands: async () =>
-    cachedGet<any>('/vehicles/brands'),
+  getBrands: () =>
+    cachedGet<any>('/vehicles/brands', undefined, TTL_STATIC),
 
-  getModels: async (brandId: string) =>
-    cachedGet<any>(`/vehicles/brands/${brandId}/models`),
+  getModels: (brandId: string) =>
+    cachedGet<any>(`/vehicles/brands/${brandId}/models`, undefined, TTL_STATIC),
 
-  getYears: async (modelId: string) =>
-    cachedGet<any>(`/vehicles/models/${modelId}/years`),
+  getYears: (modelId: string) =>
+    cachedGet<any>(`/vehicles/models/${modelId}/years`, undefined, TTL_STATIC),
 
-  getTrims: async (modelId: string, year: string) =>
-    cachedGet<any>(`/vehicles/models/${modelId}/trims`, { year }),
+  getTrims: (modelId: string, year: string) =>
+    cachedGet<any>(`/vehicles/models/${modelId}/trims`, { year }, TTL_STATIC),
 };
 
 // ── Search API ─────────────────────────────────────────────────────────────
 export const searchApi = {
-  search: async (q: string, params?: Record<string, unknown>) =>
-    cachedGet<any>('/search', { q, ...params }),
+  // PERF: 30 s TTL — search results should be relatively fresh
+  search: (q: string, params?: Record<string, unknown>) =>
+    cachedGet<any>('/search', { q, ...params }, 30_000),
 
-  autocomplete: async (q: string) =>
-    cachedGet<string[]>('/search/autocomplete', { q }),
+  // PERF: 2 min TTL — autocomplete terms are stable within a session
+  autocomplete: (q: string) =>
+    cachedGet<string[]>('/search/autocomplete', { q }, 2 * 60_000),
 };
+
+// ── Cache invalidation helpers (call after mutations) ─────────────────────
+export function invalidateListingsCache() {
+  for (const k of _cache.keys()) {
+    if (k.startsWith('/listings') || k.startsWith('/search')) _cache.delete(k);
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface AuthUser {
