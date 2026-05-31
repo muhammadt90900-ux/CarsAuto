@@ -197,3 +197,295 @@ input, select, textarea {
 .drag-handle:active {
   cursor: grabbing;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE UX FIXES — AutoBazaarPro
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Use dynamic viewport height (fixes iOS Safari address-bar) ── */
+:root {
+  --dvh: 1dvh;
+  --bottom-nav-h: 64px;
+  --bottom-nav-total: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-h));
+}
+
+/* ── Full-screen sections use dvh not vh ──────────────────────── */
+@supports (height: 100dvh) {
+  .min-h-screen { min-height: 100dvh; }
+  .h-screen     { height: 100dvh; }
+}
+
+/* ── touch-action: manipulation on all buttons/links ─────────── */
+button, a, [role="button"], label[for] {
+  touch-action: manipulation;
+}
+
+/* ── Prevent double-tap zoom on form controls ────────────────── */
+button, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ── Safe content padding (above bottom nav) ─────────────────── */
+.has-bottom-nav {
+  padding-bottom: var(--bottom-nav-total);
+}
+
+/* ── Hero search filter row — mobile stack ───────────────────── */
+@media (max-width: 767px) {
+  /* Make hero filter dropdowns full-width on mobile */
+  .hero-filter-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .hero-filter-row > *:last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Dashboard / admin content area must clear bottom nav */
+  .dashboard-content {
+    padding-bottom: calc(var(--bottom-nav-total) + 1rem) !important;
+  }
+
+  /* Admin/dashboard sidebar — full-width mobile drawer */
+  .sidebar-mobile-drawer {
+    position: fixed !important;
+    inset-y: 0;
+    left: 0;
+    z-index: 50;
+    width: min(280px, 80vw) !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+  }
+  .sidebar-mobile-drawer.open {
+    transform: translateX(0);
+  }
+  [dir="rtl"] .sidebar-mobile-drawer {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+  [dir="rtl"] .sidebar-mobile-drawer.open {
+    transform: translateX(0);
+  }
+
+  /* List view car card — prevent image overflow on narrow screens */
+  .car-list-img {
+    width: 96px !important;
+    height: 72px !important;
+    min-width: 96px !important;
+  }
+
+  /* Login / register card — reduce padding on small screens */
+  .auth-card-inner {
+    padding: 1.25rem !important;
+  }
+
+  /* Pagination — smaller buttons on mobile */
+  .pagination-btn {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Table overflow handling */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-responsive table {
+    min-width: 600px;
+  }
+
+  /* Toolbar wrapping — stack on mobile */
+  .toolbar-mobile {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  .toolbar-mobile > * {
+    justify-content: space-between;
+  }
+
+  /* KPI stats grid — 2 cols on mobile */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Search bar in hero — full width clear btn */
+  .hero-search-input {
+    font-size: 16px !important; /* Prevent iOS zoom */
+  }
+
+  /* Filter chips — horizontal scroll on mobile */
+  .filter-chips-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
+  }
+  .filter-chips-row > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}
+
+/* ── Tablet (md breakpoint) ───────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* 2-col car grid on tablets */
+  .car-grid-tablet {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Sidebar takes up less space on tablet */
+  .sidebar-tablet {
+    width: 220px !important;
+  }
+
+  /* Admin dashboard KPI — 2x2 on tablet */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Hero filters — 2-col grid on tablet */
+  .hero-filter-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .hero-filter-row > *:last-child {
+    grid-column: 3 / 4;
+  }
+}
+
+/* ── Small phone (< 390px) ─────────────────────────────────────── */
+@media (max-width: 389px) {
+  /* Navbar logo text — shorten on tiny screens */
+  .navbar-logo-text {
+    display: none;
+  }
+
+  /* Bottom nav labels — hide on tiny screens */
+  .bottom-nav-label {
+    display: none !important;
+  }
+
+  /* Auth form buttons — full width */
+  .auth-btn-row {
+    flex-direction: column;
+  }
+
+  /* Category tabs in hero — icon only */
+  .hero-cat-label {
+    display: none !important;
+  }
+}
+
+/* ── Sticky bottom CTA bar (for car detail page) ─────────────── */
+.sticky-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+.dark .sticky-action-bar {
+  background: rgba(8, 15, 28, 0.97);
+  backdrop-filter: blur(20px);
+}
+
+/* ── Improved tap feedback ────────────────────────────────────── */
+@media (hover: none) {
+  .card-premium:active {
+    transform: scale(0.985);
+    transition: transform 0.1s ease-out;
+  }
+  .btn-gold:active {
+    transform: scale(0.97);
+  }
+  .filter-chip:active {
+    transform: scale(0.95);
+  }
+}
+
+/* ── Image gallery swipe (car detail) ────────────────────────── */
+.gallery-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.gallery-scroll::-webkit-scrollbar { display: none; }
+.gallery-scroll > * {
+  flex-shrink: 0;
+  scroll-snap-align: center;
+}
+
+/* ── Mobile form UX ───────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Increase tap area for checkboxes/radio in filters */
+  .filter-label-touch {
+    padding: 0.625rem 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Select dropdowns — native on mobile for better UX */
+  select.native-mobile {
+    -webkit-appearance: menulist;
+    appearance: menulist;
+    background: transparent;
+  }
+
+  /* Avoid content hidden behind bottom nav in main areas */
+  main.has-bottom-nav,
+  .page-content {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  }
+}
+
+/* ── Floating drawer backdrop ─────────────────────────────────── */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Pull-to-refresh indicator area ──────────────────────────── */
+.ptr-area {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+/* ── Notch / island padding for fixed headers ─────────────────── */
+.header-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Android ripple suppression (use custom active states) ───── */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:focus,
+  button:focus {
+    outline: none;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+}
