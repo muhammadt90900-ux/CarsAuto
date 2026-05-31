@@ -49,11 +49,11 @@ export function AdminDashboardClient() {
   const fmtCur = (v: number) => '$' + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v);
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[var(--text-primary)]">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">Dashboard</h1>
           <p className="text-sm text-[var(--text-muted)] mt-0.5">
             Welcome back, Admin · Last updated just now
           </p>
@@ -62,7 +62,7 @@ export function AdminDashboardClient() {
           <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
             {(['7d','30d','90d'] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
-                className={`px-4 py-2 text-xs font-semibold transition-colors
+                className={`px-3 sm:px-4 py-2 text-xs font-semibold transition-colors
                   ${period === p
                     ? 'bg-[var(--gold-subtle)] text-[var(--gold)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
@@ -70,16 +70,16 @@ export function AdminDashboardClient() {
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+          <button className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold
                              bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
                              text-[var(--text-muted)] hover:text-[var(--gold)] hover:border-[var(--border-gold)] transition-all">
-            <RefreshCw className="w-3.5 h-3.5"/>Refresh
+            <RefreshCw className="w-3.5 h-3.5"/><span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="kpi-grid grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5">
         {Object.entries(MOCK_STATS).map(([key, stat]) => {
           const Icon = stat.icon;
           const isUp = stat.change > 0;
@@ -189,8 +189,8 @@ export function AdminDashboardClient() {
             </button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="table-base">
+        <div className="table-responsive overflow-x-auto">
+          <table className="table-base" style={{ minWidth: '600px' }}>
             <thead>
               <tr>
                 <th>ID</th><th>Listing</th><th>Seller</th><th>Price</th>
