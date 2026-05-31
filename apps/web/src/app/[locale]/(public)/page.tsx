@@ -4,6 +4,7 @@ import { Suspense, lazy } from 'react';
 import { HeroSearch }   from '@/components/features/home/HeroSearch';
 import { FeaturedCars } from '@/components/features/home/FeaturedCars';
 import Link from 'next/link';
+import Script from 'next/script';
 
 // PERF: lazy-load below-fold sections — reduces initial JS bundle for LCP path
 // RecentParts and FeaturedDealers are NOT needed for first paint
@@ -12,9 +13,39 @@ const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDe
 
 type Props = { params: { locale: string } };
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const t = await getTranslations({ locale: params.locale, namespace: 'meta' });
-  return { title: t('homeTitle'), description: t('homeDesc') };
+  const locale = params.locale;
+  const t = await getTranslations({ locale, namespace: 'meta' });
+
+  const ogLocaleMap: Record<string, string> = {
+    ku: 'ckb_IQ', ar: 'ar_IQ', en: 'en_US', zh: 'zh_CN',
+  };
+
+  return {
+    title: t('homeTitle'),
+    description: t('homeDesc'),
+    openGraph: {
+      type: 'website',
+      siteName: 'AutoBazaar Pro',
+      title: t('homeTitle'),
+      description: t('homeDesc'),
+      url: `${BASE_URL}/${locale}`,
+      locale: ogLocaleMap[locale] ?? 'en_US',
+      images: [{ url: `${BASE_URL}/og-default.jpg`, width: 1200, height: 630, alt: t('homeTitle') }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@AutoBazaarPro',
+      title: t('homeTitle'),
+      description: t('homeDesc'),
+      images: [`${BASE_URL}/og-default.jpg`],
+    },
+    alternates: {
+      canonical: `${BASE_URL}/${locale}`,
+    },
+  };
 }
 
 /* ── Static data ── */
@@ -269,6 +300,27 @@ export default async function HomePage({ params }: Props) {
           ))}
         </div>
       </section>
+
+      {/* JSON-LD: ItemList of platform categories for rich results */}
+      <Script
+        id="jsonld-itemlist"
+        type="application/ld+json"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'AutoBazaar Pro Categories',
+            url: `${BASE_URL}/${locale}`,
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Cars for Sale',   url: `${BASE_URL}/${locale}/cars` },
+              { '@type': 'ListItem', position: 2, name: 'Spare Parts',     url: `${BASE_URL}/${locale}/spare-parts` },
+              { '@type': 'ListItem', position: 3, name: 'Motorcycles',     url: `${BASE_URL}/${locale}/motorcycles` },
+              { '@type': 'ListItem', position: 4, name: 'Find Dealers',    url: `${BASE_URL}/${locale}/dealers` },
+            ],
+          }),
+        }}
+      />
 
       {/* 09 · SELL CTA */}
       <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">
