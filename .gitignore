@@ -39,3 +39,22 @@ Thumbs.db
 # ── Test / Coverage ───────────────────────────
 coverage
 .nyc_output
+
+# Production secrets — never commit
+.env.production
+.env.local
+.env.*.local
+apps/api/.env
+apps/web/.env.local
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+
+# Dist / build artifacts
+apps/api/dist/
+apps/web/.next/
+
+# Turbo cache
+.turbo/cache/
