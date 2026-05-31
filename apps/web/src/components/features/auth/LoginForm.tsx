@@ -43,7 +43,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         <p className="text-sm text-[var(--text-muted)] mt-1">Sign in to AutoBazaarPro</p>
       </div>
 
-      <div className="card-premium p-7">
+      <div className="card-premium p-4 sm:p-7 auth-card-inner">
         <div className="h-0.5 -mx-7 -mt-7 mb-7 rounded-t-2xl" style={{ background:'linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)' }}/>
 
         {error && (
