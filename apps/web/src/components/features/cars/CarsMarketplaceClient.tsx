@@ -118,8 +118,9 @@ const CarCard = memo(function CarCard({
   if (view === 'list') {
     return (
       <Link href={`/${locale}/cars/${car.id}`} prefetch={false} className="block group">
-        <article className="card-premium flex gap-4 p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-          <div className="relative flex-shrink-0 w-40 h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]">
+        <article className="card-premium flex gap-3 sm:gap-4 p-3 sm:p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+          <div className="car-list-img relative flex-shrink-0 w-24 h-18 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
+               style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
             {!imgError ? (
               <Image
                 src={car.images?.[0] || '/placeholder-car.jpg'}
@@ -428,7 +429,7 @@ export function CarsMarketplaceClient({
   );
 
   return (
-    <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
+    <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)] page-content">
       {/* Page Header */}
       <div className="relative overflow-hidden border-b border-[var(--border-default)]"
            style={{ background:'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}>
@@ -468,8 +469,8 @@ export function CarsMarketplaceClient({
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button onClick={() => setSidebar(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
                              bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
@@ -477,15 +478,15 @@ export function CarsMarketplaceClient({
                   <SlidersHorizontal className="w-4 h-4"/>Filters
                   {activeCount > 0 && <span className="badge badge-gold">{activeCount}</span>}
                 </button>
-                <p className="text-sm text-[var(--text-muted)] hidden sm:block">
+                <p className="text-sm text-[var(--text-muted)]">
                   <strong className="text-[var(--text-primary)]">{cars.length}</strong> results
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="relative">
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                    className="input-base pr-8 h-9 text-xs cursor-pointer appearance-none">
+                    className="input-base pr-8 h-9 text-xs cursor-pointer appearance-none max-w-[160px]">
                     {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)] pointer-events-none"/>
@@ -505,7 +506,7 @@ export function CarsMarketplaceClient({
 
             {/* Active filter chips */}
             {activeCount > 0 && (
-              <div className="flex flex-wrap gap-2 mb-5">
+              <div className="filter-chips-row flex gap-2 mb-5 pb-1">
                 {[make, bodyType, fuelType, transmission, condition, city, priceRange, colorFilter]
                   .filter(Boolean)
                   .map(v => (
