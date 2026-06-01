@@ -293,7 +293,15 @@ async function main() {
   const userIds: string[] = [];
   const userCountryMap = new Map<string, string>(); // userId → countryHint
 
-  const passwordHash = await bcrypt.hash('AutoIQ@2025!', 10);
+  const seedPassword = process.env.SEED_USER_PASSWORD;
+  if (!seedPassword) {
+    throw new Error(
+      'SEED_USER_PASSWORD env var is not set. ' +
+      'Add it to apps/api/.env before running the seed. ' +
+      'Example: SEED_USER_PASSWORD=DevSeedPass@local',
+    );
+  }
+  const passwordHash = await bcrypt.hash(seedPassword, 10);
 
   for (const u of USERS) {
     const user = await prisma.user.create({
