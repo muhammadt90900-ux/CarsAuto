@@ -1,11 +1,11 @@
+// apps/api/src/modules/payments/payments.controller.ts
 import {
   Controller, Get, Post, Patch, Param, Body, UseGuards, Request,
   ParseUUIDPipe, ForbiddenException, NotFoundException,
-  IsEnum,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 
 // Whitelist of allowed plan names
 const ALLOWED_PLANS = ['FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE'] as const;
@@ -13,8 +13,13 @@ type AllowedPlan = typeof ALLOWED_PLANS[number];
 
 const ALLOWED_CURRENCIES = ['USD', 'IQD', 'EUR', 'GBP'] as const;
 
+/**
+ * All payment endpoints require both authentication AND email verification.
+ * Payments are a sensitive action — unverified users cannot initiate or
+ * confirm payment records.
+ */
 @Controller('payments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
