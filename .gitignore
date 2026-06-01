@@ -1,60 +1,63 @@
-# ── Dependencies ──────────────────────────────
-node_modules
+# ══════════════════════════════════════════════════════════════════════════════
+# .gitignore  —  CarsAuto monorepo
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
 .pnp
 .pnp.js
 
-# ── Build outputs ─────────────────────────────
-dist
-.next
-.turbo
-build
-out
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+apps/api/dist/
+apps/web/.next/
 
-# ── Environment — NEVER commit secrets ────────
+# ── Turbo ─────────────────────────────────────────────────────────────────────
+.turbo/
+.turbo/cache/
+
+# ── Environment files  ─  NEVER commit any .env with real secrets ─────────────
 .env
 .env.local
 .env.*.local
 .env.production
 .env.staging
-# Keep example files:
-!.env.example
-!.env.local.example
+.env.development
 
-# ── Logs ──────────────────────────────────────
+# Per-app env files (committed as .env.example instead)
+apps/api/.env
+apps/web/.env.local
+
+# Keep example / template files
+!.env.example
+!apps/api/.env.example
+!apps/web/.env.local.example
+!.env.production.template
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# ── OS ────────────────────────────────────────
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# ── IDE ───────────────────────────────────────
-.vscode
-.idea
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
 *.swp
 *.swo
 
-# ── Test / Coverage ───────────────────────────
-coverage
-.nyc_output
+# ── Test / coverage ───────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
 
-# Production secrets — never commit
-.env.production
-.env.local
-.env.*.local
-apps/api/.env
-apps/web/.env.local
-
-# Backups
+# ── Database backups ──────────────────────────────────────────────────────────
 backups/
 *.sql
 *.sql.gz
-
-# Dist / build artifacts
-apps/api/dist/
-apps/web/.next/
-
-# Turbo cache
-.turbo/cache/
