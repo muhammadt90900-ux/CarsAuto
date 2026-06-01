@@ -80,6 +80,16 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
         <p className="text-sm text-[var(--text-muted)] mt-1">Join AutoBazaarPro — it's free</p>
       </div>
 
+      {/* Trust signals */}
+      <div className="flex items-center justify-center gap-6 mb-6 text-xs text-[var(--text-muted)]">
+        {[['✅', 'Free forever'], ['🔒', 'SSL secured'], ['🚀', 'List in 2 mins']].map(([icon, label]) => (
+          <span key={label} className="flex items-center gap-1.5">
+            <span>{icon}</span>
+            <span>{label}</span>
+          </span>
+        ))}
+      </div>
+
       <div className="card-premium p-4 sm:p-7 auth-card-inner">
         <div className="h-0.5 -mx-7 -mt-7 mb-7 rounded-t-2xl"
              style={{ background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)' }} />
@@ -114,7 +124,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <input type="text" value={name} onChange={e => setName(e.target.value)} required
                 minLength={2} maxLength={80}
                 placeholder="Ahmad Al-Rashidi"
-                className="input-base pl-11 h-11" />
+                className="input-base pl-11 h-12" />
             </div>
           </div>
 
@@ -125,7 +135,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 placeholder="your@email.com"
-                className="input-base pl-11 h-11" />
+                className="input-base pl-11 h-12" />
             </div>
           </div>
 
@@ -140,7 +150,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
                 onChange={e => setPassword(e.target.value)}
                 required minLength={8}
                 placeholder="Min. 8 chars — uppercase, lowercase, number"
-                className="input-base pl-11 pr-11 h-11"
+                className="input-base pl-11 pr-11 h-12"
               />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors">
@@ -172,7 +182,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                 placeholder="+964 750 000 0000"
-                className="input-base pl-11 h-11" />
+                className="input-base pl-11 h-12" />
             </div>
           </div>
 
@@ -193,10 +203,12 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
           </label>
 
           <button type="submit" disabled={loading || !agreed}
-            className="btn-gold w-full h-11 text-sm rounded-xl flex items-center justify-center gap-2">
+            className="btn-gold w-full h-12 text-sm rounded-xl flex items-center justify-center gap-2
+                       disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
+                       shadow-[0_4px_20px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_28px_rgba(201,168,76,0.50)]">
             {loading
-              ? <span className="w-4 h-4 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" />
-              : <><span>Create Account</span><ArrowRight className="w-4 h-4" /></>
+              ? <span className="w-5 h-5 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" />
+              : <><span>Create Free Account</span><ArrowRight className="w-4 h-4" /></>
             }
           </button>
         </form>
