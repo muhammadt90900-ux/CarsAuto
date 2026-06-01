@@ -7,6 +7,7 @@ import {
 import { IsOptional, IsString, IsNumberString, IsEnum, MaxLength } from 'class-validator';
 import { ListingsService } from './listings.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { ListingType, ListingCondition, FuelType, TransmissionType } from '@prisma/client';
 
@@ -36,15 +37,11 @@ class ListingQueryDto {
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
+  // ── Public endpoints (no verification required) ──────────────────────────
+
   @Get()
   findAll(@Query() query: ListingQueryDto) {
     return this.listingsService.findAll(query);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('my')
-  myListings(@Request() req: any) {
-    return this.listingsService.myListings(req.user.userId);
   }
 
   @Get(':id')
@@ -52,13 +49,23 @@ export class ListingsController {
     return this.listingsService.findOne(id);
   }
 
+  // ── Authenticated + verified endpoints ───────────────────────────────────
+
   @UseGuards(JwtAuthGuard)
+  @Get('my')
+  myListings(@Request() req: any) {
+    return this.listingsService.myListings(req.user.userId);
+  }
+
+  /** Creating a listing requires a verified email */
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Post()
   create(@Request() req: any, @Body() dto: CreateListingDto) {
     return this.listingsService.create({ ...dto, userId: req.user.userId });
   }
 
-  @UseGuards(JwtAuthGuard)
+  /** Editing a listing requires a verified email */
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -68,7 +75,8 @@ export class ListingsController {
     return this.listingsService.update(id, req.user.userId, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  /** Deleting a listing requires a verified email */
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
