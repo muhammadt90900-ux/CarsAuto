@@ -164,6 +164,7 @@ model User {
   payments               Payment[]
   reports                Report[]
   refreshTokens          RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
   dealer                 Dealer?
   dealerReviews          DealerReview[]          @relation("DealerReviewer")
   messageReadReceipts    MessageReadReceipt[]
@@ -195,6 +196,24 @@ model RefreshToken {
   // CHANGE: partial index for non-expired tokens — handled in migration
   // CHANGE: expiresAt index for cleanup jobs
   @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION TOKEN
+// One active token per user; old tokens are replaced on resend.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
