@@ -344,22 +344,30 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
   return (
     <>
-      {/* Sticky bar */}
-      <div className={cn('fixed top-[66px] inset-x-0 z-40 transition-all duration-300',
+      {/* Sticky bar — improved visibility & CTA */}
+      <div className={cn('fixed top-0 inset-x-0 z-40 transition-all duration-300',
         stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
-        <div className="bg-[#070d18]/95 backdrop-blur-2xl border-b border-[#c9a84c]/15 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+        <div className="bg-[#070d18]/98 backdrop-blur-2xl border-b border-[#c9a84c]/20 shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/40 font-semibold uppercase tracking-wider">Viewing</p>
               <p className="text-sm font-bold text-white truncate">{title}</p>
-              <p className="text-[#c9a84c] font-display font-black text-base tabular-nums">
-                {fmtPrice(listing.price, listing.currency)}
-              </p>
             </div>
-            <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] text-white text-sm font-bold hover:bg-[#1fb659] transition-all duration-200">
-              <Phone className="w-4 h-4" /> Contact
-            </a>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="hidden sm:block text-[#c9a84c] font-display font-black text-xl tabular-nums">
+                {fmtPrice(listing.price, listing.currency)}
+              </span>
+              <button onClick={toggleFavorite}
+                className={cn('hidden sm:flex items-center justify-center w-9 h-9 rounded-xl transition-all border',
+                  isFavorite ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-white/[0.05] border-white/[0.10] text-white/50 hover:text-red-400')}>
+                <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
+              </button>
+              <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent("Hi, I'm interested in: " + title)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-sm font-bold hover:bg-[#1fb659] transition-all duration-200 shadow-[0_4px_16px_rgba(37,211,102,0.35)]">
+                <Phone className="w-4 h-4" /> Contact Seller
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -515,25 +523,45 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
             {/* RIGHT SIDEBAR */}
             <div className="space-y-5 xl:sticky xl:top-[86px] xl:self-start">
-              <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-[#c9a84c]/15 p-6">
-                <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums mb-1">
-                  {fmtPrice(listing.price, listing.currency)}
+              <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-[#c9a84c]/20 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+                {/* Price + negotiable */}
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">Asking Price</p>
+                  <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">
+                    {fmtPrice(listing.price, listing.currency)}
+                  </div>
+                  {listing.negotiable && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <p className="text-xs text-emerald-400 font-semibold">Open to negotiation</p>
+                    </div>
+                  )}
                 </div>
-                {listing.negotiable && <p className="text-xs text-white/40 mb-4">Price is negotiable</p>}
-                <div className="space-y-2.5 mt-4">
+
+                {/* View count urgency signal */}
+                {listing.views > 50 && (
+                  <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <Eye className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <p className="text-xs text-amber-300 font-semibold">
+                      {fmtNum(listing.views)} people viewed this listing
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2.5">
                   <a href={`https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent("Hi, I'm interested in: " + title)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] hover:-translate-y-0.5">
+                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] hover:-translate-y-0.5 active:translate-y-0">
                     <MessageCircle className="w-5 h-5" /> WhatsApp Seller
                   </a>
-                  <button className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm hover:bg-white/[0.10] transition-all duration-200">
+                  <button className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm hover:bg-white/[0.10] hover:-translate-y-0.5 transition-all duration-200">
                     <Phone className="w-5 h-5" /> Call Seller
                   </button>
                   <button onClick={toggleFavorite}
-                    className={cn('flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-200',
-                      isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-red-400 hover:border-red-500/30')}>
-                    <Heart className={cn('w-5 h-5 transition-all', isFavorite && 'fill-current')} />
-                    {isFavorite ? 'Saved to Favorites' : 'Save to Favorites'}
+                    className={cn('flex items-center justify-center gap-2.5 w-full py-3 rounded-2xl text-sm font-semibold transition-all duration-200',
+                      isFavorite ? 'bg-red-500/20 border border-red-500/40 text-red-400' : 'bg-white/[0.04] border border-white/[0.06] text-white/40 hover:text-red-400 hover:border-red-500/30')}>
+                    <Heart className={cn('w-4 h-4 transition-all', isFavorite && 'fill-current')} />
+                    {isFavorite ? '♥ Saved to Favorites' : 'Save to Favorites'}
                   </button>
                 </div>
               </div>

@@ -444,8 +444,19 @@ export function CarsMarketplaceClient({
             سەیارەکان / <span className="text-[var(--gold)]">Cars</span>
           </h1>
           <p className="text-white/45 text-sm">
-            {cars.length.toLocaleString()}+ verified listings across Iraq, Kurdistan & UAE
+            <strong className="text-white/70">{cars.length.toLocaleString()}+</strong> verified listings across Iraq · Kurdistan · UAE · China
           </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {['New Arrivals', 'Under $20k', 'Luxury', 'Electric', '4×4'].map(tag => (
+              <button key={tag}
+                className="px-3 py-1 rounded-full text-xs font-semibold
+                           bg-white/[0.06] border border-white/[0.10] text-white/50
+                           hover:bg-[rgba(201,168,76,0.12)] hover:border-[rgba(201,168,76,0.35)] hover:text-[#c9a84c]
+                           transition-all duration-200">
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -540,11 +551,27 @@ export function CarsMarketplaceClient({
                 {Array.from({ length: 9 }).map((_, i) => <SkeletonCard key={i}/>)}
               </div>
             ) : cars.length === 0 ? (
-              <div className="text-center py-24">
-                <div className="text-6xl mb-4">🚗</div>
-                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No cars found</h3>
-                <p className="text-[var(--text-muted)] mb-6">Try adjusting your filters</p>
-                <button onClick={resetAll} className="btn-ghost">Clear Filters</button>
+              <div className="text-center py-20 rounded-3xl border-2 border-dashed border-[var(--border-default)]">
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No cars match your filters</h3>
+                <p className="text-[var(--text-muted)] mb-6 max-w-xs mx-auto text-sm">
+                  Try removing some filters or broadening your search to see more results.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                  {['Toyota', 'BMW', 'Erbil', 'New', 'Under $30k'].map(s => (
+                    <button key={s}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold
+                                 bg-[var(--gold-subtle)] text-[var(--gold)] border border-[var(--border-gold)]
+                                 hover:bg-[#c9a84c]/20 transition-colors">
+                      Try: {s}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={resetAll}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
+                             bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a] transition-all">
+                  Clear All Filters
+                </button>
               </div>
             ) : (
               <div className={view === 'grid'
