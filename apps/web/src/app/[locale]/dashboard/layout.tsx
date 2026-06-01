@@ -194,8 +194,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const pageTitle = pathname.split('/').pop()?.replace(/-/g, ' ') ?? 'Dashboard';
-  const title = pageTitle.charAt(0).toUpperCase() + pageTitle.slice(1);
+  const PAGE_TITLES: Record<string, string> = {
+    dashboard:    'Dashboard',
+    listings:     'My Listings',
+    messages:     'Messages',
+    favorites:    'Favorites',
+    notifications:'Notifications',
+    profile:      'Profile',
+    reviews:      'Reviews',
+    subscription: 'Subscription',
+    leads:        'Leads',
+    settings:     'Settings',
+  };
+  const pageSlug = pathname.split('/').pop() ?? 'dashboard';
+  const title = PAGE_TITLES[pageSlug] ?? pageSlug.charAt(0).toUpperCase() + pageSlug.slice(1);
 
   return (
     <div className="min-h-screen bg-[#050b14]">
