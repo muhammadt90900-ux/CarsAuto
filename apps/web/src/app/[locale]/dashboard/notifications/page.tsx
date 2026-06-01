@@ -53,7 +53,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#e94560] hover:text-[#d63d57] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c] hover:text-[#d4b45a] transition-colors"
             >
               <Check className="w-3.5 h-3.5" aria-hidden />
               {t('markAllRead')}
