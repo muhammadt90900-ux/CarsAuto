@@ -7,6 +7,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { buildVerificationEmail } from './templates/verification.template';
 
 const MAX_RETRIES    = 3;
 const RETRY_DELAY_MS = 1_000;
@@ -101,6 +102,25 @@ export class EmailService implements OnModuleInit {
         </div>
       `,
       text: `Your OTP: ${code}`,
+    });
+  }
+
+  async sendVerificationEmail(options: {
+    to: string;
+    userName: string;
+    verificationUrl: string;
+    expiresInHours: number;
+  }): Promise<void> {
+    const { html, text } = buildVerificationEmail({
+      userName: options.userName,
+      verificationUrl: options.verificationUrl,
+      expiresInHours: options.expiresInHours,
+    });
+    await this.sendMail({
+      to:      options.to,
+      subject: 'پشتڕاستکردنەوەی ئیمەیڵ / Verify your Cars Auto email',
+      html,
+      text,
     });
   }
 }
