@@ -154,7 +154,28 @@ export default function MessagesPage() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-gray-100 dark:border-white/[0.07]">
+          <div className="px-3 pt-2 pb-0.5 border-t border-gray-100 dark:border-white/[0.07]">
+            {/* Quick reply suggestions */}
+            <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-1">
+              {[
+                'Is it still available?',
+                'Can you lower the price?',
+                "I'll visit tomorrow",
+                'Send me more photos',
+              ].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setInput(r)}
+                  className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium
+                             border border-gray-200 dark:border-white/10
+                             text-gray-600 dark:text-white/50
+                             hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
+                             transition-all duration-150"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <button aria-label="Attach file" className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors flex-shrink-0">
                 <Paperclip className="w-4 h-4" aria-hidden />
