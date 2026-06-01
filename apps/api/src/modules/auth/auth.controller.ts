@@ -4,11 +4,13 @@ import {
   Controller,
   Post,
   Get,
+  Query,
   Req,
   Res,
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request, Response } from 'express';
@@ -77,6 +79,37 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@Req() req: Request) {
     return (req as any).user;
+  }
+
+  // ── Verify Email ──────────────────────────────────────────────────────────
+  /**
+   * GET /auth/verify-email?token=<raw_token>
+   *
+   * Called when the user clicks the link in their verification email.
+   * Public endpoint — no authentication required.
+   */
+  @Get('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Query('token') token: string) {
+    if (!token || typeof token !== 'string' || token.length < 16) {
+      throw new BadRequestException('Missing or malformed verification token');
+    }
+    return this.authService.verifyEmail(token);
+  }
+
+  // ── Resend Verification Email ─────────────────────────────────────────────
+  /**
+   * POST /auth/resend-verification
+   *
+   * Authenticated endpoint — re-sends the verification email for the
+   * currently logged-in user. Replaces any existing pending token.
+   */
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async resendVerification(@Req() req: Request) {
+    const user = (req as any).user as { userId: string };
+    return this.authService.resendVerificationEmail(user.userId);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
