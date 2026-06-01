@@ -366,6 +366,21 @@ export function HeroSearch() {
           ))}
         </div>
 
+        {/* Quick category filters below tabs */}
+        <div className="flex flex-wrap gap-2 justify-center mb-5 hero-line-3">
+          {['New', 'Used', 'Electric', 'Under $20k', 'Luxury', '4×4'].map(tag => (
+            <button
+              key={tag}
+              className="px-3 py-1 rounded-full text-[11px] font-semibold
+                         bg-white/[0.05] border border-white/[0.10] text-white/45
+                         hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/30 hover:text-[#c9a84c]
+                         transition-all duration-200"
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
         {/* ── Search Card ─────────────────────────────────────── */}
         <div
           className={`hero-card rounded-2xl border transition-all duration-350 overflow-visible
