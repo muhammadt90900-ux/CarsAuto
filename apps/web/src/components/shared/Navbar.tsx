@@ -1,15 +1,14 @@
 'use client';
-// components/shared/Navbar.tsx
-// Redesigned — Unified Premium Design System (Gold / Midnight Navy)
+// components/shared/Navbar.tsx — UX-Improved: better visual hierarchy, CTA prominence, sticky search
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus, Bell, ChevronDown } from 'lucide-react';
 
 /* ── Logo SVG ────────────────────────────────────────────────── */
 const CarLogoIcon = () => (
@@ -21,18 +20,20 @@ const CarLogoIcon = () => (
   </svg>
 );
 
-/* ── NavLink with gold underline animation ───────────────────── */
-function NavLink({ href, label }: { href: string; label: string }) {
+/* ── NavLink ─────────────────────────────────────────────────── */
+function NavLink({ href, label, active }: { href: string; label: string; active?: boolean }) {
   return (
     <Link
       href={href}
-      className="relative px-3 py-2 text-[0.78rem] font-semibold tracking-[0.08em] uppercase
-                 text-white/65 hover:text-white transition-colors duration-200 group"
+      className={`relative px-3 py-2 text-[0.78rem] font-semibold tracking-[0.08em] uppercase
+                 transition-colors duration-200 group
+                 ${active ? 'text-[#c9a84c]' : 'text-white/65 hover:text-white'}`}
     >
       {label}
-      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] rounded-full
+      <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full
                        bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a]
-                       transition-all duration-300 group-hover:w-4/5" />
+                       transition-all duration-300
+                       ${active ? 'w-4/5' : 'w-0 group-hover:w-4/5'}`} />
     </Link>
   );
 }
@@ -41,14 +42,17 @@ export function Navbar() {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
   const params = useParams();
+  const pathname = usePathname();
   const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? '');
   const isRTL = locale === 'ar' || locale === 'ku';
 
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
-  const [scrolled,   setScrolled]     = useState(false);
+  const [scrolled, setScrolled]       = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const searchRef   = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const mountedRef  = useRef(true);
 
   useEffect(() => {
@@ -56,14 +60,12 @@ export function Navbar() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  /* Scroll listener — reveals opaque bg after 60px */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Focus search input after drawer opens */
   useEffect(() => {
     if (searchOpen) {
       const id = requestAnimationFrame(() => {
@@ -73,32 +75,52 @@ export function Navbar() {
     }
   }, [searchOpen]);
 
-  /* Close mobile menu on resize */
   useEffect(() => {
     const close = () => { if (mountedRef.current) setMobileOpen(false); };
     window.addEventListener('resize', close);
     return () => window.removeEventListener('resize', close);
   }, []);
 
+  /* Close user menu on outside click */
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
   const navLinks = [
     { href: `/${locale}/cars`,        label: t('cars') },
     { href: `/${locale}/motorcycles`, label: t('motorcycles') },
     { href: `/${locale}/spare-parts`, label: t('spareParts') },
+    { href: `/${locale}/dealers`,     label: 'Dealers' },
   ];
 
-  /* Computed navbar classes */
   const navBg = scrolled
-    ? 'bg-[#070d18]/95 backdrop-blur-2xl shadow-[0_1px_0_rgba(201,168,76,0.15)]'
-    : 'bg-[#050b14]/80 backdrop-blur-md';
+    ? 'bg-[#070d18]/98 backdrop-blur-2xl shadow-[0_1px_0_rgba(201,168,76,0.15)]'
+    : 'bg-[#050b14]/85 backdrop-blur-md';
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
     <>
+      {/* ══ Top announcement bar ══════════════════════════════════ */}
+      <div className="hidden lg:flex items-center justify-center h-8 text-[10px] font-semibold tracking-widest uppercase
+                       text-[#c9a84c]/70 bg-[#030710] border-b border-[#c9a84c]/10">
+        <span>🏆 Iraq & Gulf's #1 Automotive Marketplace</span>
+        <span className="mx-4 text-white/10">|</span>
+        <span>24,000+ Listings · 1,200+ Dealers · 8 Cities</span>
+      </div>
+
       {/* ══ Main Navbar ══════════════════════════════════════════ */}
       <nav
         dir={isRTL ? 'rtl' : 'ltr'}
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${navBg}`}
+        className={`sticky top-0 inset-x-0 z-50 transition-all duration-300 ${navBg}`}
       >
-        {/* Animated gold top accent line */}
+        {/* Gold top accent line */}
         <div className="gold-line h-[2px] w-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -131,7 +153,9 @@ export function Navbar() {
 
             {/* ── Desktop nav links ─────────────────────────────── */}
             <div className="hidden md:flex items-center">
-              {navLinks.map(l => <NavLink key={l.href} {...l} />)}
+              {navLinks.map(l => (
+                <NavLink key={l.href} {...l} active={isActive(l.href)} />
+              ))}
             </div>
 
             {/* ── Desktop search ───────────────────────────────── */}
@@ -181,25 +205,75 @@ export function Navbar() {
                 <ThemeToggle />
               </div>
 
+              {/* Sell CTA — prominent, desktop */}
+              <Link
+                href={`/${locale}/dashboard/listings`}
+                className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
+                           text-xs font-bold rounded-lg
+                           bg-[#c9a84c]/15 border border-[#c9a84c]/35
+                           text-[#c9a84c] hover:bg-[#c9a84c]/25 hover:border-[#c9a84c]/60
+                           transition-all duration-200"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Sell
+              </Link>
+
               {/* Auth buttons — desktop */}
               <div className="hidden md:flex items-center gap-2">
                 {user ? (
-                  <>
-                    <Link
-                      href={`/${locale}/dashboard`}
-                      className="text-[0.78rem] font-semibold tracking-wide text-white/65
-                                 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.08]
-                                 transition-all duration-200"
-                    >
-                      {t('dashboard')}
-                    </Link>
+                  <div ref={userMenuRef} className="relative">
                     <button
-                      onClick={logout}
-                      className="btn-gold h-8 px-4 text-xs rounded-lg"
+                      onClick={() => setUserMenuOpen(v => !v)}
+                      className="flex items-center gap-2 h-8 px-3 rounded-lg
+                                 text-xs font-semibold text-white/70 hover:text-white
+                                 hover:bg-white/[0.08] transition-all duration-200"
                     >
-                      {t('logout')}
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+                                      flex items-center justify-center text-[10px] font-black text-[#030710]">
+                        {user.name?.[0]?.toUpperCase() ?? 'U'}
+                      </div>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                  </>
+
+                    {userMenuOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-52 rounded-2xl
+                                      bg-[#0b1525] border border-white/[0.08]
+                                      shadow-[0_16px_48px_rgba(0,0,0,0.7)]
+                                      overflow-hidden z-50">
+                        <div className="px-4 py-3 border-b border-white/[0.06]">
+                          <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                          <p className="text-[10px] text-white/35 truncate">{user.email}</p>
+                        </div>
+                        <div className="p-2 space-y-0.5">
+                          <Link href={`/${locale}/dashboard`} onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                                       hover:bg-white/[0.07] hover:text-white transition-all">
+                            Dashboard
+                          </Link>
+                          <Link href={`/${locale}/dashboard/listings`} onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                                       hover:bg-white/[0.07] hover:text-white transition-all">
+                            My Listings
+                          </Link>
+                          <Link href={`/${locale}/dashboard/notifications`} onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                                       hover:bg-white/[0.07] hover:text-white transition-all">
+                            Notifications
+                            <span className="px-1.5 py-0.5 rounded-full bg-[#e94560] text-[9px] font-bold text-white">5</span>
+                          </Link>
+                        </div>
+                        <div className="p-2 border-t border-white/[0.06]">
+                          <button
+                            onClick={() => { logout(); setUserMenuOpen(false); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs
+                                       text-red-400 hover:bg-red-500/10 transition-all text-left"
+                          >
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <Link
@@ -283,17 +357,32 @@ export function Navbar() {
                       : '-top-full opacity-0 pointer-events-none'}`}
       >
         <div className="px-4 py-5 flex flex-col gap-1">
+          {/* Sell CTA — mobile prominent */}
+          <Link
+            href={`/${locale}/dashboard/listings`}
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
+                       bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]
+                       text-sm font-bold transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Sell Your Car
+          </Link>
+
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-sm font-semibold text-white/65 hover:text-white
-                          hover:bg-white/[0.07] transition-all duration-200
+                          text-sm font-semibold transition-all duration-200
+                          ${isActive(href)
+                            ? 'bg-[#c9a84c]/10 text-[#c9a84c]'
+                            : 'text-white/65 hover:text-white hover:bg-white/[0.07]'}
                           ${isRTL ? 'flex-row-reverse' : ''}`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] opacity-70 flex-shrink-0" />
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0
+                                ${isActive(href) ? 'bg-[#c9a84c]' : 'bg-[#c9a84c] opacity-70'}`} />
               {label}
             </Link>
           ))}
@@ -321,9 +410,11 @@ export function Navbar() {
                 </Link>
                 <button
                   onClick={() => { logout(); setMobileOpen(false); }}
-                  className="btn-gold w-full h-11 text-sm rounded-xl"
+                  className="w-full h-11 text-sm font-semibold rounded-xl
+                             border border-red-500/20 text-red-400 hover:bg-red-500/10
+                             transition-all"
                 >
-                  {t('logout')}
+                  Sign out
                 </button>
               </>
             ) : (
@@ -345,7 +436,7 @@ export function Navbar() {
                   className="btn-gold inline-flex items-center justify-center w-full h-11
                              text-sm rounded-xl"
                 >
-                  {t('register')}
+                  {t('register')} — It's free
                 </Link>
               </>
             )}
