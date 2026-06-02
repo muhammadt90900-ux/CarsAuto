@@ -1,10 +1,15 @@
 // apps/api/src/modules/search/search.controller.ts
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { SearchService } from './search.service';
+import { SearchProtectionService } from '../../common/throttler/search-protection.service';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(
+    private readonly searchService: SearchService,
+    private readonly searchProtection: SearchProtectionService,
+  ) {}
 
   /**
    * GET /search
@@ -51,10 +56,22 @@ export class SearchController {
     @Query('maxMileage')   maxMileage:   string,
     @Query('page')         page:         string,
     @Query('limit')        limit:        string,
+    @Req() req: Request,
   ) {
-    const parsedLimit = Math.min(Number(limit ?? 20), 100);
+    // ── Abuse prevention ────────────────────────────────────────────────────
+    const ip = this.extractIp(req);
+    this.searchProtection.checkSearchRate(ip);
 
-    return this.searchService.search(q ?? '', {
+    // Validate & sanitise free-text query
+    const safeQuery = this.searchProtection.validateQuery(q);
+
+    // Validate pagination — prevents deep-scan attacks
+    const { page: safePage, limit: safeLimit } = this.searchProtection.validatePagination(
+      Number(page ?? 1),
+      Number(limit ?? 20),
+    );
+
+    return this.searchService.search(safeQuery, {
       type,
       brandId,
       modelId,
@@ -71,8 +88,8 @@ export class SearchController {
       color,
       minMileage,
       maxMileage,
-      page:  Number(page ?? 1),
-      limit: parsedLimit,
+      page:  safePage,
+      limit: safeLimit,
     });
   }
 
@@ -81,7 +98,24 @@ export class SearchController {
    * Returns up to 6 title suggestions for the search input dropdown.
    */
   @Get('autocomplete')
-  autocomplete(@Query('q') q: string) {
-    return this.searchService.autocomplete(q);
+  autocomplete(@Query('q') q: string, @Req() req: Request) {
+    // ── Abuse prevention ────────────────────────────────────────────────────
+    const ip = this.extractIp(req);
+    this.searchProtection.checkAutocompleteRate(ip);
+
+    const safeQuery = this.searchProtection.validateQuery(q);
+    return this.searchService.autocomplete(safeQuery);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  private extractIp(req: Request): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      return (Array.isArray(forwarded) ? forwarded[0] : forwarded)
+        .split(',')[0]
+        .trim();
+    }
+    return req.socket?.remoteAddress ?? req.ip ?? 'unknown';
   }
 }
