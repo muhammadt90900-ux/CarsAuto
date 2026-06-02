@@ -18,6 +18,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { AppCacheModule } from './common/cache/cache.module';
 import { DealersModule } from './modules/dealers/dealers.module';
 import { TokenCleanupTask } from './common/tasks/token-cleanup.task';
+import { UploadModule } from './common/upload/upload.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { TokenCleanupTask } from './common/tasks/token-cleanup.task';
     SearchModule,
     VehiclesModule,
     DealersModule,
+    UploadModule,
   ],
   providers: [TokenCleanupTask],
 })

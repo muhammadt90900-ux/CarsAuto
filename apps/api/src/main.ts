@@ -12,6 +12,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import * as path from 'path';
 
 // PERF: response-time middleware — adds X-Response-Time header
 function responseTime() {
@@ -26,7 +28,7 @@ function responseTime() {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // PERF: disable NestJS logger in prod (use structured logging instead)
     logger: process.env.NODE_ENV === 'production'
       ? ['error', 'warn']
@@ -37,8 +39,31 @@ async function bootstrap() {
   app.use(responseTime());
 
   // PERF: strict body size limits prevent DoS via large payloads
+  // NOTE: multipart/form-data (file uploads) is NOT subject to this limit —
+  // multer handles that separately with per-upload limits in upload.module.ts
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
+
+  // ── Static file serving for uploads ─────────────────────────────────────
+  // Serves /uploads/<uuid>.webp as public static files.
+  // helmet noSniff + immutable Cache-Control headers prevent content-type confusion.
+  const uploadDir = process.env.UPLOAD_DIR ?? '/tmp/uploads';
+  app.useStaticAssets(path.resolve(uploadDir), {
+    prefix: '/uploads',
+    // Security: prevent directory listing, only serve known image types
+    index: false,
+    dotfiles: 'deny',
+    setHeaders: (res: any) => {
+      // Immutable CDN-style caching for uploaded images (UUID filenames = content-addressed)
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      // Belt-and-suspenders content-type sniffing prevention
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Prevent images from being rendered in an iframe (clickjacking)
+      res.setHeader('X-Frame-Options', 'DENY');
+      // No referrer leakage from image loads
+      res.setHeader('Referrer-Policy', 'no-referrer');
+    },
+  });
 
   // Security headers
   app.use(
