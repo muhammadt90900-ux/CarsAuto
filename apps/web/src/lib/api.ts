@@ -203,6 +203,27 @@ export const authApi = {
     const res = await api.get<AuthUser>('/auth/me');
     return res.data;
   },
+
+  /**
+   * Step 1: request a reset link. Always resolves — server never reveals
+   * whether the email is registered (enumeration protection).
+   */
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>('/auth/forgot-password', { email });
+    return res.data;
+  },
+
+  /**
+   * Step 2: submit the token from the reset link + the new password.
+   * On success the caller should redirect to /login.
+   */
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>('/auth/reset-password', {
+      token,
+      newPassword,
+    });
+    return res.data;
+  },
 };
 
 // ── Listings API ───────────────────────────────────────────────────────────
