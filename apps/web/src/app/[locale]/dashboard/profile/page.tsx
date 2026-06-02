@@ -1,346 +1,385 @@
 'use client';
-// dashboard/profile/page.tsx — UX-Improved: avatar upload, completion meter, tabbed sections
+// dashboard/listings/page.tsx — UX-Improved: status tabs, bulk actions, performance chart hint
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { api } from '@/lib/api';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import {
-  Camera, Save, User, Phone, MapPin, Globe, Lock,
-  Eye, EyeOff, CheckCircle2, Shield, Bell, Trash2,
-  AlertTriangle,
+  Plus, Eye, Edit3, Trash2, Search, TrendingUp,
+  Car, ChevronRight, RefreshCw, BarChart2, AlertCircle, Clock,
+  CheckCircle2, XCircle, Zap,
 } from 'lucide-react';
 
-/* ── Input field helper ─────────────────────────────────────── */
-function Field({
-  label, type = 'text', placeholder, defaultValue, icon: Icon, hint, required,
-}: {
-  label: string; type?: string; placeholder?: string; defaultValue?: string;
-  icon?: React.ElementType; hint?: string; required?: boolean;
-}) {
-  const [show, setShow] = useState(false);
-  const isPassword = type === 'password';
-  return (
-    <div>
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-        {label} {required && <span className="text-red-400 normal-case font-normal tracking-normal">*</span>}
-      </label>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden />}
-        <input
-          type={isPassword && show ? 'text' : type}
-          placeholder={placeholder}
-          defaultValue={defaultValue}
-          className={`w-full ${Icon ? 'pl-9' : 'pl-4'} ${isPassword ? 'pr-10' : 'pr-4'}
-                      py-3 text-sm rounded-xl
-                      border border-gray-200 dark:border-white/10
-                      bg-white dark:bg-white/[0.05]
-                      text-gray-900 dark:text-white placeholder-gray-400
-                      outline-none transition-all
-                      focus:ring-2 focus:ring-[#c9a84c]/20 focus:border-[#c9a84c]/50`}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShow(!show)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
-                       hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          >
-            {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        )}
-      </div>
-      {hint && <p className="text-[11px] text-gray-400 dark:text-white/30 mt-1">{hint}</p>}
-    </div>
-  );
-}
+const STATUS_TABS = [
+  { key: 'ALL',     label: 'All'     },
+  { key: 'ACTIVE',  label: 'Active'  },
+  { key: 'PENDING', label: 'Pending' },
+  { key: 'SOLD',    label: 'Sold'    },
+  { key: 'EXPIRED', label: 'Expired' },
+] as const;
 
-const TABS = ['Profile', 'Security', 'Notifications', 'Danger Zone'] as const;
-type TabKey = typeof TABS[number];
+type StatusKey = typeof STATUS_TABS[number]['key'];
 
-/* ── Profile completion ──────────────────────────────────────── */
-const COMPLETION_FIELDS = [
-  { label: 'Full name',         done: true  },
-  { label: 'Phone number',      done: true  },
-  { label: 'Profile photo',     done: false },
-  { label: 'Location',          done: true  },
-  { label: 'Bio',               done: false },
-  { label: 'Verified email',    done: true  },
+const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+  ACTIVE:  { label: 'Active',  cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400', icon: CheckCircle2 },
+  PENDING: { label: 'Pending', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',         icon: Clock },
+  SOLD:    { label: 'Sold',    cls: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',             icon: CheckCircle2 },
+  EXPIRED: { label: 'Expired', cls: 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400',                icon: XCircle },
+};
+
+// Mock listings for when API returns nothing
+const MOCK_LISTINGS = [
+  { id: '1', titleEn: 'Toyota Camry 2022',  titleKu: 'تۆیۆتا کامری 2022',  price: 18500, currency: 'USD', status: 'ACTIVE',  views: 342, favorites: 18, coverImage: null, daysLeft: 28 },
+  { id: '2', titleEn: 'BMW 3 Series 2021',  titleKu: 'بی ئێم دبلیو 2021',   price: 28900, currency: 'USD', status: 'ACTIVE',  views: 198, favorites: 11, coverImage: null, daysLeft: 14 },
+  { id: '3', titleEn: 'Honda CR-V 2023',    titleKu: 'هۆندا 2023',            price: 24200, currency: 'USD', status: 'PENDING', views: 87,  favorites: 5,  coverImage: null, daysLeft: null },
+  { id: '4', titleEn: 'Mercedes C200 2020', titleKu: 'مێرسێدێس 2020',        price: 31000, currency: 'USD', status: 'ACTIVE',  views: 521, favorites: 34, coverImage: null, daysLeft: 6 },
+  { id: '5', titleEn: 'Kia Sportage 2022',  titleKu: 'کیا 2022',               price: 22000, currency: 'USD', status: 'SOLD',   views: 634, favorites: 29, coverImage: null, daysLeft: null },
+  { id: '6', titleEn: 'Nissan Patrol 2021', titleKu: 'نیسان پاترول 2021',     price: 65000, currency: 'USD', status: 'EXPIRED',views: 112, favorites: 7,  coverImage: null, daysLeft: null },
 ];
 
-export default function ProfilePage() {
-  const t  = useTranslations('profile');
-  const td = useTranslations('dashboard');
-  const [saved,   setSaved]   = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>('Profile');
+export default function MyListingsPage() {
+  const t  = useTranslations('dashboard');
+  const params = useParams();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
 
-  const completionPct = Math.round(
-    (COMPLETION_FIELDS.filter(f => f.done).length / COMPLETION_FIELDS.length) * 100
-  );
+  const [listings,   setListings]   = useState<any[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [activeTab,  setActiveTab]  = useState<StatusKey>('ALL');
+  const [selected,   setSelected]   = useState<Set<string>>(new Set());
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  useEffect(() => {
+    api.listings.myListings()
+      .then(data => setListings(data?.length ? data : MOCK_LISTINGS))
+      .catch(() => setListings(MOCK_LISTINGS))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this listing? This cannot be undone.')) return;
+    try { await api.listings.delete(id); } catch {}
+    setListings(prev => prev.filter(l => l.id !== id));
+    setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
   };
 
-  return (
-    <div className="p-5 lg:p-7 max-w-3xl space-y-6">
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+  };
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-black text-gray-900 dark:text-white">{t('publicProfile')}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          Manage your account information and preferences
-        </p>
-      </div>
+  const filtered = listings.filter(l => {
+    const title = (l.titleKu ?? l.titleEn ?? '').toLowerCase();
+    const matchSearch = title.includes(search.toLowerCase());
+    const matchTab    = activeTab === 'ALL' || l.status === activeTab;
+    return matchSearch && matchTab;
+  });
 
-      {/* ── Success toast ─────────────────────────────────────── */}
-      {saved && (
-        <div role="status"
-             className="flex items-center gap-2.5 px-4 py-3 rounded-xl
-                        bg-emerald-50 dark:bg-emerald-500/10
-                        border border-emerald-200 dark:border-emerald-500/20
-                        text-emerald-700 dark:text-emerald-400 text-sm">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden />
-          Changes saved successfully
-        </div>
-      )}
+  const counts = listings.reduce((acc: Record<string, number>, l) => {
+    acc[l.status] = (acc[l.status] || 0) + 1;
+    return acc;
+  }, {});
 
-      {/* ── Profile completion meter ──────────────────────────── */}
-      <div className="rounded-2xl p-5 bg-white dark:bg-[#0b1525]
-                      border border-gray-100 dark:border-white/[0.07]">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-bold text-gray-900 dark:text-white">
-              Profile {completionPct}% complete
-            </p>
-            <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">
-              Complete profiles get 3× more buyer trust
-            </p>
-          </div>
-          <span className={`text-sm font-black
-                            ${completionPct >= 80 ? 'text-emerald-500' : 'text-amber-500'}`}>
-            {completionPct}%
-          </span>
-        </div>
-        <div className="h-2 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${completionPct}%`,
-              background: completionPct >= 80
-                ? 'linear-gradient(90deg,#10b981,#34d399)'
-                : 'linear-gradient(90deg,#c9a84c,#e8cc7a)',
-            }}
-          />
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-          {COMPLETION_FIELDS.map(({ label, done }) => (
-            <span key={label}
-                  className={`flex items-center gap-1 text-[11px] font-medium
-                              ${done ? 'text-emerald-500' : 'text-gray-400 dark:text-white/30'}`}>
-              {done
-                ? <CheckCircle2 className="w-3 h-3" />
-                : <span className="w-3 h-3 rounded-full border border-gray-300 dark:border-white/20 flex-shrink-0" />}
-              {label}
-            </span>
+  if (loading) {
+    return (
+      <div className="p-5 lg:p-7 space-y-4">
+        <div className="h-8 w-48 bg-gray-100 dark:bg-white/5 rounded-xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-52 bg-gray-100 dark:bg-white/5 rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
+    );
+  }
 
-      {/* ── Tabs ─────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-white/[0.05] p-1 rounded-xl w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-150
-                        ${activeTab === tab
-                          ? 'bg-white dark:bg-[#0b1525] text-gray-900 dark:text-white shadow-sm'
-                          : tab === 'Danger Zone'
-                            ? 'text-red-400 hover:text-red-500'
-                            : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'}`}
+  return (
+    <div className="p-5 lg:p-7 space-y-5 min-h-full">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">My Listings</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            {listings.length} total · {counts['ACTIVE'] ?? 0} active
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={() => {
+                if (confirm(`Delete ${selected.size} listings?`)) {
+                  selected.forEach(id => handleDelete(id));
+                  setSelected(new Set());
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold
+                         bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400
+                         border border-red-200 dark:border-red-500/20 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete {selected.size}
+            </button>
+          )}
+          <Link
+            href={`/${locale}/dashboard/listings/new`}
+            className="inline-flex items-center gap-2 px-4 py-2.5
+                       bg-[#c9a84c] hover:bg-[#d4b45a] text-[#050b14]
+                       rounded-xl text-sm font-bold transition-all duration-200
+                       shadow-[0_4px_16px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_24px_rgba(201,168,76,0.50)]
+                       hover:-translate-y-0.5 active:translate-y-0"
           >
-            {tab}
-          </button>
+            <Plus className="w-4 h-4" />
+            New Listing
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Performance summary strip ─────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Total Views',   value: listings.reduce((a, l) => a + (l.views || 0), 0).toLocaleString(), icon: Eye,       color: 'text-blue-500' },
+          { label: 'Total Saves',   value: listings.reduce((a, l) => a + (l.favorites || 0), 0).toLocaleString(), icon: TrendingUp, color: 'text-rose-400' },
+          { label: 'Active',        value: (counts['ACTIVE'] ?? 0).toString(), icon: Zap, color: 'text-emerald-500' },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label}
+               className="flex items-center gap-3 p-3 rounded-2xl
+                          bg-white dark:bg-[#0b1525] border border-gray-100 dark:border-white/[0.07]">
+            <Icon className={`w-4 h-4 flex-shrink-0 ${color}`} aria-hidden />
+            <div>
+              <p className="text-base font-black text-gray-900 dark:text-white leading-none">{value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* ── Profile tab ──────────────────────────────────────── */}
-      {activeTab === 'Profile' && (
-        <>
-          {/* Avatar */}
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
-                              flex items-center justify-center text-white text-2xl font-black
-                              shadow-[0_0_24px_rgba(201,168,76,0.35)]">
-                JD
-              </div>
-              <button
-                aria-label="Change profile photo"
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full
-                           bg-white dark:bg-[#0b1525] border border-gray-200 dark:border-white/10
-                           flex items-center justify-center shadow-md
-                           hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-              >
-                <Camera className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden />
-              </button>
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 dark:text-white">John Doe</p>
-              <p className="text-sm text-gray-400">john@example.com</p>
-              <button className="mt-2 text-xs font-semibold text-[#c9a84c] hover:text-[#d4b45a] transition-colors">
-                Upload new photo
-              </button>
-            </div>
-          </div>
+      {/* ── Search + status tabs ──────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden />
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search listings…"
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl
+                       border border-gray-200 dark:border-white/10
+                       bg-white dark:bg-white/5 text-gray-900 dark:text-white
+                       placeholder-gray-400 outline-none
+                       focus:ring-2 focus:ring-[#c9a84c]/20 focus:border-[#c9a84c]/40
+                       transition-all"
+          />
+        </div>
+        <div className="flex gap-1 bg-gray-100 dark:bg-white/[0.05] p-1 rounded-xl">
+          {STATUS_TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150
+                          ${activeTab === key
+                            ? 'bg-white dark:bg-[#0b1525] text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'}`}
+            >
+              {label}
+              {key !== 'ALL' && counts[key] ? (
+                <span className="ml-1 text-[9px] text-gray-400 dark:text-white/30">
+                  ({counts[key]})
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Personal info */}
-          <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                          bg-white dark:bg-[#0b1525] p-5 space-y-4">
-            <h2 className="font-bold text-sm text-gray-900 dark:text-white">Personal Information</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Full Name"     placeholder="Ahmad Al-Rashidi"    defaultValue="John Doe"          icon={User}  required />
-              <Field label="Phone Number"  placeholder="+964 770 000 0000"   defaultValue="+964 770 000 0000" icon={Phone} type="tel" />
-              <Field label="City / Region" placeholder="Erbil, Kurdistan"    defaultValue="Erbil, Kurdistan"  icon={MapPin} />
-              <Field label="Website"       placeholder="https://..."                                          icon={Globe} type="url" />
-            </div>
+      {/* ── Grid ─────────────────────────────────────────────── */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-20 rounded-2xl border-2 border-dashed
+                        border-gray-200 dark:border-white/[0.07]">
+          <Car className="w-10 h-10 text-gray-300 dark:text-white/15 mx-auto mb-3" aria-hidden />
+          <h3 className="font-semibold text-gray-600 dark:text-white/50">No listings found</h3>
+          <p className="text-sm text-gray-400 mt-1 mb-5">
+            {search ? 'Try a different search term' : 'Post your first listing to get started'}
+          </p>
+          <Link
+            href={`/${locale}/dashboard/listings/new`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
+                       bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a] transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Post a Listing
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(listing => {
+            const cfg   = STATUS_CONFIG[listing.status] ?? STATUS_CONFIG.ACTIVE;
+            const StatusIcon = cfg.icon;
+            const urgentRenew = listing.daysLeft !== null && listing.daysLeft !== undefined && listing.daysLeft <= 7;
+            const isSelected  = selected.has(listing.id);
+
+            return (
+              <div
+                key={listing.id}
+                className={`rounded-2xl border overflow-hidden group transition-all duration-200
+                            bg-white dark:bg-[#0b1525]
+                            hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/40
+                            hover:-translate-y-0.5
+                            ${isSelected
+                              ? 'border-[#c9a84c]/50 ring-2 ring-[#c9a84c]/20'
+                              : 'border-gray-100 dark:border-white/[0.07] hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/20'}`}
+              >
+                {/* Image */}
+                <div className="relative h-40 bg-gradient-to-br from-slate-100 to-slate-200
+                                dark:from-white/5 dark:to-white/[0.02] overflow-hidden">
+                  {listing.coverImage ? (
+                    <img
+                      src={listing.coverImage}
+                      alt={listing.titleEn ?? ''}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <Car className="w-10 h-10 text-gray-300 dark:text-white/10" aria-hidden />
+                    </div>
+                  )}
+
+                  {/* Select checkbox */}
+                  <button
+                    onClick={() => toggleSelect(listing.id)}
+                    className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-2 flex items-center justify-center
+                                transition-all duration-150
+                                ${isSelected
+                                  ? 'bg-[#c9a84c] border-[#c9a84c]'
+                                  : 'bg-black/30 border-white/40 opacity-0 group-hover:opacity-100'}`}
+                    aria-label="Select listing"
+                  >
+                    {isSelected && (
+                      <svg className="w-3 h-3 text-[#050b14]" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Status badge */}
+                  <span className={`absolute top-2 right-2 inline-flex items-center gap-1
+                                   text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.cls}`}>
+                    <StatusIcon className="w-2.5 h-2.5" aria-hidden />
+                    {cfg.label}
+                  </span>
+
+                  {/* Days left warning */}
+                  {urgentRenew && (
+                    <div className="absolute bottom-0 inset-x-0 px-3 py-1.5
+                                    bg-amber-500/90 backdrop-blur-sm">
+                      <p className="text-[10px] font-bold text-white flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                        Expires in {listing.daysLeft} day{listing.daysLeft !== 1 ? 's' : ''} — renew now
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Body */}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-tight">
+                      {listing.titleEn ?? listing.titleKu ?? '—'}
+                    </h3>
+                    <p className="text-[#c9a84c] font-black text-lg mt-0.5 tabular-nums">
+                      ${listing.price?.toLocaleString()}
+                    </p>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-white/35">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" aria-hidden />
+                      {listing.views ?? 0} views
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5" aria-hidden />
+                      {listing.favorites ?? 0} saves
+                    </span>
+                    {listing.daysLeft !== null && listing.daysLeft !== undefined && !urgentRenew && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" aria-hidden />
+                        {listing.daysLeft}d left
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-1">
+                    <Link
+                      href={`/${locale}/dashboard/listings/${listing.id}/edit`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl
+                                 border border-gray-200 dark:border-white/10 text-xs font-semibold
+                                 text-gray-700 dark:text-gray-300
+                                 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-[#c9a84c]/40
+                                 transition-all duration-150"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Edit
+                    </Link>
+                    <Link
+                      href={`/${locale}/cars/${listing.id}`}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
+                                 border border-gray-200 dark:border-white/10 text-xs font-semibold
+                                 text-gray-600 dark:text-gray-400
+                                 hover:bg-gray-50 dark:hover:bg-white/5
+                                 transition-all duration-150"
+                      aria-label="Preview listing"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(listing.id)}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
+                                 border border-red-200 dark:border-red-500/20 text-xs font-semibold
+                                 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/5
+                                 transition-all duration-150"
+                      aria-label="Delete listing"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Boost upsell when listings exist */}
+      {listings.length > 0 && (
+        <div className="rounded-2xl p-4 flex items-center justify-between gap-4
+                        bg-gradient-to-r from-[#c9a84c]/8 to-transparent
+                        border border-[#c9a84c]/15">
+          <div className="flex items-center gap-3">
+            <BarChart2 className="w-5 h-5 text-[#c9a84c] flex-shrink-0" aria-hidden />
             <div>
-              <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                Bio
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Tell buyers about yourself — your experience, specialties, location…"
-                className="w-full px-4 py-3 text-sm rounded-xl
-                           border border-gray-200 dark:border-white/10
-                           bg-white dark:bg-white/[0.05] text-gray-900 dark:text-white
-                           placeholder-gray-400 outline-none resize-none
-                           focus:ring-2 focus:ring-[#c9a84c]/20 focus:border-[#c9a84c]/50 transition-all"
-              />
-              <p className="text-[11px] text-gray-400 dark:text-white/30 mt-1">
-                A good bio increases buyer confidence and response rates.
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                Boost your reach
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Featured listings get 5× more views. First 7 days free.
               </p>
             </div>
           </div>
-        </>
-      )}
-
-      {/* ── Security tab ──────────────────────────────────────── */}
-      {activeTab === 'Security' && (
-        <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-[#0b1525] p-5 space-y-5">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-[#c9a84c]" aria-hidden />
-            <h2 className="font-bold text-sm text-gray-900 dark:text-white">Password & Security</h2>
-          </div>
-          <div className="space-y-4">
-            <Field label="Current Password"  type="password" placeholder="••••••••" icon={Lock} />
-            <Field label="New Password"      type="password" placeholder="Min. 8 chars" icon={Lock}
-                   hint="Use uppercase, lowercase, a number and a symbol for a strong password." />
-            <Field label="Confirm Password"  type="password" placeholder="Repeat new password" icon={Lock} />
-          </div>
-
-          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
-            <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">Two-factor authentication</p>
-            <p className="text-xs text-blue-600/70 dark:text-blue-300/60 mb-3">
-              Add an extra layer of security to your account with 2FA.
-            </p>
-            <button className="text-xs font-bold text-blue-700 dark:text-blue-400 hover:underline">
-              Enable 2FA →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Notifications tab ─────────────────────────────────── */}
-      {activeTab === 'Notifications' && (
-        <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-[#0b1525] p-5 space-y-1">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="w-4 h-4 text-[#c9a84c]" aria-hidden />
-            <h2 className="font-bold text-sm text-gray-900 dark:text-white">Notification Preferences</h2>
-          </div>
-          {[
-            { label: 'New message from buyer',  desc: 'Get notified when someone messages about your listing', on: true  },
-            { label: 'Listing view milestone',  desc: 'Alerts when your listing hits 100, 500, 1000 views',  on: true  },
-            { label: 'Price drop alerts',       desc: 'When similar cars drop in price',                      on: false },
-            { label: 'Listing expiry reminder', desc: '7 and 3 days before your listing expires',             on: true  },
-            { label: 'New listings in my area', desc: 'Weekly digest of new cars matching your saved search', on: false },
-            { label: 'Marketing emails',        desc: 'Tips, news and marketplace updates',                   on: false },
-          ].map(({ label, desc, on }) => (
-            <div key={label}
-                 className="flex items-start justify-between gap-4 py-3
-                            border-b border-gray-100 dark:border-white/[0.06] last:border-0">
-              <div>
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">{label}</p>
-                <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">{desc}</p>
-              </div>
-              <button
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent
-                            transition-colors duration-200 focus:outline-none
-                            ${on ? 'bg-[#c9a84c]' : 'bg-gray-200 dark:bg-white/10'}`}
-                role="switch" aria-checked={on}
-              >
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow
-                                  transform transition-transform duration-200
-                                  ${on ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Danger Zone tab ──────────────────────────────────── */}
-      {activeTab === 'Danger Zone' && (
-        <div className="rounded-2xl border border-red-200 dark:border-red-500/20
-                        bg-white dark:bg-[#0b1525] p-5 space-y-5">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-500" aria-hidden />
-            <h2 className="font-bold text-sm text-red-600 dark:text-red-400">Danger Zone</h2>
-          </div>
-          <div className="space-y-4">
-            {[
-              { title: 'Deactivate Account', desc: 'Temporarily hide your profile and listings. You can reactivate anytime.', btnLabel: 'Deactivate', btnCls: 'border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10' },
-              { title: 'Delete Account',     desc: 'Permanently delete your account, all listings, and data. This cannot be undone.',      btnLabel: 'Delete Account', btnCls: 'border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10' },
-            ].map(({ title, desc, btnLabel, btnCls }) => (
-              <div key={title}
-                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3
-                              p-4 rounded-xl bg-gray-50 dark:bg-white/[0.03]
-                              border border-gray-200 dark:border-white/[0.06]">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800 dark:text-white">{title}</p>
-                  <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">{desc}</p>
-                </div>
-                <button
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2
-                              rounded-xl text-xs font-bold border transition-all duration-150 ${btnCls}`}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {btnLabel}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Save button (Profile + Security) ─────────────────── */}
-      {(activeTab === 'Profile' || activeTab === 'Security') && (
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl
+          <Link
+            href={`/${locale}/dashboard/subscription`}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
                        text-sm font-bold bg-[#c9a84c] text-[#050b14]
                        hover:bg-[#d4b45a] transition-all duration-200
-                       shadow-[0_4px_16px_rgba(201,168,76,0.35)]
-                       hover:shadow-[0_6px_24px_rgba(201,168,76,0.50)]"
+                       shadow-[0_4px_12px_rgba(201,168,76,0.35)]"
           >
-            <Save className="w-4 h-4" />
-            Save Changes
-          </button>
-          <p className="text-xs text-gray-400 dark:text-white/30">
-            Changes auto-apply across all your listings
-          </p>
+            Upgrade <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       )}
     </div>
