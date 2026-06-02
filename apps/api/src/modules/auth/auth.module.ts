@@ -2,7 +2,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
+import { PassportModule } from '@nestjs/passport'
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -19,19 +19,21 @@ import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
+      imports:    [ConfigModule],
+      inject:     [ConfigService],
       useFactory: (cfg: ConfigService) => ({
-        secret: cfg.getOrThrow<string>('JWT_SECRET'),
+        secret:      cfg.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: cfg.get<string>('JWT_EXPIRES_IN', '15m'),
-          issuer: 'car-platform',
-          audience: 'car-platform-client',
+          issuer:    'car-platform',
+          audience:  'car-platform-client',
         },
       }),
     }),
 
-    // Auth endpoints: max 10 requests / 60s (stricter than global)
+    // Auth module throttle defaults — individual endpoints override via @Throttle().
+    // Forgot/reset endpoints apply THROTTLE_RESET_REQUEST / THROTTLE_RESET_CONFIRM
+    // defined in auth.controller.ts (5 or 10 req / 15 min per IP).
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
 
     UsersModule,
