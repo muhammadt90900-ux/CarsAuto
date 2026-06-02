@@ -79,10 +79,21 @@ export class CreateListingDto {
 
   @IsOptional() @IsString() @MaxLength(40) partNumber?: string;
 
-  // FIX: ArrayMaxSize(20) added — was unbounded, allowing thousands of image URLs
+  // SECURITY: Images must be uploaded first via POST /api/upload/images.
+  // The controller returns HTTPS URLs under the app's own domain.
+  // We validate: https-only, own origin prefix enforced server-side in service.
+  // ArrayMaxSize(20) prevents bulk-storage abuse.
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20, { message: 'Maximum 20 images allowed' })
-  @IsUrl({ protocols: ['https'], require_tld: true }, { each: true })
+  @IsUrl(
+    {
+      protocols: ['https'],
+      require_tld: true,
+      require_protocol: true,
+      allow_underscores: false,
+    },
+    { each: true, message: 'Each image must be a valid HTTPS URL' },
+  )
   images?: string[];
 }
