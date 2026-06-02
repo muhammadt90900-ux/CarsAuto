@@ -8,6 +8,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { buildVerificationEmail } from './templates/verification.template';
+import { buildPasswordResetEmail } from './templates/password-reset.template';
 
 const MAX_RETRIES    = 3;
 const RETRY_DELAY_MS = 1_000;
@@ -119,6 +120,28 @@ export class EmailService implements OnModuleInit {
     await this.sendMail({
       to:      options.to,
       subject: 'پشتڕاستکردنەوەی ئیمەیڵ / Verify your Cars Auto email',
+      html,
+      text,
+    });
+  }
+}
+
+  async sendPasswordResetEmail(options: {
+    to: string;
+    userName: string;
+    resetUrl: string;
+    expiresInMinutes: number;
+    ipAddress?: string;
+  }): Promise<void> {
+    const { html, text } = buildPasswordResetEmail({
+      userName: options.userName,
+      resetUrl: options.resetUrl,
+      expiresInMinutes: options.expiresInMinutes,
+      ipAddress: options.ipAddress,
+    });
+    await this.sendMail({
+      to:      options.to,
+      subject: '🔐 گۆڕینی پاسوۆرد / Reset your Cars Auto password',
       html,
       text,
     });
