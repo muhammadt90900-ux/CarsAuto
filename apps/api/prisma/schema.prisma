@@ -165,6 +165,8 @@ model User {
   reports                Report[]
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  auditLogs               AuditLog[]
   dealer                 Dealer?
   dealerReviews          DealerReview[]          @relation("DealerReviewer")
   messageReadReceipts    MessageReadReceipt[]
@@ -214,6 +216,47 @@ model EmailVerificationToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("email_verification_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASSWORD RESET TOKEN
+// One active token per user; old tokens replaced on re-request.
+// Token is single-use: consumed immediately on successful reset.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken) — never store raw
+  expiresAt DateTime
+  usedAt    DateTime? // set when consumed; token invalid after this
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOG
+// Append-only record of security-sensitive events.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid           // null for unauthenticated events
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String                      // e.g. "PASSWORD_RESET_REQUEST"
+  ipAddress String?
+  userAgent String?
+  meta      Json?                       // arbitrary extra context
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
