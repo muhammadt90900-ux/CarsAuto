@@ -1,9 +1,11 @@
 // apps/api/src/app.module.ts
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SecurityThrottlerModule } from './common/throttler/throttler.module';
+import { IpThrottleMiddleware }    from './common/throttler/ip-throttle.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ListingsModule } from './modules/listings/listings.module';
@@ -66,7 +68,15 @@ import { UploadModule } from './common/upload/upload.module';
     VehiclesModule,
     DealersModule,
     UploadModule,
+    SecurityThrottlerModule,
   ],
   providers: [TokenCleanupTask],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply IP throttle middleware to all routes.
+    // It runs before Guards so it catches requests even on unmatched routes.
+    consumer.apply(IpThrottleMiddleware).forRoutes('*');
+  }
+}
+
