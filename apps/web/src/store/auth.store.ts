@@ -15,6 +15,10 @@ interface AuthState {
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   setHydrated: () => void;
+  /** Step 1 — request a reset email. Always resolves (server hides enumeration). */
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+  /** Step 2 — submit token + new password. Rejects on invalid/expired token. */
+  resetPassword: (token: string, newPassword: string) => Promise<{ message: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -49,6 +53,14 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         await authApi.logout();
         set({ user: null });
+      },
+
+      forgotPassword: async (email) => {
+        return authApi.forgotPassword(email);
+      },
+
+      resetPassword: async (token, newPassword) => {
+        return authApi.resetPassword(token, newPassword);
       },
 
       loadUser: async () => {
