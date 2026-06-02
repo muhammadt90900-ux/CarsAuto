@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ListingsModule } from './modules/listings/listings.module';
@@ -16,6 +17,7 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { AppCacheModule } from './common/cache/cache.module';
 import { DealersModule } from './modules/dealers/dealers.module';
+import { TokenCleanupTask } from './common/tasks/token-cleanup.task';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { DealersModule } from './modules/dealers/dealers.module';
 
     AppCacheModule,
     PrismaModule,
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     ListingsModule,
@@ -62,5 +65,6 @@ import { DealersModule } from './modules/dealers/dealers.module';
     VehiclesModule,
     DealersModule,
   ],
+  providers: [TokenCleanupTask],
 })
 export class AppModule {}
