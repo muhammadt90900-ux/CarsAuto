@@ -12,6 +12,8 @@ import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { EmailService } from '../../common/email/email.service';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
+import { OtpProtectionService } from '../../common/throttler/otp-protection.service';
+import { AppCacheModule } from '../../common/cache/cache.module';
 
 @Module({
   imports: [
@@ -36,6 +38,7 @@ import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
     // defined in auth.controller.ts (5 or 10 req / 15 min per IP).
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
 
+    AppCacheModule,
     UsersModule,
     PrismaModule,
   ],
@@ -46,7 +49,8 @@ import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
     JwtRefreshStrategy,
     EmailService,
     EmailVerifiedGuard,
+    OtpProtectionService,
   ],
-  exports: [AuthService, JwtModule, EmailVerifiedGuard, EmailService],
+  exports: [AuthService, JwtModule, EmailVerifiedGuard, EmailService, OtpProtectionService],
 })
 export class AuthModule {}
