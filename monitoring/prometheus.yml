@@ -1,33 +1,55 @@
-# monitoring/prometheus.yml
+# monitoring/prometheus.yml — AutoBazaar Pro production scrape config
+
 global:
   scrape_interval:     15s
   evaluation_interval: 15s
   external_labels:
     environment: production
-    project:     cars-auto
+    project:     autobazaar-pro
+
+# ── Alert rules (load from files) ────────────────────────────────────────────
+rule_files:
+  - /etc/prometheus/rules/*.yml
 
 scrape_configs:
-  - job_name: 'api'
+  # ── NestJS API (custom app metrics + default Node.js metrics) ─────────────
+  - job_name: 'autobazaar-api'
     static_configs:
       - targets: ['api:4000']
-    metrics_path: /api/metrics
+    metrics_path: /metrics
     scrape_interval: 15s
+    scrape_timeout:  10s
 
-  - job_name: 'node-api'
+  # ── Health check probing ───────────────────────────────────────────────────
+  - job_name: 'api-health'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
     static_configs:
-      - targets: ['api:9464']   # prom-client default port
-    scrape_interval: 15s
+      - targets:
+          - http://api:4000/health/live
+          - http://api:4000/health/ready
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label:  __param_target
+      - source_labels: [__param_target]
+        target_label:  instance
+      - target_label:  __address__
+        replacement:   blackbox-exporter:9115
 
+  # ── PostgreSQL exporter ────────────────────────────────────────────────────
   - job_name: 'postgres'
     static_configs:
       - targets: ['postgres-exporter:9187']
     scrape_interval: 30s
 
+  # ── Redis exporter ─────────────────────────────────────────────────────────
   - job_name: 'redis'
     static_configs:
       - targets: ['redis-exporter:9121']
     scrape_interval: 15s
 
+  # ── Prometheus self-monitoring ─────────────────────────────────────────────
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
