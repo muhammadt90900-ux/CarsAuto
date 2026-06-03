@@ -1,6 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local", "**/.env"],
+  "globalDependencies": [
+    "**/.env.*local",
+    "**/.env"
+  ],
   "globalEnv": [
     "NODE_ENV",
     "DATABASE_URL",
@@ -17,7 +20,9 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "env": [
         "NODE_ENV",
         "DATABASE_URL",
@@ -30,21 +35,37 @@
         "NEXT_TELEMETRY_DISABLED",
         "NEXT_OUTPUT"
       ],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"],
+      "dependsOn": [
+        "^lint"
+      ],
       "outputs": []
     },
     "test": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": [],
+      "outputs": [
+        "coverage/**"
+      ],
+      "cache": false
     },
     "clean": {
+      "cache": false
+    },
+    "test:coverage": {
+      "dependsOn": [],
+      "outputs": [
+        "coverage/**"
+      ],
       "cache": false
     }
   }

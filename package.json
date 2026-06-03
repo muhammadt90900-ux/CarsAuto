@@ -17,11 +17,18 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "docker:dev": "docker compose up --build",
     "docker:prod": "docker compose -f docker-compose.yml up --build -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "test:api": "npm run test --workspace=apps/api",
+    "test:web": "npm run test --workspace=apps/web",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:coverage": "turbo run test:coverage",
+    "test:ci": "turbo run test:coverage && playwright test --reporter=github"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.0",
-    "turbo": "latest"
+    "turbo": "latest",
+    "@playwright/test": "^1.44.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
