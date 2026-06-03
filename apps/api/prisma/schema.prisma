@@ -249,22 +249,36 @@ model PasswordResetToken {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String?  @db.Uuid           // null for unauthenticated events
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String                      // e.g. "PASSWORD_RESET_REQUEST"
-  ipAddress String?
-  userAgent String?
-  meta      Json?                       // arbitrary extra context
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid()) @db.Uuid
+  // Who performed the action (null = anonymous/system)
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorId    String?  @db.Uuid           @map("actor_id")
+  // What was affected
+  targetId   String?  @db.Uuid           @map("target_id")
+  targetType String?  @db.VarChar(50)    @map("target_type")
+  // Action performed
+  action     String   @db.VarChar(100)
+  // Request context
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @db.VarChar(512)   @map("user_agent")
+  traceId    String?  @db.VarChar(36)    @map("trace_id")
+  requestId  String?  @db.VarChar(36)    @map("request_id")
+  // State diff
+  before     String?  @db.Text           @map("before_json")
+  after      String?  @db.Text           @map("after_json")
+  metadata   String?  @db.Text
+  // Legacy field kept for compatibility
+  meta       Json?
+  createdAt  DateTime @default(now())
 
   @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  // ADDED: composite — "show all events for this user ordered by time" — most common audit query
+  @@index([actorId])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([targetId, targetType, createdAt(sort: Desc)])
+  @@index([traceId])
+  @@index([ip])
   @@index([userId, action, createdAt(sort: Desc)])
-  // ADDED: IP address index — security team queries "all events from this IP"
-  @@index([ipAddress])
   @@map("audit_logs")
 }
 
