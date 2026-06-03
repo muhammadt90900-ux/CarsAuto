@@ -1,0 +1,83 @@
+# .github/workflows/pr-checks.yml
+# Fast PR-level checks: title lint, branch naming, size guard
+# Runs only on pull_request events so it never delays push pipelines.
+
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # ── PR title must follow Conventional Commits ──────────────────────────────
+  pr-title:
+    name: PR Title (Conventional Commits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+  # ── Branch naming convention ───────────────────────────────────────────────
+  branch-name:
+    name: Branch Name Convention
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PATTERN="^(feat|fix|hotfix|release|chore|docs|refactor|test|ci)/.+"
+          if [[ ! "$BRANCH" =~ $PATTERN ]]; then
+            echo "❌ Branch name '$BRANCH' does not match convention."
+            echo "   Expected: feat/*, fix/*, hotfix/*, release/*, chore/*, docs/*, refactor/*, test/*, ci/*"
+            exit 1
+          fi
+          echo "✅ Branch name '$BRANCH' is valid."
+
+  # ── PR size guard (warn on huge PRs) ──────────────────────────────────────
+  pr-size:
+    name: PR Size Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR diff size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const additions = pr.additions;
+            const deletions = pr.deletions;
+            const total = additions + deletions;
+            console.log(`PR size: +${additions} -${deletions} = ${total} lines`);
+            if (total > 1500) {
+              core.warning(
+                `This PR changes ${total} lines (+${additions}/-${deletions}). ` +
+                'Large PRs are harder to review. Consider splitting into smaller PRs.'
+              );
+            } else {
+              console.log('✅ PR size is within recommended limits.');
+            }

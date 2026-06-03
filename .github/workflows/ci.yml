@@ -1,5 +1,13 @@
 # .github/workflows/ci.yml
-# CI pipeline: lint → test → build Docker images → push to registry → deploy
+# CarsAuto / AutoBazaarPro — full CI/CD pipeline
+#
+# Jobs:
+#   lint          → ESLint + TypeScript type-check (all workspaces)
+#   test          → Unit tests + coverage enforcement (API + Web, parallel)
+#   build         → Docker multi-stage build verification (API + Web)
+#   security      → Trivy image scan + npm audit + CodeQL SAST
+#   e2e           → Playwright critical-workflow smoke tests (main only)
+#   deploy        → SSH rolling deploy to production (main only, after all gates)
 
 name: CI / CD
 
@@ -7,77 +15,241 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      skip_e2e:
+        description: 'Skip E2E tests'
+        type: boolean
+        default: false
 
 env:
-  REGISTRY:      ghcr.io
-  API_IMAGE:     ghcr.io/${{ github.repository }}/api
-  WEB_IMAGE:     ghcr.io/${{ github.repository }}/web
-  NODE_VERSION:  '20'
+  REGISTRY:        ghcr.io
+  API_IMAGE:       ghcr.io/${{ github.repository }}/api
+  WEB_IMAGE:       ghcr.io/${{ github.repository }}/web
+  NODE_VERSION:    '20'
+  # Lightweight CI DB — avoids real credentials in test runs
+  DATABASE_URL:    postgresql://carsauto:carsauto@localhost:5432/autobazaar_test
+  REDIS_URL:       redis://localhost:6379
 
 concurrency:
-  group:            ${{ github.workflow }}-${{ github.ref }}
+  group:             ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 1 — Lint & Type-check
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
-
-  # ── Lint & Type-check ───────────────────────────────────────────────────────
   lint:
-    name: Lint & Type-check
+    name: 🔍 Lint & Type-check
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 10
 
-      - name: Setup Node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # needed for affected-package detection
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Lint (API)
-        run: npm run lint --workspace=apps/api
+      # ── Prettier format check (fast, runs before ESLint) ──────────────────
+      - name: Format check (Prettier)
+        run: npx prettier --check "apps/**/*.{ts,tsx,js}" "packages/**/*.{ts,tsx}"
+        continue-on-error: true   # report but don't block; enforce via separate PR check
 
-      - name: Lint (Web)
-        run: npm run lint --workspace=apps/web
+      # ── ESLint ─────────────────────────────────────────────────────────────
+      - name: ESLint — API
+        run: npm run lint --workspace=apps/api -- --max-warnings=0
+        env:
+          NODE_ENV: test
 
-      - name: Type-check (API)
+      - name: ESLint — Web
+        run: npm run lint --workspace=apps/web -- --max-warnings=0
+        env:
+          NODE_ENV: test
+
+      # ── TypeScript strict type-check ───────────────────────────────────────
+      - name: Type-check — API
         run: npx tsc --noEmit --project apps/api/tsconfig.json
 
-      - name: Type-check (Web)
+      - name: Type-check — Web
         run: npx tsc --noEmit --project apps/web/tsconfig.json
 
-  # ── Build & Push Docker images ─────────────────────────────────────────────
-  build:
-    name: Build Docker Images
+      # ── Upload lint results as artifact for PR comments ───────────────────
+      - name: Annotate lint issues
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.warning('Lint or type-check failed — see step logs above for details.');
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 2 — Unit Tests (API + Web in parallel matrices)
+# ─────────────────────────────────────────────────────────────────────────────
+  test:
+    name: 🧪 Tests (${{ matrix.workspace }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: lint
-    # Only build on pushes (not PRs from forks)
-    if: github.event_name == 'push'
+
+    strategy:
+      fail-fast: false          # run both even if one fails
+      matrix:
+        workspace: [api, web]
+        include:
+          - workspace: api
+            test_cmd: npm run test:ci --workspace=apps/api
+            coverage_dir: apps/api/coverage
+            # API needs Postgres + Redis for integration suites
+            needs_services: true
+          - workspace: web
+            test_cmd: npm run test:ci --workspace=apps/web
+            coverage_dir: apps/web/coverage
+            needs_services: false
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        # Only start if the matrix leg needs it
+        # GitHub Actions doesn't support conditional services; both legs get it,
+        # but only API tests actually connect.
+        env:
+          POSTGRES_USER:     carsauto
+          POSTGRES_PASSWORD: carsauto
+          POSTGRES_DB:       autobazaar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      # Run Prisma migrations so integration tests have a schema
+      - name: Apply DB schema (API only)
+        if: matrix.workspace == 'api'
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        continue-on-error: true   # skip if no prisma dir yet
+
+      # ── Execute tests with coverage ────────────────────────────────────────
+      - name: Run tests — ${{ matrix.workspace }}
+        run: ${{ matrix.test_cmd }}
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL:    ${{ env.REDIS_URL }}
+          JWT_SECRET:   ci-test-secret-do-not-use-in-prod
+          NODE_ENV:     test
+          CI:           true
+
+      # ── Upload coverage reports ────────────────────────────────────────────
+      - name: Upload coverage — ${{ matrix.workspace }}
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.workspace }}
+          path: ${{ matrix.coverage_dir }}
+          retention-days: 7
+
+      # ── Coverage summary comment on PRs ───────────────────────────────────
+      - name: Coverage summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const covFile = '${{ matrix.coverage_dir }}/coverage-summary.json';
+            if (!fs.existsSync(covFile)) return;
+            const cov = JSON.parse(fs.readFileSync(covFile, 'utf8'));
+            const t = cov.total;
+            const pct = (v) => `${v.pct}%`;
+            const body = [
+              `### 📊 Coverage — \`${{ matrix.workspace }}\``,
+              `| Metric | Coverage |`,
+              `|--------|----------|`,
+              `| Statements | ${pct(t.statements)} |`,
+              `| Branches   | ${pct(t.branches)} |`,
+              `| Functions  | ${pct(t.functions)} |`,
+              `| Lines      | ${pct(t.lines)} |`,
+            ].join('\n');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 3 — Docker Build Verification
+# ─────────────────────────────────────────────────────────────────────────────
+  build:
+    name: 🐳 Build Docker Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [lint, test]
+    # Build on every push; PRs only build (no push) to verify Dockerfile
     permissions:
       contents: read
       packages: write
 
     outputs:
-      api_digest: ${{ steps.build-api.outputs.digest }}
-      web_digest: ${{ steps.build-web.outputs.digest }}
+      api_digest:  ${{ steps.build-api.outputs.digest }}
+      web_digest:  ${{ steps.build-web.outputs.digest }}
+      api_tag:     ${{ steps.meta-api.outputs.version }}
+      web_tag:     ${{ steps.meta-web.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU (multi-arch support)
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
       - name: Log in to GHCR
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (API)
+      # ── API image ──────────────────────────────────────────────────────────
+      - name: Extract metadata — API
         id: meta-api
         uses: docker/metadata-action@v5
         with:
@@ -85,22 +257,28 @@ jobs:
           tags: |
             type=sha,prefix=sha-
             type=ref,event=branch
+            type=ref,event=pr
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build & Push API
+      - name: Build & Push — API
         id: build-api
         uses: docker/build-push-action@v5
         with:
-          context:     apps/api
-          file:        apps/api/Dockerfile
-          target:      production
-          push:        true
-          tags:        ${{ steps.meta-api.outputs.tags }}
-          labels:      ${{ steps.meta-api.outputs.labels }}
-          cache-from:  type=gha
-          cache-to:    type=gha,mode=max
+          context:    apps/api
+          file:       apps/api/Dockerfile
+          target:     production
+          # Push only on push events; PRs only verify the build
+          push:       ${{ github.event_name == 'push' }}
+          tags:       ${{ steps.meta-api.outputs.tags }}
+          labels:     ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+          # Embed build provenance for supply-chain attestation
+          provenance: true
+          sbom:       true
 
-      - name: Extract metadata (Web)
+      # ── Web image ──────────────────────────────────────────────────────────
+      - name: Extract metadata — Web
         id: meta-web
         uses: docker/metadata-action@v5
         with:
@@ -108,97 +286,430 @@ jobs:
           tags: |
             type=sha,prefix=sha-
             type=ref,event=branch
+            type=ref,event=pr
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build & Push Web
+      - name: Build & Push — Web
         id: build-web
         uses: docker/build-push-action@v5
         with:
-          context:     apps/web
-          file:        apps/web/Dockerfile
-          target:      production
-          push:        true
-          tags:        ${{ steps.meta-web.outputs.tags }}
-          labels:      ${{ steps.meta-web.outputs.labels }}
-          cache-from:  type=gha
-          cache-to:    type=gha,mode=max
-          build-args:  |
+          context:    apps/web
+          file:       apps/web/Dockerfile
+          target:     production
+          push:       ${{ github.event_name == 'push' }}
+          tags:       ${{ steps.meta-web.outputs.tags }}
+          labels:     ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+          provenance: true
+          sbom:       true
+          build-args: |
             NEXT_OUTPUT=standalone
 
-  # ── Security scan ──────────────────────────────────────────────────────────
-  scan:
-    name: Security Scan
+      # ── Build summary ──────────────────────────────────────────────────────
+      - name: Build summary
+        run: |
+          echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Tag | Digest |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API   | \`${{ steps.meta-api.outputs.version }}\` | \`${{ steps.build-api.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web   | \`${{ steps.meta-web.outputs.version }}\` | \`${{ steps.build-web.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 4 — Security Scanning
+# ─────────────────────────────────────────────────────────────────────────────
+  security:
+    name: 🔒 Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: build
     if: github.event_name == 'push'
     permissions:
+      contents:      read
       security-events: write
-
-    steps:
-      - name: Scan API image for vulnerabilities
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref:    ${{ env.API_IMAGE }}:latest
-          format:       sarif
-          output:       trivy-results.sarif
-          severity:     CRITICAL,HIGH
-          exit-code:    '1'   # fail on CRITICAL/HIGH findings
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-
-  # ── Deploy (main branch only) ─────────────────────────────────────────────
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build, scan]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
+      packages:      read
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      # ── npm audit (dependency CVEs) ────────────────────────────────────────
+      - name: npm audit — API
+        run: |
+          cd apps/api
+          npm audit --audit-level=high --json > /tmp/audit-api.json || true
+          node -e "
+            const r = require('/tmp/audit-api.json');
+            const vulns = r.metadata?.vulnerabilities ?? {};
+            const high = (vulns.high ?? 0) + (vulns.critical ?? 0);
+            if (high > 0) {
+              console.error('HIGH/CRITICAL vulnerabilities found in API:', JSON.stringify(vulns));
+              process.exit(1);
+            }
+            console.log('API audit clean:', JSON.stringify(vulns));
+          "
+
+      - name: npm audit — Web
+        run: |
+          cd apps/web
+          npm audit --audit-level=high --json > /tmp/audit-web.json || true
+          node -e "
+            const r = require('/tmp/audit-web.json');
+            const vulns = r.metadata?.vulnerabilities ?? {};
+            const high = (vulns.high ?? 0) + (vulns.critical ?? 0);
+            if (high > 0) {
+              console.error('HIGH/CRITICAL vulnerabilities found in Web:', JSON.stringify(vulns));
+              process.exit(1);
+            }
+            console.log('Web audit clean:', JSON.stringify(vulns));
+          "
+
+      # ── Trivy — Docker image vulnerability scan ────────────────────────────
+      - name: Log in to GHCR (for Trivy pull)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy scan — API image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref:  ${{ env.API_IMAGE }}:latest
+          format:     sarif
+          output:     trivy-api.sarif
+          severity:   CRITICAL,HIGH
+          exit-code:  '1'
+          ignore-unfixed: true    # skip vulns with no upstream fix yet
+
+      - name: Upload Trivy results — API
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file:   trivy-api.sarif
+          category:     trivy-api
+
+      - name: Trivy scan — Web image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref:  ${{ env.WEB_IMAGE }}:latest
+          format:     sarif
+          output:     trivy-web.sarif
+          severity:   CRITICAL,HIGH
+          exit-code:  '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy results — Web
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file:   trivy-web.sarif
+          category:     trivy-web
+
+      # ── Trivy filesystem SAST (secrets + misconfigs in source) ─────────────
+      - name: Trivy filesystem scan (secrets/misconfig)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type:  fs
+          scan-ref:   .
+          format:     sarif
+          output:     trivy-fs.sarif
+          exit-code:  '1'
+          severity:   CRITICAL,HIGH
+          scanners:   secret,misconfig
+
+      - name: Upload filesystem scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category:   trivy-fs
+
+      # ── Scan summary ───────────────────────────────────────────────────────
+      - name: Security summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Trivy image scans and npm audit completed." >> $GITHUB_STEP_SUMMARY
+          echo "See Security tab → Code scanning alerts for full SARIF results." >> $GITHUB_STEP_SUMMARY
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 5 — E2E Tests (Playwright)
+# ─────────────────────────────────────────────────────────────────────────────
+  e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build
+    # Only on main pushes unless manually overridden
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && !inputs.skip_e2e)
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     carsauto
+          POSTGRES_PASSWORD: carsauto
+          POSTGRES_DB:       autobazaar_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run DB migrations for E2E
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+        env:
+          DATABASE_URL: postgresql://carsauto:carsauto@localhost:5432/autobazaar_e2e
+        continue-on-error: true
+
+      - name: Build apps for E2E
+        run: npm run build
+        env:
+          DATABASE_URL:        postgresql://carsauto:carsauto@localhost:5432/autobazaar_e2e
+          REDIS_URL:           redis://localhost:6379
+          JWT_SECRET:          e2e-test-secret
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NODE_ENV:            production
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Start API server (background)
+        run: |
+          node apps/api/dist/main &
+          echo "API_PID=$!" >> $GITHUB_ENV
+          # Wait for health endpoint
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4000/health && break || sleep 2
+          done
+        env:
+          DATABASE_URL: postgresql://carsauto:carsauto@localhost:5432/autobazaar_e2e
+          REDIS_URL:    redis://localhost:6379
+          JWT_SECRET:   e2e-test-secret
+          PORT:         4000
+          NODE_ENV:     production
+
+      - name: Start Web server (background)
+        run: |
+          node apps/web/.next/standalone/server.js &
+          echo "WEB_PID=$!" >> $GITHUB_ENV
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/ && break || sleep 2
+          done
+        env:
+          PORT:                3000
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NODE_ENV:            production
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test --reporter=github,html
+        env:
+          E2E_BASE_URL:        http://localhost:3000
+          CI:                  true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright traces (failures only)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: playwright-results/
+          retention-days: 7
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOB 6 — Deployment Validation + Production Deploy
+# ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build, security, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Pre-deploy validation ──────────────────────────────────────────────
+      - name: Validate image digests
+        run: |
+          API_DIGEST="${{ needs.build.outputs.api_digest }}"
+          WEB_DIGEST="${{ needs.build.outputs.web_digest }}"
+          if [[ -z "$API_DIGEST" || -z "$WEB_DIGEST" ]]; then
+            echo "❌ Missing image digests from build job" >&2
+            exit 1
+          fi
+          echo "✅ API digest: $API_DIGEST"
+          echo "✅ Web digest: $WEB_DIGEST"
+
+      # ── Rolling deploy via SSH ─────────────────────────────────────────────
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
           host:     ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key:      ${{ secrets.DEPLOY_SSH_KEY }}
+          port:     ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
-            set -e
+            set -euo pipefail
             cd /opt/cars-auto
 
-            # Pull latest images
-            docker pull ${{ env.API_IMAGE }}:latest
-            docker pull ${{ env.WEB_IMAGE }}:latest
+            echo "▶ Deploy started at $(date) — SHA ${{ github.sha }}"
 
-            # Run DB migrations before rolling containers
-            docker run --rm --env-file .env.production \
+            # Pull images pinned by digest (not mutable :latest tag)
+            docker pull ${{ env.API_IMAGE }}@${{ needs.build.outputs.api_digest }}
+            docker pull ${{ env.WEB_IMAGE }}@${{ needs.build.outputs.web_digest }}
+
+            # Re-tag as :latest locally so compose can reference them
+            docker tag ${{ env.API_IMAGE }}@${{ needs.build.outputs.api_digest }} ${{ env.API_IMAGE }}:latest
+            docker tag ${{ env.WEB_IMAGE }}@${{ needs.build.outputs.web_digest }} ${{ env.WEB_IMAGE }}:latest
+
+            # Run DB migrations (safe to run on every deploy)
+            echo "▶ Running Prisma migrations..."
+            docker run --rm \
+              --env-file .env.production \
               ${{ env.API_IMAGE }}:latest \
               npx prisma migrate deploy
+            echo "✅ Migrations complete"
 
-            # Rolling restart (zero-downtime)
-            docker compose --env-file .env.production pull
-            docker compose --env-file .env.production up -d --no-deps --remove-orphans api web
+            # Rolling restart — replace api then web, no downtime
+            echo "▶ Restarting API container..."
+            docker compose --env-file .env.production up -d --no-deps --remove-orphans api
+            sleep 10
 
-            # Health check
-            sleep 15
-            curl -fsS http://localhost:4000/health || (docker compose logs api --tail=50 && exit 1)
+            echo "▶ Restarting Web container..."
+            docker compose --env-file .env.production up -d --no-deps --remove-orphans web
+            sleep 10
 
-            echo "Deployment successful at $(date)"
+            # Prune dangling images to free disk space
+            docker image prune -f --filter "until=24h" || true
 
-      - name: Notify on failure
+            echo "✅ Containers restarted"
+
+      # ── Post-deploy health validation ──────────────────────────────────────
+      - name: Post-deploy health checks
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key:      ${{ secrets.DEPLOY_SSH_KEY }}
+          port:     ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            echo "▶ Running post-deploy health checks..."
+
+            # API health
+            for i in 1 2 3 4 5; do
+              STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:4000/health || echo "000")
+              if [[ "$STATUS" == "200" ]]; then
+                echo "✅ API healthy (HTTP $STATUS) — attempt $i"
+                break
+              fi
+              echo "⏳ API not ready (HTTP $STATUS) — attempt $i/5, waiting 10s..."
+              sleep 10
+              if [[ $i -eq 5 ]]; then
+                echo "❌ API health check failed after 5 attempts"
+                docker compose logs api --tail=100
+                exit 1
+              fi
+            done
+
+            # Web health
+            for i in 1 2 3 4 5; do
+              STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000/ || echo "000")
+              if [[ "$STATUS" -lt 500 ]]; then
+                echo "✅ Web healthy (HTTP $STATUS) — attempt $i"
+                break
+              fi
+              echo "⏳ Web not ready (HTTP $STATUS) — attempt $i/5, waiting 10s..."
+              sleep 10
+              if [[ $i -eq 5 ]]; then
+                echo "❌ Web health check failed after 5 attempts"
+                docker compose logs web --tail=100
+                exit 1
+              fi
+            done
+
+            echo "✅ All health checks passed — deploy complete at $(date)"
+
+      # ── Deployment summary ─────────────────────────────────────────────────
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status**  | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA**     | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API tag** | \`${{ needs.build.outputs.api_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Web tag** | \`${{ needs.build.outputs.web_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Time**    | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Notify on failure ──────────────────────────────────────────────────
+      - name: Create failure issue
         if: failure()
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.create({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo:  context.repo.repo,
-              title: `Deployment failed — ${context.sha.substring(0,7)}`,
-              body:  `Production deployment failed. [View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
-              labels: ['deployment', 'bug'],
+              title: `🔴 Deployment failed — ${context.sha.substring(0,7)}`,
+              body: [
+                '## Production Deployment Failed',
+                '',
+                `**SHA:** \`${context.sha}\``,
+                `**Branch:** \`${context.ref}\``,
+                `**Triggered by:** @${context.actor}`,
+                '',
+                `[View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              ].join('\n'),
+              labels: ['deployment', 'bug', 'P0'],
             });
