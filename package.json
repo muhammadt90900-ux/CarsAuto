@@ -1,0 +1,45 @@
+{
+  "name": "cars-auto",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=web",
+    "build:api": "turbo run build --filter=api",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js}\" \"packages/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js}\" \"packages/**/*.{ts,tsx}\"",
+    "type-check": "tsc --noEmit --project apps/api/tsconfig.json && tsc --noEmit --project apps/web/tsconfig.json",
+    "test": "turbo run test",
+    "test:api": "npm run test --workspace=apps/api",
+    "test:web": "npm run test --workspace=apps/web",
+    "test:ci": "turbo run test:ci",
+    "test:coverage": "turbo run test:coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "validate:deploy": "./scripts/validate-deploy.sh",
+    "audit:check": "npm audit --audit-level=high",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "docker:dev": "docker compose up --build",
+    "docker:prod": "docker compose -f docker-compose.yml up --build -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "turbo": "latest",
+    "@playwright/test": "^1.44.0"
+  },
+  "dependencies": {},
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

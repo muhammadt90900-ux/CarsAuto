@@ -1,0 +1,229 @@
+# .github/workflows/backup.yml — CarsAuto Automated Backup & Verification
+#
+# Schedules:
+#   - Full backup:   Daily at 02:00 UTC
+#   - Verification:  Daily at 06:00 UTC (after backup has had time to upload)
+#   - Weekly deep:   Sundays at 03:00 UTC (includes dry-run restore test)
+#
+# Manual triggers available via GitHub Actions UI ("Run workflow").
+#
+# Secrets required (set in repo Settings → Secrets and variables → Actions):
+#   BACKUP_SSH_KEY          SSH private key to connect to production server
+#   PRODUCTION_HOST         Production server hostname/IP
+#   PRODUCTION_USER         SSH user on production server
+#   SLACK_WEBHOOK_URL       Slack webhook for alerts (optional)
+#   S3_BUCKET               S3 bucket name (optional)
+#   AWS_ACCESS_KEY_ID       AWS credentials (optional)
+#   AWS_SECRET_ACCESS_KEY   AWS credentials (optional)
+#   BACKUP_ENCRYPTION_KEY   GPG passphrase (optional but recommended)
+
+name: Backup & Disaster Recovery
+
+on:
+  schedule:
+    # Full backup daily at 02:00 UTC
+    - cron: '0 2 * * *'
+    # Verification daily at 06:00 UTC
+    - cron: '0 6 * * *'
+    # Weekly deep test (dry-run restore) on Sundays at 03:00 UTC
+    - cron: '0 3 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to run'
+        required: true
+        default: 'backup-full'
+        type: choice
+        options:
+          - backup-full
+          - backup-db
+          - backup-images
+          - verify
+          - dry-run-restore
+          - list-backups
+
+env:
+  DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+  DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # FULL DAILY BACKUP (02:00 UTC or manual)
+  # ─────────────────────────────────────────────────────────────────────────
+  backup:
+    name: Full Backup
+    runs-on: ubuntu-latest
+    # Run on schedule at 02:00, or manual full/db/images actions
+    if: |
+      (github.event_name == 'schedule' && (github.event.schedule == '0 2 * * *')) ||
+      (github.event_name == 'workflow_dispatch' && contains(fromJSON('["backup-full","backup-db","backup-images"]'), inputs.action))
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BACKUP_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Determine backup type
+        id: type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "cmd=${{ inputs.action }}" | sed 's/backup-//' >> $GITHUB_OUTPUT
+          else
+            echo "cmd=full" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run backup on production
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/carsauto
+            # Load backup env
+            [[ -f .env.backup ]] && source .env.backup
+            export SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}"
+            export S3_BUCKET="${{ secrets.S3_BUCKET }}"
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export BACKUP_ENCRYPTION_KEY="${{ secrets.BACKUP_ENCRYPTION_KEY }}"
+            bash scripts/backup.sh ${{ steps.type.outputs.cmd }}
+          '
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "❌ *CarsAuto Backup FAILED*\nJob: ${{ github.job }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # BACKUP VERIFICATION (06:00 UTC or manual)
+  # ─────────────────────────────────────────────────────────────────────────
+  verify:
+    name: Verify Backups
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '0 6 * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'verify')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BACKUP_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run verification on production
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/carsauto
+            [[ -f .env.backup ]] && source .env.backup
+            export BACKUP_ENCRYPTION_KEY="${{ secrets.BACKUP_ENCRYPTION_KEY }}"
+            bash scripts/verify-backups.sh --latest
+          '
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "⚠️ *CarsAuto Backup Verification FAILED*\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # WEEKLY DRY-RUN RESTORE TEST (Sundays 03:00 UTC or manual)
+  # ─────────────────────────────────────────────────────────────────────────
+  dr-test:
+    name: Disaster Recovery Test (dry-run)
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '0 3 * * 0') ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'dry-run-restore')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BACKUP_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run dry-run restore on production
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/carsauto
+            [[ -f .env.backup ]] && source .env.backup
+            export BACKUP_ENCRYPTION_KEY="${{ secrets.BACKUP_ENCRYPTION_KEY }}"
+
+            # Find latest DB backup
+            LATEST=$(ls -t backups/db/*.sql.gz* 2>/dev/null | head -1)
+            if [[ -z "$LATEST" ]]; then
+              echo "No DB backup found — cannot run dry-run"
+              exit 2
+            fi
+            echo "Testing: $LATEST"
+            bash scripts/restore.sh dry-run "$LATEST" --no-confirm
+          '
+
+      - name: Notify DR test result
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✅' || '❌' }} *CarsAuto Weekly DR Test*: ${{ job.status }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # LIST BACKUPS (manual only)
+  # ─────────────────────────────────────────────────────────────────────────
+  list:
+    name: List Backups
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'list-backups'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BACKUP_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: List backups
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/carsauto
+            bash scripts/backup.sh list
+          '

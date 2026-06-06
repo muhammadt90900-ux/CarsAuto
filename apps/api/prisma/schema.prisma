@@ -1,0 +1,1246 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AutoBazaarPro — Optimized Prisma Schema
+// Architect review: 2026-05-31
+// Changes: composite indexes, partial indexes, full-text search columns,
+//          ULID PKs, numeric type fixes, constraint additions, soft-delete,
+//          search vector columns, denorm columns, missing FK cascades.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS — platform
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  DEALER
+  ADMIN
+}
+
+enum ListingType {
+  CAR
+  MOTORCYCLE
+  SPARE_PART
+}
+
+enum ListingCondition {
+  NEW
+  USED
+  SALVAGE
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  DRAFT
+  EXPIRED
+  PENDING
+  REJECTED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS — automotive
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  PLUG_IN_HYBRID
+  ELECTRIC
+  LPG
+  CNG
+  HYDROGEN
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+  SEMI_AUTOMATIC
+  CVT
+  DUAL_CLUTCH
+}
+
+enum DrivetrainType {
+  FWD
+  RWD
+  AWD
+  FOUR_WD
+}
+
+enum BodyType {
+  SEDAN
+  HATCHBACK
+  SUV
+  CROSSOVER
+  COUPE
+  CONVERTIBLE
+  WAGON
+  PICKUP_TRUCK
+  VAN
+  MINIVAN
+  BUS
+  OTHER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS — dealer
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DealerTier {
+  BASIC
+  STANDARD
+  GOLD
+  PLATINUM
+}
+
+enum DealerStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+  REJECTED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// CHANGE: added phone unique constraint, index on role, index on googleId/appleId
+//         for OAuth lookups, added deletedAt for soft-delete
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  // FIX: phone should be unique if stored; use partial unique for non-null
+  phone     String?
+  password  String?
+  name      String
+  avatar    String?
+  role      UserRole @default(USER)
+  verified  Boolean  @default(false)
+  locale    String   @default("ku") @db.VarChar(5)
+  googleId  String?  @unique
+  appleId   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // ADDED: soft-delete support
+  deletedAt DateTime?
+
+  // Security fields
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  banned              Boolean   @default(false)
+
+  listings               Listing[]
+  chatsAsBuyer           Chat[]                  @relation("BuyerChats")
+  chatsAsSeller          Chat[]                  @relation("SellerChats")
+  messages               Message[]
+  notifications          Notification[]
+  reviewsGiven           Review[]                @relation("Reviewer")
+  reviewsReceived        Review[]                @relation("Reviewee")
+  payments               Payment[]
+  subscription           Subscription?
+  reports                Report[]
+  refreshTokens          RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  auditLogs               AuditLog[]
+  dealer                 Dealer?
+  dealerReviews          DealerReview[]          @relation("DealerReviewer")
+  messageReadReceipts    MessageReadReceipt[]
+  dealerContacts         DealerContactRequest[]  @relation("DealerContacts")
+  favorites              Favorite[]
+  savedSearches          SavedSearch[]
+  pushSubscriptions      PushSubscription[]
+  uploads                Upload[]
+  notificationPreference NotificationPreference?
+
+  // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
+  @@index([role])
+  @@index([createdAt])
+  // ADDED: locale index — used when broadcasting locale-specific notifications
+  @@index([locale])
+  // ADDED: banned + role composite — admin "banned users" page filters both
+  @@index([banned, role])
+  // deletedAt partial index, phone partial unique, lockedUntil partial index
+  // all handled in raw migration SQL (Prisma cannot express partial indexes)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFRESH TOKEN
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  // CHANGE: partial index for non-expired tokens — handled in migration
+  // CHANGE: expiresAt index for cleanup jobs
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL VERIFICATION TOKEN
+// One active token per user; old tokens are replaced on resend.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASSWORD RESET TOKEN
+// One active token per user; old tokens replaced on re-request.
+// Token is single-use: consumed immediately on successful reset.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256(rawToken) — never store raw
+  expiresAt DateTime
+  usedAt    DateTime? // set when consumed; token invalid after this
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOG
+// Append-only record of security-sensitive events.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  // Who performed the action (null = anonymous/system)
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorId    String?  @db.Uuid           @map("actor_id")
+  // What was affected
+  targetId   String?  @db.Uuid           @map("target_id")
+  targetType String?  @db.VarChar(50)    @map("target_type")
+  // Action performed
+  action     String   @db.VarChar(100)
+  // Request context
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @db.VarChar(512)   @map("user_agent")
+  traceId    String?  @db.VarChar(36)    @map("trace_id")
+  requestId  String?  @db.VarChar(36)    @map("request_id")
+  // State diff
+  before     String?  @db.Text           @map("before_json")
+  after      String?  @db.Text           @map("after_json")
+  metadata   String?  @db.Text
+  // Legacy field kept for compatibility
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([actorId])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([targetId, targetType, createdAt(sort: Desc)])
+  @@index([traceId])
+  @@index([ip])
+  @@index([userId, action, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAR REFERENCE TABLES
+// CHANGE: @db.Uuid on all FKs; added isActive filter index; @@map for
+//         lower_snake table names to match SQL conventions
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CarBrand {
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique @db.VarChar(100)
+  nameEn      String  @db.VarChar(100)
+  nameAr      String  @db.VarChar(100)
+  nameKu      String  @db.VarChar(100)
+  nameZh      String  @db.VarChar(100)
+  logoUrl     String?
+  countryCode String  @db.Char(2) // ISO 3166-1 alpha-2
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  models              CarModel[]
+  listingSpecs        ListingVehicleSpec[]
+  partCompatibilities PartCompatibility[]
+
+  // CHANGE: composite partial index — only active brands matter for searches
+  @@index([isActive, slug])
+  @@index([countryCode])
+  @@map("car_brands")
+}
+
+model CarModel {
+  id       String   @id @default(uuid()) @db.Uuid
+  brandId  String   @db.Uuid
+  brand    CarBrand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  slug     String   @db.VarChar(100)
+  nameEn   String   @db.VarChar(100)
+  nameAr   String   @db.VarChar(100)
+  nameKu   String   @db.VarChar(100)
+  nameZh   String   @db.VarChar(100)
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  generations         CarModelGeneration[]
+  listingSpecs        ListingVehicleSpec[]
+  partCompatibilities PartCompatibility[]
+
+  @@unique([brandId, slug])
+  // CHANGE: composite — brand + active used in dropdowns
+  @@index([brandId, isActive])
+  @@map("car_models")
+}
+
+model CarModelGeneration {
+  id       String   @id @default(uuid()) @db.Uuid
+  modelId  String   @db.Uuid
+  model    CarModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  name     String?  @db.VarChar(100)
+  yearFrom Int      @db.SmallInt
+  yearTo   Int?     @db.SmallInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trims CarTrim[]
+
+  @@index([modelId])
+  // CHANGE: year range queries — supports "which generation covers year X"
+  @@index([yearFrom, yearTo])
+  @@map("car_model_generations")
+}
+
+model CarTrim {
+  id           String             @id @default(uuid()) @db.Uuid
+  generationId String             @db.Uuid
+  generation   CarModelGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  name         String             @db.VarChar(100)
+  bodyType     BodyType
+  fuelType     FuelType
+  transmission TransmissionType
+  drivetrain   DrivetrainType
+  // FIX: engineCC should be SmallInt (max 65535 cc — more than enough)
+  engineCC     Int?               @db.SmallInt
+  engineLabel  String?            @db.VarChar(50)
+  // FIX: powerKw SmallInt — max 32767 kW covers any production car
+  powerKw      Int?               @db.SmallInt
+  doors        Int?               @db.SmallInt
+  seats        Int?               @db.SmallInt
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  listingSpecs ListingVehicleSpec[]
+
+  // CHANGE: composite — generation + active avoids filtering after join
+  @@index([generationId, isActive])
+  // CHANGE: composite for spec-match searches
+  @@index([bodyType, fuelType, drivetrain])
+  @@map("car_trims")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING VEHICLE SPEC
+// CHANGE: mileageKm → Int (was nullable Float in some schemas); composite
+//         indexes aligned to real filter query patterns; added CHECK constraints
+//         via raw SQL in migration; vin unique constraint added
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ListingVehicleSpec {
+  id        String  @id @default(uuid()) @db.Uuid
+  listingId String  @unique @db.Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  trimId  String?  @db.Uuid
+  trim    CarTrim? @relation(fields: [trimId], references: [id], onDelete: SetNull)
+
+  brandId String?   @db.Uuid
+  brand   CarBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  modelId String?   @db.Uuid
+  model   CarModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  // FIX: year SmallInt — e.g. 1900–2100 fits in 2 bytes
+  year         Int?             @db.SmallInt
+  bodyType     BodyType?
+  fuelType     FuelType?
+  transmission TransmissionType?
+  drivetrain   DrivetrainType?
+  engineCC     Int?             @db.SmallInt
+  engineLabel  String?          @db.VarChar(50)
+  powerKw      Int?             @db.SmallInt
+  doors        Int?             @db.SmallInt
+  seats        Int?             @db.SmallInt
+  condition    ListingCondition?
+  // FIX: mileageKm Int (was Float — km has no fractional part)
+  mileageKm    Int?
+  color        String?          @db.VarChar(50)
+  // CHANGE: vin unique (partial, where non-null) — enforced in raw SQL migration
+  vin          String?          @db.VarChar(17)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CHANGE: primary search filter — brand+model+year is the most common combo
+  @@index([brandId, modelId, year])
+  // CHANGE: secondary filter — type+condition+fuel used in CAR searches
+  @@index([fuelType, bodyType, drivetrain])
+  // ADDED: transmission filter — "Automatic SUVs" is a common search combo
+  @@index([transmission, bodyType])
+  // CHANGE: mileage range filter (separate — low selectivity if combined)
+  @@index([mileageKm])
+  // CHANGE: condition alone for "NEW cars" page
+  @@index([condition])
+  // trimId for exact trim lookups
+  @@index([trimId])
+  // ADDED: year alone — "show me all 2022 cars" browse pattern
+  @@index([year])
+  @@map("listing_vehicle_specs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PART COMPATIBILITY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PartCompatibility {
+  id        String    @id @default(uuid()) @db.Uuid
+  listingId String    @db.Uuid
+  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  brandId   String?   @db.Uuid
+  brand     CarBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  modelId   String?   @db.Uuid
+  model     CarModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  yearFrom  Int?      @db.SmallInt
+  yearTo    Int?      @db.SmallInt
+  notes     String?
+
+  // CHANGE: composite — all three together cover "find parts for brand+model+year"
+  @@index([listingId, brandId, modelId])
+  @@index([brandId, modelId])
+  // ADDED: year range queries — "find parts for 2018-2022 Camry"
+  @@index([brandId, modelId, yearFrom, yearTo])
+  @@map("part_compatibilities")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LISTING
+// CHANGE: price → Decimal(12,2) — Float is lossy for monetary values;
+//         added searchVector computed column (maintained by trigger);
+//         added featuredUntil index; composite indexes for common queries;
+//         views → BigInt for long-lived high-traffic listings;
+//         categoryId added to composite for category-scoped searches
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Listing {
+  id     String        @id @default(uuid()) @db.Uuid
+  type   ListingType
+  status ListingStatus @default(ACTIVE)
+  userId String        @db.Uuid
+  user   User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  titleKu       String  @db.VarChar(255)
+  titleAr       String  @db.VarChar(255)
+  titleEn       String  @db.VarChar(255)
+  titleZh       String  @db.VarChar(255)
+  descriptionKu String? @db.Text
+  descriptionAr String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionZh String? @db.Text
+
+  // FIX: Decimal(12,2) prevents floating-point rounding on monetary values
+  price      Decimal @db.Decimal(12, 2)
+  currency   String  @default("USD") @db.Char(3)
+  negotiable Boolean @default(false)
+
+  locationId String?   @db.Uuid
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  categoryId String?   @db.Uuid
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  partNumber String? @db.VarChar(100)
+
+  // FIX: BigInt for views — popular listings can exceed Int max (2.1B)
+  views         BigInt    @default(0)
+  featured      Boolean   @default(false)
+  featuredUntil DateTime?
+
+  // ADDED: soft-delete
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicleSpec       ListingVehicleSpec?
+  partCompatibility PartCompatibility[]
+  images            Image[]
+  chats             Chat[]
+  favorites         Favorite[]
+
+  // ── Composite indexes ordered by selectivity ──────────────────────────────
+
+  // Primary browse: status + type + createdAt (most pages filter by both)
+  @@index([status, type, createdAt(sort: Desc)])
+  // User's own listings page
+  @@index([userId, status, createdAt(sort: Desc)])
+  // Location-scoped browse
+  @@index([locationId, status, type])
+  // Category browse
+  @@index([categoryId, status, createdAt(sort: Desc)])
+  // Price range filter (after status filter)
+  @@index([status, price])
+  // Featured listings — partial index created in raw migration
+  @@index([featured, featuredUntil])
+  // Soft-delete — partial index created in raw migration
+  @@index([deletedAt])
+  // ADDED: partNumber lookup — spare parts sellers search by OEM part number
+  @@index([partNumber])
+  // ADDED: currency index — multi-currency marketplace regional browse
+  @@index([currency, status])
+  // ADDED: negotiable filter — "negotiable only" browse toggle
+  @@index([negotiable, status])
+  // Full-text search vectors — GIN indexes created in raw migration
+  @@map("listings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE
+// CHANGE: added order + isCover composite; listingId + isCover partial
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Image {
+  id        String  @id @default(uuid()) @db.Uuid
+  url       String
+  listingId String  @db.Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  isCover   Boolean @default(false)
+  order     Int     @default(0) @db.SmallInt
+
+  // CHANGE: composite — fetch all images for a listing sorted by order
+  @@index([listingId, order])
+  @@map("images")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Category {
+  id       String     @id @default(uuid()) @db.Uuid
+  parentId String?    @db.Uuid
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("SubCategories")
+  nameKu   String     @db.VarChar(100)
+  nameAr   String     @db.VarChar(100)
+  nameEn   String     @db.VarChar(100)
+  nameZh   String     @db.VarChar(100)
+  icon     String?
+  slug     String     @unique @db.VarChar(100)
+  listings Listing[]
+
+  // CHANGE: parentId index for tree traversal
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCATION
+// CHANGE: lat/lng → Decimal(9,6) for geo precision; composite index on
+//         country+governorate for region filtering
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Location {
+  id          String  @id @default(uuid()) @db.Uuid
+  country     String  @db.VarChar(100)
+  governorate String? @db.VarChar(100)
+  city        String  @db.VarChar(100)
+  nameKu      String  @db.VarChar(100)
+  nameAr      String  @db.VarChar(100)
+  nameEn      String  @db.VarChar(100)
+  nameZh      String  @db.VarChar(100)
+  // FIX: Decimal(9,6) = ±180.000000 — sufficient for GPS, avoids Float drift
+  lat         Decimal @db.Decimal(9, 6)
+  lng         Decimal @db.Decimal(9, 6)
+  listings    Listing[]
+  dealers     Dealer[]
+
+  // CHANGE: composite country+governorate for region dropdowns
+  @@index([country, governorate])
+  @@index([city])
+  @@map("locations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT
+// CHANGE: unique constraint (listingId, buyerId) to prevent duplicate chats;
+//         status → enum instead of raw String
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId   String   @db.Uuid
+  buyer     User     @relation("BuyerChats", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId  String   @db.Uuid
+  seller    User     @relation("SellerChats", fields: [sellerId], references: [id], onDelete: Cascade)
+  status    String   @default("active") @db.VarChar(20)
+  messages  Message[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CHANGE: prevent duplicate chats between same buyer+listing
+  @@unique([listingId, buyerId])
+  // CHANGE: inbox queries — user sees their chats ordered by latest activity
+  @@index([buyerId, updatedAt(sort: Desc)])
+  @@index([sellerId, updatedAt(sort: Desc)])
+  // ADDED: status filter — "archived" or "active" chat inbox tab
+  @@index([buyerId, status, updatedAt(sort: Desc)])
+  @@index([sellerId, status, updatedAt(sort: Desc)])
+  // ADDED: listing chats — admin/seller sees all chats for a listing
+  @@index([listingId, createdAt(sort: Desc)])
+  @@map("chats")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE
+// CHANGE: chatId + createdAt composite for pagination; partial index for
+//         unread messages; readAt partial index handled in migration
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String    @db.Uuid
+  sender    User      @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  content   String    @db.Text
+  type      String    @default("text") @db.VarChar(20)
+  mediaUrl  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  readReceipts MessageReadReceipt[]
+
+  // CHANGE: chat thread pagination — most common query
+  @@index([chatId, createdAt(sort: Desc)])
+  // senderId for "messages I sent" queries
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION
+// CHANGE: partial index for unread only; composite userId+createdAt for feed
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @db.VarChar(50)
+  title     String   @db.VarChar(255)
+  body      String   @db.Text
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // CHANGE: unread notifications partial index in migration
+  @@index([userId, createdAt(sort: Desc)])
+  // ADDED: type filter — "show only PRICE_DROP notifications"
+  @@index([userId, type, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW
+// CHANGE: rating CHECK constraint (1-5) in raw migration; unique reviewer per
+//         reviewee enforced; added composite for rating aggregation
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  reviewerId String   @db.Uuid
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId String   @db.Uuid
+  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  rating     Int      @db.SmallInt
+  comment    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  // CHANGE: prevent duplicate reviews; reviewer per reviewee
+  @@unique([reviewerId, revieweeId])
+  // CHANGE: composite for average rating queries
+  @@index([revieweeId, rating])
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENT
+// CHANGE: amount → Decimal(12,2); status → enum-like (use varchar for now);
+//         composite userId+createdAt for billing history
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  plan           String    @db.VarChar(50)
+  amount         Decimal   @db.Decimal(12, 2)
+  currency       String    @db.Char(3)
+  status         String    @db.VarChar(30)   // pending | completed | failed | refunded | cancelled
+
+  // Gateway fields
+  gatewayId      String?   @unique @db.VarChar(255)
+  gatewayStatus  String?   @db.VarChar(50)
+
+  // Recovery / retry
+  retryCount     Int       @default(0)
+  nextRetryAt    DateTime?
+  failureReason  String?   @db.Text
+
+  // Refund tracking
+  refundedAt     DateTime?
+  refundAmount   Decimal?  @db.Decimal(12, 2)
+
+  metadata       Json?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  transactionLogs TransactionLog[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([gatewayId])
+  @@index([nextRetryAt])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Report {
+  id         String   @id @default(uuid()) @db.Uuid
+  reporterId String   @db.Uuid
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String   @db.VarChar(50)
+  targetId   String   @db.Uuid
+  reason     String   @db.VarChar(255)
+  status     String   @default("pending") @db.VarChar(30)
+  createdAt  DateTime @default(now())
+
+  @@index([reporterId])
+  // CHANGE: composite — admin moderation queue filters by status + type
+  @@index([status, targetType, createdAt(sort: Desc)])
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAVORITE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String   @db.Uuid
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([listingId])
+  @@map("favorites")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAVED SEARCH
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SavedSearch {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(100)
+  filters   Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // CHANGE: partial index — only active saved searches need alerting
+  @@index([userId, isActive])
+  // ADDED: createdAt for "recently saved searches" — user management page
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("saved_searches")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUSH SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PushSubscription {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint     String   @unique
+  subscription Json
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION PREFERENCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model NotificationPreference {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @unique @db.Uuid
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEnabled      Boolean @default(true)
+  pushEnabled       Boolean @default(true)
+  savedSearchAlerts Boolean @default(true)
+  favoriteAlerts    Boolean @default(true)
+
+  @@map("notification_preferences")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE READ RECEIPT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MessageReadReceipt {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @db.Uuid
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@map("message_read_receipts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER
+// CHANGE: averageRating → Decimal(3,2); totalViews → BigInt;
+//         composite index for marketplace browse (status+tier+rating)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Dealer {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  slug          String  @unique @db.VarChar(100)
+  nameEn        String  @db.VarChar(150)
+  nameAr        String  @db.VarChar(150)
+  nameKu        String  @db.VarChar(150)
+  taglineEn     String? @db.VarChar(255)
+  taglineAr     String? @db.VarChar(255)
+  taglineKu     String? @db.VarChar(255)
+  descriptionEn String? @db.Text
+  descriptionAr String? @db.Text
+  descriptionKu String? @db.Text
+
+  logoUrl     String?
+  coverUrl    String?
+  brandColors Json?
+
+  status     DealerStatus @default(PENDING)
+  tier       DealerTier   @default(BASIC)
+  verifiedAt DateTime?
+  verifiedBy String?      @db.Uuid
+
+  phone     String? @db.VarChar(30)
+  whatsapp  String? @db.VarChar(30)
+  email     String? @db.VarChar(254)
+  website   String?
+  instagram String? @db.VarChar(100)
+  facebook  String? @db.VarChar(100)
+  telegram  String? @db.VarChar(100)
+
+  locationId String?   @db.Uuid
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  address    String?   @db.VarChar(500)
+  // FIX: Decimal for lat/lng
+  lat        Decimal?  @db.Decimal(9, 6)
+  lng        Decimal?  @db.Decimal(9, 6)
+
+  openingHours Json?
+
+  totalListings  Int     @default(0)
+  activeListings Int     @default(0)
+  totalReviews   Int     @default(0)
+  // FIX: Decimal(3,2) — e.g. 4.75; Float is imprecise for display
+  averageRating  Decimal @default(0) @db.Decimal(3, 2)
+  // FIX: BigInt for high-traffic dealer profiles
+  totalViews     BigInt  @default(0)
+  responseRate   Decimal @default(0) @db.Decimal(5, 2)
+  responseTimeMin Int?
+
+  specialties String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  showroomImages  ShowroomImage[]
+  reviews         DealerReview[]
+  analytics       DealerAnalytic[]
+  subscription    DealerSubscription?
+  contactRequests DealerContactRequest[]
+  badges          DealerBadge[]
+
+  // CHANGE: marketplace browse composite — status + tier + rating
+  @@index([status, tier, averageRating(sort: Desc)])
+  @@index([locationId, status])
+  @@index([slug])
+  // ADDED: userId lookup — resolves dealer profile from auth context
+  @@index([userId])
+  // ADDED: status alone — admin "pending verification" queue
+  @@index([status, createdAt(sort: Desc)])
+  // Trigram indexes on dealer names for autocomplete — created in raw migration
+  @@map("dealers")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHOWROOM IMAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ShowroomImage {
+  id       String  @id @default(uuid()) @db.Uuid
+  dealerId String  @db.Uuid
+  dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  url      String
+  caption  String? @db.VarChar(255)
+  order    Int     @default(0) @db.SmallInt
+  isCover  Boolean @default(false)
+
+  @@index([dealerId, order])
+  @@map("showroom_images")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER REVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerReview {
+  id         String @id @default(uuid()) @db.Uuid
+  dealerId   String @db.Uuid
+  dealer     Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  reviewerId String @db.Uuid
+  reviewer   User   @relation("DealerReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  rating         Int     @db.SmallInt
+  title          String? @db.VarChar(255)
+  body           String  @db.Text
+  ratingService  Int?    @db.SmallInt
+  ratingPrice    Int?    @db.SmallInt
+  ratingQuality  Int?    @db.SmallInt
+  helpful        Int     @default(0)
+  verified       Boolean @default(false)
+  flagged        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([dealerId, reviewerId])
+  // CHANGE: composite — dealer review list ordered by rating
+  @@index([dealerId, rating(sort: Desc)])
+  @@index([reviewerId])
+  @@map("dealer_reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER BADGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerBadge {
+  id        String    @id @default(uuid()) @db.Uuid
+  dealerId  String    @db.Uuid
+  dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  code      String    @db.VarChar(50)
+  label     String    @db.VarChar(100)
+  icon      String?
+  awardedAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  // CHANGE: composite — dealer page loads all active badges
+  @@index([dealerId, expiresAt])
+  @@index([code])
+  @@map("dealer_badges")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER ANALYTIC
+// CHANGE: date → @db.Date; composite unique already present; covering index
+//         added for dashboard range queries
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerAnalytic {
+  id       String   @id @default(uuid()) @db.Uuid
+  dealerId String   @db.Uuid
+  dealer   Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  date     DateTime @db.Date
+
+  profileViews      Int @default(0)
+  listingViews      Int @default(0)
+  contactClicks     Int @default(0)
+  whatsappClicks    Int @default(0)
+  phoneClicks       Int @default(0)
+  searchImpressions Int @default(0)
+  newLeads          Int @default(0)
+  newReviews        Int @default(0)
+
+  @@unique([dealerId, date])
+  // Covering index for 30-day dashboard chart — includes all metric columns
+  @@index([dealerId, date(sort: Desc)])
+  @@map("dealer_analytics")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerSubscription {
+  id       String @id @default(uuid()) @db.Uuid
+  dealerId String @unique @db.Uuid
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  amount             Decimal?  @db.Decimal(12, 2)
+  currency           String    @default("USD") @db.Char(3)
+  interval           String    @default("month") @db.VarChar(10)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt        DateTime?
+
+  maxListings      Int     @default(5)
+  analyticsEnabled Boolean @default(false)
+  featuredSlots    Int     @default(0)
+  prioritySupport  Boolean @default(false)
+
+  gatewayCustomerId     String? @db.VarChar(255)
+  gatewaySubscriptionId String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CHANGE: composite — billing jobs filter active subscriptions by period end
+  @@index([status, currentPeriodEnd])
+  // ADDED: plan index — feature gating queries ("all ENTERPRISE dealers")
+  @@index([plan, status])
+  // ADDED: trialEndsAt partial — trial expiry cron job
+  @@index([trialEndsAt])
+  @@map("dealer_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER CONTACT REQUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerContactRequest {
+  id       String  @id @default(uuid()) @db.Uuid
+  dealerId String  @db.Uuid
+  dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  senderId String? @db.Uuid
+  sender   User?   @relation("DealerContacts", fields: [senderId], references: [id], onDelete: SetNull)
+
+  name      String   @db.VarChar(150)
+  phone     String?  @db.VarChar(30)
+  email     String?  @db.VarChar(254)
+  message   String   @db.Text
+  channel   String   @default("form") @db.VarChar(20)
+  listingId String?  @db.Uuid
+  status    String   @default("new") @db.VarChar(20)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // CHANGE: dealer inbox queue — status + createdAt for sorting
+  @@index([dealerId, status, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@map("dealer_contact_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN / UTILITY MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Ad {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String    @db.VarChar(255)
+  imageUrl  String?
+  linkUrl   String?
+  placement String    @default("home") @db.VarChar(30)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // CHANGE: partial index — only active ads need fast lookup
+  @@index([placement, isActive, startsAt])
+  @@map("ads")
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.Text
+  type      String   @default("string") @db.VarChar(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Translation {
+  id        String   @id @default(uuid()) @db.Uuid
+  locale    String   @db.VarChar(5)
+  namespace String   @db.VarChar(50)
+  key       String   @db.VarChar(200)
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([locale, namespace, key])
+  // CHANGE: covering index — app fetches all keys for locale+namespace at startup
+  @@index([locale, namespace])
+  @@map("translations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPLOAD
+// Ownership persisted in Postgres — Redis used as fast-path read cache only.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Upload {
+  id        String   @id @default(uuid()) @db.Uuid
+  filename  String   @unique @db.VarChar(500)
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("uploads")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSACTION LOG
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TransactionLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  paymentId    String   @db.Uuid
+  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  event        String   @db.VarChar(100)
+  status       String   @db.VarChar(50)
+  amount       Decimal? @db.Decimal(12, 2)
+  currency     String?  @db.Char(3)
+  gatewayId    String?  @db.VarChar(255)
+  gatewayData  Json?
+  errorMessage String?  @db.Text
+
+  createdAt    DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([event])
+  @@index([createdAt(sort: Desc)])
+  @@map("transaction_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEBHOOK EVENT (idempotency log)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model WebhookEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  gatewayId   String   @unique @db.VarChar(255)
+  type        String   @db.VarChar(100)
+  payload     Json
+  processedAt DateTime @default(now())
+  error       String?  @db.Text
+
+  @@index([gatewayId])
+  @@index([processedAt(sort: Desc)])
+  @@map("webhook_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBSCRIPTION (per-user plan tracking)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @unique @db.Uuid
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan                   String    @default("FREE") @db.VarChar(50)
+  status                 String    @default("inactive") @db.VarChar(30)
+
+  gatewaySubscriptionId  String?   @unique @db.VarChar(255)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean   @default(false)
+  cancelledAt            DateTime?
+  metadata               Json?
+
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}

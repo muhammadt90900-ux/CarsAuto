@@ -1,0 +1,207 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Offline — AutoBazaar Pro',
+  robots: { index: false },
+};
+
+// Statically rendered — must be cacheable without network
+export const dynamic = 'force-static';
+
+export default function OfflinePage() {
+  return (
+    <html lang="en" dir="ltr">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#050b14" />
+        <style>{`
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          :root {
+            --gold: #D4AF37;
+            --gold-dim: rgba(212,175,55,0.15);
+            --dark: #050b14;
+            --dark2: #0a1222;
+            --dark3: #0f1a2e;
+            --text: #e2e8f0;
+            --muted: #64748b;
+          }
+          body {
+            background: var(--dark);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            overflow: hidden;
+          }
+          .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.08;
+            animation: drift 8s ease-in-out infinite alternate;
+            pointer-events: none;
+          }
+          .orb-1 { width: 400px; height: 400px; background: var(--gold); top: -100px; right: -100px; }
+          .orb-2 { width: 300px; height: 300px; background: #1e3a5f; bottom: -80px; left: -80px; animation-delay: -4s; }
+          @keyframes drift {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(30px,20px) scale(1.1); }
+          }
+          .card {
+            position: relative;
+            background: var(--dark2);
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 20px;
+            padding: 48px 40px;
+            max-width: 440px;
+            width: 100%;
+            z-index: 1;
+          }
+          .logo-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+          }
+          .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gold-dim);
+            border: 1px solid rgba(212,175,55,0.4);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+          }
+          .logo-text { font-size: 1.1rem; font-weight: 700; color: var(--gold); }
+          .icon-wrap {
+            width: 80px; height: 80px;
+            background: var(--gold-dim);
+            border: 1px solid rgba(212,175,55,0.3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 28px;
+            animation: pulse 3s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.3); }
+            50%      { box-shadow: 0 0 0 16px rgba(212,175,55,0); }
+          }
+          h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+          p { color: var(--muted); line-height: 1.7; font-size: 0.95rem; margin-bottom: 32px; }
+          .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+          .btn {
+            padding: 12px 24px; border-radius: 10px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer; border: none;
+            transition: all 0.2s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px;
+          }
+          .btn-primary { background: var(--gold); color: var(--dark); }
+          .btn-primary:hover { background: #c9a227; transform: translateY(-1px); }
+          .btn-secondary {
+            background: transparent; color: var(--text);
+            border: 1px solid rgba(255,255,255,0.15);
+          }
+          .btn-secondary:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+          .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 28px 0; }
+          .status-row {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--dark3); border-radius: 10px; padding: 14px 16px;
+            text-align: left; font-size: 0.875rem;
+          }
+          .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+            flex-shrink: 0; animation: blink 2s ease-in-out infinite;
+          }
+          @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+          .status-text { color: var(--muted); flex: 1; }
+          .status-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+          @media (max-width: 480px) {
+            .card { padding: 32px 20px; }
+            h1 { font-size: 1.3rem; }
+          }
+        `}</style>
+      </head>
+      <body>
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+
+        <div className="card">
+          <div className="logo-wrap">
+            <div className="logo-icon">🚗</div>
+            <span className="logo-text">AutoBazaar Pro</span>
+          </div>
+
+          <div className="icon-wrap">📡</div>
+
+          <h1>You&apos;re offline</h1>
+          <p>
+            No internet connection detected. Previously visited pages and
+            listings are still available. New listings require a connection.
+          </p>
+
+          <div className="actions">
+            <button className="btn btn-primary" onClick={() => window.location.reload()}>
+              ↻ Try Again
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (window.history.length > 1) window.history.back();
+                else window.location.href = '/ku';
+              }}
+            >
+              ← Go Back
+            </button>
+          </div>
+
+          <div className="divider" />
+
+          <div className="status-row">
+            <div className="status-dot" id="statusDot" />
+            <div className="status-text">
+              <strong id="statusTitle">Connection Status</strong>
+              <span id="statusMsg">Checking…</span>
+            </div>
+          </div>
+        </div>
+
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                var dot=document.getElementById('statusDot');
+                var title=document.getElementById('statusTitle');
+                var msg=document.getElementById('statusMsg');
+                function update(){
+                  if(navigator.onLine){
+                    dot.style.background='#22c55e';
+                    title.textContent='Connection Restored';
+                    msg.textContent='Reloading\u2026';
+                    setTimeout(function(){window.location.reload()},800);
+                  } else {
+                    dot.style.background='#ef4444';
+                    title.textContent='No Connection';
+                    msg.textContent='Connect to Wi-Fi or mobile data to continue.';
+                  }
+                }
+                window.addEventListener('online',update);
+                window.addEventListener('offline',update);
+                update();
+              })();
+            `,
+          }}
+        />
+      </body>
+    </html>
+  );
+}

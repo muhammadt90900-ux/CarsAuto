@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build artifacts
+.next
+dist
+build
+
+# Dev / test
+.env*.local
+*.test.ts
+*.spec.ts
+coverage
+.nyc_output
+
+# Turbo
+.turbo
+
+# Git / IDE
+.git
+.gitignore
+.vscode
+.idea
+*.md
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,56 @@
+# .github/dependabot.yml
+# Automated dependency updates — weekly on Mondays
+# Keeps npm and GitHub Actions actions up to date with security patches.
+
+version: 2
+updates:
+  # ── Root npm workspace ──────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Asia/Baghdad     # Kurdish / Iraq timezone
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      dev-dependencies:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+      production-dependencies:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "chore(deps)"
+    reviewers:
+      - ${{ vars.DEPENDABOT_REVIEWER || 'auto' }}
+    ignore:
+      # Pin major versions manually to avoid breaking changes
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@nestjs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Asia/Baghdad
+    labels:
+      - dependencies
+      - github-actions
+      - automated
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

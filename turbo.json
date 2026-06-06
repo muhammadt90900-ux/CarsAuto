@@ -1,0 +1,80 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "**/.env.*local",
+    "**/.env"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "JWT_SECRET",
+    "FRONTEND_URL",
+    "PORT",
+    "NEXT_PUBLIC_API_URL",
+    "INTERNAL_API_URL",
+    "NEXT_TELEMETRY_DISABLED",
+    "ANALYZE",
+    "OPTIMIZE_CSS",
+    "NEXT_OUTPUT",
+    "CI"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "JWT_SECRET",
+        "FRONTEND_URL",
+        "PORT",
+        "NEXT_PUBLIC_API_URL",
+        "INTERNAL_API_URL",
+        "NEXT_TELEMETRY_DISABLED",
+        "NEXT_OUTPUT"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": [],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "test:ci": {
+      "dependsOn": [],
+      "outputs": ["coverage/**"],
+      "cache": false,
+      "env": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "JWT_SECRET",
+        "CI"
+      ]
+    },
+    "test:coverage": {
+      "dependsOn": [],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
