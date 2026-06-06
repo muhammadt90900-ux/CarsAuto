@@ -71,7 +71,8 @@ export class AuthService {
     await this.sendVerificationEmail(user.id, email, name);
     await this.writeAuditLog(user.id, AuditAction.USER_REGISTER, ctx);
 
-    return { id: user.id, email, name };
+    const tokens = await this.issueTokenPair(user);
+    return tokens;
   }
 
   async login(email: string, password: string, ctx?: RequestContext) {
@@ -85,7 +86,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isValid = await this.verifyPassword(password, user.password);
+    const isValid = await this.verifyPassword(password, user.password ?? '');
     if (!isValid) {
       await this.writeAuditLog(user.id, 'USER_LOGIN_FAILED', ctx, { reason: 'wrong_password' });
       throw new UnauthorizedException('Invalid credentials');
@@ -276,4 +277,72 @@ export class AuthService {
     if (!match) return 7 * 86_400_000; // default 7 days
     return parseInt(match[1]!, 10) * (DURATION_UNITS[match[2]!] ?? 86_400_000);
   }
+
+  async verifyEmail(token: string) {
+  const tokenHash = this.hashToken(token);
+  const record = await this.prisma.emailVerificationToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new BadRequestException('Invalid or expired verification token');
+  }
+
+  await this.prisma.user.update({
+    where: { id: record.userId },
+    data: { verified: true },
+  });
+
+  await this.prisma.emailVerificationToken.delete({ where: { tokenHash } });
+
+  return { message: 'Email verified successfully' };
+}
+
+async resendVerificationEmail(userId: string) {
+  const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new BadRequestException('User not found');
+  if (user.verified) throw new BadRequestException('Email already verified');
+
+  await this.sendVerificationEmail(user.id, user.email, user.name);
+  return { message: 'Verification email sent' };
+}
+
+async forgotPassword(dto: { email: string }, ctx?: RequestContext): Promise<{ message: string }> {
+  const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+  
+  // هەمیشە هەمان وەڵام دەگەڕێنێت — email enumeration رێدەگرێت
+  if (user) {
+    await this.issuePasswordResetToken(user.id, user.email, user.name, ctx);
+  }
+
+  return { message: 'If this email exists, a reset link has been sent' };
+}
+
+async resetPassword(dto: { token: string; newPassword: string }, ctx?: RequestContext): Promise<{ message: string }> {
+  const tokenHash = this.hashToken(dto.token);
+  const record = await this.prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new BadRequestException('Invalid or expired reset token');
+  }
+
+  const hashedPassword = await this.hashPassword(dto.newPassword);
+
+  await this.prisma.$transaction([
+    this.prisma.user.update({
+      where: { id: record.userId },
+      data: { password: hashedPassword },
+    }),
+    this.prisma.passwordResetToken.delete({ where: { tokenHash } }),
+    this.prisma.refreshToken.deleteMany({ where: { userId: record.userId } }),
+  ]);
+
+  await this.writeAuditLog(record.userId, AuditAction.PASSWORD_RESET, ctx);
+
+  return { message: 'Password reset successfully' };
+}
 }

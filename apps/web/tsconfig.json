@@ -3,13 +3,28 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@ui/*": ["../../packages/ui/src/*"],
-      "@types/*": ["../../packages/types/src/*"],
-      "@utils/*": ["../../packages/utils/src/*"],
-      "@auto-bazaar-pro/ui/*": ["../../packages/ui/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@types/*": [
+        "../../packages/types/src/*"
+      ],
+      "@utils/*": [
+        "../../packages/utils/src/*"
+      ],
+      "@auto-bazaar-pro/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     },
-    "plugins": [{ "name": "next" }]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "allowJs": true
   },
   "include": [
     "next-env.d.ts",
@@ -17,5 +32,7 @@
     "**/*.ts",
     "**/*.tsx"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

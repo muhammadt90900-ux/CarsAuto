@@ -58,6 +58,7 @@ const DIRECT_SPEC_FIELDS = [
 
 @Injectable()
 export class SearchService {
+  [x: string]: any;
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,

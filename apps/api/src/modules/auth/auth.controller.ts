@@ -12,6 +12,7 @@ import {
   HttpStatus,
   BadRequestException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Request, Response } from 'express';
@@ -22,6 +23,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OtpProtectionService } from '../../common/throttler/otp-protection.service';
+import { EmailNotificationProcessor } from '../notifications/email-notification.processor';
 
 // ── Per-endpoint throttle overrides ──────────────────────────────────────────
 // Password-related flows get the tightest limits to deter enumeration/brute force.
@@ -53,9 +55,9 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(dto, this.ctx(req));
-    this.setRefreshCookie(res, result.refresh_token);
-    return { access_token: result.access_token, user: result.user };
+    const result = await this.authService.register(dto.email, dto.password, dto.name, this.ctx(req));
+    this.setRefreshCookie(res, result.refreshToken);
+    return { access_token: result.accessToken, user: result.user };
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────
@@ -68,9 +70,9 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(dto, this.ctx(req));
-    this.setRefreshCookie(res, result.refresh_token);
-    return { access_token: result.access_token, user: result.user };
+    const result = await this.authService.login(dto.email, dto.password, this.ctx(req));
+    this.setRefreshCookie(res, result.refreshToken);
+    return { access_token: result.accessToken, user: result.user };
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
@@ -82,9 +84,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token: string | undefined = req.cookies?.['refresh_token'];
-    const result = await this.authService.refreshTokens(token, this.ctx(req));
-    this.setRefreshCookie(res, result.refresh_token);
-    return { access_token: result.access_token };
+    if (!token) throw new UnauthorizedException('No refresh token')
+    const result = await this.authService.refreshToken(token, undefined, this.ctx(req));
+    this.setRefreshCookie(res, result.refreshToken);
+    return { access_token: result.accessToken };
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────

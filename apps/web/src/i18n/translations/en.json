@@ -51,7 +51,8 @@
     "back": "Back",
     "next": "Next",
     "submit": "Submit",
-    "send": "Send"
+    "send": "Send",
+    "searchPlaceholder": "Search cars..."
   },
   "home": {
     "heroTitle": "Find Cars, Motorcycles & Spare Parts",
