@@ -9,8 +9,18 @@ const intlMiddleware = createIntlMiddleware({
   localePrefix: 'always',
 });
 
-// Protected routes that require authentication
-const PROTECTED_ROUTES_PATTERN = new RegExp('^/[a-z]{2}/(dashboard|admin|sell|listings/new|profile)');
+/**
+ * Routes that require authentication.
+ * NOTE: "sell" and "listings/new" are NOT in this list intentionally.
+ * The Navbar "Sell" button links to /dashboard/listings which IS protected.
+ * But we also have a dedicated /sell page that should be public (shows
+ * a landing page with a CTA to register/login).
+ *
+ * Only /dashboard, /admin routes need protection here.
+ */
+const PROTECTED_ROUTES_PATTERN = new RegExp(
+  '^/[a-z]{2}/(dashboard|admin)'
+);
 
 /**
  * Middleware for:
@@ -27,7 +37,11 @@ export function middleware(req: NextRequest) {
     if (!hasRefreshToken) {
       // Extract locale from pathname
       const pathParts = req.nextUrl.pathname.split('/');
-      const locale = (pathParts[1] && locales.includes(pathParts[1])) ? pathParts[1] : defaultLocale;
+      const locale =
+        pathParts[1] && locales.includes(pathParts[1] as any)
+          ? pathParts[1]
+          : defaultLocale;
+
       // Redirect to login with returnTo parameter
       const loginUrl = new URL(`/${locale}/login`, req.url);
       loginUrl.searchParams.set('returnTo', req.nextUrl.pathname);
@@ -41,6 +55,6 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Match all paths except Next.js internals and static files
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|offline).*)'
+    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|offline).*)',
   ],
 };

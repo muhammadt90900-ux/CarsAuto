@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, Plus, Bell, ChevronDown } from 'lucide-react';
 
@@ -46,18 +46,31 @@ export function Navbar() {
   const pathname = usePathname();
   const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? '');
   const isRTL = locale === 'ar' || locale === 'ku';
+  const router = useRouter();
+
+  // Sell button: always href="/register" for SSR consistency, then redirect on client if logged in
+  const handleSell = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isMounted && user) {
+      router.push(`/${locale}/dashboard/listings`);
+    } else {
+      router.push(`/${locale}/register`);
+    }
+  };
 
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [scrolled, setScrolled]       = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isMounted, setIsMounted]     = useState(false);
   const searchRef   = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mountedRef  = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
+    setIsMounted(true);
     return () => { mountedRef.current = false; };
   }, []);
 
@@ -219,7 +232,8 @@ export function Navbar() {
 
               {/* Sell CTA — prominent, desktop */}
               <Link
-                href={`/${locale}/dashboard/listings`}
+                href={`/${locale}/register`}
+                onClick={handleSell}
                 className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
                            text-xs font-bold rounded-lg
                            bg-[#c9a84c]/15 border border-[#c9a84c]/35
@@ -375,8 +389,8 @@ export function Navbar() {
         <div className="px-4 py-5 flex flex-col gap-1">
           {/* Sell CTA — mobile prominent */}
           <Link
-            href={`/${locale}/dashboard/listings`}
-            onClick={() => setMobileOpen(false)}
+            href={`/${locale}/register`}
+            onClick={(e) => { handleSell(e); setMobileOpen(false); }}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
                        bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]
                        text-sm font-bold transition-all"

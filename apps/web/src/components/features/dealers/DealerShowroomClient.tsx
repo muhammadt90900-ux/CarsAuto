@@ -24,27 +24,30 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
   const fmtNum   = (v: number) => new Intl.NumberFormat('en-US').format(v);
 
  const dealerData = {
-  name: dealer?.nameEn ?? (dealer?.slug ?? '').replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase()),
+  name: dealer?.nameEn ?? (dealer?.slug ?? '').replace(/-/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
   nameKu: dealer?.nameKu ?? 'ئۆتۆمبێل پریمیئوم',
-  city: dealer?.city ?? 'Erbil',
-  country: dealer?.country ?? 'Kurdistan Region',
+  city: dealer?.location?.city ?? dealer?.city ?? 'Erbil',
+  country: dealer?.location?.country ?? dealer?.country ?? 'Kurdistan Region',
   tier: dealer?.tier ?? 'Platinum',
   color: '#a855f7',
-  rating: dealer?.rating ?? 4.9,
-  reviews: dealer?.reviewCount ?? 284,
-  listings: dealer?.activeListings ?? 142,
-  specialty: dealer?.specialty ?? 'Luxury & Premium Vehicles',
+  // API may return averageRating (Prisma field) or rating (DTO alias)
+  rating: dealer?.averageRating ?? dealer?.rating ?? 4.9,
+  // API may return totalReviews (_count.reviews), reviewCount, or reviews
+  reviews: dealer?._count?.reviews ?? dealer?.totalReviews ?? dealer?.reviewCount ?? 284,
+  // API may return activeListings or listings
+  listings: dealer?.activeListings ?? dealer?.listings ?? 142,
+  specialty: dealer?.specialties?.[0] ?? dealer?.specialty ?? 'Luxury & Premium Vehicles',
   phone: dealer?.phone ?? '+964 750 123 4567',
-  whatsapp: dealer?.phone ?? '+964 750 123 4567',
-  website: dealer?.website ?? 'https://example.com',
-  hours: dealer?.hours ?? 'Sat–Thu 9:00 AM – 7:00 PM',
-  established: dealer?.established ?? 2015,
-  description: dealer?.description ?? 'One of the leading premium automotive dealerships.',
+  whatsapp: dealer?.whatsapp ?? dealer?.phone ?? '+964 750 123 4567',
+  website: dealer?.website ?? null,
+  hours: dealer?.businessHours ?? dealer?.hours ?? 'Sat–Thu 9:00 AM – 7:00 PM',
+  established: dealer?.establishedYear ?? dealer?.established ?? 2015,
+  description: dealer?.descriptionEn ?? dealer?.description ?? 'One of the leading premium automotive dealerships.',
 };
 
   const TABS = [
-    { id: 'listings', label: 'Listings', count: dealer.listings },
-    { id: 'reviews',  label: 'Reviews',  count: dealer.reviews },
+    { id: 'listings', label: 'Listings', count: dealerData.listings },
+    { id: 'reviews',  label: 'Reviews',  count: dealerData.reviews },
     { id: 'about',    label: 'About',    count: null },
   ] as const;
 
@@ -64,42 +67,42 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
           <ChevronRight className="w-3 h-3"/>
           <Link href={`/${locale}/dealers`} className="hover:text-[var(--gold)]">Dealers</Link>
           <ChevronRight className="w-3 h-3"/>
-          <span className="text-[var(--text-secondary)]">{dealer.name}</span>
+          <span className="text-[var(--text-secondary)]">{dealerData.name}</span>
         </nav>
 
         {/* Dealer profile card */}
         <div className="rounded-3xl overflow-hidden mb-8"
-             style={{ background:'linear-gradient(145deg,rgba(11,21,37,0.95),rgba(8,15,28,0.98))', border:`1px solid ${dealer.color}22` }}>
-          <div className="h-0.5" style={{ background:`linear-gradient(90deg,transparent,${dealer.color},transparent)` }}/>
+             style={{ background:'linear-gradient(145deg,rgba(11,21,37,0.95),rgba(8,15,28,0.98))', border:`1px solid ${dealerData.color}22` }}>
+          <div className="h-0.5" style={{ background:`linear-gradient(90deg,transparent,${dealerData.color},transparent)` }}/>
           <div className="p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* Avatar */}
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
-                   style={{ background:`${dealer.color}12`, border:`2px solid ${dealer.color}30` }}>🏪</div>
+                   style={{ background:`${dealerData.color}12`, border:`2px solid ${dealerData.color}30` }}>🏪</div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h1 className="text-2xl font-black text-white">{dealer.name}</h1>
+                  <h1 className="text-2xl font-black text-white">{dealerData.name}</h1>
                   <span className="text-[10px] font-black uppercase tracking-widest rounded-full px-2.5 py-1"
-                        style={{ background:`${dealer.color}15`, border:`1px solid ${dealer.color}30`, color:dealer.color }}>
-                    💎 {dealer.tier}
+                        style={{ background:`${dealerData.color}15`, border:`1px solid ${dealerData.color}30`, color:dealerData.color }}>
+                    💎 {dealerData.tier}
                   </span>
                   <span className="verified-badge"><Shield className="w-2.5 h-2.5"/>Verified</span>
                 </div>
-                <p className="text-white/45 text-sm mb-3">{dealer.nameKu} · {dealer.specialty}</p>
+                <p className="text-white/45 text-sm mb-3">{dealerData.nameKu} · {dealerData.specialty}</p>
                 <div className="flex flex-wrap gap-4 text-sm text-white/50">
-                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealer.city}, {dealer.country}</span>
-                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealer.hours}</span>
-                  <span className="flex items-center gap-1.5">Est. {dealer.established}</span>
+                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.city}, {dealerData.country}</span>
+                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.hours}</span>
+                  <span className="flex items-center gap-1.5">Est. {dealerData.established}</span>
                 </div>
               </div>
 
               {/* Stats */}
               <div className="flex gap-4 sm:gap-6 flex-shrink-0">
                 {[
-                  { val: dealer.rating + '★', lbl: 'Rating' },
-                  { val: dealer.reviews,       lbl: 'Reviews' },
-                  { val: dealer.listings,      lbl: 'Listings' },
+                  { val: dealerData.rating + '★', lbl: 'Rating' },
+                  { val: dealerData.reviews,       lbl: 'Reviews' },
+                  { val: dealerData.listings,      lbl: 'Listings' },
                 ].map(s => (
                   <div key={s.lbl} className="text-center">
                     <div className="font-black text-[var(--gold)] text-2xl">{s.val}</div>
@@ -111,18 +114,18 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
 
             {/* Contact buttons */}
             <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/[0.07]">
-              <a href={`tel:${dealer.phone}`}
+              <a href={`tel:${dealerData.phone}`}
                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
                             bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[var(--gold-light)] transition-colors">
                 <Phone className="w-4 h-4"/>Call Dealer
               </a>
-              <a href={`https://wa.me/${dealer.whatsapp?.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://wa.me/${dealerData.whatsapp?.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
                             bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/25 hover:bg-[#22c55e]/25 transition-colors">
                 <MessageCircle className="w-4 h-4"/>WhatsApp
               </a>
-              {dealer.website && (
-                <a href={dealer.website} target="_blank" rel="noopener noreferrer"
+              {dealerData.website && (
+                <a href={dealerData.website} target="_blank" rel="noopener noreferrer"
                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
                               bg-white/[0.06] text-white/60 border border-white/[0.12] hover:text-white hover:bg-white/[0.10] transition-colors">
                   <Globe className="w-4 h-4"/>Website
@@ -174,13 +177,13 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
             {/* Summary */}
             <div className="card-premium p-6 flex items-center gap-8">
               <div className="text-center">
-                <div className="text-5xl font-black text-[var(--gold)]">{dealer.rating}</div>
+                <div className="text-5xl font-black text-[var(--gold)]">{dealerData.rating}</div>
                 <div className="flex gap-0.5 justify-center my-1">
                   {Array.from({length:5}).map((_,i) => (
-                    <Star key={i} className={`w-4 h-4 ${i < Math.floor(dealer.rating) ? 'fill-[var(--gold)] text-[var(--gold)]' : 'text-[var(--border-default)]'}`}/>
+                    <Star key={i} className={`w-4 h-4 ${i < Math.floor(dealerData.rating) ? 'fill-[var(--gold)] text-[var(--gold)]' : 'text-[var(--border-default)]'}`}/>
                   ))}
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">{dealer.reviews} reviews</p>
+                <p className="text-xs text-[var(--text-muted)]">{dealerData.reviews} reviews</p>
               </div>
               <div className="flex-1 space-y-2">
                 {[5,4,3,2,1].map(n => (
@@ -225,14 +228,14 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
               <h3 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
                 <span className="w-1 h-5 rounded-full bg-[var(--gold)]"/>About Us
               </h3>
-              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{dealer.description}</p>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{dealerData.description}</p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { label:'Location',      value:`${dealer.city}, ${dealer.country}`,  icon:<MapPin className="w-4 h-4"/> },
-                { label:'Phone',         value:dealer.phone,                          icon:<Phone className="w-4 h-4"/> },
-                { label:'Business Hours',value:dealer.hours,                          icon:<Clock className="w-4 h-4"/> },
-                { label:'Established',   value:String(dealer.established),            icon:<Shield className="w-4 h-4"/> },
+                { label:'Location',      value:`${dealerData.city}, ${dealerData.country}`,  icon:<MapPin className="w-4 h-4"/> },
+                { label:'Phone',         value:dealerData.phone,                          icon:<Phone className="w-4 h-4"/> },
+                { label:'Business Hours',value:dealerData.hours,                          icon:<Clock className="w-4 h-4"/> },
+                { label:'Established',   value:String(dealerData.established),            icon:<Shield className="w-4 h-4"/> },
               ].map(item => (
                 <div key={item.label} className="flex items-start gap-3 p-4 rounded-xl bg-[var(--surface-50)] dark:bg-white/[0.04] border border-[var(--border-subtle)]">
                   <span className="text-[var(--gold)] mt-0.5 flex-shrink-0">{item.icon}</span>
