@@ -1,6 +1,5 @@
-// app/[locale]/layout.tsx — Locale root layout
+// app/[locale]/layout.tsx
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
@@ -16,7 +15,6 @@ type Props = {
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
 
-/* ── Locale-aware metadata ───────────────────────────────────── */
 export async function generateMetadata({
   params,
 }: {
@@ -63,7 +61,6 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-/* ── Organisation JSON-LD ────────────────────────────────────── */
 const organisationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -98,7 +95,6 @@ const websiteJsonLd = {
   },
 };
 
-/* ── Layout ──────────────────────────────────────────────────── */
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
 
@@ -139,20 +135,18 @@ export default async function LocaleLayout({ children, params }: Props) {
         <meta name="msapplication-config" content="none" />
         <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />
-      </head>
-      <body className={`${bodyFontClass} antialiased`} suppressHydrationWarning>
-        <Script
+        <script
           id="jsonld-organisation"
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
         />
-        <Script
+        <script
           id="jsonld-website"
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
+      </head>
+      <body className={`${bodyFontClass} antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PWAProvider>
             <Providers>{children}</Providers>

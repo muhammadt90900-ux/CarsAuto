@@ -1,7 +1,6 @@
 // app/layout.tsx — Root layout: fonts + global SEO defaults + error boundary
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
-import { fontVariables } from '@/lib/fonts';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
 

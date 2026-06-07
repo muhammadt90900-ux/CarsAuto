@@ -2,9 +2,10 @@
 import { LoginForm } from '@/components/features/auth/LoginForm';
 
 interface Props {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
-export default function LoginPage({ params }: Props) {
-  return <LoginForm locale={params.locale} />;
+export default async function LoginPage({ params }: Props) {
+  const { locale } = await params;
+  return <LoginForm locale={locale} />;
 }

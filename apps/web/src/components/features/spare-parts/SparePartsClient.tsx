@@ -37,7 +37,7 @@ const MOCK_PARTS = Array.from({ length: 12 }, (_, i) => ({
   title: ['Engine Oil Filter', 'Brake Pads Set', 'Air Filter', 'Spark Plugs x4',
     'Alternator', 'Water Pump', 'Radiator', 'Shock Absorber Pair',
     'Timing Belt Kit', 'Headlight Assembly', 'Fuel Pump', 'CV Joint'][i],
-  partNumber: `OEM-${Math.floor(Math.random() * 99999)}`,
+  partNumber: `OEM-${String(i + 1).padStart(5, '0')}`,
   price: [25,85,18,45,320,145,280,195,165,240,175,95][i],
   condition: CONDITIONS[i % 4],
   make: MAKES[i % MAKES.length],

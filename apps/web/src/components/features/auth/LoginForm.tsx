@@ -26,7 +26,10 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
     try {
       await login(email, password);
       setSuccess(true);
-      setTimeout(() => router.push(`/${locale}/dashboard`), 600);
+      setTimeout(() => {
+      const redirect = new URLSearchParams(window.location.search).get('redirect');
+        router.push(redirect || `/${locale}`);
+      }, 600);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||

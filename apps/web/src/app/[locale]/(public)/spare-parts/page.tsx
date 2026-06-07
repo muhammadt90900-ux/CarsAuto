@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com"
 type Props = { params: { locale: string }; searchParams?: Record<string, string> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const locale = params.locale as Locale;
+  const { locale } = await params;
   // Fallback title/desc for locales without translation yet
   const titles: Record<Locale, string> = {
     ku: "پارچە یەدەکەکان | AutoBazaar Pro",
@@ -41,6 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function SparePartsPage({ params, searchParams }: Props) {
+export default async function SparePartsPage({ params, searchParams }: Props) {  
+  const { locale } = await params;       
+  const search = await searchParams ?? {};
   return <SparePartsClient locale={params.locale} initialSearch={searchParams ?? {}} />;
 }
+

@@ -10,7 +10,7 @@ const intlMiddleware = createIntlMiddleware({
 });
 
 // Protected routes that require authentication
-const PROTECTED_ROUTES_PATTERN = new RegExp('^/[a-z]{2}/(dashboard|admin)');
+const PROTECTED_ROUTES_PATTERN = new RegExp('^/[a-z]{2}/(dashboard|admin|sell|listings/new|profile)');
 
 /**
  * Middleware for:
