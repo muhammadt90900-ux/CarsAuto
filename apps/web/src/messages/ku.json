@@ -1,1 +1,63 @@
-{"common":{"searchPlaceholder":"بگەڕێ بۆ ئۆتۆمبێل...","language":"زمان","logout":"چوونە دەرەوە","login":"چوونەژوورەوە","home":"ماڵەوە","about":"دەربارە","contact":"پەیوەندی","settings":"ڕێکخستنەکان"},"nav":{"dashboard":"پانێلی کۆنترۆل","admin":"بەرپرس","myListings":"لیستەکانم"},"listings":{"title":"گەڕان بۆ ئۆتۆمبێل","noResults":"لیست نەدۆزرایەوە","filters":"فلتەر","sort":"ڕیزکردن"},"errors":{"notFound":"نەدۆزرایەوە","serverError":"هیچ لە سێرڤەر","unauthorized":"ڕێگە نیە"}}
+{
+  "common": {
+    "searchPlaceholder": "گەڕان بۆ ئۆتۆمبێل...",
+    "language": "زمان",
+    "logout": "دەرچوون",
+    "login": "چوونەژوورەوە",
+    "home": "ماڵەوە",
+    "about": "دەربارە",
+    "contact": "پەیوەندی",
+    "settings": "ڕێکخستنەکان",
+    "sell": "فرۆشتنی ئۆتۆمبێل"
+  },
+  "nav": {
+    "dashboard": "داشبۆرد",
+    "admin": "ئەدمین",
+    "myListings": "ئۆتۆمبێلەکانم",
+    "sellCar": "فرۆشتنی ئۆتۆمبێل"
+  },
+  "listings": {
+    "title": "گەڕان بۆ ئۆتۆمبێل",
+    "noResults": "هیچ ئۆتۆمبێلێک نەدۆزرایەوە",
+    "filters": "فلتەرەکان",
+    "sort": "ڕیزکردن"
+  },
+  "sell": {
+    "pageTitle": "ئۆتۆمبێلەکەت بفرۆشە",
+    "pageSubtitle": "دەستگەیشتن بە هەزاران کڕیار لە کوردستان و عێراق",
+    "step1Title": "زانیاری سەرەکی",
+    "step1Subtitle": "ناونیشان، نرخ و جۆر",
+    "step2Title": "وەسف",
+    "step2Subtitle": "کڕیاران دەربارەی ئۆتۆمبێلەکەت ئاگادار بکەرەوە",
+    "step3Title": "وێنەکان",
+    "step3Subtitle": "تا ١٠ وێنە بارکە",
+    "titleEnLabel": "ناونیشان (ئینگلیزی)",
+    "titleKuLabel": "ناونیشان (کوردی)",
+    "titleArLabel": "ناونیشان (عەرەبی)",
+    "priceLabel": "نرخ",
+    "conditionLabel": "دۆخ",
+    "typeLabel": "جۆری لیستینگ",
+    "negotiableLabel": "چاوەڕوانی نرخ",
+    "descriptionEnLabel": "وەسف (ئینگلیزی)",
+    "descriptionKuLabel": "وەسف (کوردی)",
+    "publishButton": "بڵاوکردنەوەی لیستینگ",
+    "publishingLabel": "بڵاوکردنەوە...",
+    "continueButton": "بەردەوام بە",
+    "backButton": "گەڕانەوە",
+    "errors": {
+      "titleEnRequired": "ناونیشانی ئینگلیزی پێویستە",
+      "titleKuRequired": "ناونیشانی کوردی پێویستە",
+      "titleTooShort": "ناونیشان دەبێت لانیکەم ٥ پیت بێت",
+      "priceRequired": "نرخ پێویستە",
+      "priceInvalid": "نرخی دروست بنووسە",
+      "conditionRequired": "دۆخ هەڵبژێرە",
+      "typeRequired": "جۆری لیستینگ هەڵبژێرە",
+      "imagesRequired": "لانیکەم یەک وێنە بارکە"
+    }
+  },
+  "errors": {
+    "notFound": "نەدۆزرایەوە",
+    "serverError": "هەڵەی سێرڤەر",
+    "unauthorized": "مافت نییە"
+  }
+}

@@ -1,1 +1,63 @@
-{"common":{"searchPlaceholder":"Search cars...","language":"Language","logout":"Logout","login":"Login","home":"Home","about":"About","contact":"Contact","settings":"Settings"},"nav":{"dashboard":"Dashboard","admin":"Admin","myListings":"My Listings"},"listings":{"title":"Browse Cars","noResults":"No listings found","filters":"Filters","sort":"Sort"},"errors":{"notFound":"Not found","serverError":"Server error","unauthorized":"Unauthorized"}}
+{
+  "common": {
+    "searchPlaceholder": "Search cars...",
+    "language": "Language",
+    "logout": "Logout",
+    "login": "Login",
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "settings": "Settings",
+    "sell": "Sell Your Car"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "myListings": "My Listings",
+    "sellCar": "Sell a Car"
+  },
+  "listings": {
+    "title": "Browse Cars",
+    "noResults": "No listings found",
+    "filters": "Filters",
+    "sort": "Sort"
+  },
+  "sell": {
+    "pageTitle": "Sell Your Car",
+    "pageSubtitle": "Reach thousands of buyers across Kurdistan & Iraq",
+    "step1Title": "Basic Information",
+    "step1Subtitle": "Title, price, and type",
+    "step2Title": "Description",
+    "step2Subtitle": "Tell buyers about your car",
+    "step3Title": "Photos",
+    "step3Subtitle": "Upload up to 10 photos",
+    "titleEnLabel": "Title (English)",
+    "titleKuLabel": "Title (Kurdish)",
+    "titleArLabel": "Title (Arabic)",
+    "priceLabel": "Price",
+    "conditionLabel": "Condition",
+    "typeLabel": "Listing Type",
+    "negotiableLabel": "Negotiable",
+    "descriptionEnLabel": "Description (English)",
+    "descriptionKuLabel": "Description (Kurdish)",
+    "publishButton": "Publish Listing",
+    "publishingLabel": "Publishing...",
+    "continueButton": "Continue",
+    "backButton": "Back",
+    "errors": {
+      "titleEnRequired": "English title is required",
+      "titleKuRequired": "Kurdish title is required",
+      "titleTooShort": "Title must be at least 5 characters",
+      "priceRequired": "Price is required",
+      "priceInvalid": "Enter a valid price",
+      "conditionRequired": "Select a condition",
+      "typeRequired": "Select a listing type",
+      "imagesRequired": "Upload at least one photo"
+    }
+  },
+  "errors": {
+    "notFound": "Not found",
+    "serverError": "Server error",
+    "unauthorized": "Unauthorized"
+  }
+}
