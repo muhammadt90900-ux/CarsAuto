@@ -1,13 +1,11 @@
+// app/[locale]/(public)/page.tsx
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { Suspense, lazy } from 'react';
 import { HeroSearch }   from '@/components/features/home/HeroSearch';
 import { FeaturedCars } from '@/components/features/home/FeaturedCars';
 import Link from 'next/link';
-import Script from 'next/script';
 
-// PERF: lazy-load below-fold sections — reduces initial JS bundle for LCP path
-// RecentParts and FeaturedDealers are NOT needed for first paint
 const RecentParts     = lazy(() => import('@/components/features/home/RecentParts').then(m => ({ default: m.RecentParts })));
 const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDealers').then(m => ({ default: m.FeaturedDealers })));
 
@@ -59,27 +57,27 @@ const PREMIUM_CATEGORIES = [
 ] as const;
 
 const TRENDING_BRANDS = [
-  { name: 'Toyota',   logoText: 'T',  color: '#eb0a1e', listings: '5,200+' },
-  { name: 'BMW',      logoText: 'BMW',color: '#1c69d3', listings: '2,800+' },
-  { name: 'Mercedes', logoText: '★',  color: '#c0c0c0', listings: '2,400+' },
-  { name: 'Lexus',    logoText: 'L',  color: '#1a1a2e', listings: '1,900+' },
-  { name: 'KIA',      logoText: 'K',  color: '#05141f', listings: '3,100+' },
-  { name: 'Hyundai',  logoText: 'H',  color: '#002c5f', listings: '2,700+' },
-  { name: 'BYD',      logoText: 'BYD',color: '#1db954', listings: '1,200+' },
-  { name: 'Nissan',   logoText: 'N',  color: '#c3002f', listings: '2,100+' },
+  { name: 'Toyota',   logoText: 'T',   color: '#eb0a1e', listings: '5,200+' },
+  { name: 'BMW',      logoText: 'BMW', color: '#1c69d3', listings: '2,800+' },
+  { name: 'Mercedes', logoText: '★',   color: '#c0c0c0', listings: '2,400+' },
+  { name: 'Lexus',    logoText: 'L',   color: '#1a1a2e', listings: '1,900+' },
+  { name: 'KIA',      logoText: 'K',   color: '#05141f', listings: '3,100+' },
+  { name: 'Hyundai',  logoText: 'H',   color: '#002c5f', listings: '2,700+' },
+  { name: 'BYD',      logoText: 'BYD', color: '#1db954', listings: '1,200+' },
+  { name: 'Nissan',   logoText: 'N',   color: '#c3002f', listings: '2,100+' },
 ] as const;
 
 const FEATURED_DEALERS = [
-  { id: 1, name: 'Al-Najaf Premium Auto', nameKu: 'ئەل-نەجەف پریمیئوم ئۆتۆ', city: 'Erbil', rating: 4.9, reviews: 284, listings: 142, verified: true, specialty: 'Luxury & Premium', badge: '💎 Platinum Dealer' },
-  { id: 2, name: 'Kurdistan Motors', nameKu: 'کوردستان مۆتۆرز', city: 'Sulaymaniyah', rating: 4.8, reviews: 196, listings: 98, verified: true, specialty: 'Toyota & Lexus', badge: '⭐ Top Rated' },
-  { id: 3, name: 'Gulf Star Autos', nameKu: 'گولف ستار ئۆتۆز', city: 'Dubai', rating: 4.9, reviews: 421, listings: 213, verified: true, specialty: 'Import Specialist', badge: '🌟 Gold Dealer' },
-  { id: 4, name: 'Tigris Auto Group', nameKu: 'تیگریس ئۆتۆ گروپ', city: 'Baghdad', rating: 4.7, reviews: 158, listings: 87, verified: true, specialty: 'All Brands', badge: '✅ Verified' },
+  { id: 1, name: 'Al-Najaf Premium Auto',  nameKu: 'ئەل-نەجەف پریمیئوم ئۆتۆ', city: 'Erbil',          rating: 4.9, reviews: 284, listings: 142, verified: true, specialty: 'Luxury & Premium',   badge: '💎 Platinum Dealer' },
+  { id: 2, name: 'Kurdistan Motors',       nameKu: 'کوردستان مۆتۆرز',          city: 'Sulaymaniyah',   rating: 4.8, reviews: 196, listings: 98,  verified: true, specialty: 'Toyota & Lexus',     badge: '⭐ Top Rated' },
+  { id: 3, name: 'Gulf Star Autos',        nameKu: 'گولف ستار ئۆتۆز',          city: 'Dubai',          rating: 4.9, reviews: 421, listings: 213, verified: true, specialty: 'Import Specialist',  badge: '🌟 Gold Dealer' },
+  { id: 4, name: 'Tigris Auto Group',      nameKu: 'تیگریس ئۆتۆ گروپ',         city: 'Baghdad',        rating: 4.7, reviews: 158, listings: 87,  verified: true, specialty: 'All Brands',         badge: '✅ Verified' },
 ] as const;
 
 const TESTIMONIALS = [
-  { id: 1, name: 'Ahmad Al-Rashidi', city: 'Erbil', rating: 5, text: 'Found my dream Land Cruiser within 24 hours. The platform is incredibly fast and the dealers are genuine. Best car marketplace in the region by far.', car: 'Toyota Land Cruiser 2023', avatar: '👨' },
-  { id: 2, name: 'Sara Karim', city: 'Sulaymaniyah', rating: 5, text: 'Sold my BMW in 3 days! The listing process was simple, secure, and I got the price I wanted. Will definitely use again.', car: 'BMW 5 Series 2022', avatar: '👩' },
-  { id: 3, name: 'Mohammed Hassan', city: 'Baghdad', rating: 5, text: 'The verified dealer system gives me confidence. Bought 2 cars through this platform and both experiences were perfect.', car: 'Mercedes GLE 2022', avatar: '👨‍💼' },
+  { id: 1, name: 'Ahmad Al-Rashidi', city: 'Erbil',          rating: 5, text: 'Found my dream Land Cruiser within 24 hours. The platform is incredibly fast and the dealers are genuine. Best car marketplace in the region by far.', car: 'Toyota Land Cruiser 2023', avatar: '👨' },
+  { id: 2, name: 'Sara Karim',       city: 'Sulaymaniyah',   rating: 5, text: 'Sold my BMW in 3 days! The listing process was simple, secure, and I got the price I wanted. Will definitely use again.',                              car: 'BMW 5 Series 2022',        avatar: '👩' },
+  { id: 3, name: 'Mohammed Hassan',  city: 'Baghdad',         rating: 5, text: 'The verified dealer system gives me confidence. Bought 2 cars through this platform and both experiences were perfect.',                              car: 'Mercedes GLE 2022',        avatar: '👨‍💼' },
 ] as const;
 
 const PLATFORM_STATS = [
@@ -95,9 +93,29 @@ export default async function HomePage({ params }: Props) {
   const t      = await getTranslations({ locale: params.locale, namespace: 'home' });
   const locale = params.locale;
 
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'AutoBazaar Pro Categories',
+    url: `${BASE_URL}/${locale}`,
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Cars for Sale', url: `${BASE_URL}/${locale}/cars` },
+      { '@type': 'ListItem', position: 2, name: 'Spare Parts',   url: `${BASE_URL}/${locale}/spare-parts` },
+      { '@type': 'ListItem', position: 3, name: 'Motorcycles',   url: `${BASE_URL}/${locale}/motorcycles` },
+      { '@type': 'ListItem', position: 4, name: 'Find Dealers',  url: `${BASE_URL}/${locale}/dealers` },
+    ],
+  };
+
   return (
     <>
-      {/* 01 · HERO — critical path, renders immediately */}
+      {/* JSON-LD — سەرەوە دانراوە بۆ SSR باش */}
+      <script
+        id="jsonld-itemlist"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+
+      {/* 01 · HERO */}
       <HeroSearch />
 
       {/* 02 · STATS BANNER */}
@@ -114,7 +132,7 @@ export default async function HomePage({ params }: Props) {
                   {value}<span className="text-lg">{suffix}</span>
                 </div>
                 <div className="text-white/50 text-xs mt-1 leading-tight">
-                  {label}<br/><span className="text-white/25">{labelEn}</span>
+                  {label}<br /><span className="text-white/25">{labelEn}</span>
                 </div>
               </div>
             ))}
@@ -155,7 +173,7 @@ export default async function HomePage({ params }: Props) {
         </div>
       </section>
 
-      {/* 04 · FEATURED CARS — above fold, no Suspense boundary needed */}
+      {/* 04 · FEATURED CARS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
@@ -207,7 +225,7 @@ export default async function HomePage({ params }: Props) {
         </div>
       </section>
 
-      {/* 06 · SPARE PARTS — lazy loaded below fold */}
+      {/* 06 · SPARE PARTS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
@@ -220,13 +238,12 @@ export default async function HomePage({ params }: Props) {
             {t('viewAll')} →
           </Link>
         </div>
-        {/* PERF: Suspense boundary — RecentParts is lazy; page doesn't block on it */}
         <Suspense fallback={<div className="h-48 skeleton rounded-2xl" />}>
           <RecentParts />
         </Suspense>
       </section>
 
-      {/* 07 · FEATURED DEALERS — lazy loaded */}
+      {/* 07 · FEATURED DEALERS */}
       <section className="relative overflow-hidden py-16 sm:py-24">
         <div className="absolute inset-0 opacity-[0.025]"
              style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.6) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
@@ -239,7 +256,8 @@ export default async function HomePage({ params }: Props) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {FEATURED_DEALERS.map((dealer) => (
-              <div key={dealer.id} className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+              <div key={dealer.id}
+                   className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
                    style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
                 <div className="absolute top-0 inset-x-0 h-1" style={{ background: 'linear-gradient(90deg, #b8922e, #dab445, #b8922e)' }} />
                 <div className="p-6">
@@ -282,45 +300,31 @@ export default async function HomePage({ params }: Props) {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.id} className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1"
+          {TESTIMONIALS.map((testimonial) => (
+            <div key={testimonial.id}
+                 className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1"
                  style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.85), rgba(8,15,28,0.9))' }}>
               <div className="absolute top-4 end-4 text-5xl text-[#c9a84c]/10 font-serif leading-none select-none">"</div>
-              <div className="flex gap-0.5 mb-4">{Array.from({ length: t.rating }).map((_, si) => <span key={si} className="text-[#c9a84c] text-sm">★</span>)}</div>
-              <p className="text-white/70 text-sm leading-relaxed mb-4" dir="ltr">{t.text}</p>
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: testimonial.rating }).map((_, si) => (
+                  <span key={si} className="text-[#c9a84c] text-sm">★</span>
+                ))}
+              </div>
+              <p className="text-white/70 text-sm leading-relaxed mb-4" dir="ltr">{testimonial.text}</p>
               <div className="h-px bg-white/[0.06] mb-4" />
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center text-xl">{t.avatar}</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center text-xl">
+                  {testimonial.avatar}
+                </div>
                 <div>
-                  <div className="font-semibold text-white text-sm">{t.name}</div>
-                  <div className="text-white/40 text-[10px]">{t.city} · {t.car}</div>
+                  <div className="font-semibold text-white text-sm">{testimonial.name}</div>
+                  <div className="text-white/40 text-[10px]">{testimonial.city} · {testimonial.car}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </section>
-
-      {/* JSON-LD: ItemList of platform categories for rich results */}
-      <Script
-        id="jsonld-itemlist"
-        type="application/ld+json"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'ItemList',
-            name: 'AutoBazaar Pro Categories',
-            url: `${BASE_URL}/${locale}`,
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Cars for Sale',   url: `${BASE_URL}/${locale}/cars` },
-              { '@type': 'ListItem', position: 2, name: 'Spare Parts',     url: `${BASE_URL}/${locale}/spare-parts` },
-              { '@type': 'ListItem', position: 3, name: 'Motorcycles',     url: `${BASE_URL}/${locale}/motorcycles` },
-              { '@type': 'ListItem', position: 4, name: 'Find Dealers',    url: `${BASE_URL}/${locale}/dealers` },
-            ],
-          }),
-        }}
-      />
 
       {/* 09 · SELL CTA */}
       <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">

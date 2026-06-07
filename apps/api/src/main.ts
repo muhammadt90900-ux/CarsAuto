@@ -158,6 +158,7 @@ async function bootstrap() {
       'If-None-Match',
       'x-trace-id',
       'x-request-id',
+      'X-Requested-With',
     ],
     exposedHeaders: [
       'ETag',

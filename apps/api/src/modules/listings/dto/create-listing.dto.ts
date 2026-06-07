@@ -6,6 +6,7 @@ export enum ListingType {
   TRUCK = 'TRUCK',
   MOTORCYCLE = 'MOTORCYCLE',
   BUS = 'BUS',
+  PART       = 'PART',
   OTHER = 'OTHER',
 }
 

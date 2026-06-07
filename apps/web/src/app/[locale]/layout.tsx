@@ -1,6 +1,4 @@
 // app/[locale]/layout.tsx — Locale root layout
-// Renders <html lang dir>, provides next-intl context, and injects
-// locale-aware metadata + JSON-LD Organisation structured data.
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { notFound } from 'next/navigation';
@@ -13,7 +11,7 @@ import { PWAProvider, InstallPrompt } from '@/components/pwa';
 
 type Props = {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
@@ -22,14 +20,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com'
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  const locale = params.locale as Locale;
+  const { locale: localeStr } = await params;
+  const locale = localeStr as Locale;
   if (!locales.includes(locale)) return {};
 
   const t = await getTranslations({ locale, namespace: 'meta' });
 
-  // Build hreflang alternates for all locales
   const languages: Record<string, string> = { 'x-default': `${BASE_URL}/ku` };
   for (const loc of locales) {
     languages[hreflangMap[loc]] = `${BASE_URL}/${loc}`;
@@ -102,7 +100,7 @@ const websiteJsonLd = {
 
 /* ── Layout ──────────────────────────────────────────────────── */
 export default async function LocaleLayout({ children, params }: Props) {
-  const locale = params.locale;
+  const { locale } = await params;
 
   if (!locales.includes(locale as Locale)) notFound();
 
@@ -126,14 +124,9 @@ export default async function LocaleLayout({ children, params }: Props) {
       className={fontVariables}
     >
       <head>
-        {/* Preconnect to external services */}
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
-
-        {/* ── PWA manifest ───────────────────────────────────── */}
         <link rel="manifest" href="/manifest.json" />
-
-        {/* ── Apple / iOS PWA meta ────────────────────────────── */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AutoBazaar" />
@@ -141,21 +134,13 @@ export default async function LocaleLayout({ children, params }: Props) {
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
         <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />
-
-        {/* ── MS Tiles ────────────────────────────────────────── */}
         <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
         <meta name="msapplication-TileColor" content="#050b14" />
         <meta name="msapplication-config" content="none" />
-
-        {/* ── Favicon ─────────────────────────────────────────── */}
         <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />
       </head>
-      <body
-        className={`${bodyFontClass} antialiased`}
-        suppressHydrationWarning
-      >
-        {/* Organisation + WebSite structured data — injected once at root */}
+      <body className={`${bodyFontClass} antialiased`} suppressHydrationWarning>
         <Script
           id="jsonld-organisation"
           type="application/ld+json"
@@ -168,7 +153,6 @@ export default async function LocaleLayout({ children, params }: Props) {
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
-
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PWAProvider>
             <Providers>{children}</Providers>
