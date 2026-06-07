@@ -1,4 +1,7 @@
 // apps/web/src/middleware.ts
+// CHANGED: added `sell` to PROTECTED_ROUTES_PATTERN so the /sell page
+// redirects unauthenticated users to /login.
+
 import { NextRequest, NextResponse } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale } from './i18n/config';
@@ -11,15 +14,11 @@ const intlMiddleware = createIntlMiddleware({
 
 /**
  * Routes that require authentication.
- * NOTE: "sell" and "listings/new" are NOT in this list intentionally.
- * The Navbar "Sell" button links to /dashboard/listings which IS protected.
- * But we also have a dedicated /sell page that should be public (shows
- * a landing page with a CTA to register/login).
- *
- * Only /dashboard, /admin routes need protection here.
+ * /dashboard and /admin routes were already protected.
+ * /sell is now also protected — unauthenticated users get redirected to /login.
  */
 const PROTECTED_ROUTES_PATTERN = new RegExp(
-  '^/[a-z]{2}/(dashboard|admin)'
+  '^/[a-z]{2}/(dashboard|admin|sell)'
 );
 
 /**
