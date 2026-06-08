@@ -9,12 +9,12 @@ import Link from 'next/link';
 const RecentParts     = lazy(() => import('@/components/features/home/RecentParts').then(m => ({ default: m.RecentParts })));
 const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDealers').then(m => ({ default: m.FeaturedDealers })));
 
-type Props = { params: { locale: string } };
+type Props = { params: Promise<{ locale: string }> };
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const locale = params.locale;
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'meta' });
 
   const ogLocaleMap: Record<string, string> = {
@@ -90,8 +90,8 @@ const PLATFORM_STATS = [
 ] as const;
 
 export default async function HomePage({ params }: Props) {
-  const t      = await getTranslations({ locale: params.locale, namespace: 'home' });
-  const locale = params.locale;
+  const { locale } = await params;
+  const t      = await getTranslations({ locale, namespace: 'home' });
 
   const itemListJsonLd = {
     '@context': 'https://schema.org',

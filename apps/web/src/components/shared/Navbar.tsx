@@ -48,13 +48,14 @@ export function Navbar() {
   const isRTL = locale === 'ar' || locale === 'ku';
   const router = useRouter();
 
-  // Sell button: always href="/register" for SSR consistency, then redirect on client if logged in
+  // Sell button: href is always /sell (consistent for SSR + client).
+  // onClick overrides destination for already-logged-in users only.
   const handleSell = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isMounted && user) {
+    if (user) {
       router.push(`/${locale}/dashboard/listings`);
     } else {
-      router.push(`/${locale}/register`);
+      router.push(`/${locale}/sell`);
     }
   };
 
@@ -232,7 +233,7 @@ export function Navbar() {
 
               {/* Sell CTA — prominent, desktop */}
               <Link
-                href={`/${locale}/register`}
+                href={`/${locale}/sell`}
                 onClick={handleSell}
                 className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
                            text-xs font-bold rounded-lg
@@ -389,7 +390,7 @@ export function Navbar() {
         <div className="px-4 py-5 flex flex-col gap-1">
           {/* Sell CTA — mobile prominent */}
           <Link
-            href={`/${locale}/register`}
+            href={`/${locale}/sell`}
             onClick={(e) => { handleSell(e); setMobileOpen(false); }}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
                        bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]

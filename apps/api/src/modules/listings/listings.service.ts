@@ -103,6 +103,11 @@ export interface ListingQueryParams {
   maxMileage?: string;
   page?: string;
   limit?: string;
+  featured?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  categoryId?: string;
 }
 
 @Injectable()
@@ -360,6 +365,15 @@ export class ListingsService {
     const where: Prisma.ListingWhereInput = { status: 'ACTIVE' };
 
     if (params.type) where.type = params.type as any;
+    if (params.featured === 'true') where.featured = true;
+    if (params.categoryId) where.categoryId = params.categoryId;
+    if (params.search) {
+      where.OR = [
+        { titleEn: { contains: params.search, mode: 'insensitive' } },
+        { titleKu: { contains: params.search, mode: 'insensitive' } },
+        { titleAr: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
     if (params.locationId) where.locationId = params.locationId;
 
     if (params.minPrice || params.maxPrice) {

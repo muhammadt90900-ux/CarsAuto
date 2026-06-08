@@ -61,14 +61,17 @@ export const useAuthStore = create<AuthState>()(
 
       loadUser: async () => {
         // Skip fetch if there is no access token in memory
-        if (!getAccessToken()) return;
+        if (!getAccessToken()) {
+          set({ isHydrated: true });
+          return;
+        }
         try {
           const user = await authApi.me();
-          set({ user });
+          set({ user, isHydrated: true });
         } catch {
           // Token invalid or expired — clear state
           setAccessToken(null);
-          set({ user: null });
+          set({ user: null, isHydrated: true });
         }
       },
     }),

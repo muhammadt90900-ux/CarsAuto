@@ -35,7 +35,12 @@ class ListingQueryDto implements ListingQueryParams {
   @IsOptional() @IsNumberString()          maxMileage?: string;
   @IsOptional() @IsNumberString()          page?: string;
   @IsOptional() @IsNumberString()          limit?: string;
+  @IsOptional() @IsString()  featured?: string;  // ← ئەمە زیاد بکە
+  @IsOptional() @IsString() @MaxLength(100) search?: string;  // ← ئەمەش
+  @IsOptional() @IsString() @MaxLength(40) sortBy?: string;   // ← ئەمەش
+  @IsOptional() @IsString() @MaxLength(10) sortOrder?: string; // ← ئەمەش
 }
+
 
 @Controller('listings')
 export class ListingsController {

@@ -2,7 +2,8 @@
 // BottomNav — UX-Improved: active indicator bar, sell FAB with label, haptic feedback hint
 
 import Link from 'next/link';
-import { usePathname, useParams } from 'next/navigation';
+import { usePathname, useParams, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth.store';
 import { Home, Car, Package, Store, User, Plus } from 'lucide-react';
 
 interface BottomNavProps { locale?: string; }
@@ -11,6 +12,16 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
   const pathname = usePathname();
   const params   = useParams();
   const locale   = localeProp ?? (Array.isArray(params.locale) ? params.locale[0] : (params.locale as string)) ?? 'en';
+  const router   = useRouter();
+  const user        = useAuthStore((s) => s.user);
+  const isHydrated  = useAuthStore((s) => s.isHydrated);
+
+  const handleSell = (e: React.MouseEvent) => {
+    if (!isHydrated || !user) {
+      e.preventDefault();
+      router.push(`/${locale}/login?returnTo=/${locale}/dashboard/listings/new`);
+    }
+  };
 
   const NAV_ITEMS = [
     { href: `/${locale}`,             icon: Home,    label: 'Home'    },
@@ -35,6 +46,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
           right: '1rem',
         }}
+        onClick={handleSell}
         aria-label="Post new listing"
       >
         <Plus className="w-5 h-5 flex-shrink-0" />

@@ -9,18 +9,16 @@ import { cookies } from 'next/headers';
 import { ReactNode } from 'react';
 
 interface ProtectedLayoutProps {
-  children: ReactNode;
-  params: { locale: string };
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }
 
-export default function ProtectedLayout({ children, params }: ProtectedLayoutProps) {
-  // Server-side cookie check (middleware handles it too, this is a double guard).
-  const cookieStore = cookies();
+export default async function ProtectedLayout({ children, params }: ProtectedLayoutProps) {
+  const { locale } = await params;
+  const cookieStore = await cookies();
   const hasSession = cookieStore.has('refresh_token');
-
   if (!hasSession) {
-    redirect(`/${params.locale}/login?returnTo=/${params.locale}/sell`);
+    redirect(`/${locale}/login?returnTo=/${locale}/sell`);
   }
-
   return <>{children}</>;
 }

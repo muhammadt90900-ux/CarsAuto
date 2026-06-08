@@ -27,8 +27,8 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
       await login(email, password);
       setSuccess(true);
       setTimeout(() => {
-      const redirect = new URLSearchParams(window.location.search).get('redirect');
-        router.push(redirect || `/${locale}`);
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        router.push(returnTo || `/${locale}`);
       }, 600);
     } catch (err: any) {
       const msg =

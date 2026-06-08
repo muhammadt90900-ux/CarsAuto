@@ -2,9 +2,10 @@
 import { RegisterForm } from '@/components/features/auth/RegisterForm';
 
 interface Props {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
-export default function RegisterPage({ params }: Props) {
-  return <RegisterForm locale={params.locale} />;
+export default async function RegisterPage({ params }: Props) {
+  const { locale } = await params;
+  return <RegisterForm locale={locale} />;
 }
