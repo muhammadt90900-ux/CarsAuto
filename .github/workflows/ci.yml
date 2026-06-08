@@ -86,7 +86,7 @@ jobs:
       # ── Upload lint results as artifact for PR comments ───────────────────
       - name: Annotate lint issues
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             core.warning('Lint or type-check failed — see step logs above for details.');
@@ -202,7 +202,7 @@ jobs:
       # ── Coverage summary comment on PRs ───────────────────────────────────
       - name: Coverage summary
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -712,7 +712,7 @@ jobs:
       # ── Notify on failure ──────────────────────────────────────────────────
       - name: Create failure issue
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             await github.rest.issues.create({
