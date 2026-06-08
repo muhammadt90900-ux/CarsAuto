@@ -1,14 +1,27 @@
 {
   "common": {
-    "searchPlaceholder": "Search cars...",
+    "searchPlaceholder": "Search cars, motorcycles…",
     "language": "Language",
     "logout": "Logout",
     "login": "Login",
+    "register": "Register",
     "home": "Home",
     "about": "About",
     "contact": "Contact",
     "settings": "Settings",
-    "sell": "Sell Your Car"
+    "sell": "Sell",
+    "sellYourCar": "Sell Your Car",
+    "cars": "Cars",
+    "motorcycles": "Motorcycles",
+    "spareParts": "Spare Parts",
+    "dealers": "Dealers",
+    "dashboard": "Dashboard",
+    "myListings": "My Listings",
+    "notifications": "Notifications",
+    "signOut": "Sign Out",
+    "messages": "Messages",
+    "profile": "Profile",
+    "search": "Search"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -54,6 +67,35 @@
       "typeRequired": "Select a listing type",
       "imagesRequired": "Upload at least one photo"
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "myListings": "My Listings",
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "reviews": "Reviews",
+    "subscription": "Subscription"
+  },
+  "listing": {
+    "new": "New Listing",
+    "edit": "Edit",
+    "delete": "Delete",
+    "price": "Price",
+    "year": "Year",
+    "mileage": "Mileage",
+    "condition": "Condition",
+    "contactSeller": "Contact Seller"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications"
+  },
+  "profile": {
+    "title": "My Profile",
+    "editProfile": "Edit Profile",
+    "save": "Save Changes"
   },
   "errors": {
     "notFound": "Not found",

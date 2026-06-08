@@ -46,26 +46,32 @@ export const sellApi = {
   },
 
   /**
-   * POST /upload/image  (mock — returns the same data-URL as-is)
-   * In production replace this with a real S3 / Cloudflare Images / Cloudinary
-   * upload that returns a public CDN URL.
+   * POST /upload/image
+   * Uploads the file as multipart/form-data and returns the public CDN URL
+   * returned by the backend. This avoids sending large data-URLs in the
+   * listing payload (which would cause 413 errors and overflow DB fields).
+   *
+   * Falls back to a data-URL only when the environment variable
+   * NEXT_PUBLIC_USE_MOCK_UPLOAD=true is set (e.g. local dev without storage).
    */
   uploadImage: async (file: File): Promise<string> => {
-    // MOCK: convert to data-URL locally (no server round-trip)
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
+    if (process.env.NEXT_PUBLIC_USE_MOCK_UPLOAD === 'true') {
+      // Dev-only mock: returns a data-URL so you can test the form locally
+      // without a running upload endpoint. Never use in production.
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+    }
 
-    // ── REAL IMPLEMENTATION (uncomment when backend upload endpoint is ready) ──
-    // const formData = new FormData();
-    // formData.append('file', file);
-    // const res = await api.post<{ url: string }>('/upload/image', formData, {
-    //   headers: { 'Content-Type': 'multipart/form-data' },
-    // });
-    // return res.url;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post<{ url: string }>('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.url;
   },
 };
 

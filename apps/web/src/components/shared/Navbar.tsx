@@ -1,14 +1,14 @@
 'use client';
-// components/shared/Navbar.tsx — UX-Improved: better visual hierarchy, CTA prominence, sticky search
+// components/shared/Navbar.tsx
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Plus, Bell, ChevronDown } from 'lucide-react';
+import { Search, X, Plus, ChevronDown } from 'lucide-react';
 
 /* ── Logo SVG ────────────────────────────────────────────────── */
 const CarLogoIcon = () => (
@@ -39,32 +39,23 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
   );
 }
 
-export function Navbar() {
+/* ── Props ───────────────────────────────────────────────────── */
+interface NavbarProps {
+  locale: string; // ← passed from Server Component layout, never from useParams()
+}
+
+export function Navbar({ locale }: NavbarProps) {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
-  const params = useParams();
   const pathname = usePathname();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? '');
   const isRTL = locale === 'ar' || locale === 'ku';
-  const router = useRouter();
 
-  // Sell button: href is always /sell (consistent for SSR + client).
-  // onClick overrides destination for already-logged-in users only.
-  const handleSell = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (user) {
-      router.push(`/${locale}/dashboard/listings`);
-    } else {
-      router.push(`/${locale}/sell`);
-    }
-  };
-
-  const [mobileOpen, setMobileOpen]   = useState(false);
-  const [searchOpen, setSearchOpen]   = useState(false);
-  const [scrolled, setScrolled]       = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [mobileOpen, setMobileOpen]     = useState(false);
+  const [searchOpen, setSearchOpen]     = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
+  const [searchQuery, setSearchQuery]   = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isMounted, setIsMounted]     = useState(false);
+  const [isMounted, setIsMounted]       = useState(false);
   const searchRef   = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mountedRef  = useRef(true);
@@ -96,7 +87,6 @@ export function Navbar() {
     return () => window.removeEventListener('resize', close);
   }, []);
 
-  /* Close user menu on outside click */
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -107,11 +97,16 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  // SSR always renders /sell — client swaps to /dashboard/listings after mount if user exists
+  const sellHref = isMounted && user
+    ? `/${locale}/dashboard/listings`
+    : `/${locale}/sell`;
+
   const navLinks = [
     { href: `/${locale}/cars`,        label: t('cars') },
     { href: `/${locale}/motorcycles`, label: t('motorcycles') },
     { href: `/${locale}/spare-parts`, label: t('spareParts') },
-    { href: `/${locale}/dealers`,     label: 'Dealers' },
+    { href: `/${locale}/dealers`,     label: t('dealers') },
   ];
 
   const navBg = scrolled
@@ -122,7 +117,7 @@ export function Navbar() {
 
   return (
     <>
-      {/* Skip to main content — keyboard/screen-reader */}
+      {/* Skip to main content */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999]
@@ -146,7 +141,6 @@ export function Navbar() {
         aria-label="Primary navigation"
         className={`sticky top-0 inset-x-0 z-50 transition-all duration-300 ${navBg}`}
       >
-        {/* Gold top accent line */}
         <div className="gold-line h-[2px] w-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -201,8 +195,7 @@ export function Navbar() {
                   className={`w-full h-9 text-sm text-white/85
                               bg-white/[0.07] border border-white/[0.10]
                               rounded-xl placeholder:text-white/30
-                              focus:outline-none
-                              focus:bg-white/[0.10]
+                              focus:outline-none focus:bg-white/[0.10]
                               focus:border-[#c9a84c]/50
                               focus:shadow-[0_0_0_3px_rgba(201,168,76,0.12)]
                               transition-all duration-200
@@ -214,7 +207,6 @@ export function Navbar() {
             {/* ── Right cluster ─────────────────────────────────── */}
             <div className="flex items-center gap-2 flex-shrink-0">
 
-              {/* Mobile search toggle */}
               <button
                 aria-label="Search"
                 onClick={() => setSearchOpen(v => !v)}
@@ -225,16 +217,14 @@ export function Navbar() {
                 {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
               </button>
 
-              {/* Tools — desktop only */}
               <div className="hidden md:flex items-center gap-1">
                 <LanguageSwitcher />
                 <ThemeToggle />
               </div>
 
-              {/* Sell CTA — prominent, desktop */}
+              {/* Sell CTA */}
               <Link
-                href={`/${locale}/sell`}
-                onClick={handleSell}
+                href={sellHref}
                 className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
                            text-xs font-bold rounded-lg
                            bg-[#c9a84c]/15 border border-[#c9a84c]/35
@@ -242,12 +232,12 @@ export function Navbar() {
                            transition-all duration-200"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Sell
+                {t('sellYourCar')}
               </Link>
 
-              {/* Auth buttons — desktop */}
+              {/* Auth buttons */}
               <div className="hidden md:flex items-center gap-2">
-                {user ? (
+                {isMounted && user ? (
                   <div ref={userMenuRef} className="relative">
                     <button
                       onClick={() => setUserMenuOpen(v => !v)}
@@ -275,18 +265,17 @@ export function Navbar() {
                           <Link href={`/${locale}/dashboard`} onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                                        hover:bg-white/[0.07] hover:text-white transition-all">
-                            Dashboard
+                            {t('dashboard')}
                           </Link>
                           <Link href={`/${locale}/dashboard/listings`} onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                                        hover:bg-white/[0.07] hover:text-white transition-all">
-                            My Listings
+                            {t('myListings')}
                           </Link>
                           <Link href={`/${locale}/dashboard/notifications`} onClick={() => setUserMenuOpen(false)}
                             className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                                        hover:bg-white/[0.07] hover:text-white transition-all">
-                            Notifications
-                            <span className="px-1.5 py-0.5 rounded-full bg-[#e94560] text-[9px] font-bold text-white">5</span>
+                            {t('notifications')}
                           </Link>
                         </div>
                         <div className="p-2 border-t border-white/[0.06]">
@@ -295,7 +284,7 @@ export function Navbar() {
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs
                                        text-red-400 hover:bg-red-500/10 transition-all text-left"
                           >
-                            Sign out
+                            {t('signOut')}
                           </button>
                         </div>
                       </div>
@@ -309,8 +298,7 @@ export function Navbar() {
                                  text-xs font-semibold rounded-lg
                                  border border-white/[0.15] text-white/70
                                  hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
-                                 hover:bg-[#c9a84c]/[0.08]
-                                 transition-all duration-200"
+                                 hover:bg-[#c9a84c]/[0.08] transition-all duration-200"
                     >
                       {t('login')}
                     </Link>
@@ -388,16 +376,15 @@ export function Navbar() {
                       : '-top-full opacity-0 pointer-events-none'}`}
       >
         <div className="px-4 py-5 flex flex-col gap-1">
-          {/* Sell CTA — mobile prominent */}
           <Link
             href={sellHref}
-            onClick={(e) => { handleSell(e); setMobileOpen(false); }}
+            onClick={() => setMobileOpen(false)}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
                        bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]
                        text-sm font-bold transition-all"
           >
             <Plus className="w-4 h-4" />
-            Sell Your Car
+            {t('sellYourCar')}
           </Link>
 
           {navLinks.map(({ href, label }) => (
@@ -426,7 +413,7 @@ export function Navbar() {
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            {user ? (
+            {isMounted && user ? (
               <>
                 <Link
                   href={`/${locale}/dashboard`}
@@ -445,7 +432,7 @@ export function Navbar() {
                              border border-red-500/20 text-red-400 hover:bg-red-500/10
                              transition-all"
                 >
-                  Sign out
+                  {t('signOut')}
                 </button>
               </>
             ) : (

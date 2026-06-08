@@ -5,7 +5,7 @@
 // then redirects to the new listing page.
 
 import { useState, useRef, useCallback, ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/auth.store';
@@ -80,7 +80,21 @@ const CURRENCIES = ['USD', 'IQD', 'EUR'];
 export function SellCarForm() {
   const router = useRouter();
   const locale = useLocale();
-  const user   = useAuthStore((s) => s.user);
+  const { user, isHydrated } = useAuthStore((s) => ({ user: s.user, isHydrated: s.isHydrated }));
+
+  // Wait for Zustand to rehydrate from localStorage before rendering the form.
+  // Without this, `user` is null on first render even when logged-in,
+  // causing a false "not logged in" error on submit.
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[var(--text-faint)] text-sm">Loading…</p>
+        </div>
+      </div>
+    );
+  }
 
   const [step, setStep]       = useState(1); // 1 = basics, 2 = details, 3 = photos
   const [values, setValues]   = useState<FormValues>({

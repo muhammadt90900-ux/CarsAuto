@@ -1,14 +1,27 @@
 {
   "common": {
-    "searchPlaceholder": "گەڕان بۆ ئۆتۆمبێل...",
+    "searchPlaceholder": "گەڕان بۆ ئۆتۆمبێل، مۆتۆسکل…",
     "language": "زمان",
     "logout": "دەرچوون",
     "login": "چوونەژوورەوە",
+    "register": "تۆمارکردن",
     "home": "ماڵەوە",
     "about": "دەربارە",
     "contact": "پەیوەندی",
     "settings": "ڕێکخستنەکان",
-    "sell": "فرۆشتنی ئۆتۆمبێل"
+    "sell": "فرۆشتن",
+    "sellYourCar": "ئۆتۆمبێلەکەت بفرۆشە",
+    "cars": "ئۆتۆمبێلەکان",
+    "motorcycles": "مۆتۆسکلەکان",
+    "spareParts": "پارچە یەدەکەکان",
+    "dealers": "فرۆشیارەکان",
+    "dashboard": "داشبۆرد",
+    "myListings": "ئۆتۆمبێلەکانم",
+    "notifications": "ئاگادارکردنەوەکان",
+    "signOut": "دەرچوون",
+    "messages": "نامەکان",
+    "profile": "پرۆفایل",
+    "search": "گەڕان"
   },
   "nav": {
     "dashboard": "داشبۆرد",
@@ -54,6 +67,35 @@
       "typeRequired": "جۆری لیستینگ هەڵبژێرە",
       "imagesRequired": "لانیکەم یەک وێنە بارکە"
     }
+  },
+  "dashboard": {
+    "title": "داشبۆرد",
+    "overview": "گشتی",
+    "myListings": "ئۆتۆمبێلەکانم",
+    "favorites": "دڵخوازەکان",
+    "notifications": "ئاگادارکردنەوەکان",
+    "reviews": "هەڵسەنگاندنەکان",
+    "subscription": "بەشداری"
+  },
+  "listing": {
+    "new": "لیستینگی نوێ",
+    "edit": "دەستکاری",
+    "delete": "سڕینەوە",
+    "price": "نرخ",
+    "year": "ساڵ",
+    "mileage": "کیلۆمەتر",
+    "condition": "دۆخ",
+    "contactSeller": "پەیوەندی بە فرۆشیارەوە"
+  },
+  "notifications": {
+    "title": "ئاگادارکردنەوەکان",
+    "markAllRead": "هەموو خوێندراوە بکە",
+    "empty": "هیچ ئاگادارکردنەوەیەک نییە"
+  },
+  "profile": {
+    "title": "پرۆفایلم",
+    "editProfile": "دەستکاری پرۆفایل",
+    "save": "پاشەکەوتکردن"
   },
   "errors": {
     "notFound": "نەدۆزرایەوە",

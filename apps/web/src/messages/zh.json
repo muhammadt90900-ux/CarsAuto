@@ -17,20 +17,73 @@
     "subtitle": "伊拉克和库尔德斯坦高端汽车市场"
   },
   "common": {
-    "cars": "汽车",
-    "motorcycles": "摩托车",
-    "spareParts": "零配件",
     "searchPlaceholder": "搜索汽车、摩托车…",
-    "dashboard": "仪表板",
+    "language": "语言",
     "logout": "退出登录",
     "login": "登录",
     "register": "注册",
     "home": "首页",
-    "search": "搜索",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "settings": "设置",
     "sell": "出售",
+    "sellYourCar": "出售您的汽车",
+    "cars": "汽车",
+    "motorcycles": "摩托车",
+    "spareParts": "零配件",
+    "dealers": "经销商",
+    "dashboard": "仪表板",
+    "myListings": "我的列表",
+    "notifications": "通知",
+    "signOut": "退出登录",
     "messages": "消息",
     "profile": "个人资料",
-    "language": "语言"
+    "search": "搜索"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "admin": "管理员",
+    "myListings": "我的列表",
+    "sellCar": "出售汽车"
+  },
+  "listings": {
+    "title": "浏览汽车",
+    "noResults": "未找到列表",
+    "filters": "筛选",
+    "sort": "排序"
+  },
+  "sell": {
+    "pageTitle": "出售您的汽车",
+    "pageSubtitle": "联系库尔德斯坦和伊拉克数千名买家",
+    "step1Title": "基本信息",
+    "step1Subtitle": "标题、价格和类型",
+    "step2Title": "描述",
+    "step2Subtitle": "向买家介绍您的汽车",
+    "step3Title": "照片",
+    "step3Subtitle": "上传最多10张照片",
+    "titleEnLabel": "标题（英文）",
+    "titleKuLabel": "标题（库尔德文）",
+    "titleArLabel": "标题（阿拉伯文）",
+    "priceLabel": "价格",
+    "conditionLabel": "状况",
+    "typeLabel": "列表类型",
+    "negotiableLabel": "可议价",
+    "descriptionEnLabel": "描述（英文）",
+    "descriptionKuLabel": "描述（库尔德文）",
+    "publishButton": "发布列表",
+    "publishingLabel": "发布中...",
+    "continueButton": "继续",
+    "backButton": "返回",
+    "errors": {
+      "titleEnRequired": "英文标题为必填项",
+      "titleKuRequired": "库尔德文标题为必填项",
+      "titleTooShort": "标题至少需要5个字符",
+      "priceRequired": "价格为必填项",
+      "priceInvalid": "请输入有效价格",
+      "conditionRequired": "请选择状况",
+      "typeRequired": "请选择列表类型",
+      "imagesRequired": "请至少上传一张照片"
+    }
   },
   "dashboard": {
     "title": "仪表板",
@@ -60,5 +113,10 @@
     "title": "我的资料",
     "editProfile": "编辑资料",
     "save": "保存更改"
+  },
+  "errors": {
+    "notFound": "未找到",
+    "serverError": "服务器错误",
+    "unauthorized": "未授权"
   }
 }
