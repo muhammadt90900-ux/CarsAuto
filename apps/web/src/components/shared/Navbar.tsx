@@ -390,7 +390,7 @@ export function Navbar() {
         <div className="px-4 py-5 flex flex-col gap-1">
           {/* Sell CTA — mobile prominent */}
           <Link
-            href={`/${locale}/sell`}
+            href={sellHref}
             onClick={(e) => { handleSell(e); setMobileOpen(false); }}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
                        bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]
