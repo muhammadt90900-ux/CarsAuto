@@ -1,4 +1,3 @@
-// apps/api/src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
@@ -22,31 +21,20 @@ const UPLOAD_CACHE_HEADERS = {
   'Referrer-Policy': 'no-referrer',
 } as const;
 
-const INTERNAL_IP_PATTERNS = ['127.0.0.1', '::1'] as const;
-
-/** Returns true for RFC 1918 / loopback addresses (Docker + private networks). */
-function isInternalIp(ip: string): boolean {
-  if (!ip || typeof ip !== 'string') return false;
-  return (
-    INTERNAL_IP_PATTERNS.includes(ip as any) ||
-    ip.startsWith('10.') ||
-    ip.startsWith('192.168.') ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
-  );
-}
-
-/** Adds X-Response-Time header using Node.js high-resolution timer. */
+/** Intercepts writeHead to inject X-Response-Time before headers are flushed. */
 function responseTimeMiddleware() {
   return (req: any, res: any, next: () => void) => {
     const startNs = process.hrtime.bigint();
-    res.on('finish', () => {
+
+    const originalWriteHead = res.writeHead.bind(res);
+    res.writeHead = function (statusCode: number, ...args: any[]) {
       try {
         const elapsedMs = Number(process.hrtime.bigint() - startNs) / 1e6;
         res.setHeader('X-Response-Time', `${elapsedMs.toFixed(1)}ms`);
-      } catch (err) {
-        // Silently ignore header-setting errors
-      }
-    });
+      } catch {}
+      return originalWriteHead(statusCode, ...args);
+    };
+
     next();
   };
 }
@@ -60,6 +48,9 @@ async function bootstrap() {
     bufferLogs: false,
   });
 
+  // Trust loopback + private network proxies so req.ip is unwrapped correctly
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
   const logger = new Logger('Bootstrap');
 
   // ── Monitoring (must be first — measures all downstream middleware) ────────
@@ -72,13 +63,13 @@ async function bootstrap() {
     metricsMiddleware.use(req, res, next),
   );
 
-  // ── Body parsing ─────────────────────────────────────────────────────────
+  // ── Body parsing ──────────────────────────────────────────────────────────
   // Raw body for Stripe webhook must be registered BEFORE json() middleware.
   app.use('/api/payments/webhook', raw({ type: 'application/json' }));
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
-  // ── Static assets ────────────────────────────────────────────────────────
+  // ── Static assets ─────────────────────────────────────────────────────────
   const uploadDir = process.env.UPLOAD_DIR ?? '/tmp/uploads';
   app.useStaticAssets(path.resolve(uploadDir), {
     prefix: '/uploads',
@@ -97,19 +88,19 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
+          scriptSrc:  ["'self'"],
+          styleSrc:   ["'self'", "'unsafe-inline'"],
+          imgSrc:     ["'self'", 'data:', 'https:'],
           connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
+          fontSrc:    ["'self'"],
+          objectSrc:  ["'none'"],
+          mediaSrc:   ["'self'"],
+          frameSrc:   ["'none'"],
         },
       },
       hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
       noSniff: true,
-      xssFilter: true,
+      // xssFilter removed — deprecated in helmet v7, CSP covers this
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     }),
   );
@@ -128,7 +119,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // ── CORS ───────────────────────────────────────────────────────────────────
+  // ── CORS ──────────────────────────────────────────────────────────────────
   const rawOrigins = process.env.FRONTEND_URL ?? 'http://localhost:3000';
   const allowedOrigins = rawOrigins
     .split(',')
@@ -138,7 +129,6 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
-        // Allow requests without Origin header (server-to-server, curl) in dev only
         if (process.env.NODE_ENV === 'production') {
           return callback(
             new Error('CORS: direct requests not allowed in production'),
@@ -191,11 +181,9 @@ async function bootstrap() {
 
   httpAdapter.get('/metrics', async (req: any, res: any) => {
     if (process.env.NODE_ENV === 'production') {
-      const ip: string =
-        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-        req.socket?.remoteAddress ??
-        '';
-      if (!isInternalIp(ip)) {
+      const ip: string = req.ip ?? '';
+      const isInternal = /^(127\.|::1$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
+      if (!isInternal) {
         res.status(403).json({ statusCode: 403, message: 'Forbidden' });
         return;
       }
@@ -204,7 +192,7 @@ async function bootstrap() {
       res.setHeader('Content-Type', metricsService.contentType());
       res.setHeader('Cache-Control', 'no-store');
       res.send(await metricsService.getMetrics());
-    } catch (err) {
+    } catch {
       res.status(500).json({ statusCode: 500, message: 'Metrics unavailable' });
     }
   });
@@ -234,7 +222,6 @@ async function bootstrap() {
       context: 'UncaughtException',
       level: 'fatal',
     });
-    // Allow error tracker to flush before exiting
     setTimeout(() => process.exit(1), 500);
   });
 
@@ -244,9 +231,17 @@ async function bootstrap() {
 
   logger.log(`🚀 API listening on http://0.0.0.0:${port}/api`);
   logger.log(`📊 Metrics available at http://0.0.0.0:${port}/metrics`);
-  logger.log(
-    `❤️  Health checks at http://0.0.0.0:${port}/health/live and /health/ready`,
-  );
+  logger.log(`❤️  Health checks at http://0.0.0.0:${port}/health/live and /health/ready`);
+
+  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  const shutdown = async (signal: string) => {
+    logger.log(`${signal} received — shutting down gracefully`);
+    await app.close();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 bootstrap().catch((err) => {

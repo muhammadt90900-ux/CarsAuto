@@ -52,7 +52,17 @@
     "next": "Next",
     "submit": "Submit",
     "send": "Send",
-    "searchPlaceholder": "Search cars..."
+    "searchPlaceholder": "Search cars, motorcycles…",
+    "signOut": "Sign Out",
+    "myListings": "My Listings",
+    "notifications": "Notifications",
+    "settings": "Settings"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "myListings": "My Listings",
+    "sellCar": "Sell a Car"
   },
   "home": {
     "heroTitle": "Find Cars, Motorcycles & Spare Parts",
@@ -106,6 +116,13 @@
     "details": "Details",
     "addListing": "Add Listing",
     "myListings": "My Listings",
+    "new": "New Listing",
+    "edit": "Edit",
+    "delete": "Delete",
+    "title": "Browse Cars",
+    "noResults": "No listings found",
+    "filters": "Filters",
+    "sort": "Sort",
     "year": "Year",
     "mileage": "Mileage",
     "fuel": "Fuel",
@@ -122,6 +139,39 @@
     "pending": "Pending",
     "sold": "Sold",
     "expired": "Expired"
+  },
+  "sell": {
+    "pageTitle": "Sell Your Car",
+    "pageSubtitle": "Reach thousands of buyers across Kurdistan & Iraq",
+    "step1Title": "Basic Information",
+    "step1Subtitle": "Title, price, and type",
+    "step2Title": "Description",
+    "step2Subtitle": "Tell buyers about your car",
+    "step3Title": "Photos",
+    "step3Subtitle": "Upload up to 10 photos",
+    "titleEnLabel": "Title (English)",
+    "titleKuLabel": "Title (Kurdish)",
+    "titleArLabel": "Title (Arabic)",
+    "priceLabel": "Price",
+    "conditionLabel": "Condition",
+    "typeLabel": "Listing Type",
+    "negotiableLabel": "Negotiable",
+    "descriptionEnLabel": "Description (English)",
+    "descriptionKuLabel": "Description (Kurdish)",
+    "publishButton": "Publish Listing",
+    "publishingLabel": "Publishing...",
+    "continueButton": "Continue",
+    "backButton": "Back",
+    "errors": {
+      "titleEnRequired": "English title is required",
+      "titleKuRequired": "Kurdish title is required",
+      "titleTooShort": "Title must be at least 5 characters",
+      "priceRequired": "Price is required",
+      "priceInvalid": "Enter a valid price",
+      "conditionRequired": "Select a condition",
+      "typeRequired": "Select a listing type",
+      "imagesRequired": "Upload at least one photo"
+    }
   },
   "auth": {
     "loginTitle": "Welcome Back",
@@ -152,6 +202,7 @@
     "nameRequired": "Name is required"
   },
   "dashboard": {
+    "title": "Dashboard",
     "overview": "Overview",
     "myListings": "My Listings",
     "messages": "Messages",
@@ -204,6 +255,9 @@
     "noFavoritesDesc": "Save listings you like to view them here"
   },
   "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
     "newMessage": "New message from {name}",
     "newViews": "{listing} got {count} new views",
     "newReview": "New {stars}-star review received",
@@ -216,6 +270,9 @@
     "allCaughtUp": "All caught up!"
   },
   "profile": {
+    "title": "My Profile",
+    "editProfile": "Edit Profile",
+    "save": "Save Changes",
     "fullName": "Full Name",
     "emailAddress": "Email Address",
     "phoneNumber": "Phone Number",
@@ -253,7 +310,8 @@
     "serverErrorDesc": "Something went wrong on our end.",
     "networkError": "Network Error",
     "networkErrorDesc": "Please check your internet connection.",
-    "goHome": "Go Home"
+    "goHome": "Go Home",
+    "unauthorized": "Unauthorized"
   },
   "meta": {
     "homeTitle": "AutoBazaar Pro — Premium Automotive Marketplace",

@@ -1,6 +1,4 @@
 // apps/web/src/app/[locale]/(public)/layout.tsx
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
 import { PublicLayout } from '@/components/layouts/PublicLayout';
 
 export default async function Layout({
@@ -8,14 +6,11 @@ export default async function Layout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>; // ← Next.js 15: params is a Promise
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = await params; // ← await داواکراوە
-  const messages = await getMessages();
+  const { locale } = await params;
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      <PublicLayout locale={locale}>{children}</PublicLayout>
-    </NextIntlClientProvider>
+    <PublicLayout locale={locale}>{children}</PublicLayout>
   );
 }

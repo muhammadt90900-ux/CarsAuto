@@ -39,30 +39,205 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
   );
 }
 
+/* ── Auth Section (isolated to prevent hydration mismatch) ───── */
+// Renders placeholder on server + first client render, then swaps to real auth UI.
+function AuthSection({ locale }: { locale: string }) {
+  const t = useTranslations('common');
+  const { user, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  // Before mount: always render guest buttons — matches server output exactly
+  if (!mounted || !user) {
+    return (
+      <div className="hidden md:flex items-center gap-2">
+        <Link
+          href={`/${locale}/login`}
+          className="inline-flex items-center justify-center h-8 px-4
+                     text-xs font-semibold rounded-lg
+                     border border-white/[0.15] text-white/70
+                     hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
+                     hover:bg-[#c9a84c]/[0.08] transition-all duration-200"
+        >
+          {t('login')}
+        </Link>
+        <Link
+          href={`/${locale}/register`}
+          className="btn-gold inline-flex h-8 px-4 text-xs rounded-lg"
+        >
+          {t('register')}
+        </Link>
+      </div>
+    );
+  }
+
+  // After mount with user: render user menu
+  return (
+    <div ref={userMenuRef} className="relative hidden md:block">
+      <button
+        onClick={() => setUserMenuOpen(v => !v)}
+        className="flex items-center gap-2 h-8 px-3 rounded-lg
+                   text-xs font-semibold text-white/70 hover:text-white
+                   hover:bg-white/[0.08] transition-all duration-200"
+      >
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+                        flex items-center justify-center text-[10px] font-black text-[#030710]">
+          {user.name?.[0]?.toUpperCase() ?? 'U'}
+        </div>
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {userMenuOpen && (
+        <div className="absolute top-full right-0 mt-2 w-52 rounded-2xl
+                        bg-[#0b1525] border border-white/[0.08]
+                        shadow-[0_16px_48px_rgba(0,0,0,0.7)]
+                        overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-white/[0.06]">
+            <p className="text-xs font-bold text-white truncate">{user.name}</p>
+            <p className="text-[10px] text-white/35 truncate">{user.email}</p>
+          </div>
+          <div className="p-2 space-y-0.5">
+            <Link
+              href={`/${locale}/dashboard`}
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                         hover:bg-white/[0.07] hover:text-white transition-all"
+            >
+              {t('dashboard')}
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/listings`}
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                         hover:bg-white/[0.07] hover:text-white transition-all"
+            >
+              {t('myListings')}
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/notifications`}
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
+                         hover:bg-white/[0.07] hover:text-white transition-all"
+            >
+              {t('notifications')}
+            </Link>
+          </div>
+          <div className="p-2 border-t border-white/[0.06]">
+            <button
+              onClick={() => { logout(); setUserMenuOpen(false); }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs
+                         text-red-400 hover:bg-red-500/10 transition-all text-left"
+            >
+              {t('signOut')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Mobile Auth Section ─────────────────────────────────────── */
+function MobileAuthSection({
+  locale,
+  onClose,
+}: {
+  locale: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations('common');
+  const { user, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !user) {
+    return (
+      <>
+        <Link
+          href={`/${locale}/login`}
+          onClick={onClose}
+          className="inline-flex items-center justify-center w-full h-11
+                     text-sm font-semibold rounded-xl
+                     border border-white/[0.12] text-white/70
+                     hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                     transition-all duration-200"
+        >
+          {t('login')}
+        </Link>
+        <Link
+          href={`/${locale}/register`}
+          onClick={onClose}
+          className="btn-gold inline-flex items-center justify-center w-full h-11
+                     text-sm rounded-xl"
+        >
+          {t('register')} — It's free
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Link
+        href={`/${locale}/dashboard`}
+        onClick={onClose}
+        className="inline-flex items-center justify-center w-full h-11
+                   text-sm font-semibold rounded-xl
+                   border border-white/[0.12] text-white/70
+                   hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                   transition-all duration-200"
+      >
+        {t('dashboard')}
+      </Link>
+      <button
+        onClick={() => { logout(); onClose(); }}
+        className="w-full h-11 text-sm font-semibold rounded-xl
+                   border border-red-500/20 text-red-400 hover:bg-red-500/10
+                   transition-all"
+      >
+        {t('signOut')}
+      </button>
+    </>
+  );
+}
+
 /* ── Props ───────────────────────────────────────────────────── */
 interface NavbarProps {
-  locale: string; // ← passed from Server Component layout, never from useParams()
+  locale: string;
 }
 
 export function Navbar({ locale }: NavbarProps) {
   const t = useTranslations('common');
-  const { user, logout } = useAuthStore();
   const pathname = usePathname();
   const isRTL = locale === 'ar' || locale === 'ku';
 
-  const [mobileOpen, setMobileOpen]     = useState(false);
-  const [searchOpen, setSearchOpen]     = useState(false);
-  const [scrolled, setScrolled]         = useState(false);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isMounted, setIsMounted]       = useState(false);
-  const searchRef   = useRef<HTMLInputElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const mountedRef  = useRef(true);
+  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [searchOpen, setSearchOpen]   = useState(false);
+  const [scrolled, setScrolled]       = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsMounted(true);
     return () => { mountedRef.current = false; };
   }, []);
 
@@ -87,20 +262,8 @@ export function Navbar({ locale }: NavbarProps) {
     return () => window.removeEventListener('resize', close);
   }, []);
 
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
-
-  // SSR always renders /sell — client swaps to /dashboard/listings after mount if user exists
-  const sellHref = isMounted && user
-    ? `/${locale}/dashboard/listings`
-    : `/${locale}/sell`;
+  // Always /sell — proxy.ts redirects logged-in users from /sell to dashboard
+  const sellHref = `/${locale}/sell`;
 
   const navLinks = [
     { href: `/${locale}/cars`,        label: t('cars') },
@@ -189,7 +352,7 @@ export function Navbar({ locale }: NavbarProps) {
                 />
                 <input
                   type="search"
-                  placeholder={t('searchPlaceholder') ?? 'Search cars, motorcycles…'}
+                  placeholder={t('searchPlaceholder')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className={`w-full h-9 text-sm text-white/85
@@ -222,7 +385,7 @@ export function Navbar({ locale }: NavbarProps) {
                 <ThemeToggle />
               </div>
 
-              {/* Sell CTA */}
+              {/* Sell CTA — always /sell, no hydration branch */}
               <Link
                 href={sellHref}
                 className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
@@ -235,82 +398,8 @@ export function Navbar({ locale }: NavbarProps) {
                 {t('sellYourCar')}
               </Link>
 
-              {/* Auth buttons */}
-              <div className="hidden md:flex items-center gap-2">
-                {isMounted && user ? (
-                  <div ref={userMenuRef} className="relative">
-                    <button
-                      onClick={() => setUserMenuOpen(v => !v)}
-                      className="flex items-center gap-2 h-8 px-3 rounded-lg
-                                 text-xs font-semibold text-white/70 hover:text-white
-                                 hover:bg-white/[0.08] transition-all duration-200"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
-                                      flex items-center justify-center text-[10px] font-black text-[#030710]">
-                        {user.name?.[0]?.toUpperCase() ?? 'U'}
-                      </div>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {userMenuOpen && (
-                      <div className="absolute top-full right-0 mt-2 w-52 rounded-2xl
-                                      bg-[#0b1525] border border-white/[0.08]
-                                      shadow-[0_16px_48px_rgba(0,0,0,0.7)]
-                                      overflow-hidden z-50">
-                        <div className="px-4 py-3 border-b border-white/[0.06]">
-                          <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                          <p className="text-[10px] text-white/35 truncate">{user.email}</p>
-                        </div>
-                        <div className="p-2 space-y-0.5">
-                          <Link href={`/${locale}/dashboard`} onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
-                                       hover:bg-white/[0.07] hover:text-white transition-all">
-                            {t('dashboard')}
-                          </Link>
-                          <Link href={`/${locale}/dashboard/listings`} onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
-                                       hover:bg-white/[0.07] hover:text-white transition-all">
-                            {t('myListings')}
-                          </Link>
-                          <Link href={`/${locale}/dashboard/notifications`} onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs text-white/65
-                                       hover:bg-white/[0.07] hover:text-white transition-all">
-                            {t('notifications')}
-                          </Link>
-                        </div>
-                        <div className="p-2 border-t border-white/[0.06]">
-                          <button
-                            onClick={() => { logout(); setUserMenuOpen(false); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs
-                                       text-red-400 hover:bg-red-500/10 transition-all text-left"
-                          >
-                            {t('signOut')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <Link
-                      href={`/${locale}/login`}
-                      className="inline-flex items-center justify-center h-8 px-4
-                                 text-xs font-semibold rounded-lg
-                                 border border-white/[0.15] text-white/70
-                                 hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
-                                 hover:bg-[#c9a84c]/[0.08] transition-all duration-200"
-                    >
-                      {t('login')}
-                    </Link>
-                    <Link
-                      href={`/${locale}/register`}
-                      className="btn-gold inline-flex h-8 px-4 text-xs rounded-lg"
-                    >
-                      {t('register')}
-                    </Link>
-                  </>
-                )}
-              </div>
+              {/* Auth — isolated component, no SSR mismatch */}
+              <AuthSection locale={locale} />
 
               {/* Mobile hamburger */}
               <button
@@ -347,7 +436,7 @@ export function Navbar({ locale }: NavbarProps) {
                 ref={searchRef}
                 type="search"
                 aria-label="Search cars, motorcycles and more"
-                placeholder={t('searchPlaceholder') ?? 'Search cars, motorcycles…'}
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className={`w-full h-10 text-sm text-white bg-white/[0.07] border border-white/10
@@ -413,51 +502,7 @@ export function Navbar({ locale }: NavbarProps) {
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            {isMounted && user ? (
-              <>
-                <Link
-                  href={`/${locale}/dashboard`}
-                  onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-center w-full h-11
-                             text-sm font-semibold rounded-xl
-                             border border-white/[0.12] text-white/70
-                             hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
-                             transition-all duration-200"
-                >
-                  {t('dashboard')}
-                </Link>
-                <button
-                  onClick={() => { logout(); setMobileOpen(false); }}
-                  className="w-full h-11 text-sm font-semibold rounded-xl
-                             border border-red-500/20 text-red-400 hover:bg-red-500/10
-                             transition-all"
-                >
-                  {t('signOut')}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={`/${locale}/login`}
-                  onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-center w-full h-11
-                             text-sm font-semibold rounded-xl
-                             border border-white/[0.12] text-white/70
-                             hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
-                             transition-all duration-200"
-                >
-                  {t('login')}
-                </Link>
-                <Link
-                  href={`/${locale}/register`}
-                  onClick={() => setMobileOpen(false)}
-                  className="btn-gold inline-flex items-center justify-center w-full h-11
-                             text-sm rounded-xl"
-                >
-                  {t('register')} — It's free
-                </Link>
-              </>
-            )}
+            <MobileAuthSection locale={locale} onClose={() => setMobileOpen(false)} />
           </div>
         </div>
       </div>
