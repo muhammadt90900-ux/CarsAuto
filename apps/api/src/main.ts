@@ -66,8 +66,8 @@ async function bootstrap() {
   // ── Body parsing ──────────────────────────────────────────────────────────
   // Raw body for Stripe webhook must be registered BEFORE json() middleware.
   app.use('/api/payments/webhook', raw({ type: 'application/json' }));
-  app.use(json({ limit: '1mb' }));
-  app.use(urlencoded({ extended: true, limit: '1mb' }));
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // ── Static assets ─────────────────────────────────────────────────────────
   const uploadDir = process.env.UPLOAD_DIR ?? '/tmp/uploads';
@@ -125,8 +125,6 @@ async function bootstrap() {
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
-    app.use(express.json({ limit: '50mb' }));
-    app.use(express.urlencoded({ limit: '50mb', extended: true }));
     
   app.enableCors({
     origin: (origin, callback) => {
@@ -139,7 +137,12 @@ async function bootstrap() {
         }
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+            if (
+        allowedOrigins.includes(origin) ||
+        origin.includes('app.github.dev')
+      ) {
+        return callback(null, true);
+      }
       callback(new Error(`CORS: origin "${origin}" not allowed`));
     },
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
