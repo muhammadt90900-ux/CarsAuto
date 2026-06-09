@@ -164,14 +164,11 @@ export class UploadController {
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
 
     // Ownership check: verify this file was uploaded by this user.
-    // The upload log is keyed by UUID filename (never user-controlled).
-    const owned = await this.cache.get<string>(`upload:owner:${filename}`);
-    if (owned !== null && owned !== userId) {
-      // File exists in ownership cache but belongs to someone else
+    // cache.get() returns { value, stale } | null
+    const owned = this.cache.get<string>(`upload:owner:${filename}`);
+    if (owned !== null && owned.value !== userId) {
       throw new ForbiddenException('You do not have permission to delete this file');
     }
-    // If not in cache we allow the delete — file may be old (pre-ownership-tracking)
-    // or the cache may have been cleared. The service still validates the filename itself.
 
     await this.uploadService.deleteFile(filename);
     this.cache.del(`upload:owner:${filename}`);
@@ -185,13 +182,15 @@ export class UploadController {
     const key   = `upload:${type}:${userId}`;
     const now   = Date.now();
 
-    const entry = this.cache.get<{ hits: number; expiresAt: number }>(key);
+    // cache.get() returns { value: T, stale: boolean } | null
+    const cached = this.cache.get<{ hits: number; expiresAt: number }>(key);
+    const entry  = cached?.value ?? null;
     let hits: number;
     let expiresAt: number;
 
     if (entry) {
-      hits      = entry.value.hits + 1;
-      expiresAt = entry.value.expiresAt;
+      hits      = entry.hits + 1;
+      expiresAt = entry.expiresAt;
       this.cache.set(key, { hits, expiresAt }, expiresAt - now);
     } else {
       hits      = 1;
@@ -209,12 +208,13 @@ export class UploadController {
   }
 
   private enforceDailyCap(userId: string, newCount: number): void {
-    const key   = `upload:daily:${userId}`;
-    const now   = Date.now();
-    const entry = this.cache.get<{ hits: number; expiresAt: number }>(key);
+    const key    = `upload:daily:${userId}`;
+    const now    = Date.now();
 
-    const current  = entry?.value.hits ?? 0;
-    const expiresAt = entry?.value.expiresAt ?? (now + ONE_DAY_MS);
+    // cache.get() returns { value: T, stale: boolean } | null
+    const cached     = this.cache.get<{ hits: number; expiresAt: number }>(key);
+    const current    = cached?.value.hits ?? 0;
+    const expiresAt  = cached?.value.expiresAt ?? (now + ONE_DAY_MS);
 
     if (current + newCount > DAILY_UPLOAD_CAP_PER_USER) {
       const retryAfter = Math.ceil((expiresAt - now) / 1000);

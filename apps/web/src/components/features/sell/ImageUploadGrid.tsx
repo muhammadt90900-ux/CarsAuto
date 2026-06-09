@@ -1,12 +1,10 @@
 'use client';
 // apps/web/src/components/features/sell/ImageUploadGrid.tsx
 // Drag-and-drop image upload grid.
-// Images are converted to data-URLs (mock upload) and passed up as string[].
-// In production, swap the `toDataURL` with a real upload call and use the
-// returned CDN URL instead.
+// Images are uploaded to POST /upload/image and the returned CDN URL is stored.
 
-import { useRef, useCallback, DragEvent, ChangeEvent } from 'react';
-import Image from 'next/image';
+import { useRef, useCallback, useState, DragEvent, ChangeEvent } from 'react';
+import { sellApi } from '@/lib/sell-api';
 
 interface ImageUploadGridProps {
   images: string[];
@@ -22,28 +20,39 @@ export function ImageUploadGrid({
   maxImages = 10,
 }: ImageUploadGridProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Read files → data URLs
+  // Upload files → get CDN URLs from the real API
   const processFiles = useCallback(
     async (files: FileList | null) => {
       if (!files) return;
       const remaining = maxImages - images.length;
-      const toProcess = Array.from(files).slice(0, remaining);
+      const toProcess = Array.from(files)
+        .filter((f) => f.type.startsWith('image/'))
+        .slice(0, remaining);
 
-      const urls = await Promise.all(
-        toProcess
-          .filter((f) => f.type.startsWith('image/'))
-          .map(
-            (file) =>
-              new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-              })
-          )
-      );
+      if (toProcess.length === 0) return;
 
-      onChange([...images, ...urls]);
+      setUploading(true);
+      setUploadError(null);
+
+      try {
+        const urls = await Promise.all(
+          toProcess.map((file) => sellApi.uploadImage(file))
+        );
+        onChange([...images, ...urls]);
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to upload image. Please try again.';
+        setUploadError(msg);
+      } finally {
+        setUploading(false);
+        // Reset file input so the same file can be re-selected after an error
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     },
     [images, maxImages, onChange]
   );
@@ -59,15 +68,17 @@ export function ImageUploadGrid({
   const removeImage = (idx: number) =>
     onChange(images.filter((_, i) => i !== idx));
 
-  const canAdd = images.length < maxImages;
+  const canAdd = images.length < maxImages && !uploading;
 
   return (
     <div className="space-y-3">
       {/* Grid */}
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
         {images.map((src, idx) => (
-          <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-[rgba(255,255,255,0.1)]">
-            {/* Next/Image won't work with data-URLs in all configs — use <img> */}
+          <div
+            key={src}
+            className="relative group aspect-square rounded-xl overflow-hidden border border-[rgba(255,255,255,0.1)]"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
@@ -117,12 +128,20 @@ export function ImageUploadGrid({
             </span>
           </div>
         )}
+
+        {/* Uploading spinner slot */}
+        {uploading && (
+          <div className="aspect-square rounded-xl border-2 border-dashed border-[rgba(201,168,76,0.3)] bg-[rgba(201,168,76,0.04)] flex flex-col items-center justify-center gap-2">
+            <div className="w-6 h-6 border-2 border-[var(--gold)] border-t-transparent rounded-full animate-spin" />
+            <span className="text-[10px] text-[var(--text-faint)]">Uploading…</span>
+          </div>
+        )}
       </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         multiple
         className="hidden"
         onChange={handleFileChange}
@@ -133,7 +152,7 @@ export function ImageUploadGrid({
         <p className="text-[11px] text-[var(--text-faint)]">
           {images.length}/{maxImages} photos · First photo is the cover · JPG, PNG, WebP
         </p>
-        {images.length > 0 && (
+        {images.length > 0 && !uploading && (
           <button
             type="button"
             onClick={() => onChange([])}
@@ -144,7 +163,16 @@ export function ImageUploadGrid({
         )}
       </div>
 
-      {error && (
+      {/* Upload API error */}
+      {uploadError && (
+        <p className="text-[#ef4444] text-xs flex items-center gap-1">
+          <span>⚠</span>
+          {uploadError}
+        </p>
+      )}
+
+      {/* Validation error (no photos at all) */}
+      {error && !uploadError && (
         <p className="text-[#ef4444] text-xs flex items-center gap-1">
           <span>⚠</span>
           {error}
