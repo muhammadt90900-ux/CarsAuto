@@ -87,18 +87,24 @@ export class AuthController {
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
+  // FIX: No JwtAuthGuard — logout must always succeed even with an expired/missing token.
+  // FIX: try/catch around revokeRefreshToken so a DB error never returns 500 to the client.
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtAuthGuard)
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const token: string | undefined = req.cookies?.['refresh_token'];
-    const user = (req as any).user as { userId: string } | undefined;
     if (token) {
-      await this.authService.revokeRefreshToken(token, user?.userId, this.ctx(req));
+      try {
+        await this.authService.revokeRefreshToken(token, undefined, this.ctx(req));
+      } catch (err) {
+        // Non-fatal: token may already be expired or deleted.
+        // Log the warning but always clear the cookie and return 204.
+        this.logger.warn(`Logout revoke failed (non-fatal): ${(err as Error).message}`);
+      }
     }
     res.clearCookie('refresh_token', this.cookieOptions());
   }
@@ -212,8 +218,8 @@ export class AuthController {
     return {
       httpOnly: true,
       secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,  // ✅ گۆڕدرا لە strict
-      path:     '/',             // ✅ گۆڕدرا لە /api/auth
+      sameSite: 'lax' as const,
+      path:     '/',
       maxAge:   7 * 24 * 60 * 60 * 1000,
     };
   }

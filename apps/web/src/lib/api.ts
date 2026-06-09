@@ -23,16 +23,16 @@ function drainRefreshQueue(error: unknown, token: string | null): void {
 // ── In-memory SWR cache ───────────────────────────────────────────────────────
 interface CacheEntry {
   data:          unknown;
-  revalidateAt:  number; // background refresh after this timestamp
-  expiresAt:     number; // hard expiry — entry deleted after this
+  revalidateAt:  number;
+  expiresAt:     number;
 }
 
 const cache    = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<unknown>>();
 
-const TTL_DEFAULT = 60_000;        // 60 s — general listing data
-const TTL_STATIC  = 10 * 60_000;   // 10 min — vehicle reference data (brands/models)
-const SWR_RATIO   = 0.5;           // background revalidation at 50% of TTL
+const TTL_DEFAULT = 60_000;
+const TTL_STATIC  = 10 * 60_000;
+const SWR_RATIO   = 0.5;
 
 function buildCacheKey(url: string, params?: Record<string, unknown>): string {
   if (!params || Object.keys(params).length === 0) return url;
@@ -60,13 +60,16 @@ function setInCache(key: string, data: unknown, ttlMs = TTL_DEFAULT): void {
   });
 }
 
-// Periodic eviction to prevent unbounded memory growth
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of cache) {
-    if (now > v.expiresAt) cache.delete(k);
-  }
-}, 60_000);
+// FIX: wrap in typeof window guard — bare setInterval at module top-level causes
+// Next.js SSR to fail loading this module entirely, making all exports undefined.
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of cache) {
+      if (now > v.expiresAt) cache.delete(k);
+    }
+  }, 60_000);
+}
 
 // ── Axios instance ────────────────────────────────────────────────────────────
 const baseURL = process.env.NEXT_PUBLIC_API_URL;
@@ -79,7 +82,7 @@ export const api: AxiosInstance = axios.create({
   withCredentials: true,
   timeout: 15_000,
   headers: {
-    'Content-Type':    'application/json',
+    'Content-Type':     'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
 });
@@ -104,7 +107,6 @@ api.interceptors.response.use(
 
     if (is401 && !alreadyRetried && !isRefreshRequest) {
       if (isRefreshing) {
-        // Queue this request until the ongoing refresh completes
         return new Promise<string>((resolve, reject) => {
           refreshQueue.push({ resolve, reject });
         }).then((token) => {
@@ -126,7 +128,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         drainRefreshQueue(refreshError, null);
         setAccessToken(null);
-        // Notify the app so it can redirect to login
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('auth:session-expired'));
         }
@@ -152,7 +153,6 @@ async function cachedGet<T>(
   if (cached) {
     if (!cached.stale) return cached.data as T;
 
-    // Stale-while-revalidate: return stale data immediately, refresh in background
     if (!inflight.has(key)) {
       const bg = api
         .get<T>(url, { params })
@@ -164,7 +164,6 @@ async function cachedGet<T>(
     return cached.data as T;
   }
 
-  // Dedup: multiple concurrent calls for the same resource share one request
   if (inflight.has(key)) return inflight.get(key) as Promise<T>;
 
   const fresh = api
@@ -209,19 +208,11 @@ export const authApi = {
     return res.data;
   },
 
-  /**
-   * Step 1: request a reset email.
-   * Always resolves — server never reveals whether the email exists.
-   */
   forgotPassword: async (email: string): Promise<{ message: string }> => {
     const res = await api.post<{ message: string }>('/auth/forgot-password', { email });
     return res.data;
   },
 
-  /**
-   * Step 2: submit token + new password.
-   * Rejects if token is invalid or expired.
-   */
   resetPassword: async (
     token: string,
     newPassword: string,
@@ -234,16 +225,23 @@ export const authApi = {
   },
 };
 
-// ── Listings API ───────────────────────────────────────────────────────────────
+// ── Listings API ──────────────────────────────────────────────────────────────
 export const listingsApi = {
   getAll: (params?: Record<string, unknown>) =>
     cachedGet<any>('/listings', params, TTL_DEFAULT),
 
   getById: (id: string) =>
     cachedGet<any>(`/listings/${id}`, undefined, 2 * 60_000),
+
+  // FIX: myListings and delete were missing — added here
+  myListings: () =>
+    api.get<any[]>('/listings/my').then((res) => res.data),
+
+  delete: (id: string) =>
+    api.delete(`/listings/${id}`).then(() => { invalidateListingsCache(); }),
 };
 
-// ── Vehicles API — long TTL (reference data rarely changes) ───────────────────
+// ── Vehicles API ──────────────────────────────────────────────────────────────
 export const vehiclesApi = {
   getBrands: () =>
     cachedGet<any>('/vehicles/brands', undefined, TTL_STATIC),

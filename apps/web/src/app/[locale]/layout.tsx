@@ -7,6 +7,7 @@ import { locales, dir, hreflangMap, type Locale } from '@/i18n/config';
 import { fontVariables } from '@/lib/fonts';
 import { Providers } from '@/components/Providers';
 import { PWAProvider, InstallPrompt } from '@/components/pwa';
+import '@/styles/globals.css';
 
 type Props = {
   children: React.ReactNode;

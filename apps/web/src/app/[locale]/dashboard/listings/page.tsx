@@ -2,7 +2,7 @@
 // dashboard/listings/page.tsx — UX-Improved: status tabs, bulk actions, performance chart hint
 
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { listingsApi } from '@/lib/api';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
@@ -51,7 +51,7 @@ export default function MyListingsPage() {
   const [selected,   setSelected]   = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    api.listings.myListings()
+    listingsApi.myListings()
       .then(data => setListings(data?.length ? data : MOCK_LISTINGS))
       .catch(() => setListings(MOCK_LISTINGS))
       .finally(() => setLoading(false));
@@ -59,7 +59,7 @@ export default function MyListingsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this listing? This cannot be undone.')) return;
-    try { await api.listings.delete(id); } catch {}
+    try { await listingsApi.delete(id); } catch {}
     setListings(prev => prev.filter(l => l.id !== id));
     setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
   };

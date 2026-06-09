@@ -11,11 +11,11 @@ interface AuthState {
   isLoading:   boolean;
   isHydrated:  boolean;
 
-  login:         (email: string, password: string) => Promise<void>;
-  register:      (name: string, email: string, password: string, role?: string, phone?: string) => Promise<void>;
-  logout:        () => Promise<void>;
-  loadUser:      () => Promise<void>;
-  setHydrated:   () => void;
+  login:          (email: string, password: string) => Promise<void>;
+  register:       (name: string, email: string, password: string, role?: string, phone?: string) => Promise<void>;
+  logout:         () => Promise<void>;
+  loadUser:       () => Promise<void>;
+  setHydrated:    () => void;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword:  (token: string, newPassword: string) => Promise<{ message: string }>;
 }
@@ -49,10 +49,17 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: async () => {
-        await authApi.logout();
-        set({ user: null });
-      },
+      // FIX: wrapped in try/catch + finally so local state is always cleared
+      // even if the backend returns 500, 401, or a network error.
+                logout: async () => {
+            try {
+              await authApi.logout();
+            } catch { }
+            finally {
+              setAccessToken(null);
+              set({ user: null });
+            }
+          },
 
       forgotPassword: (email) => authApi.forgotPassword(email),
 
