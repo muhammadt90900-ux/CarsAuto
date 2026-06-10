@@ -31,7 +31,7 @@ export class VehiclesService {
           _count: { select: { listingSpecs: true } },
         },
       });
-      return brands.map((b) => ({
+      return brands.map((b: any) => ({
         id: b.id, nameEn: b.nameEn, nameAr: b.nameAr, nameKu: b.nameKu,
         logo: b.logoUrl, slug: b.slug, listingCount: b._count.listingSpecs,
       }));
@@ -58,7 +58,7 @@ export class VehiclesService {
           _count: { select: { listingSpecs: true } },
         },
       });
-      return models.map((m) => ({
+      return models.map((m: any) => ({
         id: m.id, nameEn: m.nameEn, nameAr: m.nameAr, nameKu: m.nameKu,
         slug: m.slug, brandId: m.brandId, listingCount: m._count.listingSpecs,
       }));
@@ -102,7 +102,7 @@ export class VehiclesService {
         distinct: ['year'],
         orderBy: { year: 'desc' },
       });
-      return result.map(r => r.year as number).filter(Boolean);
+      return result.map((r: any) => r.year as number).filter(Boolean);
     }, 120_000);
   }
 }

@@ -1,5 +1,3 @@
-// apps/api/src/modules/dealers/dto/dealer-query.dto.ts
-
 import { IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DealerTier } from '@prisma/client';

@@ -324,7 +324,7 @@ async function main() {
   const BRAND_WEIGHT: Record<string, number> = {
     toyota: 20, nissan: 12, hyundai: 8, kia: 7, mitsubishi: 7,
     'mercedes-benz': 8, bmw: 7, honda: 6, ford: 5, chevrolet: 5,
-    lexus: 5, jeep: 4, land-rover: 3, porsche: 2, cadillac: 2,
+    lexus: 5, jeep: 4, 'land-rover': 3, porsche: 2, cadillac: 2,
     byd: 2, haval: 2, volkswagen: 1, audi: 1,
   };
 

@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/guards/optional-jwt.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
-import { DealerTier } from '@prisma/client';
+import { DealerTier } from '../../common/prisma/enums';
 
 @Controller('dealers')
 export class DealersController {

@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CacheService  } from '@/common/cache/cache.service';
-import { Prisma, DealerStatus, DealerTier } from '@prisma/client';
+import { DealerStatus, DealerTier } from '@/common/prisma/enums';
 import { CreateDealerDto }  from './dto/create-dealer.dto';
 import { UpdateDealerDto }  from './dto/update-dealer.dto';
 import { CreateReviewDto }  from './dto/create-review.dto';
@@ -48,7 +48,7 @@ const LIST_SELECT = {
     select: { code: true, label: true, icon: true },
   },
   subscription: { select: { plan: true } },
-} satisfies Prisma.DealerSelect;
+};
 
 @Injectable()
 export class DealersService {
@@ -93,7 +93,7 @@ export class DealersService {
     const cacheKey = `dealers:list:${JSON.stringify({ city, tier, minRating, search, page, safeLimit, sortBy })}`;
 
     return this.cache.getOrSet(cacheKey, async () => {
-      const where: Prisma.DealerWhereInput = {
+      const where: any = {
         status: DealerStatus.VERIFIED,
         ...(tier      && { tier: tier as DealerTier }),
         ...(minRating && { averageRating: { gte: minRating } }),
@@ -107,7 +107,7 @@ export class DealersService {
         }),
       };
 
-      const orderBy: Prisma.DealerOrderByWithRelationInput =
+      const orderBy: any =
         sortBy === 'rating'   ? { averageRating: 'desc' } :
         sortBy === 'listings' ? { activeListings: 'desc' } :
         sortBy === 'reviews'  ? { totalReviews: 'desc' } :
@@ -302,8 +302,9 @@ export class DealersService {
         orderBy: { date: 'asc' },
       });
 
+      type AnalyticRow = { profileViews: number; listingViews: number; contactClicks: number; whatsappClicks: number; phoneClicks: number; newLeads: number; newReviews: number; [key: string]: unknown };
       const totals = analytics.reduce(
-        (acc, row) => ({
+        (acc: AnalyticRow, row: AnalyticRow) => ({
           profileViews:   acc.profileViews   + row.profileViews,
           listingViews:   acc.listingViews   + row.listingViews,
           contactClicks:  acc.contactClicks  + row.contactClicks,

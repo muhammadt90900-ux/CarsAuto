@@ -31,7 +31,7 @@ type DropdownAlign = 'left' | 'right';
 
 interface DropdownProps {
   trigger:    ReactNode;
-  items:      DropdownItem[];;
+  items:      DropdownItem[];
   align?:     DropdownAlign;
   className?: string;
   label?:     string;  // accessible label for the trigger button

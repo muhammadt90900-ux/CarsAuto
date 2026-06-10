@@ -2,7 +2,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
-import { Prisma } from '@prisma/client';
 
 // ── Cache TTLs ────────────────────────────────────────────────────────────────
 const CACHE_TTL_SEARCH       = 30_000;      // 30 s
@@ -27,7 +26,7 @@ const SEARCH_SELECT = {
       model: { select: { nameEn: true, nameKu: true } },
     },
   },
-} satisfies Prisma.ListingSelect;
+} as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface SearchFilters {
@@ -73,7 +72,7 @@ export class SearchService {
 
     return this.cache.getOrSet(cacheKey, async () => {
       const skip = (page - 1) * limit;
-      const where: Prisma.ListingWhereInput = { status: 'ACTIVE' };
+      const where: any = { status: 'ACTIVE' };
 
       if (normalizedQuery.length >= MIN_QUERY_LENGTH) {
         where.OR = [
@@ -93,7 +92,7 @@ export class SearchService {
         };
       }
 
-      const specWhere: Prisma.ListingVehicleSpecWhereInput = {};
+      const specWhere: any = {};
       let hasSpecFilter = false;
 
       for (const field of DIRECT_SPEC_FIELDS) {
@@ -163,7 +162,7 @@ export class SearchService {
           )
         LIMIT ${limit}
       `;
-      return rows.map((r) => r.title).filter(Boolean);
+      return rows.map((r: any) => r.title).filter(Boolean);
     }, CACHE_TTL_AUTOCOMPLETE);
   }
 }

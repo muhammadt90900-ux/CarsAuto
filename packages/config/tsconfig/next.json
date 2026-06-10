@@ -1,8 +1,11 @@
-// packages/config/tsconfig/next.json
 {
   "extends": "./base.json",
   "compilerOptions": {
     "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "downlevelIteration": true,
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],

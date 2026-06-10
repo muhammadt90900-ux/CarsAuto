@@ -12,7 +12,7 @@ import { ListingsService, type ListingQueryParams } from './listings.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { CreateListingDto } from './dto/create-listing.dto';
-import { ListingType, ListingCondition, FuelType, TransmissionType } from '@prisma/client';
+import { ListingType, ListingCondition, FuelType, TransmissionType } from '../../common/prisma/enums';
 
 // ── Typed query DTO ───────────────────────────────────────────────────────────
 class ListingQueryDto implements ListingQueryParams {

@@ -1,6 +1,6 @@
 // apps/api/src/common/prisma/prisma.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 // Pool sizing and slow-query threshold are configurable via env vars.
 // Override pool via DATABASE_URL: ?connection_limit=20&pool_timeout=30
@@ -10,13 +10,14 @@ const SLOW_QUERY_THRESHOLD_MS = parseInt(
 );
 const isProd = process.env.NODE_ENV === 'production';
 
-const PROD_LOG_CONFIG: Prisma.LogDefinition[] = [
+// Use any[] until prisma generate provides Prisma.LogDefinition
+const PROD_LOG_CONFIG: any[] = [
   { emit: 'event',  level: 'query' },  // captured below for slow-query detection
   { emit: 'stdout', level: 'error' },
   { emit: 'stdout', level: 'warn' },
 ];
 
-const DEV_LOG_CONFIG: Prisma.LogDefinition[] = [
+const DEV_LOG_CONFIG: any[] = [
   { emit: 'stdout', level: 'query' },
   { emit: 'stdout', level: 'info' },
   { emit: 'stdout', level: 'warn' },
@@ -40,7 +41,7 @@ export class PrismaService
 
     if (isProd) {
       // Log only queries that exceed the slow-query threshold to avoid noise
-      (this as any).$on('query', (event: Prisma.QueryEvent) => {
+      (this as any).$on('query', (event: any) => {
         if (event.duration >= SLOW_QUERY_THRESHOLD_MS) {
           this.logger.warn(
             `Slow query (${event.duration}ms): ${event.query.slice(0, 200)}`,
@@ -64,7 +65,7 @@ export class PrismaService
    * Enforces a max-wait and timeout so slow transactions don't starve the pool.
    */
   async runInTransaction<T>(
-    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+    fn: (tx: any) => Promise<T>,
   ): Promise<T> {
     return this.$transaction(fn, {
       maxWait: 5_000,  // ms to wait for a connection from the pool

@@ -73,7 +73,7 @@ export class ChatService {
     });
 
     const withUnread = await Promise.all(
-      chats.map(async (chat) => {
+      chats.map(async (chat: any) => {
         const unreadCount = await this.prisma.message.count({
           where: {
             chatId: chat.id,
@@ -186,7 +186,7 @@ export class ChatService {
     if (unreadMessages.length === 0) return 0;
 
     await this.prisma.$transaction(
-      unreadMessages.map((msg) =>
+      unreadMessages.map((msg: any) =>
         this.prisma.messageReadReceipt.upsert({
           where: { messageId_userId: { messageId: msg.id, userId } },
           create: { messageId: msg.id, userId },

@@ -294,10 +294,10 @@ export class AiService {
     });
 
     // Sort descending by score, return top N
-    return scored
-      .sort((a, b) => b.score - a.score)
+    return (scored as RecommendedListing[])
+      .sort((a: RecommendedListing, b: RecommendedListing) => b.score - a.score)
       .slice(0, limit)
-      .filter((r) => r.score > 0);
+      .filter((r: RecommendedListing) => r.score > 0);
   }
 
   /* ── 4. Similar cars (convenience wrapper) ──────────────────────────── */

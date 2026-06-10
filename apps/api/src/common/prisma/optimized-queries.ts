@@ -7,7 +7,9 @@
  *   • What NOT to do (anti-pattern)
  */
 
-import { Prisma, PrismaClient, ListingStatus, ListingType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { raw } from '@prisma/client/runtime/library';
+import { ListingStatus, ListingType } from './enums';
 
 const prisma = new PrismaClient();
 
@@ -50,7 +52,7 @@ export async function browseListings({
   // BAD:  Don't fetch all and filter in JS. Don't use skip/offset for pagination
   //       (full table scan for large offsets — use cursor instead).
 
-  const where: Prisma.ListingWhereInput = {
+  const where: any = {
     status: ListingStatus.ACTIVE,
     deletedAt: null,
     ...(type       && { type }),
@@ -145,7 +147,7 @@ export async function searchCars({
   //       EXISTS subquery that uses the spec indexes efficiently.
   // BAD:  Don't fetch listings and then filter specs in JS.
 
-  const specWhere: Prisma.ListingVehicleSpecWhereInput = {
+  const specWhere: any = {
     ...(brandId   && { brandId }),
     ...(modelId   && { modelId }),
     ...(yearMin !== undefined || yearMax !== undefined) && {
@@ -209,14 +211,14 @@ export async function fullTextSearch(query: string, locale: 'en' | 'ku' | 'ar', 
   // ts_rank_cd gives better ranking for compound documents
   const results = await prisma.$queryRaw<Array<{ id: string; rank: number }>>`
     SELECT id, ts_rank_cd(
-      to_tsvector(${config}, COALESCE(${Prisma.raw(titleCol)}, '') || ' ' || COALESCE(${Prisma.raw(descCol)}, '')),
+      to_tsvector(${config}, COALESCE(${raw(titleCol)}, '') || ' ' || COALESCE(${raw(descCol)}, '')),
       plainto_tsquery(${config}, ${query})
     ) AS rank
     FROM listings
     WHERE
       "deletedAt" IS NULL
       AND status = 'ACTIVE'
-      AND to_tsvector(${config}, COALESCE(${Prisma.raw(titleCol)}, '') || ' ' || COALESCE(${Prisma.raw(descCol)}, ''))
+      AND to_tsvector(${config}, COALESCE(${raw(titleCol)}, '') || ' ' || COALESCE(${raw(descCol)}, ''))
           @@ plainto_tsquery(${config}, ${query})
     ORDER BY rank DESC
     LIMIT ${limit}
@@ -253,13 +255,13 @@ export async function autocomplete(partial: string, locale: 'en' | 'ku' | 'ar', 
   const col = locale === 'en' ? 'titleEn' : locale === 'ar' ? 'titleAr' : 'titleKu';
 
   return prisma.$queryRaw<Array<{ id: string; title: string; similarity: number }>>`
-    SELECT id, ${Prisma.raw(`"${col}"`)} AS title,
-           similarity(${Prisma.raw(`"${col}"`)}, ${partial}) AS similarity
+    SELECT id, ${raw(`"${col}"`)} AS title,
+           similarity(${raw(`"${col}"`)}, ${partial}) AS similarity
     FROM listings
     WHERE
       "deletedAt" IS NULL
       AND status = 'ACTIVE'
-      AND ${Prisma.raw(`"${col}"`)} % ${partial}
+      AND ${raw(`"${col}"`)} % ${partial}
     ORDER BY similarity DESC, "createdAt" DESC
     LIMIT ${limit}
   `;

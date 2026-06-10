@@ -122,7 +122,7 @@ export class NotificationsService {
     });
 
     await Promise.all(
-      favorites.map(async ({ userId, listing }) => {
+      favorites.map(async ({ userId, listing }: { userId: string; listing: any }) => {
         const prefs = await this.getPreferences(userId);
         if (!prefs.favoriteAlerts) return;
 
@@ -155,7 +155,7 @@ export class NotificationsService {
     });
 
     await Promise.all(
-      savedSearches.map(async (search) => {
+      savedSearches.map(async (search: any) => {
         const prefs = await this.getPreferences(search.userId);
         if (!prefs.savedSearchAlerts) return;
 
@@ -198,7 +198,7 @@ export class NotificationsService {
     const subscriptions = await this.prisma.pushSubscription.findMany({ where: { userId } });
 
     await Promise.all(
-      subscriptions.map(async (sub) => {
+      subscriptions.map(async (sub: any) => {
         try {
           await webpush.sendNotification(
             sub.subscription as unknown as webpush.PushSubscription,

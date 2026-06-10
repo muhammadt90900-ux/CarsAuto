@@ -152,6 +152,20 @@ const nextConfig = {
     return config;
   },
 
+  // ── API Proxy ─────────────────────────────────────────────────────────────
+  async rewrites() {
+  return [
+    {
+      source: '/api/:path*',
+      destination: 'http://localhost:4000/api/:path*',
+    },
+    {
+      source: '/:locale/api/:path*',
+      destination: 'http://localhost:4000/api/:path*',
+    },
+  ];
+},
+
   // ── TypeScript ────────────────────────────────────────────────────────────
   typescript: { ignoreBuildErrors: false },
 };

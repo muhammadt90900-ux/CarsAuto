@@ -9,7 +9,6 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { CreateListingDto } from './dto/create-listing.dto';
-import { Prisma } from '@prisma/client';
 
 // IMPROVE: Extracted cache TTL constants
 const CACHE_TTL_LIST = 30_000; // 30 s  — list pages
@@ -82,7 +81,7 @@ const LIST_SELECT = {
       trim: { select: { name: true, engineLabel: true } },
     },
   },
-} satisfies Prisma.ListingSelect;
+} as const;
 
 export interface ListingQueryParams {
   type?: string;
@@ -360,9 +359,9 @@ export class ListingsService {
     return `listings:list:${qs}`;
   }
 
-  // IMPROVE: Builds type-safe Prisma where clause from query params
-  private buildWhereClause(params: ListingQueryParams): Prisma.ListingWhereInput {
-    const where: Prisma.ListingWhereInput = { status: 'ACTIVE' };
+  // IMPROVE: Builds type-safe where clause from query params
+  private buildWhereClause(params: ListingQueryParams): any {
+    const where: any = { status: 'ACTIVE' };
 
     if (params.type) where.type = params.type as any;
     if (params.featured === 'true') where.featured = true;
@@ -391,7 +390,7 @@ export class ListingsService {
       };
     }
 
-    const specWhere: Prisma.ListingVehicleSpecWhereInput = {};
+    const specWhere: any = {};
     let hasSpecFilter = false;
 
     const directSpecFields = ['brandId', 'modelId', 'trimId', 'condition', 'fuelType', 'transmission'] as const;

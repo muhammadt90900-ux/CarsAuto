@@ -11,7 +11,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError, PrismaClientInitializationError, PrismaClientRustPanicError } from '@prisma/client/runtime/library';
 import { ErrorTrackerService } from '../monitoring/error-tracker.service';
 import { MetricsService }      from '../monitoring/metrics.service';
 import { StructuredLogger }    from '../logger/logger.service';
@@ -56,7 +56,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
     // ── Prisma known errors ────────────────────────────────────────────────
-    else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+    else if (exception instanceof PrismaClientKnownRequestError) {
       switch (exception.code) {
         case 'P2002': status = HttpStatus.CONFLICT;             message = 'A record with this value already exists'; code = 'DUPLICATE_ENTRY'; break;
         case 'P2025': status = HttpStatus.NOT_FOUND;            message = 'Record not found';                        code = 'NOT_FOUND';       break;
@@ -68,8 +68,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
     // ── Prisma connection / panic ──────────────────────────────────────────
     else if (
-      exception instanceof Prisma.PrismaClientInitializationError ||
-      exception instanceof Prisma.PrismaClientRustPanicError
+      exception instanceof PrismaClientInitializationError ||
+      exception instanceof PrismaClientRustPanicError
     ) {
       status  = HttpStatus.SERVICE_UNAVAILABLE;
       message = 'Database unavailable';
