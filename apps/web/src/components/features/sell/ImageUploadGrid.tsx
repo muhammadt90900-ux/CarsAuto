@@ -2,14 +2,17 @@
 // apps/web/src/components/features/sell/ImageUploadGrid.tsx
 // Drag-and-drop image upload grid.
 // Images are uploaded to POST /upload/image and the returned CDN URL is stored.
+//
+// ✅ FIX #5 (High): Added specific error handling for 401 and 403 responses
+// so users see actionable messages instead of a generic error.
 
 import { useRef, useCallback, useState, DragEvent, ChangeEvent } from 'react';
 import { sellApi } from '@/lib/sell-api';
 
 interface ImageUploadGridProps {
-  images: string[];
-  onChange: (imgs: string[]) => void;
-  error?: string;
+  images:    string[];
+  onChange:  (imgs: string[]) => void;
+  error?:    string;
   maxImages?: number;
 }
 
@@ -19,11 +22,11 @@ export function ImageUploadGrid({
   error,
   maxImages = 10,
 }: ImageUploadGridProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const fileInputRef                  = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading]     = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Upload files → get CDN URLs from the real API
+  // ── Upload files → get CDN URLs from the real API ─────────────────────────
   const processFiles = useCallback(
     async (files: FileList | null) => {
       if (!files) return;
@@ -43,10 +46,22 @@ export function ImageUploadGrid({
         );
         onChange([...images, ...urls]);
       } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ??
-          err?.message ??
-          'Failed to upload image. Please try again.';
+        // ✅ FIX #5: Specific messages for auth/permission errors
+        const status = err?.response?.status as number | undefined;
+
+        let msg: string;
+        if (status === 401) {
+          msg = 'Session expired — please refresh the page and log in again.';
+        } else if (status === 403) {
+          msg = 'Email not verified — please verify your email before uploading photos.';
+        } else if (status === 429) {
+          msg = 'Too many uploads — please wait a moment and try again.';
+        } else {
+          msg =
+            err?.response?.data?.message ??
+            err?.message ??
+            'Failed to upload image. Please try again.';
+        }
         setUploadError(msg);
       } finally {
         setUploading(false);
@@ -54,7 +69,7 @@ export function ImageUploadGrid({
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     },
-    [images, maxImages, onChange]
+    [images, maxImages, onChange],
   );
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) =>
@@ -165,13 +180,13 @@ export function ImageUploadGrid({
 
       {/* Upload API error */}
       {uploadError && (
-        <p className="text-[#ef4444] text-xs flex items-center gap-1">
+        <p className="text-[#ef4444] text-xs flex items-center gap-1.5 p-3 rounded-lg bg-[rgba(220,38,38,0.08)] border border-[rgba(220,38,38,0.2)]">
           <span>⚠</span>
           {uploadError}
         </p>
       )}
 
-      {/* Validation error (no photos at all) */}
+      {/* Validation error (no photos selected) */}
       {error && !uploadError && (
         <p className="text-[#ef4444] text-xs flex items-center gap-1">
           <span>⚠</span>

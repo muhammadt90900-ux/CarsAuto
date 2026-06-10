@@ -41,7 +41,7 @@ export class AuthController {
     private readonly otpProtection: OtpProtectionService,
   ) {}
 
-  // ── Register ──────────────────────────────────────────────────────────────
+  // ── Register ───────────────────────────────────────────────────────────────
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -51,12 +51,14 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(dto.email, dto.password, dto.name, this.ctx(req));
+    const result = await this.authService.register(
+      dto.email, dto.password, dto.name, this.ctx(req),
+    );
     this.setRefreshCookie(res, result.refreshToken);
     return { access_token: result.accessToken, user: result.user };
   }
 
-  // ── Login ─────────────────────────────────────────────────────────────────
+  // ── Login ──────────────────────────────────────────────────────────────────
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -66,12 +68,14 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(dto.email, dto.password, this.ctx(req));
+    const result = await this.authService.login(
+      dto.email, dto.password, this.ctx(req),
+    );
     this.setRefreshCookie(res, result.refreshToken);
     return { access_token: result.accessToken, user: result.user };
   }
 
-  // ── Refresh ───────────────────────────────────────────────────────────────
+  // ── Refresh ────────────────────────────────────────────────────────────────
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -86,9 +90,8 @@ export class AuthController {
     return { access_token: result.accessToken };
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────────
-  // FIX: No JwtAuthGuard — logout must always succeed even with an expired/missing token.
-  // FIX: try/catch around revokeRefreshToken so a DB error never returns 500 to the client.
+  // ── Logout ─────────────────────────────────────────────────────────────────
+  // No JwtAuthGuard — logout must always succeed even with expired/missing token.
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -101,15 +104,13 @@ export class AuthController {
       try {
         await this.authService.revokeRefreshToken(token, undefined, this.ctx(req));
       } catch (err) {
-        // Non-fatal: token may already be expired or deleted.
-        // Log the warning but always clear the cookie and return 204.
         this.logger.warn(`Logout revoke failed (non-fatal): ${(err as Error).message}`);
       }
     }
     res.clearCookie('refresh_token', this.cookieOptions());
   }
 
-  // ── Me ────────────────────────────────────────────────────────────────────
+  // ── Me ─────────────────────────────────────────────────────────────────────
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -117,7 +118,7 @@ export class AuthController {
     return (req as any).user;
   }
 
-  // ── Verify Email ──────────────────────────────────────────────────────────
+  // ── Verify Email ───────────────────────────────────────────────────────────
 
   @Get('verify-email')
   @HttpCode(HttpStatus.OK)
@@ -143,7 +144,7 @@ export class AuthController {
     }
   }
 
-  // ── Resend Verification Email ─────────────────────────────────────────────
+  // ── Resend Verification Email ──────────────────────────────────────────────
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
@@ -160,7 +161,7 @@ export class AuthController {
     return result;
   }
 
-  // ── Forgot Password ───────────────────────────────────────────────────────
+  // ── Forgot Password ────────────────────────────────────────────────────────
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -178,7 +179,7 @@ export class AuthController {
     return result;
   }
 
-  // ── Reset Password ────────────────────────────────────────────────────────
+  // ── Reset Password ─────────────────────────────────────────────────────────
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
@@ -201,7 +202,7 @@ export class AuthController {
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   private ctx(req: Request) {
     return {
@@ -214,11 +215,28 @@ export class AuthController {
     };
   }
 
+  /**
+   * ✅ FIX #3 (High): sameSite depends on COOKIE_SAME_SITE env variable.
+   *
+   * Problem: sameSite: 'lax' silently drops the refresh_token cookie on
+   * cross-origin POST requests (e.g. Codespaces where frontend and API
+   * are on different ports or subdomains).
+   *
+   * Solution: set COOKIE_SAME_SITE=none in your .env for Codespaces / dev
+   * environments where the frontend and API have different origins.
+   * In production with a single domain, keep it as 'lax'.
+   *
+   * NOTE: sameSite=none REQUIRES secure=true (HTTPS). In Codespaces,
+   * GitHub forwards HTTPS so this works automatically.
+   */
   private cookieOptions() {
+    const isProduction  = process.env.NODE_ENV === 'production';
+    const isCrossOrigin = process.env.COOKIE_SAME_SITE === 'none';
+
     return {
       httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
+      secure:   isProduction || isCrossOrigin,
+      sameSite: (isCrossOrigin ? 'none' : 'lax') as 'none' | 'lax',
       path:     '/',
       maxAge:   7 * 24 * 60 * 60 * 1000,
     };

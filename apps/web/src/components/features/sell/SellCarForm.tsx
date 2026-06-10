@@ -189,11 +189,25 @@ export function SellCarForm() {
       const listing = await sellApi.createListing(payload);
       router.push(`/${locale}/cars/${listing.id}`);
     } catch (err: any) {
-      setSubmitError(
-        err?.response?.data?.message ??
-        err?.message ??
-        'Something went wrong. Please try again.'
-      );
+      // ✅ FIX #5 (High): Specific messages for common HTTP errors.
+      // Generic message gave no guidance — users didn't know what to do.
+      const status = err?.response?.status as number | undefined;
+
+      if (status === 401) {
+        setSubmitError('Your session has expired. Please log in again.');
+      } else if (status === 403) {
+        setSubmitError(
+          'Your email is not verified. Please check your inbox and verify your email before publishing a listing.',
+        );
+      } else if (status === 429) {
+        setSubmitError('Too many requests — please wait a moment and try again.');
+      } else {
+        setSubmitError(
+          err?.response?.data?.message ??
+          err?.message ??
+          'Something went wrong. Please try again.',
+        );
+      }
     } finally {
       setSubmitting(false);
     }

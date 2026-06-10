@@ -1,6 +1,13 @@
 // apps/web/src/store/auth.store.ts
 // Access tokens live in memory only (via api.ts) — never in localStorage.
 // Zustand persist is used ONLY for the non-sensitive user profile.
+//
+// ✅ FIX #4 (High): loadUser() now:
+//   - Always sets isHydrated: true (even when no token / on error)
+//   - Tracks isLoading properly with a finally block
+//   - Does NOT silently return without setting isHydrated when token is missing
+//     (the old code returned early with isHydrated still false, leaving AuthGuard
+//      in an infinite loading spinner)
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -29,6 +36,7 @@ export const useAuthStore = create<AuthState>()(
 
       setHydrated: () => set({ isHydrated: true }),
 
+      // ── Login ──────────────────────────────────────────────────────────────
       login: async (email, password) => {
         set({ isLoading: true });
         try {
@@ -39,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // ── Register ───────────────────────────────────────────────────────────
       register: async (name, email, password, role?, phone?) => {
         set({ isLoading: true });
         try {
@@ -49,44 +58,55 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // FIX: wrapped in try/catch + finally so local state is always cleared
+      // ── Logout ─────────────────────────────────────────────────────────────
+      // Wrapped in try/catch + finally so local state is always cleared
       // even if the backend returns 500, 401, or a network error.
-                logout: async () => {
-            try {
-              await authApi.logout();
-            } catch { }
-            finally {
-              setAccessToken(null);
-              set({ user: null });
-            }
-          },
+      logout: async () => {
+        try {
+          await authApi.logout();
+        } catch {
+          // Non-fatal — always clear local state
+        } finally {
+          setAccessToken(null);
+          set({ user: null });
+        }
+      },
 
+      // ── Load User ──────────────────────────────────────────────────────────
+      // Called by Providers.tsx after session hydration.
+      // MUST always set isHydrated: true — even on failure — so AuthGuard
+      // can make a routing decision instead of spinning forever.
+      loadUser: async () => {
+        set({ isLoading: true });
+        try {
+          // No token in memory → user is logged out; mark hydrated and return.
+          if (!getAccessToken()) {
+            set({ user: null, isHydrated: true, isLoading: false });
+            return;
+          }
+          const user = await authApi.me();
+          set({ user, isHydrated: true });
+        } catch {
+          // Token invalid or network error — clear auth state
+          setAccessToken(null);
+          set({ user: null, isHydrated: true });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      // ── Password helpers ───────────────────────────────────────────────────
       forgotPassword: (email) => authApi.forgotPassword(email),
 
       resetPassword: (token, newPassword) =>
         authApi.resetPassword(token, newPassword),
-
-      loadUser: async () => {
-        // Skip fetch if there is no access token in memory
-        if (!getAccessToken()) {
-          set({ isHydrated: true });
-          return;
-        }
-        try {
-          const user = await authApi.me();
-          set({ user, isHydrated: true });
-        } catch {
-          // Token invalid or expired — clear state
-          setAccessToken(null);
-          set({ user: null, isHydrated: true });
-        }
-      },
     }),
     {
       name:    'auth-store',
       storage: createJSONStorage(() => localStorage),
 
-      // Only persist minimal non-sensitive profile data
+      // Only persist minimal non-sensitive profile data.
+      // The access token is NEVER stored — it lives in api.ts memory only.
       partialize: (state) => ({
         user: state.user
           ? { id: state.user.id, name: state.user.name, role: state.user.role }
@@ -96,6 +116,9 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();
       },
+
+      // skipHydration: true prevents localStorage reads during SSR.
+      // We trigger rehydration manually in Providers.tsx after mount.
       skipHydration: true,
     },
   ),

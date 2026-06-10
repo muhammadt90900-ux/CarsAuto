@@ -1,5 +1,5 @@
 'use client';
-// components/Providers.tsx — PERFORMANCE OPTIMISED
+// apps/web/src/components/Providers.tsx — SESSION HYDRATION FIXED
 
 import { ReactNode, useEffect, lazy, Suspense } from 'react';
 
@@ -13,6 +13,8 @@ import { listingsApi, api, setAccessToken } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStore } from '@/store/auth.store';
 
+// ── Prefetch on hover ─────────────────────────────────────────────────────────
+
 function usePrefetchOnHover() {
   useEffect(() => {
     const onMouseEnter = (e: MouseEvent) => {
@@ -24,7 +26,7 @@ function usePrefetchOnHover() {
 
       queryClient.prefetchQuery({
         queryKey: queryKeys.listings.detail(id),
-        queryFn: () => listingsApi.getById(id),
+        queryFn:  () => listingsApi.getById(id),
         staleTime: 2 * 60_000,
       });
     };
@@ -34,41 +36,69 @@ function usePrefetchOnHover() {
   }, []);
 }
 
+// ── Prefetch static data ──────────────────────────────────────────────────────
+
 function usePrefetchStaticData() {
   useEffect(() => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.vehicles.brands(),
-      queryFn: () => import('@/lib/api').then(m => m.vehiclesApi.getBrands()),
+      queryFn:  () => import('@/lib/api').then(m => m.vehiclesApi.getBrands()),
       staleTime: 10 * 60_000,
     });
   }, []);
 }
 
+// ── Session hydration ─────────────────────────────────────────────────────────
+//
+// ✅ FIX #4 (High): The original code called rehydrate() and restore() concurrently
+// (fire-and-forget) with no ordering guarantee. This caused a race condition where
+// AuthGuard could read isHydrated=false and redirect to /login even when the user
+// was already authenticated.
+//
+// Fixed flow (sequential — each step waits for the previous):
+//   1. await rehydrate()        → reads user profile from localStorage
+//   2. await POST /auth/refresh → gets a fresh access token from the cookie
+//   3. setAccessToken()         → puts token in memory for axios interceptor
+//   4. await loadUser()         → fetches full user from /auth/me + sets isHydrated:true
+//
+// AuthGuard only renders children after isHydrated=true, so the user is never
+// redirected to /login while the token refresh is still in flight.
+
 function useSessionHydration() {
   const { loadUser } = useAuthStore();
 
   useEffect(() => {
-    // Manually rehydrate Zustand persist store — client only.
-    // skipHydration: true in the store prevents localStorage reads during SSR,
-    // so we trigger it here after mount to avoid server/client mismatch.
-    useAuthStore.persist.rehydrate();
+    const init = async () => {
+      // Step 1: Rehydrate Zustand persist store from localStorage (client only).
+      // skipHydration: true in the store prevents localStorage reads during SSR
+      // to avoid server/client mismatch — we trigger it here after mount.
+      await useAuthStore.persist.rehydrate();
 
-    const restore = async () => {
+      // Step 2: Attempt silent refresh to get a fresh access token.
+      // The refresh_token HttpOnly cookie is sent automatically by the browser.
+      // This will fail (401) for logged-out users — that is expected and non-fatal.
       try {
         const { data } = await api.post<{ access_token: string }>('/auth/refresh');
         if (data?.access_token) {
           setAccessToken(data.access_token);
-          await loadUser();
         }
       } catch {
-        // Normal for logged-out users — no action needed
+        // Normal for logged-out users — no action needed.
+        // loadUser() below will set isHydrated:true with user:null.
       }
+
+      // Step 3: Load the full user profile using whatever token we now have.
+      // loadUser() checks getAccessToken() internally — if no token, it sets
+      // user:null and isHydrated:true, allowing AuthGuard to redirect cleanly.
+      await loadUser();
     };
 
-    restore();
+    init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
+
+// ── Combined effects component ────────────────────────────────────────────────
 
 function PrefetchEffects() {
   usePrefetchOnHover();
@@ -76,6 +106,8 @@ function PrefetchEffects() {
   useSessionHydration();
   return null;
 }
+
+// ── Providers ─────────────────────────────────────────────────────────────────
 
 export function Providers({ children }: { children: ReactNode }) {
   return (

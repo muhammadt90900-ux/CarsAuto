@@ -20,7 +20,7 @@ export interface CreateListingPayload {
   descriptionKu?: string;
   descriptionAr?: string;
   negotiable?: boolean;
-  images?: string[]; // URLs (data-URLs or CDN URLs)
+  images?: string[]; // CDN URLs returned by the upload endpoint
   locationId?: string;
   categoryId?: string;
 }
@@ -48,16 +48,19 @@ export const sellApi = {
   /**
    * POST /upload/image
    * Uploads the file as multipart/form-data and returns the public CDN URL
-   * returned by the backend. This avoids sending large data-URLs in the
-   * listing payload (which would cause 413 errors and overflow DB fields).
+   * returned by the backend.
    *
-   * Falls back to a data-URL only when the environment variable
-   * NEXT_PUBLIC_USE_MOCK_UPLOAD=true is set (e.g. local dev without storage).
+   * ✅ FIX #1 (Critical): Do NOT manually set Content-Type to 'multipart/form-data'.
+   * When you set it manually, axios removes its automatically generated boundary
+   * parameter (e.g. boundary=----WebKitFormBoundaryXXXX), so the server receives
+   * a body it cannot parse → multer gets undefined → 500 Internal Server Error.
+   * Let axios detect FormData and set the full Content-Type header automatically.
+   *
+   * Falls back to a data-URL only when NEXT_PUBLIC_USE_MOCK_UPLOAD=true
+   * (local dev without a running upload endpoint). Never use in production.
    */
   uploadImage: async (file: File): Promise<string> => {
     if (process.env.NEXT_PUBLIC_USE_MOCK_UPLOAD === 'true') {
-      // Dev-only mock: returns a data-URL so you can test the form locally
-      // without a running upload endpoint. Never use in production.
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload  = () => resolve(reader.result as string);
@@ -68,9 +71,9 @@ export const sellApi = {
 
     const formData = new FormData();
     formData.append('file', file);
-    const res = await api.post<{ url: string }>('/upload/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+
+    // ✅ No custom headers object — axios sets Content-Type with boundary automatically
+    const res = await api.post<{ url: string }>('/upload/image', formData);
     return res.data.url;
   },
 };
