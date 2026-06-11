@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, IsEnum, IsUUID, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, IsEnum, IsUUID, Min, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum ListingType {
@@ -11,18 +11,19 @@ export enum ListingType {
 }
 
 export class CreateListingDto {
-  // FIX: Added ! non-null assertion on required class fields
   @IsEnum(ListingType)
   type!: ListingType;
 
   @IsString()
-  @Min(1)
+  @MinLength(1)
   titleEn!: string;
 
   @IsString()
+  @MinLength(1)
   titleKu!: string;
 
   @IsString()
+  @MinLength(1)
   titleAr!: string;
 
   @IsNumber()

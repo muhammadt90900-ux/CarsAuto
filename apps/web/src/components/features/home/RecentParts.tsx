@@ -96,8 +96,8 @@ export function RecentParts() {
   const [activeCategory, setActiveCategory] = useState('');
 
   const { data: parts = [], isLoading } = useQuery({
-    queryKey: queryKeys.listings.list({ type: 'OTHER', limit: '6', category: activeCategory }),
-    queryFn: () => listingsApi.getAll({ type: 'OTHER', limit: '6', ...(activeCategory ? { category: activeCategory } : {}) }),
+    queryKey: queryKeys.listings.list({ type: 'SPARE_PART', limit: '6', category: activeCategory }),
+    queryFn: () => listingsApi.getAll({ type: 'SPARE_PART', limit: '6', ...(activeCategory ? { category: activeCategory } : {}) }),
     select: (res: any) => res?.data ?? res ?? [],
     staleTime: 60_000,
   });

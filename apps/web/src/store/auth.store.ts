@@ -50,6 +50,9 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await authApi.login({ email, password });
           set({ user: res.user });
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('_dev_token', res.access_token);  // ← زیاد بکە
+          }
         } finally {
           set({ isLoading: false });
         }
@@ -61,6 +64,9 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await authApi.register({ name, email, password, role, phone });
           set({ user: res.user });
+          if (typeof window !== 'undefined') {
+      sessionStorage.setItem('_dev_token', res.access_token);  // ← زیاد بکە
+    }
         } finally {
           set({ isLoading: false });
         }
@@ -76,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
           // Non-fatal — always clear local state
         } finally {
           setAccessToken(null);
+          if (typeof window !== 'undefined') sessionStorage.removeItem('_dev_token');
           set({ user: null });
         }
       },

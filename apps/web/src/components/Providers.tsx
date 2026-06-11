@@ -71,18 +71,20 @@ function useSessionHydration() {
       // skipHydration:true in the store prevents this during SSR.
       // onRehydrateStorage is intentionally empty — it does NOT set isHydrated.
       await useAuthStore.persist.rehydrate();
-
       // Step 2: Attempt silent token refresh.
-      // The refresh_token HttpOnly cookie is sent automatically by the browser.
-      // Fails with 401 for logged-out users — expected and non-fatal.
+      // In Codespaces, cross-origin cookies don't work, so we fall back to
+      // sessionStorage for the access token (dev only).
       try {
         const { data } = await api.post<{ access_token: string }>('/auth/refresh');
         if (data?.access_token) {
           setAccessToken(data.access_token);
         }
       } catch {
-        // Normal for logged-out users.
-        // loadUser() below will set isHydrated:true with user:null.
+        // Fallback: restore token from sessionStorage (Codespaces dev workaround)
+        const stored = typeof window !== 'undefined'
+          ? sessionStorage.getItem('_dev_token')
+          : null;
+        if (stored) setAccessToken(stored);
       }
 
       // Step 3: Load full user profile.

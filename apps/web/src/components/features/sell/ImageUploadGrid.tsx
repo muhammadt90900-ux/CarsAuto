@@ -91,7 +91,7 @@ export function ImageUploadGrid({
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
         {images.map((src, idx) => (
           <div
-            key={src}
+            key={`image-${idx}`}
             className="relative group aspect-square rounded-xl overflow-hidden border border-[rgba(255,255,255,0.1)]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
