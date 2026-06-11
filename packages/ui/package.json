@@ -10,11 +10,11 @@
     "./components": "./src/components/index.ts"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "@auto-bazaar-pro/types": "*"
+    "@auto-bazaar-pro/types": "*",
+    "typescript": "^5.4.5"
   },
   "peerDependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^19.2.7"
   }
 }
