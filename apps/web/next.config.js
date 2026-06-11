@@ -23,19 +23,8 @@ const nextConfig = {
   // ── Image optimisation ────────────────────────────────────────────────────
   images: {
     remotePatterns: [
-      // Production CDN — Cloudinary
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: '*.cloudinary.com' },
-
-      // Local development — API server serves /uploads directly
-      { protocol: 'http',  hostname: 'localhost',  port: '4000', pathname: '/uploads/**' },
-      { protocol: 'http',  hostname: '127.0.0.1',  port: '4000', pathname: '/uploads/**' },
-
-      // Docker compose: web container → api container
-      { protocol: 'http',  hostname: 'api',        port: '4000', pathname: '/uploads/**' },
-
-      // Staging / VPS: add your server's domain or IP here
-      // { protocol: 'https', hostname: 'your-staging-domain.com' },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 828, 1080, 1200, 1920],
@@ -80,6 +69,7 @@ const nextConfig = {
           ]
         : []),
 
+      // These are safe in both dev and prod
       {
         source: '/fonts/:path*',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
@@ -95,7 +85,7 @@ const nextConfig = {
       {
         source: '/sw.js',
         headers: [
-          { key: 'Cache-Control',          value: 'public, max-age=0, must-revalidate' },
+          { key: 'Cache-Control',        value: 'public, max-age=0, must-revalidate' },
           { key: 'Service-Worker-Allowed', value: '/' },
         ],
       },
@@ -151,20 +141,6 @@ const nextConfig = {
     }
     return config;
   },
-
-  // ── API Proxy ─────────────────────────────────────────────────────────────
-  async rewrites() {
-  return [
-    {
-      source: '/api/:path*',
-      destination: 'http://localhost:4000/api/:path*',
-    },
-    {
-      source: '/:locale/api/:path*',
-      destination: 'http://localhost:4000/api/:path*',
-    },
-  ];
-},
 
   // ── TypeScript ────────────────────────────────────────────────────────────
   typescript: { ignoreBuildErrors: false },

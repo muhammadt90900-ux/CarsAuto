@@ -1,7 +1,10 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./apps/api" },
-    { "path": "./apps/web" }
-  ]
+  "compilerOptions": {
+    "jsx": "preserve",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  }
 }

@@ -8,6 +8,14 @@
 //   - Does NOT silently return without setting isHydrated when token is missing
 //     (the old code returned early with isHydrated still false, leaving AuthGuard
 //      in an infinite loading spinner)
+//
+// ✅ FIX #5 (Critical): onRehydrateStorage no longer calls setHydrated().
+//   - Old code: onRehydrateStorage → setHydrated() immediately after localStorage read.
+//     This caused AuthGuard to see isHydrated:true BEFORE the token refresh finished,
+//     so it would redirect to /login even when the user was authenticated.
+//   - New code: isHydrated is only set to true inside loadUser(), which runs AFTER
+//     the token refresh in Providers.tsx. AuthGuard waits for loadUser() to complete
+//     before making any routing decision.
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -73,7 +81,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // ── Load User ──────────────────────────────────────────────────────────
-      // Called by Providers.tsx after session hydration.
+      // Called by Providers.tsx after token refresh completes.
       // MUST always set isHydrated: true — even on failure — so AuthGuard
       // can make a routing decision instead of spinning forever.
       loadUser: async () => {
@@ -113,8 +121,15 @@ export const useAuthStore = create<AuthState>()(
           : null,
       }),
 
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
+      // ✅ FIX #5: Do NOT call setHydrated() here.
+      // If we set isHydrated:true immediately after localStorage rehydration,
+      // AuthGuard will see isHydrated:true + user (from localStorage) and render
+      // children — but the access token is not yet in memory. Any API call inside
+      // the protected page will fail with 401.
+      // Solution: leave isHydrated:false here. loadUser() in Providers.tsx sets
+      // isHydrated:true only after the full refresh → /me flow completes.
+      onRehydrateStorage: () => () => {
+        // intentionally empty — isHydrated is set by loadUser() after token refresh
       },
 
       // skipHydration: true prevents localStorage reads during SSR.

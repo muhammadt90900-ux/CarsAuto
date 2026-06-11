@@ -1,4 +1,3 @@
-// apps/api/src/modules/auth/auth.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -11,19 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailService } from '../../common/email/email.service';
-import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-
-// ✅ FIX #2 (Critical): Replaced crypto.scryptSync with bcrypt.
-//    - Old code used a hardcoded static salt ('salt') which means every user
-//      with the same password gets the same hash → rainbow table attack.
-//    - bcrypt generates a unique per-user random salt automatically.
-//    - scryptSync is also synchronous and blocks the Node.js event loop.
-//    - MIGRATION: verifyPassword includes a fallback for old scrypt hashes
-//      so existing users are not locked out. They will be silently re-hashed
-//      on next successful login.
-
-const BCRYPT_ROUNDS = 12;
 
 export interface RequestContext {
   ipAddress?: string;
@@ -31,21 +18,22 @@ export interface RequestContext {
 }
 
 export enum AuditAction {
-  USER_REGISTER      = 'USER_REGISTER',
-  USER_LOGIN         = 'USER_LOGIN',
-  USER_LOGOUT        = 'USER_LOGOUT',
-  TOKEN_REFRESH      = 'TOKEN_REFRESH',
+  USER_REGISTER = 'USER_REGISTER',
+  USER_LOGIN = 'USER_LOGIN',
+  USER_LOGOUT = 'USER_LOGOUT',
+  TOKEN_REFRESH = 'TOKEN_REFRESH',
   TOKEN_REUSE_DETECTED = 'TOKEN_REUSE_DETECTED',
-  PASSWORD_RESET     = 'PASSWORD_RESET',
+  PASSWORD_RESET = 'PASSWORD_RESET',
   PASSWORD_RESET_FAILURE = 'PASSWORD_RESET_FAILURE',
-  EMAIL_VERIFIED     = 'EMAIL_VERIFIED',
+  EMAIL_VERIFIED = 'EMAIL_VERIFIED',
 }
 
-const VERIFICATION_TOKEN_BYTES  = 32;
+const VERIFICATION_TOKEN_BYTES = 32;
 const VERIFICATION_EXPIRES_HOURS = 24;
-const RESET_TOKEN_BYTES         = 32;
-const RESET_EXPIRES_MINUTES     = 60;
-const JWT_EXPIRES_IN            = '15m';
+const RESET_TOKEN_BYTES = 32;
+const RESET_EXPIRES_MINUTES = 60;
+const JWT_EXPIRES_IN = '15m';
+const JWT_REFRESH_EXPIRES_IN = '7d';
 
 const DURATION_UNITS: Record<string, number> = {
   s: 1000,
@@ -65,8 +53,6 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) {}
 
-  // ── Register ───────────────────────────────────────────────────────────────
-
   async register(email: string, password: string, name: string, ctx?: RequestContext) {
     if (!email || !password || !name) {
       throw new BadRequestException('Email, password, and name are required');
@@ -85,10 +71,9 @@ export class AuthService {
     await this.sendVerificationEmail(user.id, email, name);
     await this.writeAuditLog(user.id, AuditAction.USER_REGISTER, ctx);
 
-    return this.issueTokenPair(user);
+    const tokens = await this.issueTokenPair(user);
+    return tokens;
   }
-
-  // ── Login ──────────────────────────────────────────────────────────────────
 
   async login(email: string, password: string, ctx?: RequestContext) {
     if (!email || !password) {
@@ -111,21 +96,9 @@ export class AuthService {
       throw new ForbiddenException('Account is locked');
     }
 
-    // ✅ FIX #2 (Migration): If user still has old scrypt hash, re-hash with bcrypt now.
-    if (!user.password?.startsWith('$2')) {
-      const newHash = await this.hashPassword(password);
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { password: newHash },
-      });
-      this.logger.log(`Re-hashed password for user ${user.id} from scrypt to bcrypt`);
-    }
-
     await this.writeAuditLog(user.id, AuditAction.USER_LOGIN, ctx);
     return this.issueTokenPair(user);
   }
-
-  // ── Refresh Token ──────────────────────────────────────────────────────────
 
   async refreshToken(rawToken: string, userId?: string, ctx?: RequestContext) {
     if (!rawToken) {
@@ -170,97 +143,13 @@ export class AuthService {
     return this.issueTokenPair(storedToken.user);
   }
 
-  // ── Revoke Refresh Token ───────────────────────────────────────────────────
-
   async revokeRefreshToken(rawToken: string, userId?: string, ctx?: RequestContext): Promise<void> {
     const tokenHash = this.hashToken(rawToken);
     await this.prisma.refreshToken.deleteMany({ where: { tokenHash } });
     if (userId) await this.writeAuditLog(userId, AuditAction.USER_LOGOUT, ctx);
   }
 
-  // ── Verify Email ───────────────────────────────────────────────────────────
-
-  async verifyEmail(token: string) {
-    const tokenHash = this.hashToken(token);
-    const record = await this.prisma.emailVerificationToken.findUnique({
-      where: { tokenHash },
-      include: { user: true },
-    });
-
-    if (!record || record.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired verification token');
-    }
-
-    await this.prisma.user.update({
-      where: { id: record.userId },
-      data: { verified: true },
-    });
-
-    await this.prisma.emailVerificationToken.delete({ where: { tokenHash } });
-
-    return { message: 'Email verified successfully' };
-  }
-
-  // ── Resend Verification ────────────────────────────────────────────────────
-
-  async resendVerificationEmail(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new BadRequestException('User not found');
-    if (user.verified) throw new BadRequestException('Email already verified');
-
-    await this.sendVerificationEmail(user.id, user.email, user.name);
-    return { message: 'Verification email sent' };
-  }
-
-  // ── Forgot Password ────────────────────────────────────────────────────────
-
-  async forgotPassword(
-    dto: { email: string },
-    ctx?: RequestContext,
-  ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-
-    // Always return the same message — prevents email enumeration
-    if (user) {
-      await this.issuePasswordResetToken(user.id, user.email, user.name, ctx);
-    }
-
-    return { message: 'If this email exists, a reset link has been sent' };
-  }
-
-  // ── Reset Password ─────────────────────────────────────────────────────────
-
-  async resetPassword(
-    dto: { token: string; newPassword: string },
-    ctx?: RequestContext,
-  ): Promise<{ message: string }> {
-    const tokenHash = this.hashToken(dto.token);
-    const record = await this.prisma.passwordResetToken.findUnique({
-      where: { tokenHash },
-      include: { user: true },
-    });
-
-    if (!record || record.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired reset token');
-    }
-
-    const hashedPassword = await this.hashPassword(dto.newPassword);
-
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: record.userId },
-        data: { password: hashedPassword },
-      }),
-      this.prisma.passwordResetToken.delete({ where: { tokenHash } }),
-      this.prisma.refreshToken.deleteMany({ where: { userId: record.userId } }),
-    ]);
-
-    await this.writeAuditLog(record.userId, AuditAction.PASSWORD_RESET, ctx);
-
-    return { message: 'Password reset successfully' };
-  }
-
-  // ── Private Helpers ────────────────────────────────────────────────────────
+  // ── Private Helpers ───────────────────────────────────────────────────
 
   private async issuePasswordResetToken(
     userId: string,
@@ -268,7 +157,7 @@ export class AuthService {
     name: string,
     ctx?: RequestContext,
   ): Promise<void> {
-    const rawToken  = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
+    const rawToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
     const tokenHash = this.hashToken(rawToken);
     const expiresAt = new Date(Date.now() + RESET_EXPIRES_MINUTES * 60_000);
 
@@ -279,15 +168,15 @@ export class AuthService {
       }),
     ]);
 
-    const appUrl   = this.config.get<string>('APP_URL', 'https://carsauto.app');
+    const appUrl = this.config.get<string>('APP_URL', 'https://carsauto.app');
     const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
     await this.emailService.sendPasswordResetEmail({
-      to:               email,
-      userName:         name,
+      to: email,
+      userName: name,
       resetUrl,
       expiresInMinutes: RESET_EXPIRES_MINUTES,
-      ipAddress:        ctx?.ipAddress,
+      ipAddress: ctx?.ipAddress,
     });
 
     this.logger.log(`Password reset email sent to user ${userId}`);
@@ -298,7 +187,7 @@ export class AuthService {
     email: string,
     name: string,
   ): Promise<void> {
-    const rawToken  = crypto.randomBytes(VERIFICATION_TOKEN_BYTES).toString('hex');
+    const rawToken = crypto.randomBytes(VERIFICATION_TOKEN_BYTES).toString('hex');
     const tokenHash = this.hashToken(rawToken);
     const expiresAt = new Date(Date.now() + VERIFICATION_EXPIRES_HOURS * 3_600_000);
 
@@ -309,14 +198,14 @@ export class AuthService {
       }),
     ]);
 
-    const appUrl          = this.config.get<string>('APP_URL', 'https://carsauto.app');
+    const appUrl = this.config.get<string>('APP_URL', 'https://carsauto.app');
     const verificationUrl = `${appUrl}/verify-email?token=${rawToken}`;
 
     await this.emailService.sendVerificationEmail({
-      to:              email,
-      userName:        name,
+      to: email,
+      userName: name,
       verificationUrl,
-      expiresInHours:  VERIFICATION_EXPIRES_HOURS,
+      expiresInHours: VERIFICATION_EXPIRES_HOURS,
     });
 
     this.logger.log(`Verification email sent to user ${userId}`);
@@ -324,9 +213,9 @@ export class AuthService {
 
   private async issueTokenPair(user: any) {
     const payload = {
-      sub:   user.id,
+      sub: user.id,
       email: user.email,
-      role:  user.role,
+      role: user.role,
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -334,8 +223,8 @@ export class AuthService {
     });
 
     const rawRefreshToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash       = this.hashToken(rawRefreshToken);
-    const expiresAt       = new Date(Date.now() + 7 * 24 * 60 * 60_000);
+    const tokenHash = this.hashToken(rawRefreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60_000); // 7 days
 
     await this.prisma.refreshToken.create({
       data: { userId: user.id, tokenHash, expiresAt },
@@ -352,22 +241,13 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  // ✅ FIX #2 (Critical): bcrypt replaces static-salt scrypt
   private async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, BCRYPT_ROUNDS);
+    return crypto.scryptSync(password, 'salt', 64).toString('hex');
   }
 
-  // ✅ FIX #2 (Migration): Falls back to old scrypt check during transition.
-  // Old scrypt hashes are 128-char hex strings (64 bytes).
-  // bcrypt hashes always start with '$2b$' or '$2a$'.
   private async verifyPassword(password: string, hash: string): Promise<boolean> {
-    // Old scrypt hash — verify with legacy method
-    if (hash.length === 128 && !hash.startsWith('$2')) {
-      const derived = crypto.scryptSync(password, 'salt', 64).toString('hex');
-      return crypto.timingSafeEqual(Buffer.from(derived), Buffer.from(hash));
-    }
-    // New bcrypt hash
-    return bcrypt.compare(password, hash);
+    const derived = crypto.scryptSync(password, 'salt', 64).toString('hex');
+    return derived === hash;
   }
 
   private async writeAuditLog(
@@ -381,9 +261,10 @@ export class AuthService {
         data: {
           ...(userId ? { userId } : {}),
           action,
-          ip:        ctx?.ipAddress ?? null,
+          ip: ctx?.ipAddress ?? null,
           userAgent: ctx?.userAgent ?? null,
-          meta:      (meta ?? undefined) as any,
+          // FIX: Cast Record to Prisma's InputJsonValue type for the meta field
+          meta: (meta ?? undefined) as any,
         },
       });
     } catch (err: any) {
@@ -393,7 +274,75 @@ export class AuthService {
 
   private parseDuration(str: string): number {
     const match = str.match(/^(\d+)([smhd])$/);
-    if (!match) return 7 * 86_400_000;
+    if (!match) return 7 * 86_400_000; // default 7 days
     return parseInt(match[1]!, 10) * (DURATION_UNITS[match[2]!] ?? 86_400_000);
   }
+
+  async verifyEmail(token: string) {
+  const tokenHash = this.hashToken(token);
+  const record = await this.prisma.emailVerificationToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new BadRequestException('Invalid or expired verification token');
+  }
+
+  await this.prisma.user.update({
+    where: { id: record.userId },
+    data: { verified: true },
+  });
+
+  await this.prisma.emailVerificationToken.delete({ where: { tokenHash } });
+
+  return { message: 'Email verified successfully' };
+}
+
+async resendVerificationEmail(userId: string) {
+  const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new BadRequestException('User not found');
+  if (user.verified) throw new BadRequestException('Email already verified');
+
+  await this.sendVerificationEmail(user.id, user.email, user.name);
+  return { message: 'Verification email sent' };
+}
+
+async forgotPassword(dto: { email: string }, ctx?: RequestContext): Promise<{ message: string }> {
+  const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+  
+  // هەمیشە هەمان وەڵام دەگەڕێنێت — email enumeration رێدەگرێت
+  if (user) {
+    await this.issuePasswordResetToken(user.id, user.email, user.name, ctx);
+  }
+
+  return { message: 'If this email exists, a reset link has been sent' };
+}
+
+async resetPassword(dto: { token: string; newPassword: string }, ctx?: RequestContext): Promise<{ message: string }> {
+  const tokenHash = this.hashToken(dto.token);
+  const record = await this.prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!record || record.expiresAt < new Date()) {
+    throw new BadRequestException('Invalid or expired reset token');
+  }
+
+  const hashedPassword = await this.hashPassword(dto.newPassword);
+
+  await this.prisma.$transaction([
+    this.prisma.user.update({
+      where: { id: record.userId },
+      data: { password: hashedPassword },
+    }),
+    this.prisma.passwordResetToken.delete({ where: { tokenHash } }),
+    this.prisma.refreshToken.deleteMany({ where: { userId: record.userId } }),
+  ]);
+
+  await this.writeAuditLog(record.userId, AuditAction.PASSWORD_RESET, ctx);
+
+  return { message: 'Password reset successfully' };
+}
 }

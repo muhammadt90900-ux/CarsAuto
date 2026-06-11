@@ -27,8 +27,8 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
       await login(email, password);
       setSuccess(true);
       setTimeout(() => {
-        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-        window.location.href = returnTo || `/${locale}`;
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        router.push(returnTo || `/${locale}`);
       }, 600);
     } catch (err: any) {
       const msg =
@@ -39,7 +39,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
     } finally {
       setLoading(false);
     }
-  }, [email, password, login, locale]);
+  }, [email, password, login, router, locale]);
 
   const emailId    = `${uid}-email`;
   const passwordId = `${uid}-password`;
@@ -94,7 +94,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
                        text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
           >
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            <span>Signed in! Redirecting…</span>
+            <span>Signed in! Redirecting to your dashboard…</span>
           </div>
         )}
 

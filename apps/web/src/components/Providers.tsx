@@ -1,5 +1,5 @@
 'use client';
-// apps/web/src/components/Providers.tsx — SESSION HYDRATION FIXED
+// apps/web/src/components/Providers.tsx
 
 import { ReactNode, useEffect, lazy, Suspense } from 'react';
 
@@ -50,19 +50,17 @@ function usePrefetchStaticData() {
 
 // ── Session hydration ─────────────────────────────────────────────────────────
 //
-// ✅ FIX #4 (High): The original code called rehydrate() and restore() concurrently
-// (fire-and-forget) with no ordering guarantee. This caused a race condition where
-// AuthGuard could read isHydrated=false and redirect to /login even when the user
-// was already authenticated.
+// Sequential flow — each step waits for the previous:
 //
-// Fixed flow (sequential — each step waits for the previous):
-//   1. await rehydrate()        → reads user profile from localStorage
-//   2. await POST /auth/refresh → gets a fresh access token from the cookie
+//   1. await rehydrate()        → reads user profile from localStorage (no isHydrated yet)
+//   2. await POST /auth/refresh → gets a fresh access token from the HttpOnly cookie
 //   3. setAccessToken()         → puts token in memory for axios interceptor
-//   4. await loadUser()         → fetches full user from /auth/me + sets isHydrated:true
+//   4. await loadUser()         → fetches /auth/me + sets isHydrated:true
 //
-// AuthGuard only renders children after isHydrated=true, so the user is never
-// redirected to /login while the token refresh is still in flight.
+// AuthGuard checks isHydrated before making any routing decision.
+// isHydrated is only set to true inside loadUser() — AFTER the token is in memory.
+// This prevents the race condition where AuthGuard redirects to /login
+// while the refresh request is still in flight.
 
 function useSessionHydration() {
   const { loadUser } = useAuthStore();
@@ -70,26 +68,26 @@ function useSessionHydration() {
   useEffect(() => {
     const init = async () => {
       // Step 1: Rehydrate Zustand persist store from localStorage (client only).
-      // skipHydration: true in the store prevents localStorage reads during SSR
-      // to avoid server/client mismatch — we trigger it here after mount.
+      // skipHydration:true in the store prevents this during SSR.
+      // onRehydrateStorage is intentionally empty — it does NOT set isHydrated.
       await useAuthStore.persist.rehydrate();
 
-      // Step 2: Attempt silent refresh to get a fresh access token.
+      // Step 2: Attempt silent token refresh.
       // The refresh_token HttpOnly cookie is sent automatically by the browser.
-      // This will fail (401) for logged-out users — that is expected and non-fatal.
+      // Fails with 401 for logged-out users — expected and non-fatal.
       try {
         const { data } = await api.post<{ access_token: string }>('/auth/refresh');
         if (data?.access_token) {
           setAccessToken(data.access_token);
         }
       } catch {
-        // Normal for logged-out users — no action needed.
+        // Normal for logged-out users.
         // loadUser() below will set isHydrated:true with user:null.
       }
 
-      // Step 3: Load the full user profile using whatever token we now have.
-      // loadUser() checks getAccessToken() internally — if no token, it sets
-      // user:null and isHydrated:true, allowing AuthGuard to redirect cleanly.
+      // Step 3: Load full user profile.
+      // If no token → sets user:null + isHydrated:true → AuthGuard redirects to /login.
+      // If token valid → sets user + isHydrated:true → AuthGuard renders children.
       await loadUser();
     };
 
