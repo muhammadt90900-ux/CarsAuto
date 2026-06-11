@@ -22,9 +22,9 @@ function drainRefreshQueue(error: unknown, token: string | null): void {
 
 // ── In-memory SWR cache ───────────────────────────────────────────────────────
 interface CacheEntry {
-  data:          unknown;
-  revalidateAt:  number;
-  expiresAt:     number;
+  data:         unknown;
+  revalidateAt: number;
+  expiresAt:    number;
 }
 
 const cache    = new Map<string, CacheEntry>();
@@ -60,8 +60,7 @@ function setInCache(key: string, data: unknown, ttlMs = TTL_DEFAULT): void {
   });
 }
 
-// FIX: wrap in typeof window guard — bare setInterval at module top-level causes
-// Next.js SSR to fail loading this module entirely, making all exports undefined.
+// Cache GC — client-only
 if (typeof window !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
@@ -71,75 +70,102 @@ if (typeof window !== 'undefined') {
   }, 60_000);
 }
 
-// ── Axios instance ────────────────────────────────────────────────────────────
-const baseURL = process.env.NEXT_PUBLIC_API_URL;
-if (!baseURL && typeof window !== 'undefined') {
-  console.error('[api] NEXT_PUBLIC_API_URL is not set — all API calls will fail');
+// ── Axios lazy singleton ──────────────────────────────────────────────────────
+// IMPORTANT: axios.create() must NOT run at module top-level in Next.js 16
+// with Turbopack — it causes the entire module to be undefined during SSR,
+// which makes listingsApi.myListings (and every other export) throw at runtime.
+let _api: AxiosInstance | null = null;
+
+function createApiInstance(): AxiosInstance {
+  const baseURL = process.env.NEXT_PUBLIC_API_URL;
+  if (!baseURL) {
+    console.error('[api] NEXT_PUBLIC_API_URL is not set — all API calls will fail');
+  }
+
+  const instance = axios.create({
+    baseURL,
+    withCredentials: true,
+    timeout: 15_000,
+    headers: {
+      'Content-Type':     'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  });
+
+  // ── Request interceptor — attach access token ────────────────────────────
+  instance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+      return config;
+    },
+    (error) => Promise.reject(error),
+  );
+
+  // ── Response interceptor — transparent token rotation on 401 ────────────
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      const originalRequest  = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const is401            = error.response?.status === 401;
+      const alreadyRetried   = originalRequest?._retry;
+      const isRefreshRequest = originalRequest?.url?.includes('/auth/refresh');
+
+      if (is401 && !alreadyRetried && !isRefreshRequest) {
+        if (isRefreshing) {
+          return new Promise<string>((resolve, reject) => {
+            refreshQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return instance(originalRequest);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const { data } = await instance.post<{ access_token: string }>('/auth/refresh');
+          const newToken = data.access_token;
+          setAccessToken(newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          drainRefreshQueue(null, newToken);
+          return instance(originalRequest);
+        } catch (refreshError) {
+          drainRefreshQueue(refreshError, null);
+          setAccessToken(null);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:session-expired'));
+          }
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+
+      return Promise.reject(error);
+    },
+  );
+
+  return instance;
 }
 
-export const api: AxiosInstance = axios.create({
-  baseURL,
-  withCredentials: true,
-  timeout: 15_000,
-  headers: {
-    'Content-Type':     'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+// Exported singleton — always call getApi() inside API methods, never at
+// module evaluation time, so SSR never touches axios.create().
+export function getApi(): AxiosInstance {
+  if (!_api) _api = createApiInstance();
+  return _api;
+}
+
+// Convenience proxy — safe because it is only *called* (never evaluated)
+// inside async functions that only run on the client.
+export const api: AxiosInstance = new Proxy({} as AxiosInstance, {
+  get(_target, prop) {
+    return (getApi() as any)[prop];
+  },
+  apply(_target, _this, args) {
+    return (getApi() as any)(...args);
   },
 });
-
-// ── Request interceptor — attach access token ─────────────────────────────────
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
-
-// ── Response interceptor — transparent token rotation on 401 ─────────────────
-api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest  = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    const is401            = error.response?.status === 401;
-    const alreadyRetried   = originalRequest._retry;
-    const isRefreshRequest = originalRequest.url?.includes('/auth/refresh');
-
-    if (is401 && !alreadyRetried && !isRefreshRequest) {
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
-          refreshQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const { data } = await api.post<{ access_token: string }>('/auth/refresh');
-        const newToken = data.access_token;
-        setAccessToken(newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        drainRefreshQueue(null, newToken);
-        return api(originalRequest);
-      } catch (refreshError) {
-        drainRefreshQueue(refreshError, null);
-        setAccessToken(null);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:session-expired'));
-        }
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    return Promise.reject(error);
-  },
-);
 
 // ── cachedGet — SWR + request deduplication ───────────────────────────────────
 async function cachedGet<T>(
@@ -154,7 +180,7 @@ async function cachedGet<T>(
     if (!cached.stale) return cached.data as T;
 
     if (!inflight.has(key)) {
-      const bg = api
+      const bg = getApi()
         .get<T>(url, { params })
         .then((res) => { setInCache(key, res.data, ttlMs); return res.data; })
         .catch(() => { /* keep stale data on network error */ })
@@ -166,13 +192,12 @@ async function cachedGet<T>(
 
   if (inflight.has(key)) return inflight.get(key) as Promise<T>;
 
-  const fresh = api
+  const fresh = getApi()
     .get<T>(url, { params })
     .then((res) => {
       setInCache(key, res.data, ttlMs);
       return res.data;
     })
-    .catch((err) => { throw err; })
     .finally(() => inflight.delete(key));
 
   inflight.set(key, fresh);
@@ -182,34 +207,34 @@ async function cachedGet<T>(
 // ── Auth API ──────────────────────────────────────────────────────────────────
 export const authApi = {
   register: async (data: {
-    name: string;
-    email: string;
-    password: string;
-    role?: string;
-    phone?: string;
+    name:      string;
+    email:     string;
+    password:  string;
+    role?:     string;
+    phone?:    string;
   }) => {
-    const res = await api.post<{ access_token: string; user: AuthUser }>('/auth/register', data);
+    const res = await getApi().post<{ access_token: string; user: AuthUser }>('/auth/register', data);
     setAccessToken(res.data.access_token);
     return res.data;
   },
 
   login: async (data: { email: string; password: string }) => {
-    const res = await api.post<{ access_token: string; user: AuthUser }>('/auth/login', data);
+    const res = await getApi().post<{ access_token: string; user: AuthUser }>('/auth/login', data);
     setAccessToken(res.data.access_token);
     return res.data;
   },
 
   logout: async (): Promise<void> => {
-    try { await api.post('/auth/logout'); } finally { setAccessToken(null); }
+    try { await getApi().post('/auth/logout'); } finally { setAccessToken(null); }
   },
 
   me: async (): Promise<AuthUser> => {
-    const res = await api.get<AuthUser>('/auth/me');
+    const res = await getApi().get<AuthUser>('/auth/me');
     return res.data;
   },
 
   forgotPassword: async (email: string): Promise<{ message: string }> => {
-    const res = await api.post<{ message: string }>('/auth/forgot-password', { email });
+    const res = await getApi().post<{ message: string }>('/auth/forgot-password', { email });
     return res.data;
   },
 
@@ -217,7 +242,7 @@ export const authApi = {
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> => {
-    const res = await api.post<{ message: string }>('/auth/reset-password', {
+    const res = await getApi().post<{ message: string }>('/auth/reset-password', {
       token,
       newPassword,
     });
@@ -233,12 +258,11 @@ export const listingsApi = {
   getById: (id: string) =>
     cachedGet<any>(`/listings/${id}`, undefined, 2 * 60_000),
 
-  // FIX: myListings and delete were missing — added here
   myListings: () =>
-    api.get<any[]>('/listings/my').then((res) => res.data),
+    getApi().get<any[]>('/listings/my').then((res) => res.data),
 
   delete: (id: string) =>
-    api.delete(`/listings/${id}`).then(() => { invalidateListingsCache(); }),
+    getApi().delete(`/listings/${id}`).then(() => { invalidateListingsCache(); }),
 };
 
 // ── Vehicles API ──────────────────────────────────────────────────────────────
@@ -265,7 +289,7 @@ export const searchApi = {
     cachedGet<string[]>('/search/autocomplete', { q }, 2 * 60_000),
 };
 
-// ── Cache invalidation (call after mutations) ─────────────────────────────────
+// ── Cache invalidation ────────────────────────────────────────────────────────
 export function invalidateListingsCache(): void {
   for (const k of cache.keys()) {
     if (k.startsWith('/listings') || k.startsWith('/search')) {

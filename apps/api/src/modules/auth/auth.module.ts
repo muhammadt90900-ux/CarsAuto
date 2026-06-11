@@ -26,7 +26,7 @@ import { AppCacheModule } from '../../common/cache/cache.module';
       useFactory: (cfg: ConfigService) => ({
         secret:      cfg.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: cfg.get<string>('JWT_EXPIRES_IN', '15m'),
+          expiresIn: cfg.get('JWT_EXPIRES_IN', '15m') as any,
           issuer:    'car-platform',
           audience:  'car-platform-client',
         },
