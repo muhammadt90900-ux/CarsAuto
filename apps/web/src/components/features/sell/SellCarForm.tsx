@@ -193,7 +193,7 @@ export function SellCarForm() {
       // BUG FIX #4: Invalidate React Query listing cache so the marketplace
       // feed refetches and shows the new listing immediately on navigation.
       await queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      router.push(`/${locale}/cars/${listing.id}`);
+      router.push(`/cars/${listing.id}`);
     } catch (err: any) {
       // ✅ FIX #5 (High): Specific messages for common HTTP errors.
       // Generic message gave no guidance — users didn't know what to do.

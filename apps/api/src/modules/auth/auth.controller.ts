@@ -208,16 +208,18 @@ export class AuthController {
     };
   }
 
-  private cookieOptions() {
+ private cookieOptions() {
+    const isCodespaces = !!process.env.CODESPACE_NAME;
+    const crossOrigin  = process.env.NODE_ENV === 'production' || isCodespaces;
     return {
       httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,  // ✅ گۆڕدرا لە strict
-      path:     '/',             // ✅ گۆڕدرا لە /api/auth
+      secure:   crossOrigin,
+      sameSite: (crossOrigin ? 'none' : 'lax') as 'none' | 'lax',
+      path:     '/',
       maxAge:   7 * 24 * 60 * 60 * 1000,
     };
   }
-
+  
   private setRefreshCookie(res: Response, token: string) {
     res.cookie('refresh_token', token, this.cookieOptions());
   }

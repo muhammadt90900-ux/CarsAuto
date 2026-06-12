@@ -53,21 +53,22 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string; locale: string };
+ params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
-  const listing = await getListing(params.id);
+  const { id, locale } = await params;
+  const listing = await getListing(id);
   if (!listing) return { title: "Listing Not Found" };
+  const typedLocale = locale as Locale;
 
-  const locale    = params.locale as Locale;
   const titleKey  = ("title" + locale.charAt(0).toUpperCase() + locale.slice(1)) as keyof typeof listing;
   const title     = (listing[titleKey] ?? listing.titleEn ?? "Car Listing") as string;
   const cover     = listing.images?.find((i: any) => i.isCover)?.url ?? listing.images?.[0]?.url;
   const desc      = (listing.descriptionEn?.slice(0, 155) ?? `${title} for sale on AutoBazaar Pro`) as string;
-  const canonical = `${BASE_URL}/${locale}/cars/${params.id}`;
+  const canonical = `${BASE_URL}/${locale}/cars/${id}`;
 
-  const languages: Record<string, string> = { "x-default": `${BASE_URL}/ku/cars/${params.id}` };
+  const languages: Record<string, string> = { "x-default": `${BASE_URL}/ku/cars/${id}` };
   for (const loc of locales) {
-    languages[hreflangMap[loc]] = `${BASE_URL}/${loc}/cars/${params.id}`;
+    languages[hreflangMap[loc]] = `${BASE_URL}/${loc}/cars/${id}`;
   }
 
   return {
@@ -147,12 +148,12 @@ function buildListingJsonLd(listing: any, locale: string) {
 export default async function CarDetailPage({
   params,
 }: {
-  params: { id: string; locale: string };
+  params: Promise<{ id: string; locale: string }>;
 }) {
-  const listing = await getListing(params.id);
+   const { id, locale } = await params;
+  const listing = await getListing(id);
   if (!listing) notFound();
-
-  const { vehicleJsonLd, breadcrumbJsonLd } = buildListingJsonLd(listing, params.locale);
+  const { vehicleJsonLd, breadcrumbJsonLd } = buildListingJsonLd(listing, locale);
   const similarCarsPromise = getSimilarCars(listing);
 
   return (
@@ -173,7 +174,7 @@ export default async function CarDetailPage({
         <CarDetailWithSimilar
           listing={listing}
           similarCarsPromise={similarCarsPromise}
-          locale={params.locale}
+          locale={locale}
         />
       </Suspense>
     </>

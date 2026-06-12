@@ -39,6 +39,9 @@ function responseTimeMiddleware() {
   };
 }
 
+// BigInt JSON serialization fix
+(BigInt.prototype as any).toJSON = function () { return this.toString(); };
+
 async function bootstrap() {
   validateEnv();
 
@@ -121,6 +124,8 @@ async function bootstrap() {
 
   // ── CORS ──────────────────────────────────────────────────────────────────
   const rawOrigins = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  // Allow Codespaces preview domains automatically
+  const codespaceOriginPattern = /^https:\/\/[a-z0-9-]+-3000\.app\.github\.dev$/;
   const allowedOrigins = rawOrigins
     .split(',')
     .map((o) => o.trim())
@@ -138,6 +143,7 @@ async function bootstrap() {
         return callback(null, true);
       }
       if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (codespaceOriginPattern.test(origin)) return callback(null, true);
       callback(new Error(`CORS: origin "${origin}" not allowed`));
     },
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
