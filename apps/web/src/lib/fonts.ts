@@ -28,8 +28,8 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 const notoSC = Noto_Sans_SC({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '700'],
+  subsets: ['chinese-simplified'] as unknown as ['latin'],
+  weight: ['300', '400', '500', '700', '900'],
   variable: '--font-noto-sc',
   display: 'swap',
 });
