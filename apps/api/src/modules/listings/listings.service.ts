@@ -231,12 +231,26 @@ export class ListingsService {
     }
 
     try {
-      const { images, userId, ...listingData } = data as any;
+      // BUG FIX #3: `condition` belongs to ListingVehicleSpec, not Listing.
+      // `vehicleSpecId` is not a column on Listing either (the FK is on the
+      // other side of the relation). Spreading either field into
+      // prisma.listing.create() throws PrismaClientValidationError:
+      // "Unknown arg `condition`" — silently failing every submission.
+      const { images, userId, condition, vehicleSpecId: _vsId, ...listingData } = data as any;
 
       const listing = await this.prisma.listing.create({
         data: {
           ...listingData,
           user: { connect: { id: userId } },
+          // Route `condition` into a nested vehicleSpec create so it is stored
+          // correctly on ListingVehicleSpec (ListingCondition enum column).
+          ...(condition
+            ? {
+                vehicleSpec: {
+                  create: { condition },
+                },
+              }
+            : {}),
           ...(images?.length
             ? {
                 images: {

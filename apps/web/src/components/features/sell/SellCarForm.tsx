@@ -8,6 +8,8 @@ import { useState, useRef, useCallback, ChangeEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStore } from '@/store/auth.store';
 import { sellApi, type CreateListingPayload } from '@/lib/sell-api';
 import { ImageUploadGrid } from './ImageUploadGrid';
@@ -80,6 +82,7 @@ const CURRENCIES = ['USD', 'IQD', 'EUR'];
 export function SellCarForm() {
   const router = useRouter();
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const { user, isHydrated } = useAuthStore((s) => ({ user: s.user, isHydrated: s.isHydrated }));
 
   // Wait for Zustand to rehydrate from localStorage before rendering the form.
@@ -187,6 +190,9 @@ export function SellCarForm() {
       };
 
       const listing = await sellApi.createListing(payload);
+      // BUG FIX #4: Invalidate React Query listing cache so the marketplace
+      // feed refetches and shows the new listing immediately on navigation.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       router.push(`/${locale}/cars/${listing.id}`);
     } catch (err: any) {
       // ✅ FIX #5 (High): Specific messages for common HTTP errors.

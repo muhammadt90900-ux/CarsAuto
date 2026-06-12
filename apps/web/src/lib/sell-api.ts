@@ -3,7 +3,7 @@
 // Uses the same axios instance (api) as the rest of the app so auth headers
 // and token refresh are handled automatically.
 
-import { api } from '@/lib/api';
+import { api, invalidateListingsCache } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,10 @@ export const sellApi = {
    */
   createListing: async (payload: CreateListingPayload): Promise<ListingCreatedResponse> => {
     const res = await api.post<ListingCreatedResponse>('/listings', payload);
+    // BUG FIX #4: Bust the frontend axios SWR cache immediately after a new listing
+    // is created. Without this, cachedGet('/listings') serves stale data for up to
+    // 60 seconds and the new listing is invisible in the marketplace feed.
+    invalidateListingsCache();
     return res.data;
   },
 
