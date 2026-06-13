@@ -289,6 +289,28 @@ export const searchApi = {
     cachedGet<string[]>('/search/autocomplete', { q }, 2 * 60_000),
 };
 
+// ── Subscription API ──────────────────────────────────────────────────────────
+export const subscriptionApi = {
+  /** GET /api/subscriptions/status — current dealer permission status */
+  getStatus: (): Promise<PermissionStatus> =>
+    getApi().get('/subscriptions/status').then((r) => r.data),
+
+  /** POST /api/subscriptions — create a Stripe PaymentIntent */
+  createIntent: (plan: 'MONTHLY' | 'BIANNUAL' | 'ANNUAL') =>
+    getApi()
+      .post<{ clientSecret: string; plan: string; amount: number; currency: string }>(
+        '/subscriptions',
+        { plan },
+      )
+      .then((r) => r.data),
+
+  /** POST /api/subscriptions/confirm — provision subscription after payment */
+  confirm: (stripePaymentIntentId: string, plan: 'MONTHLY' | 'BIANNUAL' | 'ANNUAL') =>
+    getApi()
+      .post('/subscriptions/confirm', { stripePaymentIntentId, plan })
+      .then((r) => r.data),
+};
+
 // ── Cache invalidation ────────────────────────────────────────────────────────
 export function invalidateListingsCache(): void {
   for (const k of cache.keys()) {
@@ -306,4 +328,14 @@ export interface AuthUser {
   phone:    string | null;
   role:     'USER' | 'DEALER' | 'ADMIN';
   verified: boolean;
+}
+
+export interface PermissionStatus {
+  canPost:              boolean;
+  reason:               'ADMIN' | 'SUBSCRIBED' | 'TRIAL' | 'TRIAL_EXPIRED' | 'LIMIT_REACHED' | 'NOT_DEALER';
+  trialEnd?:            string; // ISO date string from JSON
+  trialPostsUsed?:      number;
+  trialPostsRemaining?: number;
+  subscriptionEnd?:     string; // ISO date string from JSON
+  plan?:                string;
 }

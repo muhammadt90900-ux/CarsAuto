@@ -35,6 +35,7 @@ import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { imageUploadOptions } from './multer.config';
 import { CacheService } from '../cache/cache.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 // ── Upload rate limit constants ──────────────────────────────────────────────
 const SINGLE_UPLOAD_LIMIT_PER_MIN  = 30;
@@ -51,6 +52,7 @@ export class UploadController {
   constructor(
     private readonly uploadService: UploadService,
     private readonly cache: CacheService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -72,6 +74,20 @@ export class UploadController {
     }
 
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
+
+    // Role guard: USER (buyer) accounts cannot upload any files
+    const actor = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (actor.role === 'USER') {
+      throw new ForbiddenException({
+        ku: 'تەنها فرۆشیار دەتوانێت فایل بار بکات',
+        en: 'Only dealers can upload files',
+        code: 'UPLOAD_NOT_ALLOWED',
+      });
+    }
+
     this.enforceUploadRateLimit(userId, 'single');
 
     const result = await this.uploadService.processImageUpload({
@@ -118,6 +134,20 @@ export class UploadController {
     }
 
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
+
+    // Role guard: USER (buyer) accounts cannot upload any files
+    const actorBatch = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (actorBatch.role === 'USER') {
+      throw new ForbiddenException({
+        ku: 'تەنها فرۆشیار دەتوانێت فایل بار بکات',
+        en: 'Only dealers can upload files',
+        code: 'UPLOAD_NOT_ALLOWED',
+      });
+    }
+
     this.enforceUploadRateLimit(userId, 'batch');
 
     // Also check daily cap before processing the whole batch
@@ -162,6 +192,19 @@ export class UploadController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFile(@Param('filename') filename: string, @Req() req: Request) {
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
+
+    // Role guard: USER (buyer) accounts cannot manage uploads
+    const actorDel = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (actorDel.role === 'USER') {
+      throw new ForbiddenException({
+        ku: 'تەنها فرۆشیار دەتوانێت فایل بار بکات',
+        en: 'Only dealers can upload files',
+        code: 'UPLOAD_NOT_ALLOWED',
+      });
+    }
 
     // Ownership check: verify this file was uploaded by this user.
     // cache.get() returns { value, stale } | null

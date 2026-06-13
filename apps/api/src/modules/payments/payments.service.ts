@@ -661,4 +661,10 @@ export class PaymentsService {
       throw new BadRequestException('Payment gateway is not configured');
     }
   }
+
+  /** Expose the Stripe client for other services (e.g. SubscriptionsService) */
+  getStripe(): import('stripe').default {
+    this.assertStripeConfigured();
+    return this.stripe;
+  }
 }

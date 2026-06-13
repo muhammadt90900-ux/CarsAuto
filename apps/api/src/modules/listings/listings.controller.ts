@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { ListingType, ListingCondition, FuelType, TransmissionType } from '../../common/prisma/enums';
+import { ListingPermissionService } from '../../common/permissions/listing-permission.service';
 
 // ── Typed query DTO ───────────────────────────────────────────────────────────
 class ListingQueryDto implements ListingQueryParams {
@@ -42,7 +43,10 @@ class ListingQueryDto implements ListingQueryParams {
 
 @Controller('listings')
 export class ListingsController {
-  constructor(private readonly listingsService: ListingsService) {}
+  constructor(
+    private readonly listingsService: ListingsService,
+    private readonly permissionService: ListingPermissionService,
+  ) {}
 
   // ── Public endpoints ──────────────────────────────────────────────────────
 
@@ -75,7 +79,8 @@ export class ListingsController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Request() req: any, @Body() dto: CreateListingDto) {
+  async create(@Request() req: any, @Body() dto: CreateListingDto) {
+    await this.permissionService.checkCanPost(req.user.userId);
     return this.listingsService.create({ ...dto, userId: req.user.userId });
   }
 

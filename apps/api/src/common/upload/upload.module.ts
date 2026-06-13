@@ -4,11 +4,12 @@ import { ConfigModule } from '@nestjs/config';
 import { UploadService } from './upload.service';
 import { UploadController } from './upload.controller';
 import { AppCacheModule } from '../cache/cache.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [ConfigModule, AppCacheModule],
+  imports: [ConfigModule, AppCacheModule, PrismaModule],
   controllers: [UploadController],
   providers: [UploadService],
-  exports: [UploadService],   // so other modules can inject it
+  exports: [UploadService],
 })
 export class UploadModule {}

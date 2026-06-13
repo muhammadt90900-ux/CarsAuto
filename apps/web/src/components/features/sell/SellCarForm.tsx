@@ -3,18 +3,23 @@
 // Full "Sell a Car" form — glassmorphism dark UI, auth-protected, validates
 // all fields, mock-uploads images as data-URLs, POSTs to the NestJS API,
 // then redirects to the new listing page.
+//
+// Permission gate: fetches /api/subscriptions/status on mount and renders
+// the appropriate UI state (NOT_DEALER block, UpgradePrompt, trial banner,
+// or the full form) before showing the multi-step form.
 
-import { useState, useRef, useCallback, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useLocale } from 'next-intl';
-import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStore } from '@/store/auth.store';
 import { sellApi, type CreateListingPayload } from '@/lib/sell-api';
+import { subscriptionApi, type PermissionStatus } from '@/lib/api';
 import { ImageUploadGrid } from './ImageUploadGrid';
 import { SellFormField } from './SellFormField';
 import { SellProgress } from './SellProgress';
+import { UpgradePrompt } from './UpgradePrompt';
 
 // ── Validation helpers ────────────────────────────────────────────────────────
 
@@ -85,15 +90,72 @@ export function SellCarForm() {
   const queryClient = useQueryClient();
   const { user, isHydrated } = useAuthStore((s) => ({ user: s.user, isHydrated: s.isHydrated }));
 
+  // ── Permission status ────────────────────────────────────────────────────
+  const [permStatus, setPermStatus]       = useState<PermissionStatus | null>(null);
+  const [permLoading, setPermLoading]     = useState(true);
+
+  useEffect(() => {
+    if (!isHydrated || !user) return;
+    setPermLoading(true);
+    subscriptionApi
+      .getStatus()
+      .then(setPermStatus)
+      .catch(() => {
+        // On error fall back to NOT_DEALER so the form is not shown unsafely
+        setPermStatus({ canPost: false, reason: 'NOT_DEALER' });
+      })
+      .finally(() => setPermLoading(false));
+  }, [isHydrated, user]);
+
   // Wait for Zustand to rehydrate from localStorage before rendering the form.
-  // Without this, `user` is null on first render even when logged-in,
-  // causing a false "not logged in" error on submit.
-  if (!isHydrated) {
+  if (!isHydrated || permLoading) {
     return (
       <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
           <p className="text-[var(--text-faint)] text-sm">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Permission gate ──────────────────────────────────────────────────────
+
+  // 1. Non-dealer — hide the form entirely
+  if (permStatus?.reason === 'NOT_DEALER') {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}>
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-xl font-bold text-white mb-1" dir="rtl">
+            ئەم تایبەتمەندییە تەنها بۆ فرۆشیارانە
+          </h2>
+          <p className="text-[var(--text-faint)] text-sm mb-6">
+            This feature is for dealers only
+          </p>
+          <button
+            onClick={() => router.push('/register')}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
+                       bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14]
+                       hover:from-[#e8cc7a] hover:to-[#c9a84c] transition-all duration-200"
+          >
+            بچۆ بۆ تۆمارکردن وەک فرۆشیار / Register as Dealer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Trial expired or limit reached — show upgrade prompt
+  if (permStatus?.reason === 'TRIAL_EXPIRED' || permStatus?.reason === 'LIMIT_REACHED') {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
+        <div className="pointer-events-none fixed inset-0 z-0">
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.07)_0%,transparent_70%)]" />
+        </div>
+        <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
+          <UpgradePrompt reason={permStatus.reason as 'TRIAL_EXPIRED' | 'LIMIT_REACHED'} />
         </div>
       </div>
     );
@@ -221,6 +283,11 @@ export function SellCarForm() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Compute trial banner data (used when reason === 'TRIAL')
+  const trialDaysRemaining = permStatus?.trialEnd
+    ? Math.max(0, Math.ceil((new Date(permStatus.trialEnd).getTime() - Date.now()) / 86_400_000))
+    : null;
+
   return (
     <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
       {/* Atmospheric background */}
@@ -231,6 +298,30 @@ export function SellCarForm() {
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
+
+        {/* Trial banner (only shown during active trial) */}
+        {permStatus?.reason === 'TRIAL' && trialDaysRemaining !== null && (
+          <div className="mb-6 flex items-center justify-between gap-4 flex-wrap
+                          px-5 py-3 rounded-xl
+                          bg-[rgba(201,168,76,0.08)] border border-[rgba(201,168,76,0.25)]">
+            <div>
+              <p className="text-[var(--gold)] text-sm font-semibold" dir="rtl">
+                ماوەی تاقیکردنەوە: {trialDaysRemaining} رۆژ ماوە —{' '}
+                {permStatus.trialPostsUsed ?? 0}/50 پۆست بەکارهاتوو
+              </p>
+              <p className="text-[var(--text-faint)] text-xs">
+                Trial: {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining —{' '}
+                {permStatus.trialPostsUsed ?? 0}/50 posts used
+              </p>
+            </div>
+            <a
+              href="/pricing"
+              className="text-xs font-bold text-[var(--gold)] underline underline-offset-2 whitespace-nowrap"
+            >
+              Upgrade →
+            </a>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.2)] text-[var(--gold)] text-xs font-semibold tracking-widest uppercase mb-4">

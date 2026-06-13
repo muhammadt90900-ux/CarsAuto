@@ -23,6 +23,7 @@ import { AppCacheModule }           from './common/cache/cache.module';
 import { DealersModule }            from './modules/dealers/dealers.module';
 import { TokenCleanupTask }         from './common/tasks/token-cleanup.task';
 import { UploadModule }             from './common/upload/upload.module';
+import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { UploadModule }             from './common/upload/upload.module';
     DealersModule,
     UploadModule,
     SecurityThrottlerModule,
+    SubscriptionsModule,
   ],
   providers: [TokenCleanupTask],
 })

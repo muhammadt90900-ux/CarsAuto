@@ -28,7 +28,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
       aria-current={active ? 'page' : undefined}
       className={`relative px-3 py-2 text-[0.78rem] font-semibold tracking-[0.08em] uppercase
                  transition-colors duration-200 group
-                 ${active ? 'text-[#c9a84c]' : 'text-white/65 hover:text-white'}`}
+                 ${active ? 'text-gold' : 'text-white/65 hover:text-white'}`}
     >
       {label}
       <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full
@@ -71,8 +71,8 @@ function AuthSection({ locale }: { locale: string }) {
           className="inline-flex items-center justify-center h-8 px-4
                      text-xs font-semibold rounded-lg
                      border border-white/[0.15] text-white/70
-                     hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
-                     hover:bg-[#c9a84c]/[0.08] transition-all duration-200"
+                     hover:border-gold/50 hover:text-gold
+                     hover:bg-gold/[0.08] transition-all duration-200"
         >
           {t('login')}
         </Link>
@@ -177,7 +177,7 @@ function MobileAuthSection({
           className="inline-flex items-center justify-center w-full h-11
                      text-sm font-semibold rounded-xl
                      border border-white/[0.12] text-white/70
-                     hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                     hover:border-gold/40 hover:text-gold
                      transition-all duration-200"
         >
           {t('login')}
@@ -202,7 +202,7 @@ function MobileAuthSection({
         className="inline-flex items-center justify-center w-full h-11
                    text-sm font-semibold rounded-xl
                    border border-white/[0.12] text-white/70
-                   hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                   hover:border-gold/40 hover:text-gold
                    transition-all duration-200"
       >
         {t('dashboard')}
@@ -233,8 +233,16 @@ export function Navbar({ locale }: NavbarProps) {
   const [searchOpen, setSearchOpen]   = useState(false);
   const [scrolled, setScrolled]       = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [navMounted, setNavMounted]   = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
+
+  // Read auth store for role-based Sell CTA visibility
+  const navUser = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    setNavMounted(true);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -284,7 +292,7 @@ export function Navbar({ locale }: NavbarProps) {
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999]
-                   focus:px-4 focus:py-2 focus:rounded-xl focus:bg-[#c9a84c] focus:text-[#050b14]
+                   focus:px-4 focus:py-2 focus:rounded-xl focus:bg-gold focus:text-[#050b14]
                    focus:font-bold focus:text-sm focus:shadow-lg"
       >
         Skip to main content
@@ -292,7 +300,7 @@ export function Navbar({ locale }: NavbarProps) {
 
       {/* ══ Top announcement bar ══════════════════════════════════ */}
       <div className="hidden lg:flex items-center justify-center h-8 text-[10px] font-semibold tracking-widest uppercase
-                       text-[#c9a84c]/70 bg-[#030710] border-b border-[#c9a84c]/10">
+                       text-gold/70 bg-[#030710] border-b border-gold/10">
         <span>🏆 Iraq & Gulf's #1 Automotive Marketplace</span>
         <span className="mx-4 text-white/10">|</span>
         <span>24,000+ Listings · 1,200+ Dealers · 8 Cities</span>
@@ -324,7 +332,7 @@ export function Navbar({ locale }: NavbarProps) {
                 <CarLogoIcon />
               </span>
               <span className="text-[1.1rem] font-display font-extrabold tracking-tight leading-none">
-                <span className="text-[#c9a84c]">Auto</span>
+                <span className="text-gold">Auto</span>
                 <span className="text-white">Bazaar</span>
                 <span style={{
                   background: 'linear-gradient(135deg,#c9a84c,#f0d278)',
@@ -347,7 +355,7 @@ export function Navbar({ locale }: NavbarProps) {
                 <Search
                   className={`absolute top-1/2 -translate-y-1/2 w-[15px] h-[15px]
                               text-white/35 transition-colors duration-200
-                              group-focus-within:text-[#c9a84c]
+                              group-focus-within:text-gold
                               ${isRTL ? 'right-3' : 'left-3'}`}
                 />
                 <input
@@ -359,7 +367,7 @@ export function Navbar({ locale }: NavbarProps) {
                               bg-white/[0.07] border border-white/[0.10]
                               rounded-xl placeholder:text-white/30
                               focus:outline-none focus:bg-white/[0.10]
-                              focus:border-[#c9a84c]/50
+                              focus:border-gold/50
                               focus:shadow-[0_0_0_3px_rgba(201,168,76,0.12)]
                               transition-all duration-200
                               ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
@@ -374,7 +382,7 @@ export function Navbar({ locale }: NavbarProps) {
                 aria-label="Search"
                 onClick={() => setSearchOpen(v => !v)}
                 className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl
-                           text-white/50 hover:text-[#c9a84c] hover:bg-white/[0.08]
+                           text-white/50 hover:text-gold hover:bg-white/[0.08]
                            transition-all duration-200"
               >
                 {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
@@ -385,18 +393,20 @@ export function Navbar({ locale }: NavbarProps) {
                 <ThemeToggle />
               </div>
 
-              {/* Sell CTA — always /sell, no hydration branch */}
-              <Link
-                href={sellHref}
-                className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
-                           text-xs font-bold rounded-lg
-                           bg-[#c9a84c]/15 border border-[#c9a84c]/35
-                           text-[#c9a84c] hover:bg-[#c9a84c]/25 hover:border-[#c9a84c]/60
-                           transition-all duration-200"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {t('sellYourCar')}
-              </Link>
+              {/* Sell CTA — hidden for USER (buyer) role */}
+              {(!navMounted || !navUser || navUser.role !== 'USER') && (
+                <Link
+                  href={sellHref}
+                  className="hidden md:inline-flex items-center gap-1.5 h-8 px-4
+                             text-xs font-bold rounded-lg
+                             bg-gold/15 border border-gold/35
+                             text-gold hover:bg-gold/25 hover:border-gold/60
+                             transition-all duration-200"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {t('sellYourCar')}
+                </Link>
+              )}
 
               {/* Auth — isolated component, no SSR mismatch */}
               <AuthSection locale={locale} />
@@ -441,7 +451,7 @@ export function Navbar({ locale }: NavbarProps) {
                 onChange={e => setSearchQuery(e.target.value)}
                 className={`w-full h-10 text-sm text-white bg-white/[0.07] border border-white/10
                             rounded-xl placeholder:text-white/30 focus:outline-none
-                            focus:border-[#c9a84c]/40 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
+                            focus:border-gold/40 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
                             transition-all duration-200
                             ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
               />
@@ -457,7 +467,7 @@ export function Navbar({ locale }: NavbarProps) {
         dir={isRTL ? 'rtl' : 'ltr'}
         className={`fixed inset-x-0 z-40 md:hidden
                     bg-[#070d18]/98 backdrop-blur-2xl
-                    border-b border-[#c9a84c]/15
+                    border-b border-gold/15
                     shadow-[0_8px_40px_rgba(0,0,0,0.60)]
                     transition-all duration-300 ease-in-out
                     ${mobileOpen
@@ -465,16 +475,19 @@ export function Navbar({ locale }: NavbarProps) {
                       : '-top-full opacity-0 pointer-events-none'}`}
       >
         <div className="px-4 py-5 flex flex-col gap-1">
-          <Link
-            href={sellHref}
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
-                       bg-[#c9a84c]/15 border border-[#c9a84c]/35 text-[#c9a84c]
-                       text-sm font-bold transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            {t('sellYourCar')}
-          </Link>
+          {/* Mobile Sell CTA — hidden for USER (buyer) role */}
+          {(!navMounted || !navUser || navUser.role !== 'USER') && (
+            <Link
+              href={sellHref}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl mb-2
+                         bg-gold/15 border border-gold/35 text-gold
+                         text-sm font-bold transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              {t('sellYourCar')}
+            </Link>
+          )}
 
           {navLinks.map(({ href, label }) => (
             <Link
@@ -484,12 +497,12 @@ export function Navbar({ locale }: NavbarProps) {
               className={`flex items-center gap-3 px-4 py-3 rounded-xl
                           text-sm font-semibold transition-all duration-200
                           ${isActive(href)
-                            ? 'bg-[#c9a84c]/10 text-[#c9a84c]'
+                            ? 'bg-gold/10 text-gold'
                             : 'text-white/65 hover:text-white hover:bg-white/[0.07]'}
                           ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0
-                                ${isActive(href) ? 'bg-[#c9a84c]' : 'bg-[#c9a84c] opacity-70'}`} />
+                                ${isActive(href) ? 'bg-gold' : 'bg-gold opacity-70'}`} />
               {label}
             </Link>
           ))}
