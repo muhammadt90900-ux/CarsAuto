@@ -119,7 +119,7 @@ export class ListingPermissionService {
     }
 
     // Active subscription?
-    const activeSub = await this.prisma.userDealerSubscription.findFirst({
+    const activeSub = await this.prisma.userealerSubscription.findFirst({
       where: { userId, endDate: { gt: new Date() } },
       orderBy: { endDate: 'desc' },
     });
@@ -176,4 +176,3 @@ export class ListingPermissionService {
     return end;
   }
 }
-
