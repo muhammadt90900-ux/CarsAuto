@@ -78,31 +78,30 @@ export class SubscriptionsService {
     }
 
     // Guard against double-confirming the same intent
-    const existing = await this.prisma.userDealerSubscription.findFirst({
-      where: { stripeId: dto.stripePaymentIntentId },
+    const existing = await this.prisma.dealerSubscription.findFirst({
+      where: { gatewaySubscriptionId: dto.stripePaymentIntentId },
     });
     if (existing) {
       return existing; // idempotent — return the already-created record
     }
 
     // Resolve start date: if the dealer has a current active sub, chain from its endDate
-    const activeSub = await this.prisma.userDealerSubscription.findFirst({
-      where: { userId, endDate: { gt: new Date() } },
-      orderBy: { endDate: 'desc' },
+    const activeSub = await this.prisma.dealerSubscription.findFirst({
+      where: { dealer: { userId }, currentPeriodEnd: { gt: new Date() }, status: 'ACTIVE' },
+      orderBy: { currentPeriodEnd: 'desc' },
     });
 
-    const startDate = activeSub ? activeSub.endDate : new Date();
+    const startDate = activeSub ? (activeSub.currentPeriodEnd ?? new Date()) : new Date();
     const endDate   = new Date(startDate);
     endDate.setDate(endDate.getDate() + SUB_PLAN_DAYS[dto.plan as SubPlan]);
 
-    const subscription = await this.prisma.userDealerSubscription.create({
+    const subscription = await this.prisma.dealerSubscription.create({
       data: {
-        userId,
-        plan:     dto.plan as any,
-        startDate,
-        endDate,
-        paidAt:   new Date(),
-        stripeId: dto.stripePaymentIntentId,
+        dealer:             { connect: { userId } },
+        plan:               dto.plan as any,
+        currentPeriodStart: startDate,
+        currentPeriodEnd:   endDate,
+        gatewaySubscriptionId: dto.stripePaymentIntentId,
       },
     });
 

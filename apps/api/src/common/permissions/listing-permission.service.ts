@@ -59,9 +59,9 @@ export class ListingPermissionService {
     }
 
     // 3. Check for an active subscription (endDate in the future)
-    const activeSub = await this.prisma.userDealerSubscription.findFirst({
-      where: { userId, endDate: { gt: new Date() } },
-      orderBy: { endDate: 'desc' },
+    const activeSub = await this.prisma.dealerSubscription.findFirst({
+      where: { dealer: { userId }, currentPeriodEnd: { gt: new Date() }, status: 'ACTIVE' },
+      orderBy: { currentPeriodEnd: 'desc' },
     });
 
     if (activeSub) return; // subscribed → unlimited
@@ -119,16 +119,16 @@ export class ListingPermissionService {
     }
 
     // Active subscription?
-    const activeSub = await this.prisma.userealerSubscription.findFirst({
-      where: { userId, endDate: { gt: new Date() } },
-      orderBy: { endDate: 'desc' },
+    const activeSub = await this.prisma.dealerSubscription.findFirst({
+      where: { dealer: { userId }, currentPeriodEnd: { gt: new Date() }, status: 'ACTIVE' },
+      orderBy: { currentPeriodEnd: 'desc' },
     });
 
     if (activeSub) {
       return {
         canPost:         true,
         reason:          'SUBSCRIBED',
-        subscriptionEnd: activeSub.endDate,
+        subscriptionEnd: activeSub.currentPeriodEnd ?? undefined,
         plan:            activeSub.plan,
       };
     }
