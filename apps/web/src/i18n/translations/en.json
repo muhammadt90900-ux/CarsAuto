@@ -323,5 +323,23 @@
     "dashboardTitle": "Dashboard",
     "loginTitle": "Sign In",
     "registerTitle": "Create Account"
+  },
+  "ai": {
+    "price_suggestion": {
+      "title": "Price Suggestion",
+      "confidence_high": "High confidence",
+      "confidence_medium": "Medium confidence",
+      "confidence_low": "Low confidence",
+      "based_on": "Based on {count} similar listings",
+      "ai_estimate": "AI price estimate"
+    },
+    "moderation": {
+      "under_review": "Your listing is under review",
+      "under_review_body": "Our team is reviewing your listing. This usually takes up to 24 hours."
+    },
+    "translation": {
+      "translating": "Translating...",
+      "translated": "Auto-translated"
+    }
   }
 }

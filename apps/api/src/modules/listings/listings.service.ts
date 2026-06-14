@@ -9,6 +9,8 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { AiService } from '../ai/ai.service';
+import { TranslationService } from '../ai/translation/translation.service';
 
 // IMPROVE: Extracted cache TTL constants
 const CACHE_TTL_LIST = 30_000; // 30 s  — list pages
@@ -116,6 +118,8 @@ export class ListingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly ai: AiService,
+    private readonly translation: TranslationService,
   ) {}
 
   // IMPROVE: Added validation helper
@@ -271,6 +275,58 @@ export class ListingsService {
       });
 
       this.invalidateListCache();
+
+      // ── FEATURE 2D: AI content moderation (fire-and-forget, never blocks) ──
+      // Run after DB insert so listing is saved even if moderation fails.
+      this.ai.checkContent(
+        listing.titleKu ?? listing.titleEn,
+        listing.descriptionKu ?? listing.descriptionEn ?? '',
+      ).then(async (check) => {
+        if (check.shouldQuarantine) {
+          this.logger.warn(
+            `Listing ${listing.id} quarantined — spam:${check.spamResult.isSpam} flagged:${check.flaggedCategories.join(',')}`,
+          );
+          await this.prisma.listing.update({
+            where: { id: listing.id },
+            data: { status: 'UNDER_REVIEW' },
+          }).catch(() => {/* ignore */});
+
+          // Audit log entry for admin review
+          await this.prisma.auditLog.create({
+            data: {
+              action: 'LISTING_QUARANTINED',
+              entityType: 'Listing',
+              entityId: listing.id,
+              actorId: data.userId,
+              metadata: {
+                spamScore: check.spamResult.score,
+                spamReasons: check.spamResult.reasons,
+                flaggedCategories: check.flaggedCategories,
+              },
+            },
+          }).catch(() => {/* ignore — audit log failure must not surface */});
+        }
+      }).catch((err: Error) => {
+        this.logger.warn(`Content moderation failed for listing ${listing.id}: ${err.message}`);
+      });
+
+      // ── FEATURE 2E: Auto-translate into AR/EN/ZH (background BullMQ job) ──
+      // Only queue when AR/EN/ZH titles look like they are empty or placeholders.
+      const needsTranslation =
+        !listing.titleEn ||
+        listing.titleEn === listing.titleKu ||
+        listing.titleEn.trim() === '';
+
+      if (needsTranslation) {
+        this.translation.queueTranslation(
+          listing.id,
+          listing.titleKu ?? '',
+          listing.descriptionKu ?? '',
+        ).catch((err: Error) => {
+          this.logger.warn(`Failed to queue translation for listing ${listing.id}: ${err.message}`);
+        });
+      }
+
       return listing;
     } catch (err) {
       this.logger.error(`Failed to create listing: ${err instanceof Error ? err.message : 'unknown error'}`);

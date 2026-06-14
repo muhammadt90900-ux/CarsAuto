@@ -5,9 +5,10 @@ import { ListingsService } from './listings.service';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { PermissionsModule } from '../../common/permissions/permissions.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule, PermissionsModule],
+  imports: [PrismaModule, PermissionsModule, AiModule],
   controllers: [ListingsController],
   providers: [ListingsService, EmailVerifiedGuard],
   exports: [ListingsService],

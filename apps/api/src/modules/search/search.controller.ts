@@ -72,6 +72,42 @@ export class SearchController {
     return this.searchService.suggestions(safeQuery);
   }
 
+  /**
+   * FEATURE 2B: Semantic search using pgvector cosine similarity.
+   * Falls back to ILIKE keyword search if OpenAI is unavailable.
+   * GET /search/semantic?q=سووپەری+کامری+2020
+   */
+  @Get('semantic')
+  async semanticSearch(
+    @Query('q') q: string,
+    @Query('type') type?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('locationId') locationId?: string,
+    @Query('condition') condition?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Req() req?: Request,
+  ) {
+    const ip = this.extractIp(req);
+    this.searchProtection.checkSearchRate(ip);
+
+    const safeQuery = this.searchProtection.validateQuery(q);
+    if (!safeQuery) {
+      throw new BadRequestException('Search query is required');
+    }
+
+    return this.searchService.semanticSearch(safeQuery, {
+      type,
+      minPrice,
+      maxPrice,
+      locationId,
+      condition,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+  }
+
   private extractIp(req: Request | undefined): string {
     if (!req) return 'unknown';
 

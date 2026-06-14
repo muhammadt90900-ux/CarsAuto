@@ -22,7 +22,9 @@ import { PrismaModule }             from './common/prisma/prisma.module';
 import { AppCacheModule }           from './common/cache/cache.module';
 import { DealersModule }            from './modules/dealers/dealers.module';
 import { TokenCleanupTask }         from './common/tasks/token-cleanup.task';
+import { EmbeddingSyncTask }        from './common/tasks/embedding-sync.task';
 import { UploadModule }             from './common/upload/upload.module';
+import { OpenAiModule }            from './common/ai/openai.module';
 import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.module';
 
 @Module({
@@ -70,10 +72,11 @@ import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.
     VehiclesModule,
     DealersModule,
     UploadModule,
+    OpenAiModule,
     SecurityThrottlerModule,
     SubscriptionsModule,
   ],
-  providers: [TokenCleanupTask],
+  providers: [TokenCleanupTask, EmbeddingSyncTask],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

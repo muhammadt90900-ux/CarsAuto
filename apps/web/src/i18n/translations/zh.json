@@ -264,5 +264,23 @@
     "dashboardTitle": "仪表板",
     "loginTitle": "登录",
     "registerTitle": "创建账户"
+  },
+  "ai": {
+    "price_suggestion": {
+      "title": "价格建议",
+      "confidence_high": "高置信度",
+      "confidence_medium": "中等置信度",
+      "confidence_low": "低置信度",
+      "based_on": "基于{count}条类似房源",
+      "ai_estimate": "AI价格估算"
+    },
+    "moderation": {
+      "under_review": "您的列表正在审核中",
+      "under_review_body": "我们的团队正在审核您的列表，通常需要24小时。"
+    },
+    "translation": {
+      "translating": "正在翻译...",
+      "translated": "已自动翻译"
+    }
   }
 }

@@ -1,14 +1,20 @@
 // apps/api/src/modules/search/search.service.ts
+//
+// FEATURE 2B: Semantic search via pgvector cosine similarity.
+// Falls back to ILIKE when OpenAI is unavailable or embeddings missing.
+
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
+import { OpenAiService } from '../../common/ai/openai.service';
 
 // ── Cache TTLs ────────────────────────────────────────────────────────────────
-const CACHE_TTL_SEARCH       = 30_000;      // 30 s
-const CACHE_TTL_AUTOCOMPLETE = 2 * 60_000;  // 2 min
+const CACHE_TTL_SEARCH        = 30_000;      // 30 s
+const CACHE_TTL_SEMANTIC      = 60_000;      // 60 s — shorter: semantic results are dynamic
+const CACHE_TTL_AUTOCOMPLETE  = 2 * 60_000;  // 2 min
 
-// Minimum query length to prevent scanning the full table
-const MIN_QUERY_LENGTH = 2;
+const MIN_QUERY_LENGTH  = 2;
+const SEMANTIC_POOL     = 50;   // candidates from vector search before filtering
 
 // ── Lean select — no description blobs ───────────────────────────────────────
 const SEARCH_SELECT = {
@@ -61,12 +67,14 @@ export class SearchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly openai: OpenAiService,
   ) {}
+
+  /* ── Keyword search (ILIKE) ─────────────────────────────────────────────── */
 
   async search(q: string, options: SearchFilters = {}) {
     const { page = 1, limit = 20, ...filters } = options;
 
-    // Normalise query — "Toyota" and "toyota" share the same cache entry
     const normalizedQuery = q?.trim().toLowerCase() ?? '';
     const cacheKey = `search:${normalizedQuery}:${JSON.stringify(filters)}:p${page}:l${limit}`;
 
@@ -143,6 +151,105 @@ export class SearchService {
     }, CACHE_TTL_SEARCH);
   }
 
+  /* ── Semantic search (pgvector cosine similarity) ─────────────────────── */
+
+  /**
+   * Embeds the query, finds the 50 most similar active listings via pgvector,
+   * then applies structural filters as a post-filter pass.
+   * If OpenAI is unavailable or no embeddings exist, falls back to ILIKE search.
+   */
+  async semanticSearch(q: string, filters: SearchFilters = {}) {
+    const normalizedQuery = q?.trim();
+    if (!normalizedQuery || normalizedQuery.length < MIN_QUERY_LENGTH) {
+      return this.search(q, filters);
+    }
+
+    // Try to get a query embedding
+    const embedding = await this.openai.embed(normalizedQuery);
+
+    // No embedding → fall back to keyword search
+    if (!embedding.length) {
+      return this.search(q, filters);
+    }
+
+    const { page = 1, limit = 20, ...structuralFilters } = filters;
+    const cacheKey = `search:semantic:${normalizedQuery}:${JSON.stringify(structuralFilters)}:p${page}:l${limit}`;
+
+    return this.cache.getOrSet(cacheKey, async () => {
+      // 1. Vector search — get top 50 by cosine similarity
+      //    pgvector <=> operator = cosine distance (0=identical, 2=opposite)
+      const vectorStr = `[${embedding.join(',')}]`;
+
+      const vectorRows = await this.prisma.$queryRawUnsafe<
+        Array<{ id: string; similarity: number }>
+      >(
+        `SELECT id, 1 - (embedding <=> $1::vector) AS similarity
+         FROM "Listing"
+         WHERE status = 'ACTIVE'
+           AND embedding IS NOT NULL
+         ORDER BY embedding <=> $1::vector
+         LIMIT ${SEMANTIC_POOL}`,
+        vectorStr,
+      );
+
+      if (!vectorRows.length) {
+        // No embeddings in DB yet — fall back to keyword search
+        return this.search(q, filters);
+      }
+
+      const rankedIds = vectorRows.map((r) => r.id);
+      const similarityMap = new Map(vectorRows.map((r) => [r.id, r.similarity]));
+
+      // 2. Fetch full listing data for the ranked IDs
+      const candidates = await this.prisma.listing.findMany({
+        where: { id: { in: rankedIds } },
+        select: SEARCH_SELECT,
+      });
+
+      // 3. Apply structural filters as post-filter
+      const filtered = candidates.filter((listing: any) => {
+        if (structuralFilters.type && listing.type !== structuralFilters.type) return false;
+        if (structuralFilters.locationId && listing.locationId !== structuralFilters.locationId) return false;
+
+        const price = Number(listing.price);
+        if (structuralFilters.minPrice && price < Number(structuralFilters.minPrice)) return false;
+        if (structuralFilters.maxPrice && price > Number(structuralFilters.maxPrice)) return false;
+
+        const spec = listing.vehicleSpec;
+        if (spec) {
+          if (structuralFilters.brandId && spec.brand?.id !== structuralFilters.brandId) return false;
+          if (structuralFilters.modelId && spec.model?.id !== structuralFilters.modelId) return false;
+          if (structuralFilters.condition && spec.condition !== structuralFilters.condition) return false;
+          if (structuralFilters.fuelType && spec.fuelType !== structuralFilters.fuelType) return false;
+          if (structuralFilters.transmission && spec.transmission !== structuralFilters.transmission) return false;
+          if (structuralFilters.year && spec.year !== Number(structuralFilters.year)) return false;
+        }
+
+        return true;
+      });
+
+      // 4. Re-sort by original similarity score (pgvector ordering preserved)
+      const sorted = filtered.sort((a: any, b: any) => {
+        const simA = similarityMap.get(a.id) ?? 0;
+        const simB = similarityMap.get(b.id) ?? 0;
+        return simB - simA;
+      });
+
+      // 5. Paginate
+      const skip = (page - 1) * limit;
+      const data = sorted.slice(skip, skip + limit);
+      const total = sorted.length;
+
+      return { data, total, page, limit, totalPages: Math.ceil(total / limit), semantic: true };
+    }, CACHE_TTL_SEMANTIC);
+  }
+
+  /* ── Autocomplete ───────────────────────────────────────────────────────── */
+
+  /**
+   * FEATURE 2B improvement: UNION with CarBrand + CarModel tables
+   * so autocomplete suggests "Toyota Camry" even before users type much.
+   */
   async autocomplete(q: string, limit = 6): Promise<string[]> {
     if (!q || q.trim().length < MIN_QUERY_LENGTH) return [];
 
@@ -150,19 +257,51 @@ export class SearchService {
     const cacheKey = `search:autocomplete:${term}`;
 
     return this.cache.getOrSet(cacheKey, async () => {
-      // DISTINCT at DB level — cheaper than Prisma's client-side distinct.
-      // Only queries indexed title columns, not description blobs.
-      const rows = await this.prisma.$queryRaw<{ title: string }[]>`
-        SELECT DISTINCT COALESCE("titleEn", "titleKu") AS title
-        FROM "Listing"
-        WHERE status = 'ACTIVE'
-          AND (
-            LOWER("titleEn") LIKE ${'%' + term + '%'}
-            OR LOWER("titleKu") LIKE ${'%' + term + '%'}
-          )
+      // Union 3 sources: listing titles + brand names + model names
+      const rows = await this.prisma.$queryRaw<{ suggestion: string; rank: number }[]>`
+        SELECT suggestion, rank FROM (
+          -- Source 1: listing titles (highest relevance)
+          SELECT DISTINCT
+            COALESCE("titleEn", "titleKu") AS suggestion,
+            1 AS rank
+          FROM "Listing"
+          WHERE status = 'ACTIVE'
+            AND (
+              LOWER("titleEn") LIKE ${'%' + term + '%'}
+              OR LOWER("titleKu") LIKE ${'%' + term + '%'}
+            )
+          LIMIT ${limit}
+
+          UNION
+
+          -- Source 2: brand names (match on nameEn or nameKu)
+          SELECT DISTINCT
+            "nameEn" AS suggestion,
+            2 AS rank
+          FROM "CarBrand"
+          WHERE
+            LOWER("nameEn") LIKE ${'%' + term + '%'}
+            OR LOWER("nameKu") LIKE ${'%' + term + '%'}
+          LIMIT ${Math.ceil(limit / 2)}
+
+          UNION
+
+          -- Source 3: brand + model combination
+          SELECT DISTINCT
+            (b."nameEn" || ' ' || m."nameEn") AS suggestion,
+            3 AS rank
+          FROM "CarModel" m
+          JOIN "CarBrand" b ON m."brandId" = b.id
+          WHERE
+            LOWER(m."nameEn") LIKE ${'%' + term + '%'}
+            OR LOWER(b."nameEn" || ' ' || m."nameEn") LIKE ${'%' + term + '%'}
+          LIMIT ${Math.ceil(limit / 2)}
+        ) combined
+        ORDER BY rank, suggestion
         LIMIT ${limit}
       `;
-      return rows.map((r: any) => r.title).filter(Boolean);
+
+      return rows.map((r: any) => r.suggestion).filter(Boolean);
     }, CACHE_TTL_AUTOCOMPLETE);
   }
 }

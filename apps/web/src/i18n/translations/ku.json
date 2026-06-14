@@ -264,5 +264,23 @@
     "dashboardTitle": "داشبۆرد",
     "loginTitle": "چوونەژوورەوە",
     "registerTitle": "ئەکاونت دروست بکە"
+  },
+  "ai": {
+    "price_suggestion": {
+      "title": "پێشنیاری نرخ",
+      "confidence_high": "باوەڕپێکراوی بەرز",
+      "confidence_medium": "باوەڕپێکراوی مامناوەند",
+      "confidence_low": "باوەڕپێکراوی کەم",
+      "based_on": "بەپێی {count} لیستی هاوشێوە",
+      "ai_estimate": "خەمڵاندنی زیرەکی دەستکرد"
+    },
+    "moderation": {
+      "under_review": "لیستەکەت لەژێر پێداچوونەوەدایە",
+      "under_review_body": "تیمی من پێداچوونەوەی لیستەکەت دەکات. ئەمە بەگشتی ٢٤ کاتژمێر دەخاتە ئەنجام."
+    },
+    "translation": {
+      "translating": "وەرگێڕانی نووسین...",
+      "translated": "بەشێوەیەکی ئۆتۆماتیکی وەرگێڕدراوە"
+    }
   }
 }

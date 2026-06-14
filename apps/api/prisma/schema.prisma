@@ -514,6 +514,10 @@ model Listing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // FEATURE 2: pgvector embedding for semantic search (nullable — populated by background job)
+  // Index created in raw migration: 20240101_add_embedding/migration.sql
+  embedding Unsupported("vector(1536)")?
+
   vehicleSpec       ListingVehicleSpec?
   partCompatibility PartCompatibility[]
   images            Image[]

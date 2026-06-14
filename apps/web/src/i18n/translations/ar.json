@@ -264,5 +264,23 @@
     "dashboardTitle": "لوحة التحكم",
     "loginTitle": "تسجيل الدخول",
     "registerTitle": "إنشاء حساب"
+  },
+  "ai": {
+    "price_suggestion": {
+      "title": "اقتراح السعر",
+      "confidence_high": "ثقة عالية",
+      "confidence_medium": "ثقة متوسطة",
+      "confidence_low": "ثقة منخفضة",
+      "based_on": "بناءً على {count} قوائم مماثلة",
+      "ai_estimate": "تقدير الذكاء الاصطناعي"
+    },
+    "moderation": {
+      "under_review": "إعلانك قيد المراجعة",
+      "under_review_body": "يقوم فريقنا بمراجعة إعلانك. عادةً ما يستغرق ذلك 24 ساعة."
+    },
+    "translation": {
+      "translating": "جاري الترجمة...",
+      "translated": "تمت الترجمة تلقائياً"
+    }
   }
 }
