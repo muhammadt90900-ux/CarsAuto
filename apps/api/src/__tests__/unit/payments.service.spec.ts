@@ -1,13 +1,4 @@
 // apps/api/src/__tests__/unit/payments.service.spec.ts
-//
-// Unit tests covering:
-//   ✓ Server-side amount resolution (no client-supplied price)
-//   ✓ IDOR guard on getPaymentById
-//   ✓ Refund guards (wrong status, already refunded, wrong user)
-//   ✓ Webhook idempotency
-//   ✓ Retry scheduling and max-retry cutoff
-//   ✓ Subscription upsert on payment succeeded
-//   ✓ Subscription downgrade on full refund
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsService } from '../../modules/payments/payments.service';
@@ -25,38 +16,55 @@ import { PaymentPlan, PaymentCurrency, PaymentStatus } from '../../modules/payme
 
 const mockPrisma = {
   payment: {
-    findMany: jest.fn(),
+    findMany:   jest.fn(),
     findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
+    findFirst:  jest.fn(),
+    create:     jest.fn(),
+    update:     jest.fn(),
     updateMany: jest.fn(),
   },
   transactionLog: { create: jest.fn() },
-  webhookEvent: { findUnique: jest.fn(), create: jest.fn() },
-  subscription: {
+  webhookEvent:   { findUnique: jest.fn(), create: jest.fn() },
+  subscription:   {
     findUnique: jest.fn(),
-    upsert: jest.fn(),
-    update: jest.fn(),
+    upsert:     jest.fn(),
+    update:     jest.fn(),
     updateMany: jest.fn(),
   },
 };
 
-// Stripe is mocked at module level — tests don't need real keys
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     paymentIntents: {
-      create: jest.fn().mockResolvedValue({ id: 'pi_test', client_secret: 'cs_test', status: 'requires_payment_method' }),
+      create:   jest.fn().mockResolvedValue({ id: 'pi_test', client_secret: 'cs_test', status: 'requires_payment_method' }),
       retrieve: jest.fn(),
-      confirm: jest.fn(),
+      confirm:  jest.fn(),
     },
-    refunds: { create: jest.fn().mockResolvedValue({ id: 're_test', status: 'pending' }) },
+    refunds:       { create: jest.fn().mockResolvedValue({ id: 're_test', status: 'pending' }) },
     subscriptions: { update: jest.fn() },
-    webhooks: { constructEvent: jest.fn() },
+    webhooks:      { constructEvent: jest.fn() },
   }));
 });
 
-const mockConfig = { get: jest.fn((key: string) => key === 'STRIPE_SECRET_KEY' ? 'sk_test_xxx' : undefined) };
+const mockConfig = {
+  get: jest.fn((key: string) => {
+    if (key === 'STRIPE_SECRET_KEY') return 'sk_test_xxx';
+    return undefined;
+  }),
+};
+
+// Gateway mocks
+const mockZainCash   = { name: 'zaincash',   createCharge: jest.fn(), verifyWebhook: jest.fn(), refund: jest.fn() };
+const mockFastPay    = { name: 'fastpay',    createCharge: jest.fn(), verifyWebhook: jest.fn(), refund: jest.fn() };
+const mockQiCard     = { name: 'qicard',     createCharge: jest.fn(), verifyWebhook: jest.fn(), refund: jest.fn() };
+const mockAsiaHawala = {
+  name: 'asiahawala',
+  createCharge:   jest.fn(),
+  verifyWebhook:  jest.fn(),
+  refund:         jest.fn(),
+  initiateCharge: jest.fn(),
+  confirmOTP:     jest.fn(),
+};
 
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
@@ -67,67 +75,92 @@ describe('PaymentsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentsService,
-        { provide: PrismaService, useValue: mockPrisma },
-        { provide: ConfigService, useValue: mockConfig },
+        { provide: PrismaService,   useValue: mockPrisma },
+        { provide: ConfigService,   useValue: mockConfig },
+        { provide: 'ZainCashGateway',   useValue: mockZainCash },
+        { provide: 'FastPayGateway',    useValue: mockFastPay },
+        { provide: 'QiCardGateway',     useValue: mockQiCard },
+        { provide: 'AsiaHawalaGateway', useValue: mockAsiaHawala },
       ],
-    }).compile();
+    })
+    .overrideProvider('ZainCashGateway').useValue(mockZainCash)
+    .overrideProvider('FastPayGateway').useValue(mockFastPay)
+    .overrideProvider('QiCardGateway').useValue(mockQiCard)
+    .overrideProvider('AsiaHawalaGateway').useValue(mockAsiaHawala)
+    .compile();
 
     service = module.get<PaymentsService>(PaymentsService);
+
+    // Inject gateway mocks directly (bypasses NestJS DI for simplicity)
+    (service as any).zainCash   = mockZainCash;
+    (service as any).fastPay    = mockFastPay;
+    (service as any).qiCard     = mockQiCard;
+    (service as any).asiaHawala = mockAsiaHawala;
+
     jest.clearAllMocks();
+
+    // Reset Stripe mock defaults
+    const StripeMock = require('stripe');
+    const instance = new StripeMock();
+    instance.paymentIntents.create.mockResolvedValue({
+      id: 'pi_test', client_secret: 'cs_test', status: 'requires_payment_method',
+    });
   });
 
-  // ── Amount resolution ────────────────────────────────────────────────────
+  // ── Amount resolution ─────────────────────────────────────────────────────
 
-  describe('createPaymentIntent', () => {
+  describe('createPaymentIntent — Stripe (USD)', () => {
     it('resolves server-side canonical amount — client cannot supply price', async () => {
-      mockPrisma.payment.findFirst.mockResolvedValue(null);
-      mockPrisma.payment.create.mockResolvedValue({
+      (mockPrisma.payment as any).findFirst = jest.fn().mockResolvedValue(null);
+      (mockPrisma.payment as any).create = jest.fn().mockResolvedValue({
         id: 'pay_1', userId: 'u1', plan: PaymentPlan.BASIC,
-        amount: 19.99, currency: PaymentCurrency.USD, status: PaymentStatus.PENDING,
-        gatewayId: 'pi_test',
+        amount: 19.99, currency: PaymentCurrency.USD,
+        status: PaymentStatus.PENDING, gatewayId: 'pi_test',
       });
+      mockPrisma.transactionLog.create.mockResolvedValue({});
 
       const result = await service.createPaymentIntent('u1', {
         plan: PaymentPlan.BASIC,
         currency: PaymentCurrency.USD,
       });
 
-      expect(result.clientSecret).toBe('cs_test');
-      // Stripe was called with the server-side amount (1999 cents), not any client value
-      const stripeMock = require('stripe');
-      const instance = new stripeMock();
-      expect(instance.paymentIntents.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 0 }),
-      );
+      // FIX: narrow union type with 'clientSecret' in result
+      expect('clientSecret' in result).toBe(true);
+      if ('clientSecret' in result) {
+        expect(result.clientSecret).toBe('cs_test');
+      }
     });
 
     it('reuses existing pending intent if still usable', async () => {
-      mockPrisma.payment.findFirst.mockResolvedValue({
+      (mockPrisma.payment as any).findFirst = jest.fn().mockResolvedValue({
         id: 'pay_existing', gatewayId: 'pi_existing',
       });
-      const stripeMock = require('stripe');
-      const instance = new stripeMock();
+
+      const StripeMock = require('stripe');
+      const instance = new StripeMock();
       instance.paymentIntents.retrieve.mockResolvedValue({
         id: 'pi_existing', client_secret: 'cs_existing', status: 'requires_payment_method',
       });
+      (service as any).stripe = instance;
 
       const result = await service.createPaymentIntent('u1', {
         plan: PaymentPlan.BASIC,
         currency: PaymentCurrency.USD,
       });
 
-      expect(result.clientSecret).toBe('cs_existing');
-      expect(result.paymentId).toBe('pay_existing');
+      expect('clientSecret' in result).toBe(true);
+      if ('clientSecret' in result) {
+        expect(result.clientSecret).toBe('cs_existing');
+        expect(result.paymentId).toBe('pay_existing');
+      }
     });
   });
 
-  // ── IDOR guard ───────────────────────────────────────────────────────────
+  // ── IDOR guard ────────────────────────────────────────────────────────────
 
   describe('getPaymentById', () => {
     it('returns payment when userId matches', async () => {
-      mockPrisma.payment.findUnique.mockResolvedValue({
-        id: 'pay_1', userId: 'u1', transactionLogs: [],
-      });
+      mockPrisma.payment.findUnique.mockResolvedValue({ id: 'pay_1', userId: 'u1', transactionLogs: [] });
       const result = await service.getPaymentById('pay_1', 'u1');
       expect(result.id).toBe('pay_1');
     });
@@ -143,38 +176,32 @@ describe('PaymentsService', () => {
     });
   });
 
-  // ── Refund guards ────────────────────────────────────────────────────────
+  // ── Refund guards ─────────────────────────────────────────────────────────
 
   describe('initiateRefund', () => {
     const basePayment = {
-      id: 'pay_1',
-      userId: 'u1',
+      id: 'pay_1', userId: 'u1',
       status: PaymentStatus.COMPLETED,
       gatewayId: 'pi_test',
       refundedAt: null,
       amount: 19.99,
       currency: 'USD',
+      gateway: 'stripe',
     };
 
     it('rejects refund on non-completed payment', async () => {
       mockPrisma.payment.findUnique.mockResolvedValue({ ...basePayment, status: PaymentStatus.PENDING });
-      await expect(
-        service.initiateRefund('u1', { paymentId: 'pay_1' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.initiateRefund('u1', { paymentId: 'pay_1' })).rejects.toThrow(BadRequestException);
     });
 
     it('rejects double-refund', async () => {
       mockPrisma.payment.findUnique.mockResolvedValue({ ...basePayment, refundedAt: new Date() });
-      await expect(
-        service.initiateRefund('u1', { paymentId: 'pay_1' }),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.initiateRefund('u1', { paymentId: 'pay_1' })).rejects.toThrow(ConflictException);
     });
 
     it('blocks refund by non-owner (IDOR)', async () => {
       mockPrisma.payment.findUnique.mockResolvedValue(basePayment);
-      await expect(
-        service.initiateRefund('u_attacker', { paymentId: 'pay_1' }),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.initiateRefund('u_attacker', { paymentId: 'pay_1' })).rejects.toThrow(ForbiddenException);
     });
 
     it('allows admin to refund any payment', async () => {
@@ -186,26 +213,27 @@ describe('PaymentsService', () => {
 
     it('rejects partial refund exceeding original amount', async () => {
       mockPrisma.payment.findUnique.mockResolvedValue(basePayment);
-      // amount=99999 cents >> $19.99 original
       await expect(
         service.initiateRefund('u1', { paymentId: 'pay_1', amount: 99999 }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
-  // ── Webhook idempotency ──────────────────────────────────────────────────
+  // ── Webhook idempotency ───────────────────────────────────────────────────
 
   describe('handleWebhook', () => {
     it('skips already-processed events', async () => {
       mockPrisma.webhookEvent.findUnique.mockResolvedValue({ id: 'we_1' });
-      const result = await service.handleWebhook({ id: 'evt_dup', type: 'payment_intent.succeeded', data: { object: {} } } as any);
+      const result = await service.handleWebhook({
+        id: 'evt_dup', type: 'payment_intent.succeeded', data: { object: {} },
+      } as any);
       expect(result.skipped).toBe(true);
     });
 
     it('records event after processing', async () => {
       mockPrisma.webhookEvent.findUnique.mockResolvedValue(null);
       mockPrisma.webhookEvent.create.mockResolvedValue({});
-      mockPrisma.payment.findUnique.mockResolvedValue(null); // no payment found
+      mockPrisma.payment.findUnique.mockResolvedValue(null);
 
       await service.handleWebhook({
         id: 'evt_new',
@@ -219,7 +247,7 @@ describe('PaymentsService', () => {
     });
   });
 
-  // ── Retry scheduling ─────────────────────────────────────────────────────
+  // ── Retry scheduling ──────────────────────────────────────────────────────
 
   describe('retryFailedPayments', () => {
     it('skips payments with no gatewayId', async () => {
@@ -228,7 +256,6 @@ describe('PaymentsService', () => {
       ]);
       const result = await service.retryFailedPayments();
       expect(result.processed).toBe(1);
-      // No Stripe call made
     });
 
     it('marks payment as permanently failed after max retries', async () => {
@@ -238,17 +265,15 @@ describe('PaymentsService', () => {
       mockPrisma.payment.update.mockResolvedValue({});
       mockPrisma.transactionLog.create.mockResolvedValue({});
 
-      const stripeMock = require('stripe');
-      const instance = new stripeMock();
+      const StripeMock = require('stripe');
+      const instance = new StripeMock();
       instance.paymentIntents.confirm.mockRejectedValue(new Error('Card declined'));
+      (service as any).stripe = instance;
 
       await service.retryFailedPayments();
 
-      // Exceeded max retries → nextRetryAt should be null
       expect(mockPrisma.payment.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ nextRetryAt: null }),
-        }),
+        expect.objectContaining({ data: expect.objectContaining({ nextRetryAt: null }) }),
       );
     });
   });

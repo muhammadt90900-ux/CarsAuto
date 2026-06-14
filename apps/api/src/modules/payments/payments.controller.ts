@@ -1,8 +1,22 @@
 // apps/api/src/modules/payments/payments.controller.ts
 //
 // REST endpoints for the payment system.
-// Webhook endpoint bypasses JWT auth (Stripe-Signature verified instead).
+// Webhook endpoints bypass JWT auth (signature verified instead).
 // All other endpoints require JWT + email verification.
+//
+// POST /payments/webhook                    → Stripe webhook
+// POST /payments/zaincash/webhook           → ZainCash webhook
+// POST /payments/fastpay/webhook            → FastPay webhook
+// POST /payments/qicard/webhook             → QiCard webhook
+// POST /payments/asiahawala/webhook         → AsiaHawala webhook
+// POST /payments/asiahawala/initiate        → Start OTP flow (Step 1)
+// POST /payments/asiahawala/confirm-otp     → Confirm OTP (Step 2)
+// GET  /payments                            → Current user's payment history
+// GET  /payments/subscription               → Current subscription status
+// GET  /payments/:id                        → Single payment + transaction log
+// POST /payments/intent                     → Create payment intent (all gateways)
+// POST /payments/:id/refund                 → Request refund
+// DELETE /payments/subscription             → Cancel subscription
 
 import {
   Controller,
@@ -19,38 +33,20 @@ import {
   RawBodyRequest,
   Headers,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { StripeWebhookGuard } from './guards/stripe-webhook.guard';
-import { CreatePaymentIntentDto, RefundPaymentDto } from './dto/payment.dto';
+import {
+  CreatePaymentIntentDto,
+  RefundPaymentDto,
+  AsiaHawalaInitiateDto,
+  AsiaHawalaConfirmOtpDto,
+} from './dto/payment.dto';
 import Stripe from 'stripe';
 
-/**
- * POST /payments/webhook
- *   → Stripe event receiver. No JWT; verified via Stripe-Signature.
- *     Requires express.raw() middleware on this route — see main.ts.
- *
- * GET  /payments
- *   → Current user's payment history.
- *
- * GET  /payments/:id
- *   → Single payment with transaction log (must belong to user).
- *
- * POST /payments/intent
- *   → Create Stripe PaymentIntent and return client_secret.
- *     Amount is resolved server-side from plan + currency — never trusted from client.
- *
- * GET  /payments/subscription
- *   → Current user's subscription status.
- *
- * DELETE /payments/subscription
- *   → Cancel subscription (at period end by default).
- *
- * POST /payments/:id/refund
- *   → Request a refund on a completed payment.
- */
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
@@ -59,10 +55,68 @@ export class PaymentsController {
   @Post('webhook')
   @UseGuards(StripeWebhookGuard)
   @HttpCode(HttpStatus.OK)
-  async handleWebhook(@Request() req: RawBodyRequest<any>) {
-    // stripeEvent is attached by StripeWebhookGuard after signature verification
+  async handleStripeWebhook(@Request() req: RawBodyRequest<any>) {
+    // stripeEvent attached by StripeWebhookGuard after signature verification
     const event: Stripe.Event = req.stripeEvent;
     return this.paymentsService.handleWebhook(event);
+  }
+
+  // ── ZainCash webhook — NO JWT ──────────────────────────────────────────────
+  @Post('zaincash/webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleZainCashWebhook(
+    @Body() payload: Record<string, unknown>,
+    @Headers('x-zaincash-signature') signature: string,
+  ) {
+    if (!signature) throw new BadRequestException('Missing X-ZainCash-Signature header');
+    return this.paymentsService.handleRegionalWebhook('zaincash', payload, signature);
+  }
+
+  // ── FastPay webhook — NO JWT ───────────────────────────────────────────────
+  @Post('fastpay/webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleFastPayWebhook(
+    @Body() payload: Record<string, unknown>,
+    @Headers('x-fastpay-signature') signature: string,
+  ) {
+    if (!signature) throw new BadRequestException('Missing X-FastPay-Signature header');
+    return this.paymentsService.handleRegionalWebhook('fastpay', payload, signature);
+  }
+
+  // ── QiCard webhook — NO JWT ────────────────────────────────────────────────
+  @Post('qicard/webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleQiCardWebhook(
+    @Body() payload: Record<string, unknown>,
+    @Headers('x-qicard-signature') signature: string,
+  ) {
+    if (!signature) throw new BadRequestException('Missing X-QiCard-Signature header');
+    return this.paymentsService.handleRegionalWebhook('qicard', payload, signature);
+  }
+
+  // ── AsiaHawala webhook — NO JWT ────────────────────────────────────────────
+  @Post('asiahawala/webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleAsiaHawalaWebhook(
+    @Body() payload: Record<string, unknown>,
+    @Headers('x-asiahawala-signature') signature: string,
+  ) {
+    if (!signature) throw new BadRequestException('Missing X-AsiaHawala-Signature header');
+    return this.paymentsService.handleRegionalWebhook('asiahawala', payload, signature);
+  }
+
+  // ── AsiaHawala Step 1: Initiate OTP ───────────────────────────────────────
+  @Post('asiahawala/initiate')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  initiateAsiaHawala(@Request() req: any, @Body() dto: AsiaHawalaInitiateDto) {
+    return this.paymentsService.initiateAsiaHawala(req.user.userId, dto);
+  }
+
+  // ── AsiaHawala Step 2: Confirm OTP ────────────────────────────────────────
+  @Post('asiahawala/confirm-otp')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  confirmAsiaHawalaOtp(@Request() req: any, @Body() dto: AsiaHawalaConfirmOtpDto) {
+    return this.paymentsService.confirmAsiaHawalaOtp(req.user.userId, dto);
   }
 
   // ── Authenticated routes ───────────────────────────────────────────────────
@@ -80,30 +134,27 @@ export class PaymentsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  getOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
-  ) {
+  getOne(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
     return this.paymentsService.getPaymentById(id, req.user.userId);
   }
 
   /**
-   * Create a Stripe PaymentIntent.
-   * Returns { clientSecret, paymentId } for use with Stripe.js on the frontend.
-   * Amount is NEVER accepted from the client — resolved server-side from the plan.
+   * Create a payment intent/charge.
+   * Returns:
+   *   Stripe   → { clientSecret, paymentId }
+   *   Redirect → { paymentId, gateway, redirectUrl }
+   *   OTP      → { paymentId, gateway, checkoutData: { requiresOtp: true } }
+   * Amount is NEVER accepted from the client — resolved server-side from plan.
    */
   @Post('intent')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  createIntent(
-    @Request() req: any,
-    @Body() dto: CreatePaymentIntentDto,
-  ) {
+  createIntent(@Request() req: any, @Body() dto: CreatePaymentIntentDto) {
     return this.paymentsService.createPaymentIntent(req.user.userId, dto);
   }
 
   /**
    * Request a refund on a completed payment.
-   * Partial refunds supported via optional `amount` (minor units).
+   * Partial refunds supported via optional `amount` (minor units for Stripe, dinars for IQD gateways).
    */
   @Post(':id/refund')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -127,11 +178,7 @@ export class PaymentsController {
   @Delete('subscription')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.OK)
-  cancelSubscription(
-    @Request() req: any,
-    @Query('immediately') immediately?: string,
-  ) {
-    const atPeriodEnd = immediately !== 'true';
-    return this.paymentsService.cancelSubscription(req.user.userId, atPeriodEnd);
+  cancelSubscription(@Request() req: any, @Query('immediately') immediately?: string) {
+    return this.paymentsService.cancelSubscription(req.user.userId, immediately !== 'true');
   }
 }

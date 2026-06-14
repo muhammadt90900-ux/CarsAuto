@@ -177,7 +177,6 @@ model User {
   pushSubscriptions      PushSubscription[]
   uploads                Upload[]
   notificationPreference NotificationPreference?
-  dealerSubHistory       UserDealerSubscription[]
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -736,6 +735,7 @@ model Payment {
   status         String    @db.VarChar(30)   // pending | completed | failed | refunded | cancelled
 
   // Gateway fields
+  gateway        String    @default("stripe") @db.VarChar(30)   // stripe | zaincash | fastpay | qicard | asiahawala
   gatewayId      String?   @unique @db.VarChar(255)
   gatewayStatus  String?   @db.VarChar(50)
 
@@ -760,6 +760,7 @@ model Payment {
   @@index([status, createdAt(sort: Desc)])
   @@index([gatewayId])
   @@index([nextRetryAt])
+  @@index([gateway, status])
   @@map("payments")
 }
 
@@ -1244,37 +1245,4 @@ model Subscription {
   @@index([status])
   @@index([currentPeriodEnd])
   @@map("subscriptions")
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DEALER SUBSCRIPTION PLAN (new, for the listing-permission system)
-// Separate from the old SubscriptionPlan enum which is used by DealerSubscription.
-// ─────────────────────────────────────────────────────────────────────────────
-
-enum DealerSubPlan {
-  MONTHLY
-  BIANNUAL
-  ANNUAL
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// USER DEALER SUBSCRIPTION
-// Multi-record, user-scoped subscription table.
-// Each row is one paid subscription period — rows extend (never overlap).
-// Used by ListingPermissionService to determine if a dealer can post.
-// ─────────────────────────────────────────────────────────────────────────────
-
-model UserDealerSubscription {
-  id        String        @id @default(uuid()) @db.Uuid
-  userId    String        @db.Uuid
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan      DealerSubPlan
-  startDate DateTime
-  endDate   DateTime
-  paidAt    DateTime      @default(now())
-  stripeId  String?       @db.VarChar(255)
-  createdAt DateTime      @default(now())
-
-  @@index([userId, endDate])
-  @@map("user_dealer_subscriptions")
 }
