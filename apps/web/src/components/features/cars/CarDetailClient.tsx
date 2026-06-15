@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
 import { ImageGallery } from './ImageGallery';
+import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 
 // PERF: hoisted Intl instances — created once per module, not per render/card
 const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -253,6 +254,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 left-3">
                   <span className="text-base font-display font-black text-[#c9a84c]">
+                    <CurrencyDisplay amount={car.price} currency={car.currency} locale={locale} showConverted />
                     {fmtPrice(car.price, car.currency)}
                   </span>
                 </div>
@@ -355,6 +357,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <span className="hidden sm:block text-[#c9a84c] font-display font-black text-xl tabular-nums">
+                <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                 {fmtPrice(listing.price, listing.currency)}
               </span>
               <button onClick={toggleFavorite}
@@ -442,6 +445,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
                 <div className="flex flex-wrap items-end gap-3">
                   <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">
+                    <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                     {fmtPrice(listing.price, listing.currency)}
                   </span>
                   {listing.negotiable && (
@@ -528,6 +532,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 <div className="mb-5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">Asking Price</p>
                   <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">
+                    <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                     {fmtPrice(listing.price, listing.currency)}
                   </div>
                   {listing.negotiable && (
