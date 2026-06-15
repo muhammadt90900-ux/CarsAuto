@@ -315,4 +315,31 @@
       "hint": "即将推出 — 需要获批商家账户"
     }
   }
+,
+  "viewer360": {
+    "tabLabel": "360°全景",
+    "tabPhotos": "照片",
+    "dragHint": "拖拽旋转",
+    "autoRotate": "自动旋转",
+    "stopRotate": "停止旋转",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "loading": "正在加载360°视图…",
+    "frameCounter": "{current} / {total}",
+    "badge": "360°"
+},
+  "sell360": {
+    "sectionTitle": "360°照片组",
+    "optional": "可选",
+    "emptyHint": "添加18-36张每隔10°拍摄的车辆照片",
+    "readyHint": "{count}帧已就绪 — 360°视图已启用",
+    "progressHint": "已上传{count}/18帧 — 还需{remaining}帧",
+    "instructions": "每隔10°绕车拍摄一张照片，从左前方开始顺时针旋转，至少需要18张照片。",
+    "bulkUpload": "批量上传帧",
+    "viewerReady": "360°视图已就绪 — 买家可以旋转车辆",
+    "removeFrame": "删除第{n}帧",
+    "uploadFrame": "上传第{n}帧（{angle}°）"
+}
 }
