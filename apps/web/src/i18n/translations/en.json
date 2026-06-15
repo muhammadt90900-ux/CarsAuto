@@ -341,5 +341,19 @@
       "translating": "Translating...",
       "translated": "Auto-translated"
     }
+    "currency": {
+  "converting": "Converting price...",
+  "liveRates": "Live Exchange Rates",
+  "fallbackRates": "Standard rates (offline)",
+  "updatedAt": "Updated",
+  "iqd": "Iraqi Dinar",
+  "usd": "US Dollar",
+  "aed": "UAE Dirham",
+  "cny": "Chinese Yuan",
+  "eur": "Euro",
+  "gbp": "British Pound",
+  "thousandsIqd": "{{amount}}K IQD",
+  "convertedNote": "at current exchange rate"
+}
   }
 }
