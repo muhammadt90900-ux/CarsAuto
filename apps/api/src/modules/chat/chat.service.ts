@@ -1,11 +1,30 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface VoiceNotePayload {
+  chatId: string;
+  audioBase64: string;   // max 2 MB raw base64
+  duration: number;      // seconds, max 120
+  mimeType: 'audio/webm' | 'audio/mp4' | 'audio/ogg';
+}
+
+export interface CloudinaryUploadResult {
+  secure_url: string;
+  public_id: string;
+  duration?: number;
+  resource_type: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class ChatService {
   constructor(private prisma: PrismaService) {}
 
-  // Helper: verify the requesting user is a participant in the chat
+  // ─── Helper: assert membership ──────────────────────────────────────────────
+
   private async assertMembership(chatId: string, userId: string) {
     const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },
@@ -18,6 +37,8 @@ export class ChatService {
     return chat;
   }
 
+  // ─── Chat CRUD ──────────────────────────────────────────────────────────────
+
   async getOrCreateChat(listingId: string, buyerId: string) {
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) throw new NotFoundException('Listing not found');
@@ -27,13 +48,13 @@ export class ChatService {
       where: { listingId, buyerId },
       include: {
         listing: { include: { images: { where: { isCover: true }, take: 1 } } },
-        buyer: { select: { id: true, name: true, avatar: true } },
+        buyer:  { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
         messages: {
           orderBy: { createdAt: 'asc' },
           take: 50,
           include: {
-            sender: { select: { id: true, name: true, avatar: true } },
+            sender:      { select: { id: true, name: true, avatar: true } },
             readReceipts: { select: { userId: true, readAt: true } },
           },
         },
@@ -45,7 +66,7 @@ export class ChatService {
       data: { listingId, buyerId, sellerId: listing.userId },
       include: {
         listing: { include: { images: { where: { isCover: true }, take: 1 } } },
-        buyer: { select: { id: true, name: true, avatar: true } },
+        buyer:  { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
         messages: true,
       },
@@ -56,13 +77,12 @@ export class ChatService {
     const chats = await this.prisma.chat.findMany({
       where: {
         OR: [{ buyerId: userId }, { sellerId: userId }],
-        // archivedBy field not in schema; filter by active status
         status: 'active',
       },
       orderBy: { updatedAt: 'desc' },
       include: {
         listing: { include: { images: { where: { isCover: true }, take: 1 } } },
-        buyer: { select: { id: true, name: true, avatar: true } },
+        buyer:  { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -98,7 +118,8 @@ export class ChatService {
     });
   }
 
-  // Membership enforced — any user could read any chat's messages
+  // ─── Messages ───────────────────────────────────────────────────────────────
+
   async getChatMessagesSecure(chatId: string, userId: string, cursor?: string, limit = 50) {
     await this.assertMembership(chatId, userId);
     return this.getChatMessages(chatId, cursor, limit);
@@ -111,8 +132,7 @@ export class ChatService {
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
-        sender: { select: { id: true, name: true, avatar: true } },
-        // Include read receipts for delivery/read status
+        sender:      { select: { id: true, name: true, avatar: true } },
         readReceipts: { select: { userId: true, readAt: true } },
       },
     });
@@ -124,30 +144,24 @@ export class ChatService {
     };
   }
 
-  // ─── Message delivery guarantee: get messages since a timestamp ─────────────
   async getMessagesSince(chatId: string, userId: string, since: Date) {
     await this.assertMembership(chatId, userId);
     return this.prisma.message.findMany({
-      where: {
-        chatId,
-        createdAt: { gt: since },
-      },
+      where: { chatId, createdAt: { gt: since } },
       orderBy: { createdAt: 'asc' },
       include: {
-        sender: { select: { id: true, name: true, avatar: true } },
+        sender:      { select: { id: true, name: true, avatar: true } },
         readReceipts: { select: { userId: true, readAt: true } },
       },
     });
   }
 
-  // Membership enforced before sending
   async sendMessageSecure(chatId: string, senderId: string, content: string, type = 'text') {
     await this.assertMembership(chatId, senderId);
     return this.sendMessage(chatId, senderId, content, type);
   }
 
   async sendMessage(chatId: string, senderId: string, content: string, type = 'text') {
-    // Whitelist allowed message types
     const safeType = ['text', 'image', 'offer'].includes(type) ? type : 'text';
     const msg = await this.prisma.message.create({
       data: {
@@ -155,21 +169,137 @@ export class ChatService {
         senderId,
         content,
         type: safeType,
-        // Auto-mark as read by sender
-        readReceipts: {
-          create: { userId: senderId },
-        },
+        messageType: safeType,
+        readReceipts: { create: { userId: senderId } },
       },
       include: {
-        sender: { select: { id: true, name: true, avatar: true } },
+        sender:      { select: { id: true, name: true, avatar: true } },
         readReceipts: { select: { userId: true, readAt: true } },
       },
     });
-    await this.prisma.chat.update({
-      where: { id: chatId },
-      data: { updatedAt: new Date() },
-    });
+    await this.prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
     return msg;
+  }
+
+  // ─── Voice Notes (Feature 6) ────────────────────────────────────────────────
+
+  /**
+   * Validates and uploads a base64-encoded audio blob to Cloudinary,
+   * then persists a Message record with messageType='voice'.
+   *
+   * @param chatId   - UUID of the chat thread
+   * @param senderId - UUID of the sending user
+   * @param payload  - { audioBase64, duration, mimeType }
+   * @returns        - The created Message record
+   *
+   * @throws BadRequestException  if size > 2 MB or duration > 120 s
+   * @throws ForbiddenException   if sender is not a chat participant
+   */
+  async sendVoiceNote(
+    chatId: string,
+    senderId: string,
+    payload: Omit<VoiceNotePayload, 'chatId'>,
+  ) {
+    await this.assertMembership(chatId, senderId);
+
+    const { audioBase64, duration, mimeType } = payload;
+
+    // ── Validate size: base64 string → raw bytes ─────────────────────────────
+    const sizeBytes = Math.ceil((audioBase64.length * 3) / 4);
+    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+    if (sizeBytes > MAX_BYTES) {
+      throw new BadRequestException('Voice note too large — maximum 2 MB');
+    }
+
+    // ── Validate duration ────────────────────────────────────────────────────
+    if (!Number.isFinite(duration) || duration <= 0 || duration > 120) {
+      throw new BadRequestException('Voice note duration must be between 1 and 120 seconds');
+    }
+
+    // ── Validate MIME type ───────────────────────────────────────────────────
+    const allowedMimes = ['audio/webm', 'audio/mp4', 'audio/ogg'] as const;
+    if (!allowedMimes.includes(mimeType as any)) {
+      throw new BadRequestException(`Unsupported audio format: ${mimeType}`);
+    }
+
+    // ── Upload to Cloudinary ─────────────────────────────────────────────────
+    const audioUrl = await this.uploadAudioToCloudinary(audioBase64, mimeType, senderId);
+
+    // ── Persist message ──────────────────────────────────────────────────────
+    const msg = await this.prisma.message.create({
+      data: {
+        chatId,
+        senderId,
+        content:       '', // voice notes have no text content
+        type:          'voice',
+        messageType:   'voice',
+        audioUrl,
+        audioDuration: Math.round(duration),
+        readReceipts: { create: { userId: senderId } },
+      },
+      include: {
+        sender:      { select: { id: true, name: true, avatar: true } },
+        readReceipts: { select: { userId: true, readAt: true } },
+      },
+    });
+
+    await this.prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
+
+    return msg;
+  }
+
+  /**
+   * Uploads raw base64 audio to Cloudinary under resource_type:'video'
+   * (Cloudinary stores audio as video resources).
+   * Falls back gracefully: if Cloudinary is not configured, returns a
+   * data-URI so the message can still be delivered in development.
+   */
+  private async uploadAudioToCloudinary(
+    audioBase64: string,
+    mimeType: string,
+    userId: string,
+  ): Promise<string> {
+    const cloudName  = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey     = process.env.CLOUDINARY_API_KEY;
+    const apiSecret  = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      // Development fallback — return data-URI (not suitable for production)
+      return `data:${mimeType};base64,${audioBase64.slice(0, 100)}…`;
+    }
+
+    // Build Cloudinary upload API call (unsigned upload via REST)
+    const dataUri = `data:${mimeType};base64,${audioBase64}`;
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const folder = 'voice-notes';
+    const publicId = `voice_${userId}_${timestamp}`;
+
+    // Build signature string (alphabetical parameter order)
+    const crypto = await import('crypto');
+    const sigString = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+    const signature = crypto.createHash('sha256').update(sigString).digest('hex');
+
+    const formData = new FormData();
+    formData.append('file',       dataUri);
+    formData.append('api_key',    apiKey);
+    formData.append('timestamp',  timestamp);
+    formData.append('signature',  signature);
+    formData.append('folder',     folder);
+    formData.append('public_id',  publicId);
+    formData.append('resource_type', 'video'); // Cloudinary stores audio under 'video'
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+      { method: 'POST', body: formData },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cloudinary upload failed: ${errorText}`);
+    }
+
+    const result: CloudinaryUploadResult = await response.json();
+    return result.secure_url;
   }
 
   // ─── Read receipts ──────────────────────────────────────────────────────────
@@ -188,7 +318,7 @@ export class ChatService {
     await this.prisma.$transaction(
       unreadMessages.map((msg: any) =>
         this.prisma.messageReadReceipt.upsert({
-          where: { messageId_userId: { messageId: msg.id, userId } },
+          where:  { messageId_userId: { messageId: msg.id, userId } },
           create: { messageId: msg.id, userId },
           update: {},
         }),
@@ -202,7 +332,7 @@ export class ChatService {
     await this.prisma.$transaction(
       messageIds.map((messageId) =>
         this.prisma.messageReadReceipt.upsert({
-          where: { messageId_userId: { messageId, userId } },
+          where:  { messageId_userId: { messageId, userId } },
           create: { messageId, userId },
           update: {},
         }),
@@ -214,7 +344,7 @@ export class ChatService {
     const count = await this.prisma.message.count({
       where: {
         senderId: { not: userId },
-        chat: { OR: [{ buyerId: userId }, { sellerId: userId }] },
+        chat:     { OR: [{ buyerId: userId }, { sellerId: userId }] },
         readReceipts: { none: { userId } },
       },
     });

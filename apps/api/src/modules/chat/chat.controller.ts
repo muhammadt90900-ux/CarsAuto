@@ -1,93 +1,81 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-  Request,
-  HttpCode,
-  HttpStatus,
-  ParseUUIDPipe,
-  BadRequestException,
+  Controller, Get, Post, Patch, Body, Param, Query,
+  Request, UseGuards, HttpCode, HttpStatus, BadRequestException,
 } from '@nestjs/common';
-import { IsString, MaxLength, IsOptional, IsIn } from 'class-validator';
-import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-
-class SendMessageDto {
-  @IsString()
-  @MaxLength(4000, { message: 'Message content too long (max 4000 chars)' })
-  content!: string;
-
-  @IsOptional()
-  @IsIn(['text', 'image', 'offer'])
-  type?: string;
-}
+import { ChatService } from './chat.service';
 
 @Controller('chats')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
+  @Post(':listingId')
+  getOrCreate(@Param('listingId') listingId: string, @Request() req: any) {
+    return this.chatService.getOrCreateChat(listingId, req.user.id);
+  }
+
   @Get()
   getMyChats(@Request() req: any) {
-    return this.chatService.getMyChats(req.user.userId);
+    return this.chatService.getMyChats(req.user.id);
   }
 
-  @Get('unread-count')
-  getUnreadCount(@Request() req: any) {
-    return this.chatService.getTotalUnreadCount(req.user.userId);
+  @Patch(':chatId/archive')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  archive(@Param('chatId') chatId: string, @Request() req: any) {
+    return this.chatService.archiveChat(chatId, req.user.id);
   }
 
-  @Post('listing/:listingId')
-  getOrCreate(
-    @Param('listingId', ParseUUIDPipe) listingId: string,
-    @Request() req: any,
-  ) {
-    return this.chatService.getOrCreateChat(listingId, req.user.userId);
-  }
-
-  // FIX: Membership check added — user must be buyer or seller in this chat
   @Get(':chatId/messages')
   getMessages(
-    @Param('chatId', ParseUUIDPipe) chatId: string,
+    @Param('chatId') chatId: string,
+    @Query('cursor') cursor: string | undefined,
+    @Query('limit') limit: string | undefined,
     @Request() req: any,
-    @Query('cursor') cursor?: string,
-    @Query('limit') limit?: string,
   ) {
-    const parsedLimit = Math.min(Math.max(1, Number(limit ?? 50)), 100);
-    return this.chatService.getChatMessagesSecure(chatId, req.user.userId, cursor, parsedLimit);
+    return this.chatService.getChatMessagesSecure(
+      chatId, req.user.id, cursor, limit ? parseInt(limit, 10) : 50,
+    );
   }
 
-  // FIX: Typed DTO with MaxLength to prevent oversized message payloads
   @Post(':chatId/messages')
-  send(
-    @Param('chatId', ParseUUIDPipe) chatId: string,
+  sendMessage(
+    @Param('chatId') chatId: string,
+    @Body() body: { content: string; type?: string },
     @Request() req: any,
-    @Body() body: SendMessageDto,
   ) {
-    return this.chatService.sendMessageSecure(chatId, req.user.userId, body.content, body.type);
+    return this.chatService.sendMessageSecure(chatId, req.user.id, body.content, body.type);
   }
 
-  @Patch(':chatId/read')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  markRead(
-    @Param('chatId', ParseUUIDPipe) chatId: string,
+  /**
+   * POST /chats/:chatId/voice-note
+   * REST fallback for clients that cannot use WebSockets.
+   * Body: { audioBase64, duration, mimeType }
+   */
+  @Post(':chatId/voice-note')
+  async sendVoiceNote(
+    @Param('chatId') chatId: string,
+    @Body() body: { audioBase64: string; duration: number; mimeType: 'audio/webm' | 'audio/mp4' | 'audio/ogg' },
     @Request() req: any,
   ) {
-    return this.chatService.markChatRead(chatId, req.user.userId);
+    if (!body.audioBase64 || !body.mimeType) {
+      throw new BadRequestException('audioBase64 and mimeType are required');
+    }
+    return this.chatService.sendVoiceNote(chatId, req.user.id, {
+      audioBase64: body.audioBase64,
+      duration:    body.duration ?? 0,
+      mimeType:    body.mimeType,
+    });
   }
 
-  @Delete(':chatId')
+  @Post(':chatId/read')
   @HttpCode(HttpStatus.NO_CONTENT)
-  archiveChat(
-    @Param('chatId', ParseUUIDPipe) chatId: string,
-    @Request() req: any,
-  ) {
-    return this.chatService.archiveChat(chatId, req.user.userId);
+  markRead(@Param('chatId') chatId: string, @Request() req: any) {
+    return this.chatService.markChatRead(chatId, req.user.id);
+  }
+
+  @Get('unread/count')
+  getUnreadCount(@Request() req: any) {
+    return this.chatService.getTotalUnreadCount(req.user.id);
   }
 }

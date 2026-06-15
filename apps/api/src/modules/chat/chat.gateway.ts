@@ -21,14 +21,9 @@ const onlineUsers = new Map<string, Set<string>>();
 // ─── Typing ──────────────────────────────────────────────────────────────────
 /** `${chatId}:${userId}` → auto-clear timer */
 const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const TYPING_TIMEOUT_MS = 5_000; // server-side safety net
+const TYPING_TIMEOUT_MS = 5_000;
 
 // ─── Message delivery tracking ───────────────────────────────────────────────
-/**
- * Pending acknowledgement slots.
- * key: `${chatId}:${tempId}`  value: { resolve, timer }
- * A client assigns a client-generated tempId and waits for an ACK.
- */
 const pendingDelivery = new Map<
   string,
   { resolve: (msgId: string) => void; timer: ReturnType<typeof setTimeout> }
@@ -52,7 +47,26 @@ function checkWsRateLimit(userId: string): boolean {
   return true;
 }
 
+// ─── Voice note rate limiting (separate, stricter) ───────────────────────────
+// Voice notes are more expensive to process — 3 per 60 s
+const voiceRateLimiter = new Map<string, { count: number; resetAt: number }>();
+const VOICE_RATE_WINDOW_MS = 60_000;
+const VOICE_RATE_MAX = 3;
+
+function checkVoiceRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const state = voiceRateLimiter.get(userId);
+  if (!state || now > state.resetAt) {
+    voiceRateLimiter.set(userId, { count: 1, resetAt: now + VOICE_RATE_WINDOW_MS });
+    return true;
+  }
+  if (state.count >= VOICE_RATE_MAX) return false;
+  state.count++;
+  return true;
+}
+
 // ─── Gateway ─────────────────────────────────────────────────────────────────
+
 @WebSocketGateway({
   cors: {
     origin: (process.env.FRONTEND_URL || 'http://localhost:3000')
@@ -61,7 +75,6 @@ function checkWsRateLimit(userId: string): boolean {
     credentials: true,
   },
   namespace: '/chat',
-  // Reconnection-friendly: allow both transports so clients can downgrade
   transports: ['websocket', 'polling'],
   pingInterval: 25_000,
   pingTimeout: 20_000,
@@ -95,17 +108,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId: string = payload.sub ?? payload.userId;
       client.data.userId = userId;
 
-      // Track presence
       if (!onlineUsers.has(userId)) {
         onlineUsers.set(userId, new Set());
       }
       onlineUsers.get(userId)!.add(client.id);
 
-      // Confirm connection + send any missed messages (delivery guarantee)
-      client.emit('connected', {
-        userId,
-        serverTime: Date.now(),
-      });
+      client.emit('connected', { userId, serverTime: Date.now() });
 
       this.logger.log(`Connected: ${client.id} (user ${userId})`);
     } catch {
@@ -123,7 +131,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       sockets.delete(client.id);
       if (sockets.size === 0) {
         onlineUsers.delete(userId);
-        // Broadcast offline only to rooms this socket was in
         client.rooms.forEach((room) => {
           client.to(room).emit('userOffline', {
             userId,
@@ -133,7 +140,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // Clear any typing state this socket held
     typingTimers.forEach((timer, key) => {
       if (key.endsWith(`:${userId}`)) {
         clearTimeout(timer);
@@ -154,7 +160,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(chatId);
     client.to(chatId).emit('userJoined', { userId: client.data.userId, chatId });
 
-    // Send current online status of all room members to the joining client
     const userId: string = client.data.userId;
     const roomClients = this.server.sockets.adapter.rooms.get(chatId);
     const onlineInRoom: string[] = [];
@@ -175,7 +180,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleLeave(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
     if (typeof chatId !== 'string' || chatId.length > 40) return;
     client.leave(chatId);
-    // Clear typing if they were typing in this chat
     this._clearTyping(chatId, client.data.userId);
   }
 
@@ -190,14 +194,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId: string = client.data.userId;
     const key = `${data.chatId}:${userId}`;
 
-    // Broadcast immediately only on first event; subsequent ones just reset the timer
     if (!typingTimers.has(key)) {
       client
         .to(data.chatId)
         .emit('userTyping', { userId, chatId: data.chatId, startedAt: Date.now() });
     }
 
-    // Reset server-side safety-net timer
     const existing = typingTimers.get(key);
     if (existing) clearTimeout(existing);
 
@@ -230,7 +232,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // ─── Message sending with delivery guarantees ──────────────────────────────
+  // ─── Text message sending ──────────────────────────────────────────────────
 
   @SubscribeMessage('sendMessage')
   async handleMessage(
@@ -241,19 +243,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const senderId: string = client.data.userId;
     if (!senderId) throw new WsException('Unauthenticated');
 
-    // Rate limiting
     if (!checkWsRateLimit(senderId)) {
       client.emit('messageError', { tempId: data.tempId, error: 'Rate limit exceeded — slow down' });
       return;
     }
 
-    // Validate
     if (!data.content || typeof data.content !== 'string' || data.content.length > 4000) {
       client.emit('messageError', { tempId: data.tempId, error: 'Invalid message content' });
       return;
     }
 
-    // Stop typing since they sent
     if (data.chatId) this._clearTyping(data.chatId, senderId);
 
     let message: Record<string, unknown>;
@@ -270,14 +269,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Delivery acknowledgement back to sender (with tempId mapping)
     const ack = { ...message, tempId: data.tempId, status: 'sent' };
     client.emit('messageSent', ack);
-
-    // Broadcast to all participants in the room (excluding sender to avoid double render)
     client.to(data.chatId).emit('newMessage', { ...message, status: 'delivered' });
 
-    // Resolve any pending delivery promise for this tempId
     if (data.tempId) {
       const slot = pendingDelivery.get(`${data.chatId}:${data.tempId}`);
       if (slot) {
@@ -287,37 +282,131 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // Notify recipient with in-app notification
-    try {
-      const otherUserId = await this.chatService.getOtherParticipant(data.chatId, senderId);
-      if (otherUserId) {
-        const notification = await this.notificationsService.create(
-          otherUserId,
-          'new_message',
-          'New message',
-          data.content.length > 60 ? `${data.content.slice(0, 60)}…` : data.content,
-          { chatId: data.chatId, senderId },
-        );
+    await this._notifyRecipient(data.chatId, senderId, message, data.content.slice(0, 60));
 
-        // Push real-time notification if recipient is online
-        const recipientSockets = onlineUsers.get(otherUserId);
-        if (recipientSockets) {
-          recipientSockets.forEach((socketId) => {
-            this.server.to(socketId).emit('notification', notification);
-            // Also emit delivery status update to recipient's other sockets
-            this.server.to(socketId).emit('messageDelivered', {
-              messageId: message.id,
-              chatId: data.chatId,
-              deliveredAt: new Date().toISOString(),
-            });
+    return message;
+  }
+
+  // ─── Voice Note (Feature 6) ────────────────────────────────────────────────
+
+  /**
+   * Handles the `sendVoiceNote` Socket.io event.
+   *
+   * Client payload:
+   * ```json
+   * {
+   *   "chatId":      "uuid",
+   *   "audioBase64": "<base64 string, max 2 MB>",
+   *   "duration":    23,
+   *   "mimeType":    "audio/webm",
+   *   "tempId":      "client-generated-id"
+   * }
+   * ```
+   *
+   * Flow:
+   * 1. Auth + rate-limit check (3 voice notes / 60 s per user)
+   * 2. Validate size ≤ 2 MB, duration ≤ 120 s
+   * 3. Upload to Cloudinary (resource_type: 'video', folder: 'voice-notes')
+   * 4. Persist Message with messageType='voice', audioUrl, audioDuration
+   * 5. Emit `voiceNoteSent` ACK to sender
+   * 6. Broadcast `newMessage` (with voice payload) to other participants
+   * 7. Push in-app notification to recipient if online
+   */
+  @SubscribeMessage('sendVoiceNote')
+  async handleVoiceNote(
+    @MessageBody()
+    data: {
+      chatId:      string;
+      audioBase64: string;
+      duration:    number;
+      mimeType:    'audio/webm' | 'audio/mp4' | 'audio/ogg';
+      tempId?:     string;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const senderId: string = client.data.userId;
+    if (!senderId) throw new WsException('Unauthenticated');
+
+    // ── Rate limit: stricter for voice (uploads are expensive) ───────────────
+    if (!checkVoiceRateLimit(senderId)) {
+      client.emit('voiceNoteError', {
+        tempId: data.tempId,
+        error: 'Too many voice notes — please wait a moment',
+      });
+      return;
+    }
+
+    // ── Basic field validation ────────────────────────────────────────────────
+    if (
+      !data.chatId ||
+      typeof data.chatId !== 'string' ||
+      typeof data.audioBase64 !== 'string' ||
+      !data.audioBase64
+    ) {
+      client.emit('voiceNoteError', { tempId: data.tempId, error: 'Invalid payload' });
+      return;
+    }
+
+    let message: Record<string, unknown>;
+    try {
+      message = await this.chatService.sendVoiceNote(data.chatId, senderId, {
+        audioBase64: data.audioBase64,
+        duration:    data.duration,
+        mimeType:    data.mimeType,
+      }) as Record<string, unknown>;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Voice note failed';
+      this.logger.error(`[voice] sendVoiceNote failed for user ${senderId}: ${errorMsg}`);
+      client.emit('voiceNoteError', { tempId: data.tempId, error: errorMsg });
+      return;
+    }
+
+    // ── ACK to sender ─────────────────────────────────────────────────────────
+    client.emit('voiceNoteSent', { ...message, tempId: data.tempId, status: 'sent' });
+
+    // ── Broadcast to other participants ───────────────────────────────────────
+    client.to(data.chatId).emit('newMessage', { ...message, status: 'delivered' });
+
+    // ── In-app notification to recipient ─────────────────────────────────────
+    await this._notifyRecipient(data.chatId, senderId, message, '🎤 Voice note');
+
+    return message;
+  }
+
+  // ─── Shared notification helper ────────────────────────────────────────────
+
+  private async _notifyRecipient(
+    chatId: string,
+    senderId: string,
+    message: Record<string, unknown>,
+    preview: string,
+  ) {
+    try {
+      const otherUserId = await this.chatService.getOtherParticipant(chatId, senderId);
+      if (!otherUserId) return;
+
+      const notification = await this.notificationsService.create(
+        otherUserId,
+        'new_message',
+        'New message',
+        preview,
+        { chatId, senderId },
+      );
+
+      const recipientSockets = onlineUsers.get(otherUserId);
+      if (recipientSockets) {
+        recipientSockets.forEach((socketId) => {
+          this.server.to(socketId).emit('notification', notification);
+          this.server.to(socketId).emit('messageDelivered', {
+            messageId: message.id,
+            chatId,
+            deliveredAt: new Date().toISOString(),
           });
-        }
+        });
       }
     } catch (err) {
       this.logger.error('Failed to deliver notification', err);
     }
-
-    return message;
   }
 
   // ─── Read receipts ─────────────────────────────────────────────────────────
@@ -332,19 +421,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.chatService.markChatRead(data.chatId, userId);
 
-    // Broadcast read receipt to other participants with timestamp
     client.to(data.chatId).emit('messagesRead', {
-      chatId: data.chatId,
-      readBy: userId,
-      readAt: new Date().toISOString(),
-      messageIds: data.messageIds ?? null, // null = all messages in chat
+      chatId:     data.chatId,
+      readBy:     userId,
+      readAt:     new Date().toISOString(),
+      messageIds: data.messageIds ?? null,
     });
 
-    // Confirm back to sender
-    client.emit('markReadAck', {
-      chatId: data.chatId,
-      readAt: new Date().toISOString(),
-    });
+    client.emit('markReadAck', { chatId: data.chatId, readAt: new Date().toISOString() });
   }
 
   // ─── Presence ──────────────────────────────────────────────────────────────
@@ -355,13 +439,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Record<string, boolean | string> {
     if (!Array.isArray(userIds) || userIds.length > 50) return {};
-    // Return boolean presence + last-seen placeholder
-    return Object.fromEntries(
-      userIds.map((id) => [id, onlineUsers.has(id)]),
-    );
+    return Object.fromEntries(userIds.map((id) => [id, onlineUsers.has(id)]));
   }
 
-  // ─── Reconnection: replay missed events ────────────────────────────────────
+  // ─── Reconnection ──────────────────────────────────────────────────────────
 
   @SubscribeMessage('catchUp')
   async handleCatchUp(
@@ -384,7 +465,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // ─── Public API for other services ─────────────────────────────────────────
+  // ─── Public API ────────────────────────────────────────────────────────────
 
   pushNotification(userId: string, notification: unknown) {
     const sockets = onlineUsers.get(userId);
