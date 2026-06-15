@@ -314,5 +314,24 @@
       "name": "ويتشات باي",
       "hint": "قريباً — يتطلب حساباً تجارياً"
     }
+    {
+  "chat": {
+    "voiceNote":               "مقطع صوتي",
+    "voiceNoteRecording":      "جارٍ التسجيل…",
+    "voiceNoteSending":        "جارٍ إرسال المقطع الصوتي…",
+    "voiceNoteError":          "فشل إرسال المقطع الصوتي",
+    "voiceNoteTooLong":        "الحد الأقصى دقيقتان",
+    "voiceNoteTooLarge":       "الملف كبير جداً (الحد الأقصى 2 MB)",
+    "voiceNoteRetry":          "إعادة المحاولة",
+    "voiceNoteCancel":         "إلغاء",
+    "voiceNoteStop":           "إيقاف التسجيل",
+    "voiceNoteSend":           "إرسال المقطع الصوتي",
+    "voiceNotePlay":           "تشغيل",
+    "voiceNotePause":          "إيقاف مؤقت",
+    "microphonePermission":    "تم رفض الوصول إلى الميكروفون. تحقق من إعدادات المتصفح.",
+    "rateLimit":               "رسائل صوتية كثيرة جداً — الرجاء الانتظار لحظة",
+    "inputPlaceholder":        "اكتب رسالة…",
+    "noMessages":              "ابدأ المحادثة"
   }
 }
+
