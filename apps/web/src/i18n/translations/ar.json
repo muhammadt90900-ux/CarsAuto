@@ -333,5 +333,31 @@
     "inputPlaceholder":        "اكتب رسالة…",
     "noMessages":              "ابدأ المحادثة"
   }
+,
+  "viewer360": {
+    "tabLabel": "عرض ٣٦٠°",
+    "tabPhotos": "الصور",
+    "dragHint": "اسحب للتدوير",
+    "autoRotate": "تدوير تلقائي",
+    "stopRotate": "إيقاف التدوير",
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "الخروج من وضع ملء الشاشة",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "loading": "جارٍ تحميل عرض ٣٦٠°…",
+    "frameCounter": "{current} / {total}",
+    "badge": "٣٦٠°"
+},
+  "sell360": {
+    "sectionTitle": "مجموعة صور ٣٦٠°",
+    "optional": "اختياري",
+    "emptyHint": "أضف ١٨-٣٦ صورة كل ١٠° حول السيارة",
+    "readyHint": "{count} إطار جاهز — عرض ٣٦٠° مفعّل",
+    "progressHint": "تم رفع {count}/18 إطار — {remaining} إطار آخر مطلوب",
+    "instructions": "التقط صوراً كل ١٠° حول السيارة. ابدأ من الأمام اليسار وتحرك في اتجاه عقارب الساعة. الحد الأدنى ١٨ صورة.",
+    "bulkUpload": "رفع إطارات متعددة",
+    "viewerReady": "عرض ٣٦٠° جاهز — يمكن للمشترين تدوير السيارة",
+    "removeFrame": "إزالة الإطار {n}",
+    "uploadFrame": "رفع الإطار {n} ({angle}°)"
 }
-
+}
