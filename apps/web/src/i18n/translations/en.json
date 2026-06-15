@@ -355,5 +355,23 @@
   "thousandsIqd": "{{amount}}K IQD",
   "convertedNote": "at current exchange rate"
 }
+    {
+  "china": {
+    "marketTitle": "China Market",
+    "evBrands": "Chinese EV Brands",
+    "comingSoon": "Coming Soon"
+  },
+  "payments": {
+    "methodSelector": "Select Payment Method",
+    "comingSoon": "Coming Soon",
+    "comingSoonHint": "This payment method will be available soon",
+    "alipay": {
+      "name": "Alipay",
+      "hint": "Coming soon — requires approved merchant account"
+    },
+    "wechatpay": {
+      "name": "WeChat Pay",
+      "hint": "Coming soon — requires approved merchant account"
+    }
   }
 }
