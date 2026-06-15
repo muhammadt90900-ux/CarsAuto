@@ -282,5 +282,19 @@
       "translating": "正在翻译...",
       "translated": "已自动翻译"
     }
+    "currency": {
+  "converting": "正在换算价格...",
+  "liveRates": "实时汇率",
+  "fallbackRates": "标准汇率（离线）",
+  "updatedAt": "更新于",
+  "iqd": "伊拉克第纳尔",
+  "usd": "美元",
+  "aed": "阿联酋迪拉姆",
+  "cny": "人民币",
+  "eur": "欧元",
+  "gbp": "英镑",
+  "thousandsIqd": "{{amount}}千第纳尔",
+  "convertedNote": "按当前汇率"
+}
   }
 }
