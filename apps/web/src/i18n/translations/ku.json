@@ -314,5 +314,24 @@
       "name": "ویچات پەی",
       "hint": "بەزووی دێت — پەرتووکی بازرگانی پێویستە"
     }
+    {
+  "chat": {
+    "voiceNote":               "دەنگ نامە",
+    "voiceNoteRecording":      "تۆمارکردن…",
+    "voiceNoteSending":        "ناردنی دەنگ نامە…",
+    "voiceNoteError":          "ناردنی دەنگ نامە سەرکەوتوو نەبوو",
+    "voiceNoteTooLong":        "زیاتر لە ٢ خولەک نابێت",
+    "voiceNoteTooLarge":       "فایلەکە زۆر گەورەیە (زیاتر لە 2 MB نابێت)",
+    "voiceNoteRetry":          "دووبارە هەوڵبدەرەوە",
+    "voiceNoteCancel":         "پاشگەزبوونەوە",
+    "voiceNoteStop":           "وەستاندنی تۆمارکردن",
+    "voiceNoteSend":           "ناردنی دەنگ نامە",
+    "voiceNotePlay":           "لێدان",
+    "voiceNotePause":          "وەستاندن",
+    "microphonePermission":    "مۆڵەتی مایکرۆفۆن نەدراوە. ڕێکخستنەکانی وێبگەڕت بپشکنە.",
+    "rateLimit":               "زۆر دەنگ نامە نارد — تکایە کەمێک چاوەڕێ بکە",
+    "inputPlaceholder":        "پەیامێک بنووسە…",
+    "noMessages":              "دەستی بە قسەکردن بکە"
   }
 }
+    
