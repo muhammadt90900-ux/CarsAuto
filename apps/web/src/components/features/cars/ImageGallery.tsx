@@ -1,6 +1,7 @@
 'use client';
 // components/features/cars/ImageGallery.tsx
 // Optimised: next/image for main + thumbnails, lazy lightbox, memoised callbacks
+// Feature 7: 360° View tab when images tagged with '360_view'
 
 import { useState, useEffect, useCallback, useRef, memo, lazy, Suspense } from 'react';
 import Image from 'next/image';
@@ -9,8 +10,15 @@ import {
   Grid3X3,
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
+import { Viewer360 } from './Viewer360';
 
-interface GalleryImage { url: string; isCover?: boolean; order?: number; }
+interface GalleryImage {
+  url: string;
+  isCover?: boolean;
+  order?: number;
+  /** Tag for 360° detection — e.g. '360_view' */
+  tag?: string;
+}
 
 interface ImageGalleryProps {
   images: GalleryImage[];
@@ -143,10 +151,15 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
   const [lightbox, setLightbox]       = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [showGrid, setShowGrid]       = useState(false);
+  const [activeTab, setActiveTab]     = useState<'gallery' | '360'>('gallery');
   const touchStartX = useRef(0);
 
   const sorted = [...images].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const totalImages = sorted.length;
+
+  // Detect 360° image set: ≥ 18 images tagged '360_view'
+  const images360 = sorted.filter((img) => img.tag === '360_view').map((img) => img.url);
+  const has360    = images360.length >= 18;
 
   const openLightbox = useCallback((idx: number) => {
     setLightboxIdx(idx);
@@ -176,6 +189,43 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
 
   return (
     <>
+      {/* Tab switcher (only shown when 360° set is available) */}
+      {has360 && (
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => setActiveTab('gallery')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200',
+              activeTab === 'gallery'
+                ? 'bg-[#c9a84c] text-[#050b14]'
+                : 'bg-white/[0.05] text-white/50 hover:text-white/80 border border-white/[0.08]'
+            )}
+            aria-pressed={activeTab === 'gallery'}
+          >
+            🖼 Photos
+          </button>
+          <button
+            onClick={() => setActiveTab('360')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200',
+              activeTab === '360'
+                ? 'bg-[#c9a84c] text-[#050b14]'
+                : 'bg-white/[0.05] text-white/50 hover:text-white/80 border border-white/[0.08]'
+            )}
+            aria-pressed={activeTab === '360'}
+          >
+            360° View
+          </button>
+        </div>
+      )}
+
+      {/* 360° Viewer */}
+      {has360 && activeTab === '360' && (
+        <Viewer360 images={images360} autoRotate={false} />
+      )}
+
+      {/* Standard gallery (hidden when 360° tab active) */}
+      {activeTab === 'gallery' && (
       <div className="relative w-full group">
         {/* Main image */}
         <div
@@ -309,9 +359,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
           </div>
         )}
       </div>
+      )} {/* end activeTab === 'gallery' */}
 
-      {/* Lightbox — only mounted when open */}
-      {lightbox && (
+      {/* Lightbox — only mounted when open (gallery tab only) */}
+      {lightbox && activeTab === 'gallery' && (
         <Lightbox
           images={sorted}
           currentIndex={lightboxIdx}
