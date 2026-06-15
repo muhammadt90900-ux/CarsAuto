@@ -296,5 +296,23 @@
   "thousandsIqd": "{{amount}} ألف دينار",
   "convertedNote": "بحسب سعر الصرف الحالي"
 }
+    {
+  "china": {
+    "marketTitle": "السوق الصيني",
+    "evBrands": "علامات السيارات الكهربائية الصينية",
+    "comingSoon": "قريباً"
+  },
+  "payments": {
+    "methodSelector": "اختر طريقة الدفع",
+    "comingSoon": "قريباً",
+    "comingSoonHint": "ستتوفر هذه الطريقة قريباً",
+    "alipay": {
+      "name": "علي باي",
+      "hint": "قريباً — يتطلب حساباً تجارياً"
+    },
+    "wechatpay": {
+      "name": "ويتشات باي",
+      "hint": "قريباً — يتطلب حساباً تجارياً"
+    }
   }
 }
