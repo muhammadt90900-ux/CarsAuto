@@ -20,6 +20,7 @@ import { SearchModule }             from './modules/search/search.module';
 import { VehiclesModule }           from './modules/vehicles/vehicles.module';
 import { PrismaModule }             from './common/prisma/prisma.module';
 import { AppCacheModule }           from './common/cache/cache.module';
+import { CurrencyModule }           from './common/currency/currency.module';
 import { DealersModule }            from './modules/dealers/dealers.module';
 import { TokenCleanupTask }         from './common/tasks/token-cleanup.task';
 import { EmbeddingSyncTask }        from './common/tasks/embedding-sync.task';
