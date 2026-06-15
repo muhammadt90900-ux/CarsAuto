@@ -1,0 +1,43 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 6 — Voice Notes
+// Add these fields to the existing Message model in schema.prisma.
+// DO NOT replace the full model — only ADD these lines.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Inside `model Message { … }` — add after the `type` field:
+
+  messageType   String   @default("text") @db.VarChar(20)   // text | image | voice | system
+  audioUrl      String?  @db.VarChar(500)
+  audioDuration Int?     // seconds
+
+// Inside `model Message { … }` — add to the index block:
+
+  @@index([messageType, chatId])
+
+// ─── Full updated model for reference ────────────────────────────────────────
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String    @db.Uuid
+  sender    User      @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  content   String    @db.Text
+  type      String    @default("text") @db.VarChar(20)
+
+  // ── Voice note fields (Feature 6) ──────────────────────────────────────────
+  messageType   String   @default("text") @db.VarChar(20)   // text | image | voice | system
+  audioUrl      String?  @db.VarChar(500)
+  audioDuration Int?     // seconds
+
+  mediaUrl  String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  readReceipts MessageReadReceipt[]
+
+  @@index([chatId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@index([messageType, chatId])
+  @@map("messages")
+}
