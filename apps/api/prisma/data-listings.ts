@@ -57,6 +57,23 @@ export const LOCATIONS: LocationSeed[] = [
   { country: 'DE', city: 'Berlin', nameKu: 'بێرلین', nameAr: 'برلين', nameEn: 'Berlin', nameZh: '柏林', lat: 52.520, lng: 13.405, currency: 'EUR', priceMultiplier: 1.25 },
   // UK
   { country: 'GB', city: 'London', nameKu: 'لەندەن', nameAr: 'لندن', nameEn: 'London', nameZh: '伦敦', lat: 51.507, lng: -0.128, currency: 'GBP', priceMultiplier: 1.30 },
+  // UAE — additional cities
+  { country: 'AE', governorate: 'Ajman', city: 'Ajman', nameKu: 'عەجمان', nameAr: 'عجمان', nameEn: 'Ajman', nameZh: '阿治曼', lat: 25.405, lng: 55.514, currency: 'AED', priceMultiplier: 1.05 },
+  { country: 'AE', governorate: 'Ras Al Khaimah', city: 'Ras Al Khaimah', nameKu: 'ڕاس ئەڵ خەیمە', nameAr: 'رأس الخيمة', nameEn: 'Ras Al Khaimah', nameZh: '哈伊马角', lat: 25.789, lng: 55.960, currency: 'AED', priceMultiplier: 1.02 },
+  // China
+  { country: 'CN', governorate: 'Beijing', city: 'Beijing', nameKu: 'بێجینگ', nameAr: 'بكين', nameEn: 'Beijing', nameZh: '北京', lat: 39.9042, lng: 116.4074, currency: 'CNY', priceMultiplier: 1.10 },
+  { country: 'CN', governorate: 'Shanghai', city: 'Shanghai', nameKu: 'شانگهای', nameAr: 'شانغهاي', nameEn: 'Shanghai', nameZh: '上海', lat: 31.2304, lng: 121.4737, currency: 'CNY', priceMultiplier: 1.15 },
+  { country: 'CN', governorate: 'Guangdong', city: 'Guangzhou', nameKu: 'گوانگجوو', nameAr: 'قوانغتشو', nameEn: 'Guangzhou', nameZh: '广州', lat: 23.1291, lng: 113.2644, currency: 'CNY', priceMultiplier: 1.08 },
+  { country: 'CN', governorate: 'Guangdong', city: 'Shenzhen', nameKu: 'شێنجین', nameAr: 'شنتشن', nameEn: 'Shenzhen', nameZh: '深圳', lat: 22.5431, lng: 114.0579, currency: 'CNY', priceMultiplier: 1.12 },
+  { country: 'CN', governorate: 'Sichuan', city: 'Chengdu', nameKu: 'چێنگدوو', nameAr: 'تشنغدو', nameEn: 'Chengdu', nameZh: '成都', lat: 30.5728, lng: 104.0668, currency: 'CNY', priceMultiplier: 1.00 },
+  { country: 'CN', governorate: 'Shaanxi', city: "Xi'an", nameKu: 'شیئان', nameAr: 'شيان', nameEn: "Xi'an", nameZh: '西安', lat: 34.3416, lng: 108.9398, currency: 'CNY', priceMultiplier: 0.95 },
+  { country: 'CN', governorate: 'Zhejiang', city: 'Hangzhou', nameKu: 'هانگجوو', nameAr: 'هانغتشو', nameEn: 'Hangzhou', nameZh: '杭州', lat: 30.2741, lng: 120.1551, currency: 'CNY', priceMultiplier: 1.08 },
+  { country: 'CN', governorate: 'Hubei', city: 'Wuhan', nameKu: 'ووهان', nameAr: 'ووهان', nameEn: 'Wuhan', nameZh: '武汉', lat: 30.5928, lng: 114.3055, currency: 'CNY', priceMultiplier: 0.98 },
+  { country: 'CN', governorate: 'Liaoning', city: 'Shenyang', nameKu: 'شێنیانگ', nameAr: 'شنيانغ', nameEn: 'Shenyang', nameZh: '沈阳', lat: 41.8057, lng: 123.4315, currency: 'CNY', priceMultiplier: 0.92 },
+  { country: 'CN', governorate: 'Tianjin', city: 'Tianjin', nameKu: 'تیانجین', nameAr: 'تيانجين', nameEn: 'Tianjin', nameZh: '天津', lat: 39.3434, lng: 117.3616, currency: 'CNY', priceMultiplier: 1.05 },
+  { country: 'CN', governorate: 'Jiangsu', city: 'Nanjing', nameKu: 'نانجینگ', nameAr: 'نانجينغ', nameEn: 'Nanjing', nameZh: '南京', lat: 32.0603, lng: 118.7969, currency: 'CNY', priceMultiplier: 1.03 },
+  { country: 'CN', governorate: 'Shandong', city: 'Qingdao', nameKu: 'چینگداو', nameAr: 'تشينغداو', nameEn: 'Qingdao', nameZh: '青岛', lat: 36.0671, lng: 120.3826, currency: 'CNY', priceMultiplier: 1.00 },
+  { country: 'CN', governorate: 'Henan', city: 'Zhengzhou', nameKu: 'جێنگجوو', nameAr: 'تشنغتشو', nameEn: 'Zhengzhou', nameZh: '郑州', lat: 34.7466, lng: 113.6253, currency: 'CNY', priceMultiplier: 0.96 },
   // USA
   { country: 'US', city: 'Houston', nameKu: 'هیووستۆن', nameAr: 'هيوستن', nameEn: 'Houston', nameZh: '休斯顿', lat: 29.760, lng: -95.369, currency: 'USD', priceMultiplier: 1.15 },
 ];
@@ -127,6 +144,11 @@ export const USERS: UserSeed[] = [
   // Turkish dealers
   { email: 'dealer.istanbul@autoiq.com', phone: '+905321234577', name: 'Mehmet Yilmaz', role: 'DEALER', locale: 'en', avatar: 'https://i.pravatar.cc/150?u=mehmet', verified: true, countryHint: 'TR' },
   // Private sellers (IQ)
+  // Chinese dealers & users
+  { email: 'dealer.beijing@autoiq.com', phone: '+8613901234578', name: 'Zhang Wei', role: 'DEALER', locale: 'zh', avatar: 'https://i.pravatar.cc/150?u=zhang_wei', verified: true, countryHint: 'CN' },
+  { email: 'dealer.shanghai@autoiq.com', phone: '+8613811234579', name: 'Li Fang', role: 'DEALER', locale: 'zh', avatar: 'https://i.pravatar.cc/150?u=li_fang', verified: true, countryHint: 'CN' },
+  { email: 'dealer.shenzhen@autoiq.com', phone: '+8615901234580', name: 'Wang Jian', role: 'DEALER', locale: 'zh', avatar: 'https://i.pravatar.cc/150?u=wang_jian', verified: true, countryHint: 'CN' },
+  { email: 'user.chen@mail.com', phone: '+8613700000001', name: 'Chen Mei', role: 'USER', locale: 'zh', avatar: 'https://i.pravatar.cc/150?u=chen_mei', verified: true, countryHint: 'CN' },
   { email: 'user.karim@mail.com', phone: '+9647511111111', name: 'Karim Jawhar', role: 'USER', locale: 'ku', avatar: 'https://i.pravatar.cc/150?u=karim_j', verified: false, countryHint: 'IQ' },
   { email: 'user.nadia@mail.com', phone: '+9647522222222', name: 'Nadia Al-Shami', role: 'USER', locale: 'ar', avatar: 'https://i.pravatar.cc/150?u=nadia_s', verified: false, countryHint: 'IQ' },
   { email: 'user.omar@mail.com', phone: '+9647533333333', name: 'Omar Farouq', role: 'USER', locale: 'ar', avatar: 'https://i.pravatar.cc/150?u=omar_f', verified: true, countryHint: 'IQ' },
