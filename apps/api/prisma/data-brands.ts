@@ -139,6 +139,31 @@ export const BRANDS: BrandSeed[] = [
     slug: 'haval', nameEn: 'Haval', nameAr: 'هافال', nameKu: 'هافاڵ', nameZh: '哈弗',
     countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/haval.svg',
   },
+  // ── More Chinese brands ──────────────────────────────────────────────────────
+  {
+    slug: 'geely', nameEn: 'Geely', nameAr: 'جيلي', nameKu: 'جیلی', nameZh: '吉利',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/geely.svg',
+  },
+  {
+    slug: 'nio', nameEn: 'NIO', nameAr: 'نيو', nameKu: 'نیئۆ', nameZh: '蔚来',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/nio.svg',
+  },
+  {
+    slug: 'li-auto', nameEn: 'Li Auto', nameAr: 'لي أوتو', nameKu: 'لی ئۆتۆ', nameZh: '理想',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/li-auto.svg',
+  },
+  {
+    slug: 'xpeng', nameEn: 'XPENG', nameAr: 'شياو بنغ', nameKu: 'شیاوپێنگ', nameZh: '小鹏',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/xpeng.svg',
+  },
+  {
+    slug: 'great-wall', nameEn: 'Great Wall', nameAr: 'غريت وول', nameKu: 'گرەیت ووڵ', nameZh: '长城',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/great-wall.svg',
+  },
+  {
+    slug: 'saic', nameEn: 'SAIC Motor', nameAr: 'ساك موتور', nameKu: 'سایک مۆتۆر', nameZh: '上汽',
+    countryCode: 'CN', logoUrl: 'https://cdn.imagin.studio/brand-logos/saic.svg',
+  },
   // ── British ──────────────────────────────────────────────────────────────────
   {
     slug: 'land-rover', nameEn: 'Land Rover', nameAr: 'لاند روفر', nameKu: 'لاند ڕۆڤەر', nameZh: '路虎',
@@ -680,6 +705,137 @@ export const MODELS: ModelSeed[] = [
           { name: 'Cayenne 3.0', bodyType: 'SUV', fuelType: 'PETROL', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 2995, engineLabel: '3.0L V6 Turbo', powerKw: 250, doors: 4, seats: 5 },
           { name: 'S 2.9 Biturbo', bodyType: 'SUV', fuelType: 'PETROL', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 2894, engineLabel: '2.9L V6 Biturbo', powerKw: 324, doors: 4, seats: 5 },
           { name: 'Turbo E-Hybrid', bodyType: 'SUV', fuelType: 'PLUG_IN_HYBRID', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 3996, engineLabel: '4.0L V8 PHEV', powerKw: 544, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+
+  // ── Geely ──
+  {
+    brandSlug: 'geely', slug: 'emgrand',
+    nameEn: 'Emgrand', nameAr: 'إيمجراند', nameKu: 'ئێمگراند', nameZh: '帝豪',
+    generations: [
+      {
+        name: 'Seventh Gen', yearFrom: 2022,
+        trims: [
+          { name: '1.5L CVT', bodyType: 'SEDAN', fuelType: 'PETROL', transmission: 'CVT', drivetrain: 'FWD', engineCC: 1499, engineLabel: '1.5L', powerKw: 82, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  {
+    brandSlug: 'geely', slug: 'coolray',
+    nameEn: 'Coolray', nameAr: 'كولري', nameKu: 'کوولڕەی', nameZh: '缤越',
+    generations: [
+      {
+        name: 'First Gen Facelift', yearFrom: 2023,
+        trims: [
+          { name: '1.5T DCT', bodyType: 'SUV', fuelType: 'PETROL', transmission: 'DUAL_CLUTCH', drivetrain: 'FWD', engineCC: 1497, engineLabel: '1.5L Turbo', powerKw: 130, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  // ── NIO ──
+  {
+    brandSlug: 'nio', slug: 'et5',
+    nameEn: 'ET5', nameAr: 'إي تي 5', nameKu: 'ئی تی ٥', nameZh: 'ET5',
+    generations: [
+      {
+        name: 'First Gen', yearFrom: 2022,
+        trims: [
+          { name: 'Standard Range', bodyType: 'SEDAN', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'AWD', powerKw: 360, doors: 4, seats: 5 },
+          { name: 'Long Range', bodyType: 'SEDAN', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'AWD', powerKw: 360, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  {
+    brandSlug: 'nio', slug: 'es6',
+    nameEn: 'ES6', nameAr: 'إي إس 6', nameKu: 'ئی ئێس ٦', nameZh: 'ES6',
+    generations: [
+      {
+        name: 'Second Gen', yearFrom: 2023,
+        trims: [
+          { name: 'Standard', bodyType: 'SUV', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'AWD', powerKw: 400, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  // ── Li Auto ──
+  {
+    brandSlug: 'li-auto', slug: 'l9',
+    nameEn: 'L9', nameAr: 'إل 9', nameKu: 'ئێل ٩', nameZh: 'L9',
+    generations: [
+      {
+        name: 'First Gen', yearFrom: 2022,
+        trims: [
+          { name: 'Pro EREV', bodyType: 'SUV', fuelType: 'PLUG_IN_HYBRID', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 1496, engineLabel: '1.5L EREV', powerKw: 330, doors: 4, seats: 6 },
+        ],
+      },
+    ],
+  },
+  {
+    brandSlug: 'li-auto', slug: 'l7',
+    nameEn: 'L7', nameAr: 'إل 7', nameKu: 'ئێل ٧', nameZh: 'L7',
+    generations: [
+      {
+        name: 'First Gen', yearFrom: 2023,
+        trims: [
+          { name: 'Pro EREV', bodyType: 'SUV', fuelType: 'PLUG_IN_HYBRID', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 1496, engineLabel: '1.5L EREV', powerKw: 330, doors: 4, seats: 5 },
+          { name: 'Ultra EREV', bodyType: 'SUV', fuelType: 'PLUG_IN_HYBRID', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 1496, engineLabel: '1.5L EREV', powerKw: 330, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  // ── XPENG ──
+  {
+    brandSlug: 'xpeng', slug: 'p7',
+    nameEn: 'P7', nameAr: 'بي 7', nameKu: 'پی ٧', nameZh: 'P7',
+    generations: [
+      {
+        name: 'P7i', yearFrom: 2023,
+        trims: [
+          { name: 'Standard AWD', bodyType: 'SEDAN', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'AWD', powerKw: 316, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  {
+    brandSlug: 'xpeng', slug: 'g6',
+    nameEn: 'G6', nameAr: 'جي 6', nameKu: 'گی ٦', nameZh: 'G6',
+    generations: [
+      {
+        name: 'First Gen', yearFrom: 2023,
+        trims: [
+          { name: 'AWD Performance', bodyType: 'SUV', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'AWD', powerKw: 350, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  // ── Great Wall ──
+  {
+    brandSlug: 'great-wall', slug: 'poer',
+    nameEn: 'POER', nameAr: 'بور', nameKu: 'پووئەر', nameZh: '炮',
+    generations: [
+      {
+        name: 'King Kong', yearFrom: 2022,
+        trims: [
+          { name: '2.4T 4WD', bodyType: 'PICKUP_TRUCK', fuelType: 'PETROL', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 2378, engineLabel: '2.4L Turbo', powerKw: 160, doors: 4, seats: 5 },
+          { name: '2.0T Diesel', bodyType: 'PICKUP_TRUCK', fuelType: 'DIESEL', transmission: 'AUTOMATIC', drivetrain: 'AWD', engineCC: 1996, engineLabel: '2.0L TDI', powerKw: 120, doors: 4, seats: 5 },
+        ],
+      },
+    ],
+  },
+  // ── SAIC ──
+  {
+    brandSlug: 'saic', slug: 'mg5',
+    nameEn: 'MG5', nameAr: 'إم جي 5', nameKu: 'ئێم جی ٥', nameZh: 'MG5',
+    generations: [
+      {
+        name: 'EV', yearFrom: 2022,
+        trims: [
+          { name: 'Standard Range EV', bodyType: 'HATCHBACK', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'FWD', powerKw: 115, doors: 4, seats: 5 },
+          { name: 'Long Range EV', bodyType: 'HATCHBACK', fuelType: 'ELECTRIC', transmission: 'AUTOMATIC', drivetrain: 'FWD', powerKw: 115, doors: 4, seats: 5 },
         ],
       },
     ],
