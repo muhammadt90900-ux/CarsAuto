@@ -373,5 +373,23 @@
       "name": "WeChat Pay",
       "hint": "Coming soon — requires approved merchant account"
     }
+    {
+  "chat": {
+    "voiceNote":               "Voice note",
+    "voiceNoteRecording":      "Recording…",
+    "voiceNoteSending":        "Sending voice note…",
+    "voiceNoteError":          "Voice note failed",
+    "voiceNoteTooLong":        "Maximum 2 minutes",
+    "voiceNoteTooLarge":       "File too large (max 2 MB)",
+    "voiceNoteRetry":          "Retry",
+    "voiceNoteCancel":         "Cancel",
+    "voiceNoteStop":           "Stop recording",
+    "voiceNoteSend":           "Send voice note",
+    "voiceNotePlay":           "Play",
+    "voiceNotePause":          "Pause",
+    "microphonePermission":    "Microphone access denied. Check your browser settings.",
+    "rateLimit":               "Too many voice notes — please wait a moment",
+    "inputPlaceholder":        "Type a message…",
+    "noMessages":              "Start the conversation"
   }
 }
