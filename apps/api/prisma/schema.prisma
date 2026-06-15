@@ -30,6 +30,8 @@ enum ListingType {
   CAR
   MOTORCYCLE
   SPARE_PART
+  ACCESSORY // ← Feature 3
+  SERVICE   // ← Feature 3
 }
 
 enum ListingCondition {
@@ -519,6 +521,7 @@ model Listing {
   embedding Unsupported("vector(1536)")?
 
   vehicleSpec       ListingVehicleSpec?
+  accessorySpec     ListingAccessorySpec?
   partCompatibility PartCompatibility[]
   images            Image[]
   chats             Chat[]
@@ -1249,4 +1252,37 @@ model Subscription {
   @@index([status])
   @@index([currentPeriodEnd])
   @@map("subscriptions")
+}
+
+// ── Feature 3: Accessory & Service spec model ────────────────────────────────
+model ListingAccessorySpec {
+  id        String  @id @default(uuid()) @db.Uuid
+  listingId String  @unique @db.Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  // ── Accessory fields ──────────────────────────────────────────────────────
+  brand      String?  @db.VarChar(100)
+  model      String?  @db.VarChar(100)
+  condition  String?  @db.VarChar(30)   // "NEW" | "USED"
+  material   String?  @db.VarChar(100)
+  color      String?  @db.VarChar(50)
+  weight     Decimal? @db.Decimal(8, 2)
+  dimensions String?  @db.VarChar(100)  // "30x20x15 cm"
+
+  // ── Service fields ────────────────────────────────────────────────────────
+  serviceType    String?  @db.VarChar(100)  // repair | maintenance | inspection | towing | other
+  duration       Int?                        // estimated minutes
+  mobile         Boolean  @default(false)    // true = comes to customer
+  warranty       Int?                        // warranty in days
+  certifications String[] @default([])       // ["ISO", "manufacturer_certified"]
+  availableDays  String[] @default([])       // ["mon","tue","wed","thu","fri"]
+
+  // ── Shared ────────────────────────────────────────────────────────────────
+  compatibleBrands String[] @default([])
+  compatibleModels String[] @default([])
+
+  @@index([serviceType])
+  @@index([mobile])
+  @@index([condition])
+  @@map("listing_accessory_specs")
 }
