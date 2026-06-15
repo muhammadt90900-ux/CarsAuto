@@ -296,5 +296,23 @@
   "thousandsIqd": "{{amount}}千第纳尔",
   "convertedNote": "按当前汇率"
 }
+    {
+  "china": {
+    "marketTitle": "中国市场",
+    "evBrands": "中国新能源品牌",
+    "comingSoon": "即将推出"
+  },
+  "payments": {
+    "methodSelector": "选择支付方式",
+    "comingSoon": "即将推出",
+    "comingSoonHint": "此支付方式即将开放",
+    "alipay": {
+      "name": "支付宝",
+      "hint": "即将推出 — 需要获批商家账户"
+    },
+    "wechatpay": {
+      "name": "微信支付",
+      "hint": "即将推出 — 需要获批商家账户"
+    }
   }
 }
