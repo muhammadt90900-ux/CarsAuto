@@ -1,39 +1,99 @@
-import { IsString, IsNumber, IsOptional, IsArray, IsEnum, IsUUID, Min, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  IsEnum,
+  IsUUID,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+  MinLength,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-// BUG FIX: Import ListingType from the Prisma-generated client via the shared
-// re-export in enums.ts. The previous locally-defined enum had completely
-// different values (TRUCK, BUS, PART, OTHER) vs what the database schema
-// actually contains (CAR, MOTORCYCLE, SPARE_PART). This caused @IsEnum() to
-// reject every SPARE_PART submission with a silent 400, and any value that
-// slipped through to Prisma caused a database constraint violation.
 import { ListingType } from '@prisma/client';
 
-// Re-export so any import of ListingType from this module still resolves.
 export { ListingType };
 
+// ── Accessory spec DTO ────────────────────────────────────────────────────────
+export class AccessorySpecDto {
+  // Shared by both ACCESSORY and SERVICE
+  @IsOptional() @IsArray() @IsString({ each: true })
+  compatibleBrands?: string[];
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  compatibleModels?: string[];
+
+  // ── Accessory-only fields ──────────────────────────────────────────────────
+  @IsOptional() @IsString() @MaxLength(100)
+  brand?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  model?: string;
+
+  /** "NEW" | "USED" */
+  @IsOptional() @IsString() @MaxLength(30)
+  condition?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  material?: string;
+
+  @IsOptional() @IsString() @MaxLength(50)
+  color?: string;
+
+  @IsOptional() @IsNumber()
+  @Type(() => Number)
+  weight?: number;
+
+  /** e.g. "30x20x15 cm" */
+  @IsOptional() @IsString() @MaxLength(100)
+  dimensions?: string;
+
+  // ── Service-only fields ────────────────────────────────────────────────────
+  /** "repair" | "maintenance" | "inspection" | "towing" | "other" */
+  @IsOptional() @IsString() @MaxLength(100)
+  serviceType?: string;
+
+  /** Estimated service duration in minutes */
+  @IsOptional() @IsInt() @Min(1)
+  @Type(() => Number)
+  duration?: number;
+
+  /** True = mobile service (provider comes to customer) */
+  @IsOptional() @IsBoolean()
+  mobile?: boolean;
+
+  /** Warranty in days */
+  @IsOptional() @IsInt() @Min(0)
+  @Type(() => Number)
+  warranty?: number;
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  certifications?: string[];
+
+  /** e.g. ["mon","tue","wed","thu","fri"] */
+  @IsOptional() @IsArray() @IsString({ each: true })
+  availableDays?: string[];
+}
+
+// ── Main create DTO ───────────────────────────────────────────────────────────
 export class CreateListingDto {
   @IsEnum(ListingType)
   type!: ListingType;
 
-  @IsString()
-  @MinLength(1)
+  @IsString() @MinLength(1) @MaxLength(255)
   titleEn!: string;
 
-  @IsString()
-  @MinLength(1)
+  @IsString() @MinLength(1) @MaxLength(255)
   titleKu!: string;
 
-  @IsString()
-  @MinLength(1)
+  @IsString() @MinLength(1) @MaxLength(255)
   titleAr!: string;
 
-  // BUG FIX: titleZh is a required non-nullable column in the Prisma schema
-  // (String @db.VarChar(255)). It was missing from this DTO entirely, so
-  // ValidationPipe's `whitelist: true` was silently stripping it from every
-  // request before it reached the service. Prisma then threw a NOT NULL
-  // constraint violation (P2002/23502) and the listing was never saved.
-  @IsString()
-  @MinLength(1)
+  @IsString() @MinLength(1) @MaxLength(255)
   titleZh!: string;
 
   @IsNumber()
@@ -44,40 +104,34 @@ export class CreateListingDto {
   @IsString()
   currency!: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(5000)
   descriptionEn?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(5000)
   descriptionKu?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(5000)
   descriptionAr?: string;
 
-  @IsOptional()
-  @IsString()
+  /** For CAR / MOTORCYCLE / SPARE_PART — stored on ListingVehicleSpec */
+  @IsOptional() @IsString()
   condition?: string;
 
-  @IsOptional()
-  @IsUUID()
+  @IsOptional() @IsUUID()
   categoryId?: string;
 
-  // vehicleSpecId removed: Listing has no vehicleSpecId FK column.
-  // The relation is inverse (ListingVehicleSpec.listingId → Listing).
-  // Passing it to prisma.listing.create() causes PrismaClientValidationError:
-  // "Unknown arg `vehicleSpecId`". The service handles vehicleSpec via nested create.
-
-  @IsOptional()
-  @IsUUID()
+  @IsOptional() @IsUUID()
   locationId?: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
+  @IsOptional() @IsArray() @IsString({ each: true })
   images?: string[];
 
-  @IsOptional()
+  @IsOptional() @IsBoolean()
   negotiable?: boolean;
+
+  /** For ACCESSORY / SERVICE — stored on ListingAccessorySpec */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AccessorySpecDto)
+  accessorySpec?: AccessorySpecDto;
 }
