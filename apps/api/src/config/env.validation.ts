@@ -16,6 +16,8 @@ export interface EnvConfig {
 
   FRONTEND_URL: string;
 
+   EXCHANGE_RATE_API_KEY?: string;
+
   // Optional services
   SMTP_HOST?: string;
   SMTP_PORT?: number;
