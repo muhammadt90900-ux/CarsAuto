@@ -392,4 +392,31 @@
     "inputPlaceholder":        "Type a message…",
     "noMessages":              "Start the conversation"
   }
+,
+  "viewer360": {
+    "tabLabel":         "360° View",
+    "tabPhotos":        "Photos",
+    "dragHint":         "Drag to rotate",
+    "autoRotate":       "Auto-rotate",
+    "stopRotate":       "Stop rotating",
+    "fullscreen":       "Fullscreen",
+    "exitFullscreen":   "Exit fullscreen",
+    "zoomIn":           "Zoom in",
+    "zoomOut":          "Zoom out",
+    "loading":          "Loading 360° view…",
+    "frameCounter":     "{current} / {total}",
+    "badge":            "360°"
+  },
+  "sell360": {
+    "sectionTitle":     "360° Photo Set",
+    "optional":         "Optional",
+    "emptyHint":        "Add 18–36 photos taken every 10° around the car",
+    "readyHint":        "{count} frames ready — 360° view enabled",
+    "progressHint":     "{count}/18 frames uploaded — {remaining} more needed",
+    "instructions":     "Take photos every 10° around the car for a full 360° view. Start from the front-left and rotate clockwise. Minimum 18 photos required.",
+    "bulkUpload":       "Upload multiple frames",
+    "viewerReady":      "360° view ready — buyers can rotate the car",
+    "removeFrame":      "Remove frame {n}",
+    "uploadFrame":      "Upload frame {n} ({angle}°)"
+  }
 }
