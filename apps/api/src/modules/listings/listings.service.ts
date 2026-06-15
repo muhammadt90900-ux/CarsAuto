@@ -11,14 +11,15 @@ import { CacheService } from '../../common/cache/cache.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
+import { ListingType } from '@prisma/client';
 
-// IMPROVE: Extracted cache TTL constants
-const CACHE_TTL_LIST = 30_000; // 30 s  — list pages
-const CACHE_TTL_DETAIL = 2 * 60_000; // 2 min — detail pages
-const MAX_PAGE_LIMIT = 100;
+// ── Constants ─────────────────────────────────────────────────────────────────
+const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
+const CACHE_TTL_DETAIL = 2 * 60_000;   // 2 min — detail pages
+const MAX_PAGE_LIMIT     = 100;
 const DEFAULT_PAGE_LIMIT = 20;
 
-// IMPROVE: View counter — batched DB writes every 30 s to avoid thrashing
+// ── View counter (batched DB writes every 30 s) ───────────────────────────────
 const viewBuffer = new Map<string, number>();
 let viewFlushTimer: NodeJS.Timeout | null = null;
 
@@ -27,41 +28,37 @@ function scheduleViewFlush(prisma: PrismaService): void {
   viewFlushTimer = setTimeout(async () => {
     viewFlushTimer = null;
     if (viewBuffer.size === 0) return;
-
     const snapshot = new Map(viewBuffer);
     viewBuffer.clear();
-
     await Promise.all(
       [...snapshot.entries()].map(([id, count]) =>
         prisma.listing
           .update({ where: { id }, data: { views: { increment: count } } })
-          .catch(() => {
-            /* listing may have been deleted — ignore */
-          }),
+          .catch(() => {/* listing may have been deleted */}),
       ),
     );
   }, 30_000);
 }
 
-// IMPROVE: Lean select for list pages (excludes description blobs)
+// ── Lean select for list pages (excludes description blobs) ──────────────────
 const LIST_SELECT = {
-  id: true,
-  type: true,
-  status: true,
-  titleKu: true,
-  titleAr: true,
-  titleEn: true,
-  price: true,
-  currency: true,
+  id:         true,
+  type:       true,
+  status:     true,
+  titleKu:    true,
+  titleAr:    true,
+  titleEn:    true,
+  price:      true,
+  currency:   true,
   negotiable: true,
-  featured: true,
-  views: true,
-  createdAt: true,
+  featured:   true,
+  views:      true,
+  createdAt:  true,
   images: {
-    where: { isCover: true },
-    take: 1,
+    where:   { isCover: true },
+    take:    1,
     orderBy: { order: 'asc' as const },
-    select: { url: true, id: true },
+    select:  { url: true, id: true },
   },
   location: {
     select: { id: true, city: true, governorate: true, nameKu: true, nameEn: true },
@@ -71,44 +68,62 @@ const LIST_SELECT = {
   },
   vehicleSpec: {
     select: {
-      year: true,
-      mileageKm: true,
-      fuelType: true,
-      transmission: true,
-      bodyType: true,
-      condition: true,
-      color: true,
+      year: true, mileageKm: true, fuelType: true, transmission: true,
+      bodyType: true, condition: true, color: true,
       brand: { select: { id: true, nameEn: true, nameKu: true, logoUrl: true } },
       model: { select: { id: true, nameEn: true, nameKu: true } },
-      trim: { select: { name: true, engineLabel: true } },
+      trim:  { select: { name: true, engineLabel: true } },
+    },
+  },
+  // Feature 3: accessory/service spec lean select
+  accessorySpec: {
+    select: {
+      serviceType: true, mobile: true, condition: true, color: true,
+      brand: true, model: true, duration: true, warranty: true,
+      compatibleBrands: true, compatibleModels: true,
     },
   },
 } as const;
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+const VEHICLE_TYPES = new Set<ListingType>([
+  ListingType.CAR,
+  ListingType.MOTORCYCLE,
+  ListingType.SPARE_PART,
+]);
+
+const ACCESSORY_TYPES = new Set<ListingType>([
+  ListingType.ACCESSORY,
+  ListingType.SERVICE,
+]);
+
 export interface ListingQueryParams {
-  type?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  locationId?: string;
-  brandId?: string;
-  modelId?: string;
-  trimId?: string;
-  year?: string;
-  minYear?: string;
-  maxYear?: string;
-  condition?: string;
-  fuelType?: string;
+  type?:         string;
+  minPrice?:     string;
+  maxPrice?:     string;
+  locationId?:   string;
+  brandId?:      string;
+  modelId?:      string;
+  trimId?:       string;
+  year?:         string;
+  minYear?:      string;
+  maxYear?:      string;
+  condition?:    string;
+  fuelType?:     string;
   transmission?: string;
-  color?: string;
-  minMileage?: string;
-  maxMileage?: string;
-  page?: string;
-  limit?: string;
-  featured?: string;
-  search?: string;
-  sortBy?: string;
-  sortOrder?: string;
-  categoryId?: string;
+  color?:        string;
+  minMileage?:   string;
+  maxMileage?:   string;
+  page?:         string;
+  limit?:        string;
+  featured?:     string;
+  search?:       string;
+  sortBy?:       string;
+  sortOrder?:    string;
+  categoryId?:   string;
+  // Feature 3 — accessory/service filters
+  serviceType?:  string;
+  mobile?:       string;
 }
 
 @Injectable()
@@ -116,49 +131,42 @@ export class ListingsService {
   private readonly logger = new Logger(ListingsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly cache: CacheService,
-    private readonly ai: AiService,
-    private readonly translation: TranslationService,
+    private readonly prisma:       PrismaService,
+    private readonly cache:        CacheService,
+    private readonly ai:           AiService,
+    private readonly translation:  TranslationService,
   ) {}
 
-  // IMPROVE: Added validation helper
+  // ── Pagination helper ──────────────────────────────────────────────────────
   private validatePagination(page?: string, limit?: string) {
-    const validPage = Math.max(1, Number(page) || 1);
+    const validPage  = Math.max(1, Number(page)  || 1);
     const validLimit = Math.min(MAX_PAGE_LIMIT, Math.max(1, Number(limit) || DEFAULT_PAGE_LIMIT));
     return { page: validPage, limit: validLimit };
   }
 
+  // ── findAll ────────────────────────────────────────────────────────────────
   async findAll(params: ListingQueryParams) {
     const cacheKey = this.buildListCacheKey(params);
-
     try {
       return await this.cache.getOrSet(
         cacheKey,
         async () => {
           const { page, limit } = this.validatePagination(params.page, params.limit);
-          const skip = (page - 1) * limit;
-
+          const skip  = (page - 1) * limit;
           const where = this.buildWhereClause(params);
 
           const [data, total] = await Promise.all([
             this.prisma.listing.findMany({
               where,
               skip,
-              take: limit,
+              take:    limit,
               orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-              select: LIST_SELECT,
+              select:  LIST_SELECT,
             }),
             this.prisma.listing.count({ where }),
           ]);
 
-          return {
-            data,
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-          };
+          return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
         },
         CACHE_TTL_LIST,
       );
@@ -168,21 +176,20 @@ export class ListingsService {
     }
   }
 
+  // ── findOne ────────────────────────────────────────────────────────────────
   async findOne(id: string) {
     if (!id || typeof id !== 'string') {
       throw new BadRequestException('Invalid listing ID');
     }
-
     const cacheKey = `listings:detail:${id}`;
-
     try {
       const result = await this.cache.getOrSet(
         cacheKey,
         async () => {
           const listing = await this.prisma.listing.findUnique({
-            where: { id },
+            where:   { id },
             include: {
-              images: { orderBy: { order: 'asc' } },
+              images:   { orderBy: { order: 'asc' } },
               location: true,
               user: {
                 select: { id: true, name: true, avatar: true, verified: true, phone: true },
@@ -193,21 +200,15 @@ export class ListingsService {
                   model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
                   trim: {
                     select: {
-                      id: true,
-                      name: true,
-                      fuelType: true,
-                      transmission: true,
-                      bodyType: true,
-                      drivetrain: true,
-                      engineCC: true,
-                      engineLabel: true,
-                      powerKw: true,
-                      doors: true,
-                      seats: true,
+                      id: true, name: true, fuelType: true, transmission: true,
+                      bodyType: true, drivetrain: true, engineCC: true,
+                      engineLabel: true, powerKw: true, doors: true, seats: true,
                     },
                   },
                 },
               },
+              // Feature 3: include accessory/service spec on detail page
+              accessorySpec: true,
             },
           });
           return listing ?? null;
@@ -217,7 +218,7 @@ export class ListingsService {
 
       if (!result) throw new NotFoundException('Listing not found');
 
-      // IMPROVE: Batch view increment — no per-request DB write
+      // Batch view increment
       viewBuffer.set(id, (viewBuffer.get(id) ?? 0) + 1);
       scheduleViewFlush(this.prisma);
 
@@ -229,55 +230,82 @@ export class ListingsService {
     }
   }
 
+  // ── create ────────────────────────────────────────────────────────────────
   async create(data: CreateListingDto & { userId: string }) {
-    if (!data.userId) {
-      throw new BadRequestException('userId is required');
-    }
+    if (!data.userId) throw new BadRequestException('userId is required');
 
     try {
-      // BUG FIX #3: `condition` belongs to ListingVehicleSpec, not Listing.
-      // `vehicleSpecId` is not a column on Listing either (the FK is on the
-      // other side of the relation). Spreading either field into
-      // prisma.listing.create() throws PrismaClientValidationError:
-      // "Unknown arg `condition`" — silently failing every submission.
-      const { images, userId, condition, vehicleSpecId: _vsId, ...listingData } = data as any;
+      const {
+        images,
+        userId,
+        condition,
+        accessorySpec,
+        vehicleSpecId: _vsId,
+        ...listingData
+      } = data as any;
+
+      const listingType = listingData.type as ListingType;
+      const isVehicle   = VEHICLE_TYPES.has(listingType);
+      const isAccessory = ACCESSORY_TYPES.has(listingType);
 
       const listing = await this.prisma.listing.create({
         data: {
           ...listingData,
           user: { connect: { id: userId } },
-          // Route `condition` into a nested vehicleSpec create so it is stored
-          // correctly on ListingVehicleSpec (ListingCondition enum column).
-          ...(condition
+
+          // Vehicle spec: only for CAR / MOTORCYCLE / SPARE_PART
+          ...(isVehicle && condition
+            ? { vehicleSpec: { create: { condition } } }
+            : {}),
+
+          // Feature 3 — Accessory/Service spec: only for ACCESSORY / SERVICE
+          ...(isAccessory && accessorySpec
             ? {
-                vehicleSpec: {
-                  create: { condition },
+                accessorySpec: {
+                  create: {
+                    brand:            accessorySpec.brand            ?? null,
+                    model:            accessorySpec.model            ?? null,
+                    condition:        accessorySpec.condition        ?? null,
+                    material:         accessorySpec.material         ?? null,
+                    color:            accessorySpec.color            ?? null,
+                    weight:           accessorySpec.weight           ?? null,
+                    dimensions:       accessorySpec.dimensions       ?? null,
+                    serviceType:      accessorySpec.serviceType      ?? null,
+                    duration:         accessorySpec.duration         ?? null,
+                    mobile:           accessorySpec.mobile           ?? false,
+                    warranty:         accessorySpec.warranty         ?? null,
+                    certifications:   accessorySpec.certifications   ?? [],
+                    availableDays:    accessorySpec.availableDays    ?? [],
+                    compatibleBrands: accessorySpec.compatibleBrands ?? [],
+                    compatibleModels: accessorySpec.compatibleModels ?? [],
+                  },
                 },
               }
             : {}),
+
           ...(images?.length
             ? {
                 images: {
                   create: images.map((url: string, index: number) => ({
                     url,
                     isCover: index === 0,
-                    order: index,
+                    order:   index,
                   })),
                 },
               }
             : {}),
         },
         include: {
-          images: { orderBy: { order: 'asc' } },
-          vehicleSpec: true,
-          location: true,
+          images:       { orderBy: { order: 'asc' } },
+          vehicleSpec:  true,
+          accessorySpec: true,
+          location:     true,
         },
       });
 
       this.invalidateListCache();
 
-      // ── FEATURE 2D: AI content moderation (fire-and-forget, never blocks) ──
-      // Run after DB insert so listing is saved even if moderation fails.
+      // ── AI content moderation (fire-and-forget) ───────────────────────────
       this.ai.checkContent(
         listing.titleKu ?? listing.titleEn,
         listing.descriptionKu ?? listing.descriptionEn ?? '',
@@ -288,30 +316,28 @@ export class ListingsService {
           );
           await this.prisma.listing.update({
             where: { id: listing.id },
-            data: { status: 'UNDER_REVIEW' },
-          }).catch(() => {/* ignore */});
+            data:  { status: 'UNDER_REVIEW' },
+          }).catch(() => {});
 
-          // Audit log entry for admin review
           await this.prisma.auditLog.create({
             data: {
-              action: 'LISTING_QUARANTINED',
+              action:     'LISTING_QUARANTINED',
               entityType: 'Listing',
-              entityId: listing.id,
-              actorId: data.userId,
+              entityId:   listing.id,
+              actorId:    data.userId,
               metadata: {
-                spamScore: check.spamResult.score,
-                spamReasons: check.spamResult.reasons,
+                spamScore:         check.spamResult.score,
+                spamReasons:       check.spamResult.reasons,
                 flaggedCategories: check.flaggedCategories,
               },
             },
-          }).catch(() => {/* ignore — audit log failure must not surface */});
+          }).catch(() => {});
         }
       }).catch((err: Error) => {
         this.logger.warn(`Content moderation failed for listing ${listing.id}: ${err.message}`);
       });
 
-      // ── FEATURE 2E: Auto-translate into AR/EN/ZH (background BullMQ job) ──
-      // Only queue when AR/EN/ZH titles look like they are empty or placeholders.
+      // ── Auto-translate (background BullMQ job) ────────────────────────────
       const needsTranslation =
         !listing.titleEn ||
         listing.titleEn === listing.titleKu ||
@@ -334,37 +360,40 @@ export class ListingsService {
     }
   }
 
+  // ── myListings ─────────────────────────────────────────────────────────────
   async myListings(userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-
+    if (!userId) throw new BadRequestException('userId is required');
     try {
       return await this.prisma.listing.findMany({
-        where: { userId },
+        where:   { userId },
         orderBy: { createdAt: 'desc' },
         select: {
-          id: true,
-          type: true,
-          status: true,
-          titleKu: true,
-          titleEn: true,
-          price: true,
+          id:        true,
+          type:      true,
+          status:    true,
+          titleKu:   true,
+          titleEn:   true,
+          price:     true,
           createdAt: true,
-          views: true,
-          featured: true,
+          views:     true,
+          featured:  true,
           images: {
-            where: { isCover: true },
-            take: 1,
+            where:  { isCover: true },
+            take:   1,
             select: { url: true },
           },
           vehicleSpec: {
             select: {
-              year: true,
-              mileageKm: true,
-              condition: true,
+              year: true, mileageKm: true, condition: true,
               brand: { select: { nameEn: true, nameKu: true, logoUrl: true } },
               model: { select: { nameEn: true, nameKu: true } },
+            },
+          },
+          // Feature 3: include accessory/service info in my listings
+          accessorySpec: {
+            select: {
+              serviceType: true, mobile: true, condition: true,
+              brand: true, model: true,
             },
           },
         },
@@ -375,18 +404,32 @@ export class ListingsService {
     }
   }
 
+  // ── update ─────────────────────────────────────────────────────────────────
   async update(id: string, userId: string, data: Partial<CreateListingDto>) {
-    if (!id || !userId) {
-      throw new BadRequestException('Listing ID and user ID are required');
-    }
-
+    if (!id || !userId) throw new BadRequestException('Listing ID and user ID are required');
     try {
       const listing = await this.prisma.listing.findFirst({ where: { id, userId } });
       if (!listing) throw new NotFoundException('Listing not found');
 
+      const { accessorySpec, ...rest } = data as any;
+
       const updated = await this.prisma.listing.update({
         where: { id },
-        data: data as any,
+        data: {
+          ...rest,
+          // Feature 3: upsert accessory spec if provided
+          ...(accessorySpec
+            ? {
+                accessorySpec: {
+                  upsert: {
+                    create: accessorySpec,
+                    update: accessorySpec,
+                  },
+                },
+              }
+            : {}),
+        },
+        include: { accessorySpec: true, vehicleSpec: true },
       });
 
       this.cache.del(`listings:detail:${id}`);
@@ -399,11 +442,9 @@ export class ListingsService {
     }
   }
 
+  // ── delete ─────────────────────────────────────────────────────────────────
   async delete(id: string, userId: string): Promise<void> {
-    if (!id || !userId) {
-      throw new BadRequestException('Listing ID and user ID are required');
-    }
-
+    if (!id || !userId) throw new BadRequestException('Listing ID and user ID are required');
     try {
       const listing = await this.prisma.listing.findFirst({ where: { id } });
       if (!listing) throw new NotFoundException('Listing not found');
@@ -419,7 +460,8 @@ export class ListingsService {
     }
   }
 
-  // IMPROVE: Builds deterministic, sorted cache key from query params
+  // ── Private helpers ────────────────────────────────────────────────────────
+
   private buildListCacheKey(params: Record<string, any>): string {
     const qs = Object.keys(params)
       .sort()
@@ -429,13 +471,14 @@ export class ListingsService {
     return `listings:list:${qs}`;
   }
 
-  // IMPROVE: Builds type-safe where clause from query params
   private buildWhereClause(params: ListingQueryParams): any {
     const where: any = { status: 'ACTIVE' };
 
-    if (params.type) where.type = params.type as any;
+    if (params.type)       where.type       = params.type as any;
     if (params.featured === 'true') where.featured = true;
     if (params.categoryId) where.categoryId = params.categoryId;
+    if (params.locationId) where.locationId = params.locationId;
+
     if (params.search) {
       where.OR = [
         { titleEn: { contains: params.search, mode: 'insensitive' } },
@@ -443,75 +486,86 @@ export class ListingsService {
         { titleAr: { contains: params.search, mode: 'insensitive' } },
       ];
     }
-    if (params.locationId) where.locationId = params.locationId;
 
     if (params.minPrice || params.maxPrice) {
       const minPrice = params.minPrice ? Number(params.minPrice) : undefined;
       const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
-
-      // IMPROVE: Validate price range
       if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
         throw new BadRequestException('minPrice cannot be greater than maxPrice');
       }
-
       where.price = {
         ...(minPrice ? { gte: minPrice } : {}),
         ...(maxPrice ? { lte: maxPrice } : {}),
       };
     }
 
-    const specWhere: any = {};
-    let hasSpecFilter = false;
+    // ── Vehicle spec filters ────────────────────────────────────────────────
+    const type = params.type as ListingType | undefined;
+    const isVehicleFilter = !type || VEHICLE_TYPES.has(type);
 
-    const directSpecFields = ['brandId', 'modelId', 'trimId', 'condition', 'fuelType', 'transmission'] as const;
-    for (const field of directSpecFields) {
-      if (params[field]) {
-        (specWhere as any)[field] = params[field];
+    if (isVehicleFilter) {
+      const specWhere: any = {};
+      let hasSpecFilter    = false;
+
+      for (const field of ['brandId', 'modelId', 'trimId', 'condition', 'fuelType', 'transmission'] as const) {
+        if (params[field]) { specWhere[field] = params[field]; hasSpecFilter = true; }
+      }
+
+      if (params.color) {
+        specWhere.color = { equals: params.color, mode: 'insensitive' };
+        hasSpecFilter   = true;
+      }
+
+      if (params.year) {
+        specWhere.year = Number(params.year);
+        hasSpecFilter  = true;
+      } else if (params.minYear || params.maxYear) {
+        const minYear = params.minYear ? Number(params.minYear) : undefined;
+        const maxYear = params.maxYear ? Number(params.maxYear) : undefined;
+        if (minYear !== undefined && maxYear !== undefined && minYear > maxYear) {
+          throw new BadRequestException('minYear cannot be greater than maxYear');
+        }
+        specWhere.year = {
+          ...(minYear ? { gte: minYear } : {}),
+          ...(maxYear ? { lte: maxYear } : {}),
+        };
         hasSpecFilter = true;
       }
-    }
 
-    if (params.color) {
-      specWhere.color = { equals: params.color, mode: 'insensitive' };
-      hasSpecFilter = true;
-    }
-
-    if (params.year) {
-      specWhere.year = Number(params.year);
-      hasSpecFilter = true;
-    } else if (params.minYear || params.maxYear) {
-      const minYear = params.minYear ? Number(params.minYear) : undefined;
-      const maxYear = params.maxYear ? Number(params.maxYear) : undefined;
-
-      // IMPROVE: Validate year range
-      if (minYear !== undefined && maxYear !== undefined && minYear > maxYear) {
-        throw new BadRequestException('minYear cannot be greater than maxYear');
+      if (params.minMileage || params.maxMileage) {
+        const min = params.minMileage ? Number(params.minMileage) : undefined;
+        const max = params.maxMileage ? Number(params.maxMileage) : undefined;
+        if (min !== undefined && max !== undefined && min > max) {
+          throw new BadRequestException('minMileage cannot be greater than maxMileage');
+        }
+        specWhere.mileageKm = {
+          ...(min ? { gte: min } : {}),
+          ...(max ? { lte: max } : {}),
+        };
+        hasSpecFilter = true;
       }
 
-      specWhere.year = {
-        ...(minYear ? { gte: minYear } : {}),
-        ...(maxYear ? { lte: maxYear } : {}),
-      };
-      hasSpecFilter = true;
+      if (hasSpecFilter) where.vehicleSpec = { is: specWhere };
     }
 
-    if (params.minMileage || params.maxMileage) {
-      const minMileage = params.minMileage ? Number(params.minMileage) : undefined;
-      const maxMileage = params.maxMileage ? Number(params.maxMileage) : undefined;
+    // ── Feature 3: Accessory / Service spec filters ─────────────────────────
+    const isAccessoryFilter = type && ACCESSORY_TYPES.has(type);
+    if (isAccessoryFilter) {
+      const accWhere: any = {};
+      let hasAccFilter    = false;
 
-      // IMPROVE: Validate mileage range
-      if (minMileage !== undefined && maxMileage !== undefined && minMileage > maxMileage) {
-        throw new BadRequestException('minMileage cannot be greater than maxMileage');
+      if (params.serviceType) {
+        accWhere.serviceType = { equals: params.serviceType, mode: 'insensitive' };
+        hasAccFilter = true;
       }
 
-      specWhere.mileageKm = {
-        ...(minMileage ? { gte: minMileage } : {}),
-        ...(maxMileage ? { lte: maxMileage } : {}),
-      };
-      hasSpecFilter = true;
-    }
+      if (params.mobile !== undefined) {
+        accWhere.mobile = params.mobile === 'true';
+        hasAccFilter = true;
+      }
 
-    if (hasSpecFilter) where.vehicleSpec = { is: specWhere };
+      if (hasAccFilter) where.accessorySpec = { is: accWhere };
+    }
 
     return where;
   }
