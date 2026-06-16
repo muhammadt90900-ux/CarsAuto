@@ -342,4 +342,22 @@
     "removeFrame": "删除第{n}帧",
     "uploadFrame": "上传第{n}帧（{angle}°）"
 }
+    {
+  "dealers": {
+    "follow": "关注",
+    "unfollow": "取消关注",
+    "followers": "关注者",
+    "followingSuccess": "您已关注此经销商",
+    "unfollowSuccess": "您已取消关注此经销商"
+  },
+  "dashboard": {
+    "savedListings": "已保存车辆",
+    "followedDealers": "已关注经销商",
+    "noFollowedDealers": "您还没有关注任何经销商",
+    "noFollowedDealersDesc": "关注您喜欢的经销商以查看最新车辆",
+    "latestListing": "最新车辆",
+    "noActiveListings": "暂无在售车辆"
+  }
+}
+
 }
