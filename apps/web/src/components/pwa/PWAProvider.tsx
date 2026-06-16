@@ -18,7 +18,7 @@ import {
 } from 'react';
 import { usePWA, type PWAState } from '@/hooks/usePWA';
 import { useAuthStore } from '@/store/auth.store';
-import { apiClient } from '@/lib/api';
+import { api as apiClient } from "@/lib/api";
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
