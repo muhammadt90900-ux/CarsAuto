@@ -341,7 +341,7 @@
       "translating": "Translating...",
       "translated": "Auto-translated"
     }
-    "currency": {
+,    "currency": {
   "converting": "Converting price...",
   "liveRates": "Live Exchange Rates",
   "fallbackRates": "Standard rates (offline)",
@@ -354,8 +354,7 @@
   "gbp": "British Pound",
   "thousandsIqd": "{{amount}}K IQD",
   "convertedNote": "at current exchange rate"
-}
-    {
+},
   "china": {
     "marketTitle": "China Market",
     "evBrands": "Chinese EV Brands",
@@ -372,8 +371,7 @@
     "wechatpay": {
       "name": "WeChat Pay",
       "hint": "Coming soon — requires approved merchant account"
-    }
-    {
+    },
   "chat": {
     "voiceNote":               "Voice note",
     "voiceNoteRecording":      "Recording…",
@@ -418,8 +416,7 @@
     "viewerReady":      "360° view ready — buyers can rotate the car",
     "removeFrame":      "Remove frame {n}",
     "uploadFrame":      "Upload frame {n} ({angle}°)"
-  }
-    {
+  },
   "dealers": {
     "follow": "Follow",
     "unfollow": "Unfollow",
@@ -436,5 +433,5 @@
     "noActiveListings": "No active listings"
   }
 }
-
+}
 }
