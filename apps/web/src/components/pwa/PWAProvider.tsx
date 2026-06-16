@@ -2,6 +2,9 @@
 /**
  * PWAProvider — wraps the app and exposes PWA state via React context.
  * Renders update banner and offline indicator automatically.
+ *
+ * Feature 8: On mount, fetches VAPID public key and subscribes the browser
+ * to Web Push, then POSTs the subscription to the backend.
  */
 
 import {
@@ -10,9 +13,12 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import { usePWA, type PWAState } from '@/hooks/usePWA';
+import { useAuthStore } from '@/store/auth.store';
+import { apiClient } from '@/lib/api';
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +28,80 @@ export function usePWAContext(): PWAState {
   const ctx = useContext(PWAContext);
   if (!ctx) throw new Error('usePWAContext must be used inside <PWAProvider>');
   return ctx;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// ── Push subscription hook ────────────────────────────────────────────────────
+
+function usePushSubscription(swRegistered: boolean) {
+  const user = useAuthStore((s) => s.user);
+  const subscribedRef = useRef(false);
+
+  useEffect(() => {
+    // Only run when: SW is ready, user is logged in, Push API supported, not already subscribed
+    if (
+      !swRegistered ||
+      !user ||
+      !('PushManager' in window) ||
+      !('serviceWorker' in navigator) ||
+      subscribedRef.current
+    ) return;
+
+    subscribedRef.current = true;
+
+    const subscribe = async () => {
+      try {
+        // 1. Fetch VAPID public key (public endpoint, no auth needed)
+        const keyRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/notifications/push/vapid-key`,
+        );
+        if (!keyRes.ok) return;
+        const { publicKey } = await keyRes.json();
+        if (!publicKey) return;
+
+        // 2. Get the active SW registration
+        const registration = await navigator.serviceWorker.ready;
+
+        // 3. Check existing subscription first (don't double-subscribe)
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) {
+          // Re-send to backend in case it was lost (idempotent upsert on backend)
+          await apiClient.post('/notifications/push/subscribe', { subscription: existing.toJSON() });
+          return;
+        }
+
+        // 4. Subscribe with VAPID key
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+
+        // 5. POST subscription object to backend
+        await apiClient.post('/notifications/push/subscribe', {
+          subscription: subscription.toJSON(),
+        });
+      } catch (err) {
+        // Don't log "permission denied" as an error — user choice
+        if ((err as Error).name !== 'NotAllowedError') {
+          console.warn('[PWA] Push subscription failed:', err);
+        }
+      }
+    };
+
+    subscribe();
+  }, [swRegistered, user]);
 }
 
 // ── Update Banner ─────────────────────────────────────────────────────────────
@@ -36,7 +116,6 @@ function UpdateBanner({
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Slide in after a short delay to avoid jarring first paint
     const t = setTimeout(() => setVisible(true), 300);
     return () => clearTimeout(t);
   }, []);
@@ -66,7 +145,7 @@ function UpdateBanner({
     >
       <span style={{ fontSize: '18px' }}>🔄</span>
       <span style={{ color: '#e2e8f0', fontSize: '0.875rem', fontWeight: 500 }}>
-        New version available
+        نوێکردنەوەی نوێ بەردەستە
       </span>
       <button
         onClick={onApply}
@@ -82,7 +161,7 @@ function UpdateBanner({
           flexShrink: 0,
         }}
       >
-        Update
+        نوێکردنەوە
       </button>
       <button
         onClick={onDismiss}
@@ -147,7 +226,7 @@ function OfflineBar() {
           animation: 'pulse 2s ease infinite',
         }}
       />
-      You're offline — showing cached content
+      بێ ئینتەرنێتی — ناوەڕۆکی کاشی پیشاندەدرێت
     </div>
   );
 }
@@ -160,19 +239,19 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
   const handleDismiss = useCallback(() => setUpdateDismissed(true), []);
 
+  // Feature 8: Subscribe to push when SW is ready
+  usePushSubscription(pwa.swRegistered);
+
   return (
     <PWAContext.Provider value={pwa}>
       {children}
 
-      {/* Offline indicator */}
       {pwa.isOffline && <OfflineBar />}
 
-      {/* SW update banner */}
       {pwa.updateAvailable && !updateDismissed && (
         <UpdateBanner onApply={pwa.applyUpdate} onDismiss={handleDismiss} />
       )}
 
-      {/* pulse keyframe — injected once */}
       <style>{`
         @keyframes pulse {
           0%,100% { opacity:1 }
