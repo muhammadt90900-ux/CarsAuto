@@ -1,8 +1,11 @@
 'use client';
 // components/features/dealers/DealerShowroomClient.tsx — Enterprise dealer showroom
+// FEATURE 9: Follow/Unfollow button + animated follower count added
 import { useState } from 'react';
 import Link from 'next/link';
-import { Star, Shield, MapPin, Phone, MessageCircle, Globe, Clock, ChevronRight, Car, Package } from 'lucide-react';
+import { Star, Shield, MapPin, Phone, MessageCircle, Globe, Clock, ChevronRight, Heart } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useDealerFollow } from '@/hooks/useDealerFollow';
 
 const MOCK_CARS = Array.from({ length: 6 }, (_, i) => ({
   id: `car-${i + 1}`,
@@ -19,31 +22,37 @@ const REVIEWS = [
 ];
 
 export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: string }) {
+  const t = useTranslations('dealers');
   const [activeTab, setActiveTab] = useState<'listings' | 'reviews' | 'about'>('listings');
   const fmtPrice = (v: number) => '$' + new Intl.NumberFormat('en-US').format(v);
   const fmtNum   = (v: number) => new Intl.NumberFormat('en-US').format(v);
 
- const dealerData = {
-  name: dealer?.nameEn ?? (dealer?.slug ?? '').replace(/-/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-  nameKu: dealer?.nameKu ?? 'ئۆتۆمبێل پریمیئوم',
-  city: dealer?.location?.city ?? dealer?.city ?? 'Erbil',
-  country: dealer?.location?.country ?? dealer?.country ?? 'Kurdistan Region',
-  tier: dealer?.tier ?? 'Platinum',
-  color: '#a855f7',
-  // API may return averageRating (Prisma field) or rating (DTO alias)
-  rating: dealer?.averageRating ?? dealer?.rating ?? 4.9,
-  // API may return totalReviews (_count.reviews), reviewCount, or reviews
-  reviews: dealer?._count?.reviews ?? dealer?.totalReviews ?? dealer?.reviewCount ?? 284,
-  // API may return activeListings or listings
-  listings: dealer?.activeListings ?? dealer?.listings ?? 142,
-  specialty: dealer?.specialties?.[0] ?? dealer?.specialty ?? 'Luxury & Premium Vehicles',
-  phone: dealer?.phone ?? '+964 750 123 4567',
-  whatsapp: dealer?.whatsapp ?? dealer?.phone ?? '+964 750 123 4567',
-  website: dealer?.website ?? null,
-  hours: dealer?.businessHours ?? dealer?.hours ?? 'Sat–Thu 9:00 AM – 7:00 PM',
-  established: dealer?.establishedYear ?? dealer?.established ?? 2015,
-  description: dealer?.descriptionEn ?? dealer?.description ?? 'One of the leading premium automotive dealerships.',
-};
+  const dealerData = {
+    id: dealer?.id ?? '',
+    name: dealer?.nameEn ?? (dealer?.slug ?? '').replace(/-/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+    nameKu: dealer?.nameKu ?? 'ئۆتۆمبێل پریمیئوم',
+    city: dealer?.location?.city ?? dealer?.city ?? 'Erbil',
+    country: dealer?.location?.country ?? dealer?.country ?? 'Kurdistan Region',
+    tier: dealer?.tier ?? 'Platinum',
+    color: '#a855f7',
+    rating: dealer?.averageRating ?? dealer?.rating ?? 4.9,
+    reviews: dealer?._count?.reviews ?? dealer?.totalReviews ?? dealer?.reviewCount ?? 284,
+    listings: dealer?.activeListings ?? dealer?.listings ?? 142,
+    specialty: dealer?.specialties?.[0] ?? dealer?.specialty ?? 'Luxury & Premium Vehicles',
+    phone: dealer?.phone ?? '+964 750 123 4567',
+    whatsapp: dealer?.whatsapp ?? dealer?.phone ?? '+964 750 123 4567',
+    website: dealer?.website ?? null,
+    hours: dealer?.businessHours ?? dealer?.hours ?? 'Sat–Thu 9:00 AM – 7:00 PM',
+    established: dealer?.establishedYear ?? dealer?.established ?? 2015,
+    description: dealer?.descriptionEn ?? dealer?.description ?? 'One of the leading premium automotive dealerships.',
+  };
+
+  // FEATURE 9: follow state — server provides isFollowing + _count.followers on detail fetch
+  const { isFollowing, followerCount, toggle, isPending } = useDealerFollow(
+    dealerData.id,
+    dealer?.isFollowing ?? false,
+    dealer?._count?.followers ?? 0,
+  );
 
   const TABS = [
     { id: 'listings', label: 'Listings', count: dealerData.listings },
@@ -62,7 +71,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 pb-16">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-6">
+        <nav className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-6" dir={locale === 'ku' || locale === 'ar' ? 'rtl' : 'ltr'}>
           <Link href={`/${locale}`} className="hover:text-[var(--gold)]">Home</Link>
           <ChevronRight className="w-3 h-3"/>
           <Link href={`/${locale}/dealers`} className="hover:text-[var(--gold)]">Dealers</Link>
@@ -97,18 +106,39 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="flex gap-4 sm:gap-6 flex-shrink-0">
-                {[
-                  { val: dealerData.rating + '★', lbl: 'Rating' },
-                  { val: dealerData.reviews,       lbl: 'Reviews' },
-                  { val: dealerData.listings,      lbl: 'Listings' },
-                ].map(s => (
-                  <div key={s.lbl} className="text-center">
-                    <div className="font-black text-[var(--gold)] text-2xl">{s.val}</div>
-                    <div className="text-white/30 text-[10px] uppercase tracking-wider">{s.lbl}</div>
-                  </div>
-                ))}
+              {/* Stats + Follow button */}
+              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                <div className="flex gap-4 sm:gap-6">
+                  {[
+                    { val: dealerData.rating + '★', lbl: 'Rating' },
+                    { val: dealerData.reviews,       lbl: 'Reviews' },
+                    { val: followerCount,            lbl: 'Followers' },
+                  ].map(s => (
+                    <div key={s.lbl} className="text-center">
+                      <div
+                        key={s.lbl === 'Followers' ? followerCount : undefined}
+                        className="font-black text-[var(--gold)] text-2xl transition-transform"
+                      >
+                        {s.val}
+                      </div>
+                      <div className="text-white/30 text-[10px] uppercase tracking-wider">{s.lbl}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* FEATURE 9: Follow/Unfollow button */}
+                <button
+                  onClick={toggle}
+                  disabled={isPending}
+                  aria-pressed={isFollowing}
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 disabled:opacity-60
+                    ${isFollowing
+                      ? 'bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30 hover:bg-[#ef4444]/25'
+                      : 'bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[var(--gold-light)]'}`}
+                >
+                  <Heart className={`w-4 h-4 transition-all ${isFollowing ? 'fill-[#ef4444]' : ''}`} />
+                  {isFollowing ? t('unfollow') : t('follow')}
+                </button>
               </div>
             </div>
 
