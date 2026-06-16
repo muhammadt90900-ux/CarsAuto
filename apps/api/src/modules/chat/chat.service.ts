@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +22,12 @@ export interface CloudinaryUploadResult {
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(ChatService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // ─── Helper: assert membership ──────────────────────────────────────────────
 
@@ -178,23 +184,79 @@ export class ChatService {
       },
     });
     await this.prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
+
+    // ── Feature 8: Push notification to recipient (fire-and-forget) ───────────
+    this.sendMessagePushToRecipient(chatId, senderId, content, safeType).catch((err) =>
+      this.logger.warn(`Push for message in chat ${chatId} failed: ${err.message}`),
+    );
+
     return msg;
+  }
+
+  /**
+   * Finds the other participant in the chat and sends them a push notification.
+   * Checks online status via read-receipt heuristic — if the recipient has read
+   * a message in the last 60 seconds, they are likely online so we skip the push.
+   */
+  private async sendMessagePushToRecipient(
+    chatId: string,
+    senderId: string,
+    content: string,
+    type: string,
+  ): Promise<void> {
+    // Get chat with participants
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      select: {
+        buyerId: true,
+        sellerId: true,
+        listing: { select: { titleKu: true, titleAr: true, titleEn: true } },
+      },
+    });
+    if (!chat) return;
+
+    const recipientId = chat.buyerId === senderId ? chat.sellerId : chat.buyerId;
+
+    // Get sender name
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderId },
+      select: { name: true },
+    });
+    if (!sender) return;
+
+    // Heuristic: skip push if recipient read something in the last 60s (likely online)
+    const recentRead = await this.prisma.messageReadReceipt.findFirst({
+      where: {
+        userId: recipientId,
+        message: { chatId },
+        readAt: { gte: new Date(Date.now() - 60_000) },
+      },
+    });
+    if (recentRead) return; // recipient is active in the chat
+
+    const bodyText = type === 'image'
+      ? '📷 صورە / Image'
+      : type === 'voice'
+      ? '🎤 وتەی دەنگی / Voice note'
+      : content.length > 60 ? content.slice(0, 60) + '…' : content;
+
+    const listingTitle = chat.listing?.titleKu ?? chat.listing?.titleEn ?? '';
+
+    await this.notifications.sendPush(recipientId, {
+      title:   sender.name,
+      titleKu: sender.name,
+      titleAr: sender.name,
+      body:    bodyText,
+      bodyKu:  bodyText,
+      bodyAr:  bodyText,
+      url:     `/ku/dashboard/chat/${chatId}`,
+      tag:     `chat-${chatId}`,
+      data:    { chatId, listingTitle, senderId },
+    });
   }
 
   // ─── Voice Notes (Feature 6) ────────────────────────────────────────────────
 
-  /**
-   * Validates and uploads a base64-encoded audio blob to Cloudinary,
-   * then persists a Message record with messageType='voice'.
-   *
-   * @param chatId   - UUID of the chat thread
-   * @param senderId - UUID of the sending user
-   * @param payload  - { audioBase64, duration, mimeType }
-   * @returns        - The created Message record
-   *
-   * @throws BadRequestException  if size > 2 MB or duration > 120 s
-   * @throws ForbiddenException   if sender is not a chat participant
-   */
   async sendVoiceNote(
     chatId: string,
     senderId: string,
@@ -204,33 +266,28 @@ export class ChatService {
 
     const { audioBase64, duration, mimeType } = payload;
 
-    // ── Validate size: base64 string → raw bytes ─────────────────────────────
     const sizeBytes = Math.ceil((audioBase64.length * 3) / 4);
-    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+    const MAX_BYTES = 2 * 1024 * 1024;
     if (sizeBytes > MAX_BYTES) {
       throw new BadRequestException('Voice note too large — maximum 2 MB');
     }
 
-    // ── Validate duration ────────────────────────────────────────────────────
     if (!Number.isFinite(duration) || duration <= 0 || duration > 120) {
       throw new BadRequestException('Voice note duration must be between 1 and 120 seconds');
     }
 
-    // ── Validate MIME type ───────────────────────────────────────────────────
     const allowedMimes = ['audio/webm', 'audio/mp4', 'audio/ogg'] as const;
     if (!allowedMimes.includes(mimeType as any)) {
       throw new BadRequestException(`Unsupported audio format: ${mimeType}`);
     }
 
-    // ── Upload to Cloudinary ─────────────────────────────────────────────────
     const audioUrl = await this.uploadAudioToCloudinary(audioBase64, mimeType, senderId);
 
-    // ── Persist message ──────────────────────────────────────────────────────
     const msg = await this.prisma.message.create({
       data: {
         chatId,
         senderId,
-        content:       '', // voice notes have no text content
+        content:       '',
         type:          'voice',
         messageType:   'voice',
         audioUrl,
@@ -245,15 +302,12 @@ export class ChatService {
 
     await this.prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
 
+    // Push for voice note too
+    this.sendMessagePushToRecipient(chatId, senderId, '', 'voice').catch(() => {});
+
     return msg;
   }
 
-  /**
-   * Uploads raw base64 audio to Cloudinary under resource_type:'video'
-   * (Cloudinary stores audio as video resources).
-   * Falls back gracefully: if Cloudinary is not configured, returns a
-   * data-URI so the message can still be delivered in development.
-   */
   private async uploadAudioToCloudinary(
     audioBase64: string,
     mimeType: string,
@@ -264,17 +318,14 @@ export class ChatService {
     const apiSecret  = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
-      // Development fallback — return data-URI (not suitable for production)
       return `data:${mimeType};base64,${audioBase64.slice(0, 100)}…`;
     }
 
-    // Build Cloudinary upload API call (unsigned upload via REST)
     const dataUri = `data:${mimeType};base64,${audioBase64}`;
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const folder = 'voice-notes';
     const publicId = `voice_${userId}_${timestamp}`;
 
-    // Build signature string (alphabetical parameter order)
     const crypto = await import('crypto');
     const sigString = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
     const signature = crypto.createHash('sha256').update(sigString).digest('hex');
@@ -286,7 +337,7 @@ export class ChatService {
     formData.append('signature',  signature);
     formData.append('folder',     folder);
     formData.append('public_id',  publicId);
-    formData.append('resource_type', 'video'); // Cloudinary stores audio under 'video'
+    formData.append('resource_type', 'video');
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
