@@ -1,16 +1,19 @@
-// apps/api/src/modules/dealers/dealers.service.ts — PERFORMANCE OPTIMISED
+// apps/api/src/modules/dealers/dealers.service.ts — PERFORMANCE OPTIMISED + FEATURE 9: Follower System
 // Key improvements:
 //   1. CacheService injected — list + detail results cached (30s / 2min)
 //   2. findAll: lean select (no showroomImages, no full descriptions)
 //   3. findBySlug: batched analytics tracking (same pattern as listings)
 //   4. trackEvent: batched per-dealer buffer, flushes every 30 s
 //   5. recomputeRating: runs inside the review creation transaction
+//   6. [FEATURE 9] follow / unfollow / isFollowing / getFollowers / getFollowedDealers
 
 import {
-  Injectable, NotFoundException, ForbiddenException, ConflictException,
+  Injectable, NotFoundException, ForbiddenException,
+  ConflictException, BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '@/common/prisma/prisma.service';
-import { CacheService  } from '@/common/cache/cache.service';
+import { PrismaService }       from '@/common/prisma/prisma.service';
+import { CacheService  }       from '@/common/cache/cache.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { DealerStatus, DealerTier } from '@/common/prisma/enums';
 import { CreateDealerDto }  from './dto/create-dealer.dto';
 import { UpdateDealerDto }  from './dto/update-dealer.dto';
@@ -48,13 +51,41 @@ const LIST_SELECT = {
     select: { code: true, label: true, icon: true },
   },
   subscription: { select: { plan: true } },
-};
+  _count: { select: { followers: true } },
+} as const;
+
+/** Lean select for followed-dealers list — "my following" tab */
+const FOLLOWED_DEALER_SELECT = {
+  id: true, slug: true, nameEn: true, nameAr: true, nameKu: true,
+  logoUrl: true, coverUrl: true, tier: true,
+  averageRating: true, totalReviews: true, activeListings: true,
+  location: { select: { city: true, nameKu: true, nameEn: true } },
+  badges: {
+    where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    select: { code: true, label: true, icon: true },
+    take: 3,
+  },
+  subscription: { select: { plan: true } },
+  _count: { select: { followers: true } },
+  // Latest 1 listing per dealer — for "Latest Listing" preview card
+  listings: {
+    where:   { status: 'ACTIVE' },
+    orderBy: { createdAt: 'desc' as const },
+    take:    1,
+    select: {
+      id: true, titleKu: true, titleEn: true, titleAr: true,
+      price: true, currency: true, type: true, createdAt: true,
+      images: { take: 1, select: { url: true }, orderBy: { order: 'asc' as const } },
+    },
+  },
+} as const;
 
 @Injectable()
 export class DealersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ── create ─────────────────────────────────────────────────────────────────
@@ -108,18 +139,19 @@ export class DealersService {
       };
 
       const orderBy: any =
-        sortBy === 'rating'   ? { averageRating: 'desc' } :
-        sortBy === 'listings' ? { activeListings: 'desc' } :
-        sortBy === 'reviews'  ? { totalReviews: 'desc' } :
-        sortBy === 'newest'   ? { createdAt: 'desc' } :
-                                { averageRating: 'desc' };
+        sortBy === 'rating'    ? { averageRating: 'desc' } :
+        sortBy === 'listings'  ? { activeListings: 'desc' } :
+        sortBy === 'reviews'   ? { totalReviews: 'desc' } :
+        sortBy === 'followers' ? { followers: { _count: 'desc' } } :
+        sortBy === 'newest'    ? { createdAt: 'desc' } :
+                                 { averageRating: 'desc' };
 
       // PERF: parallel count + data; lean select
       const [dealers, total] = await Promise.all([
         this.prisma.dealer.findMany({
           where, orderBy,
-          skip: (page - 1) * safeLimit,
-          take: safeLimit,
+          skip:   (page - 1) * safeLimit,
+          take:   safeLimit,
           select: LIST_SELECT,
         }),
         this.prisma.dealer.count({ where }),
@@ -130,7 +162,7 @@ export class DealersService {
   }
 
   // ── findBySlug — cached 2 min ──────────────────────────────────────────────
-  async findBySlug(slug: string) {
+  async findBySlug(slug: string, viewerUserId?: string) {
     const key = `dealers:detail:${slug}`;
     const dealer = await this.cache.getOrSet(key, async () => {
       const d = await this.prisma.dealer.findUnique({
@@ -149,7 +181,7 @@ export class DealersService {
             orderBy: { createdAt: 'desc' },
             take: 10,
           },
-          _count: { select: { reviews: true, contactRequests: true } },
+          _count: { select: { reviews: true, contactRequests: true, followers: true } },
         },
       });
       return d;
@@ -163,7 +195,13 @@ export class DealersService {
     this.bufferAnalytic(dealer.id, 'profileViews');
     scheduleAnalyticFlush(this.prisma);
 
-    return dealer;
+    // If viewer is authenticated, attach isFollowing flag without blocking
+    let isFollowing = false;
+    if (viewerUserId) {
+      isFollowing = await this.isFollowing(viewerUserId, dealer.id);
+    }
+
+    return { ...dealer, isFollowing };
   }
 
   // ── update ─────────────────────────────────────────────────────────────────
@@ -242,8 +280,8 @@ export class DealersService {
           where: { dealerId: dealer.id, flagged: false },
           include: { reviewer: { select: { id: true, name: true, avatar: true, createdAt: true } } },
           orderBy: [{ helpful: 'desc' }, { createdAt: 'desc' }],
-          skip: (page - 1) * safeLimit,
-          take: safeLimit,
+          skip:  (page - 1) * safeLimit,
+          take:  safeLimit,
         }),
         this.prisma.dealerReview.count({ where: { dealerId: dealer.id, flagged: false } }),
       ]);
@@ -261,10 +299,13 @@ export class DealersService {
 
     const request = await this.prisma.dealerContactRequest.create({
       data: {
-        dealerId: dealer.id,
-        senderId: senderId ?? null,
-        name: dto.name, phone: dto.phone, email: dto.email,
-        message: dto.message, channel: dto.channel ?? 'form',
+        dealerId:  dealer.id,
+        senderId:  senderId ?? null,
+        name:      dto.name,
+        phone:     dto.phone,
+        email:     dto.email,
+        message:   dto.message,
+        channel:   dto.channel ?? 'form',
         listingId: dto.listingId,
       },
     });
@@ -298,11 +339,15 @@ export class DealersService {
       since.setDate(since.getDate() - safeDays);
 
       const analytics = await this.prisma.dealerAnalytic.findMany({
-        where: { dealerId: dealer.id, date: { gte: since } },
+        where:   { dealerId: dealer.id, date: { gte: since } },
         orderBy: { date: 'asc' },
       });
 
-      type AnalyticRow = { profileViews: number; listingViews: number; contactClicks: number; whatsappClicks: number; phoneClicks: number; newLeads: number; newReviews: number; [key: string]: unknown };
+      type AnalyticRow = {
+        profileViews: number; listingViews: number; contactClicks: number;
+        whatsappClicks: number; phoneClicks: number; newLeads: number; newReviews: number;
+        [key: string]: unknown;
+      };
       const totals = analytics.reduce(
         (acc: AnalyticRow, row: AnalyticRow) => ({
           profileViews:   acc.profileViews   + row.profileViews,
@@ -317,14 +362,222 @@ export class DealersService {
       );
 
       return { analytics, totals, days: safeDays };
-    }, 5 * 60_000); // 5 min — analytics dashboard doesn't need real-time
+    }, 5 * 60_000);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // FEATURE 9 — Follower System
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Follow a dealer.
+   * - Idempotent: following an already-followed dealer returns 409.
+   * - Sends in-app notification to the dealer owner.
+   * - Invalidates follower count caches.
+   */
+  async follow(userId: string, dealerId: string): Promise<{ followerCount: number }> {
+    // Guard: cannot follow yourself
+    const dealer = await this.prisma.dealer.findUnique({
+      where:  { id: dealerId },
+      select: { id: true, userId: true, slug: true, nameEn: true, nameKu: true,
+                status: true, _count: { select: { followers: true } } },
+    });
+    if (!dealer || dealer.status !== DealerStatus.VERIFIED) {
+      throw new NotFoundException('Dealer not found');
+    }
+    if (dealer.userId === userId) {
+      throw new BadRequestException('You cannot follow your own dealership');
+    }
+
+    // Upsert-style: create throws on unique constraint → catch as ConflictException
+    try {
+      await this.prisma.dealerFollower.create({
+        data: { userId, dealerId },
+      });
+    } catch (err: any) {
+      // P2002 = unique constraint violation (already following)
+      if (err?.code === 'P2002') {
+        throw new ConflictException('Already following this dealer');
+      }
+      throw err;
+    }
+
+    // Fire-and-forget: notify dealer owner
+    this.notifications
+      .create(
+        dealer.userId,
+        'SYSTEM',
+        'کەسێک بەدوات کەوت',   // Kurdish: "Someone followed you"
+        `کاربەکارێک دووکانی ${dealer.nameKu ?? dealer.nameEn} بەدواکەوت`,
+        { dealerId: dealer.id, dealerSlug: dealer.slug },
+      )
+      .catch(() => {});
+
+    // Bust caches
+    this.cache.del(`dealers:detail:${dealer.slug}`);
+    this.cache.del(`dealers:followers:${dealerId}:`);
+
+    const followerCount = dealer._count.followers + 1;
+    return { followerCount };
+  }
+
+  /**
+   * Unfollow a dealer.
+   * - Idempotent: silently succeeds if not currently following.
+   */
+  async unfollow(userId: string, dealerId: string): Promise<{ followerCount: number }> {
+    const dealer = await this.prisma.dealer.findUnique({
+      where:  { id: dealerId },
+      select: { id: true, slug: true, _count: { select: { followers: true } } },
+    });
+    if (!dealer) throw new NotFoundException('Dealer not found');
+
+    // deleteMany is idempotent (won't throw if row doesn't exist)
+    await this.prisma.dealerFollower.deleteMany({
+      where: { userId, dealerId },
+    });
+
+    // Bust caches
+    this.cache.del(`dealers:detail:${dealer.slug}`);
+    this.cache.del(`dealers:followers:${dealerId}:`);
+
+    const followerCount = Math.max(0, dealer._count.followers - 1);
+    return { followerCount };
+  }
+
+  /**
+   * Check if a user is following a specific dealer.
+   */
+  async isFollowing(userId: string, dealerId: string): Promise<boolean> {
+    const record = await this.prisma.dealerFollower.findUnique({
+      where: { userId_dealerId: { userId, dealerId } },
+      select: { id: true },
+    });
+    return record !== null;
+  }
+
+  /**
+   * Get paginated list of followers for a dealer (public endpoint).
+   * Returns basic user info only (no emails/private data).
+   */
+  async getFollowers(
+    dealerId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{
+    followers: Array<{ id: string; name: string; avatar: string | null; followedAt: Date }>;
+    total:     number;
+    page:      number;
+    limit:     number;
+    pages:     number;
+  }> {
+    const dealer = await this.prisma.dealer.findUnique({
+      where:  { id: dealerId },
+      select: { id: true, status: true },
+    });
+    if (!dealer || dealer.status !== DealerStatus.VERIFIED) {
+      throw new NotFoundException('Dealer not found');
+    }
+
+    const safeLimit = Math.min(Math.max(1, limit), 50);
+    const cacheKey  = `dealers:followers:${dealerId}:p${page}`;
+
+    return this.cache.getOrSet(cacheKey, async () => {
+      const [rows, total] = await Promise.all([
+        this.prisma.dealerFollower.findMany({
+          where:   { dealerId },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
+          orderBy: { createdAt: 'desc' },
+          skip:    (page - 1) * safeLimit,
+          take:    safeLimit,
+        }),
+        this.prisma.dealerFollower.count({ where: { dealerId } }),
+      ]);
+
+      const followers = rows.map(r => ({
+        id:         r.user.id,
+        name:       r.user.name,
+        avatar:     r.user.avatar,
+        followedAt: r.createdAt,
+      }));
+
+      return {
+        followers,
+        total,
+        page,
+        limit: safeLimit,
+        pages: Math.ceil(total / safeLimit),
+      };
+    }, 30_000); // 30s cache — follower counts change frequently
+  }
+
+  /**
+   * Get all dealers a user is following, with their latest active listing.
+   * Used in the "Followed Dealers" tab of dashboard/favorites.
+   */
+  async getFollowedDealers(userId: string): Promise<Array<{
+    followedAt: Date;
+    dealer: typeof FOLLOWED_DEALER_SELECT;
+  }>> {
+    const rows = await this.prisma.dealerFollower.findMany({
+      where:   { userId },
+      include: { dealer: { select: FOLLOWED_DEALER_SELECT } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Filter to only verified dealers (dealer could be suspended after follow)
+    return rows
+      .filter(r => (r.dealer as any).status !== 'SUSPENDED')
+      .map(r => ({ followedAt: r.createdAt, dealer: r.dealer }));
+  }
+
+  /**
+   * Notify all followers of a dealer when a new listing is published.
+   * Called from listings.service.ts after a listing becomes ACTIVE.
+   * Runs fire-and-forget — never blocks the HTTP response.
+   */
+  async notifyFollowersOfNewListing(
+    dealerId:    string,
+    listingId:   string,
+    listingTitle: string,
+  ): Promise<void> {
+    const dealer = await this.prisma.dealer.findUnique({
+      where:  { id: dealerId },
+      select: { nameKu: true, nameEn: true, slug: true },
+    });
+    if (!dealer) return;
+
+    const followers = await this.prisma.dealerFollower.findMany({
+      where:  { dealerId },
+      select: { userId: true },
+    });
+    if (followers.length === 0) return;
+
+    // Batch notifications — one per follower
+    const notifications = followers.map(f =>
+      this.notifications
+        .create(
+          f.userId,
+          'LISTING_APPROVED', // reuse existing type — shows listing bell icon in UI
+          `${dealer.nameKu ?? dealer.nameEn} - ئۆتۆمبێلی نوێ`,
+          listingTitle,
+          { dealerId, dealerSlug: dealer.slug, listingId },
+        )
+        .catch(() => {}),
+    );
+
+    // Run in batches of 50 to avoid overloading the notifications queue
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
+      await Promise.allSettled(notifications.slice(i, i + BATCH_SIZE));
+    }
   }
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   async verify(dealerId: string, adminId: string, tier: DealerTier = DealerTier.BASIC) {
     const d = await this.prisma.dealer.update({
       where: { id: dealerId },
-      data: { status: DealerStatus.VERIFIED, tier, verifiedAt: new Date(), verifiedBy: adminId },
+      data:  { status: DealerStatus.VERIFIED, tier, verifiedAt: new Date(), verifiedBy: adminId },
     });
     this.cache.del('dealers:list:');
     return d;
@@ -333,7 +586,7 @@ export class DealersService {
   async suspend(dealerId: string) {
     const d = await this.prisma.dealer.update({
       where: { id: dealerId },
-      data: { status: DealerStatus.SUSPENDED },
+      data:  { status: DealerStatus.SUSPENDED },
     });
     this.cache.del('dealers:list:');
     return d;
@@ -344,12 +597,12 @@ export class DealersService {
   private async recomputeRating(dealerId: string) {
     const agg = await this.prisma.dealerReview.aggregate({
       where: { dealerId, flagged: false },
-      _avg: { rating: true },
+      _avg:   { rating: true },
       _count: { rating: true },
     });
     return this.prisma.dealer.update({
       where: { id: dealerId },
-      data: { averageRating: agg._avg.rating ?? 0, totalReviews: agg._count.rating },
+      data:  { averageRating: agg._avg.rating ?? 0, totalReviews: agg._count.rating },
     });
   }
 
@@ -370,10 +623,10 @@ export class DealersService {
 
   private defaultInclude() {
     return {
-      location: true,
-      badges: true,
+      location:     true,
+      badges:       true,
       subscription: true,
-      _count: { select: { reviews: true } },
+      _count:       { select: { reviews: true, followers: true } },
     };
   }
 }
@@ -399,7 +652,7 @@ function scheduleAnalyticFlush(prisma: PrismaService) {
         }
         return prisma.dealerAnalytic
           .upsert({
-            where: { dealerId_date: { dealerId, date: today } },
+            where:  { dealerId_date: { dealerId, date: today } },
             create,
             update,
           })

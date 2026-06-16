@@ -1,7 +1,7 @@
-// apps/api/src/modules/dealers/dealers.controller.ts
+// apps/api/src/modules/dealers/dealers.controller.ts — FEATURE 9: Follower System added
 
 import {
-  Controller, Get, Post, Patch, Param, Body, Query,
+  Controller, Get, Post, Delete, Patch, Param, Body, Query,
   UseGuards, Request, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { DealersService } from './dealers.service';
@@ -28,10 +28,25 @@ export class DealersController {
     return this.service.findAll(query);
   }
 
-  /** GET /dealers/:slug — public showroom */
+  /** GET /dealers/me/following — dealers the current user follows. MUST be before :slug. */
+  @Get('me/following')
+  @UseGuards(JwtAuthGuard)
+  getFollowedDealers(@Request() req: any) {
+    return this.service.getFollowedDealers(req.user.id);
+  }
+
+  /** GET /dealers/me/analytics?days=30 */
+  @Get('me/analytics')
+  @UseGuards(JwtAuthGuard)
+  analytics(@Request() req: any, @Query('days') days = 30) {
+    return this.service.getAnalytics(req.user.id, +days);
+  }
+
+  /** GET /dealers/:slug — public showroom (attaches isFollowing if authenticated) */
   @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.service.findBySlug(slug);
+  @UseGuards(OptionalJwtGuard)
+  findOne(@Param('slug') slug: string, @Request() req: any) {
+    return this.service.findBySlug(slug, req.user?.id);
   }
 
   /** GET /dealers/:slug/reviews */
@@ -44,6 +59,16 @@ export class DealersController {
     return this.service.getReviews(slug, +page, +limit);
   }
 
+  /** GET /dealers/:id/followers — paginated follower list (public) */
+  @Get(':id/followers')
+  getFollowers(
+    @Param('id') id: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ) {
+    return this.service.getFollowers(id, +page, +limit);
+  }
+
   /** POST /dealers/:slug/contact — contact form + WhatsApp */
   @Post(':slug/contact')
   @UseGuards(OptionalJwtGuard)
@@ -54,6 +79,24 @@ export class DealersController {
     @Request() req: any,
   ) {
     return this.service.contactDealer(slug, dto, req.user?.id);
+  }
+
+  // ── Follower endpoints (authenticated) ─────────────────────────────────
+
+  /** POST /dealers/:id/follow */
+  @Post(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  follow(@Param('id') id: string, @Request() req: any) {
+    return this.service.follow(req.user.id, id);
+  }
+
+  /** DELETE /dealers/:id/follow */
+  @Delete(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  unfollow(@Param('id') id: string, @Request() req: any) {
+    return this.service.unfollow(req.user.id, id);
   }
 
   // ── Authenticated + verified dealer endpoints ──────────────────────────
@@ -70,13 +113,6 @@ export class DealersController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   update(@Body() dto: UpdateDealerDto, @Request() req: any) {
     return this.service.update(req.user.id, dto);
-  }
-
-  /** GET /dealers/me/analytics?days=30 */
-  @Get('me/analytics')
-  @UseGuards(JwtAuthGuard)
-  analytics(@Request() req: any, @Query('days') days = 30) {
-    return this.service.getAnalytics(req.user.id, +days);
   }
 
   // ── Review endpoint (authenticated + verified buyer) ───────────────────
