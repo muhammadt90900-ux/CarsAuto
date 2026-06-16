@@ -15,37 +15,53 @@ import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('notifications')
-@UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  /** All notifications for the current user (newest first, max 50) */
+  // ---------------------------------------------------------------------------
+  // Public endpoints (no auth required)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns the VAPID public key for the browser to use when subscribing.
+   * This is intentionally public — the public key is not a secret.
+   */
+  @Get('push/vapid-key')
+  getVapidKey() {
+    return { publicKey: this.notificationsService.getVapidPublicKey() };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Authenticated endpoints
+  // ---------------------------------------------------------------------------
+
+  @UseGuards(JwtAuthGuard)
   @Get()
   getAll(@Request() req: any) {
     return this.notificationsService.getMyNotifications(req.user.userId);
   }
 
-  /** Total unread notification count */
+  @UseGuards(JwtAuthGuard)
   @Get('unread-count')
   unreadCount(@Request() req: any) {
     return this.notificationsService.getUnreadCount(req.user.userId);
   }
 
-  /** Mark a single notification as read */
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   markOneRead(@Param('id') id: string, @Request() req: any) {
     return this.notificationsService.markOneRead(id, req.user.userId);
   }
 
-  /** Mark every notification as read */
+  @UseGuards(JwtAuthGuard)
   @Patch('read-all')
   @HttpCode(HttpStatus.NO_CONTENT)
   markAllRead(@Request() req: any) {
     return this.notificationsService.markAllRead(req.user.userId);
   }
 
-  /** Delete (dismiss) a single notification */
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteOne(@Param('id') id: string, @Request() req: any) {
@@ -57,12 +73,14 @@ export class NotificationsController {
   // ---------------------------------------------------------------------------
 
   /** Register a browser push subscription for the current user */
+  @UseGuards(JwtAuthGuard)
   @Post('push/subscribe')
   subscribePush(@Request() req: any, @Body() body: { subscription: object }) {
     return this.notificationsService.savePushSubscription(req.user.userId, body.subscription);
   }
 
   /** Unregister a browser push subscription */
+  @UseGuards(JwtAuthGuard)
   @Delete('push/subscribe')
   @HttpCode(HttpStatus.NO_CONTENT)
   unsubscribePush(@Request() req: any, @Body() body: { endpoint: string }) {
@@ -70,10 +88,10 @@ export class NotificationsController {
   }
 
   // ---------------------------------------------------------------------------
-  // Saved-search & favourite alerts preferences
+  // Preferences
   // ---------------------------------------------------------------------------
 
-  /** Update alert preferences (email / push toggles) */
+  @UseGuards(JwtAuthGuard)
   @Patch('preferences')
   updatePreferences(
     @Request() req: any,
@@ -88,7 +106,7 @@ export class NotificationsController {
     return this.notificationsService.updatePreferences(req.user.userId, body);
   }
 
-  /** Get alert preferences */
+  @UseGuards(JwtAuthGuard)
   @Get('preferences')
   getPreferences(@Request() req: any) {
     return this.notificationsService.getPreferences(req.user.userId);
