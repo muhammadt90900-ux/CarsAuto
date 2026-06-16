@@ -360,4 +360,21 @@
     "removeFrame": "إزالة الإطار {n}",
     "uploadFrame": "رفع الإطار {n} ({angle}°)"
 }
+    {
+  "dealers": {
+    "follow": "متابعة",
+    "unfollow": "إلغاء المتابعة",
+    "followers": "متابعون",
+    "followingSuccess": "تمت المتابعة بنجاح",
+    "unfollowSuccess": "تم إلغاء المتابعة"
+  },
+  "dashboard": {
+    "savedListings": "السيارات المحفوظة",
+    "followedDealers": "الوكلاء المتابَعون",
+    "noFollowedDealers": "لا تتابع أي وكيل حتى الآن",
+    "noFollowedDealersDesc": "تابع وكلاءك المفضلين لرؤية أحدث سياراتهم",
+    "latestListing": "آخر سيارة",
+    "noActiveListings": "لا توجد سيارات نشطة"
+  }
+}
 }
