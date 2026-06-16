@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // IMPROVE: Added input validation and error handling constants
 const MAX_PAGE_LIMIT = 100;
@@ -10,7 +11,10 @@ const MIN_PAGE = 1;
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // IMPROVE: Added validation for pagination inputs
   private validatePagination(page: number = 1, limit: number = DEFAULT_PAGE_LIMIT) {
@@ -213,12 +217,28 @@ export class AdminService {
   // IMPROVE: Added error handling
   async approveListing(id: string) {
     if (!id) throw new BadRequestException('Listing ID is required');
-    
+
     try {
-      return await this.prisma.listing.update({
+      const listing = await this.prisma.listing.update({
         where: { id },
         data: { status: 'ACTIVE' },
+        select: { id: true, userId: true, titleKu: true, titleAr: true, titleEn: true },
       });
+
+      // Feature 8: Push notification to listing owner
+      this.notifications.sendPush(listing.userId, {
+        title:   'Listing Approved ✅',
+        titleKu: 'ئۆگێری تۆمارەکەت ✅',
+        titleAr: 'تمت الموافقة على إعلانك ✅',
+        body:    listing.titleKu ?? listing.titleEn ?? 'Your listing is now live',
+        bodyKu:  `${listing.titleKu ?? ''} — ئێستا بەردەستە`,
+        bodyAr:  `${listing.titleAr ?? listing.titleKu ?? ''} — متاح الآن`,
+        url:     `/ku/listings/${listing.id}`,
+        tag:     `listing-status-${listing.id}`,
+        data:    { listingId: listing.id, status: 'ACTIVE' },
+      }).catch(() => {});
+
+      return listing;
     } catch (err: any) {
       if (err.code === 'P2025') {
         throw new NotFoundException(`Listing ${id} not found`);
@@ -231,12 +251,28 @@ export class AdminService {
   // IMPROVE: Added error handling
   async rejectListing(id: string) {
     if (!id) throw new BadRequestException('Listing ID is required');
-    
+
     try {
-      return await this.prisma.listing.update({
+      const listing = await this.prisma.listing.update({
         where: { id },
         data: { status: 'REJECTED' },
+        select: { id: true, userId: true, titleKu: true, titleAr: true, titleEn: true },
       });
+
+      // Feature 8: Push notification to listing owner
+      this.notifications.sendPush(listing.userId, {
+        title:   'Listing Rejected ❌',
+        titleKu: 'ئۆگێری تۆمارەکەت رەتکرایەوە ❌',
+        titleAr: 'تم رفض إعلانك ❌',
+        body:    listing.titleKu ?? listing.titleEn ?? 'Your listing was not approved',
+        bodyKu:  `${listing.titleKu ?? ''} — پەسەندنەکرا`,
+        bodyAr:  `${listing.titleAr ?? listing.titleKu ?? ''} — لم تتم الموافقة`,
+        url:     `/ku/dashboard/listings`,
+        tag:     `listing-status-${listing.id}`,
+        data:    { listingId: listing.id, status: 'REJECTED' },
+      }).catch(() => {});
+
+      return listing;
     } catch (err: any) {
       if (err.code === 'P2025') {
         throw new NotFoundException(`Listing ${id} not found`);
