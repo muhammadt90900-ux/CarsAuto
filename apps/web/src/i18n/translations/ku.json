@@ -360,4 +360,21 @@
     "removeFrame": "لابردنی فریمی {n}",
     "uploadFrame": "بارکردنی فریمی {n} ({angle}°)"
 }
+    {
+  "dealers": {
+    "follow": "بەدواداچوون",
+    "unfollow": "وازهێنان لە بەدواداچوون",
+    "followers": "بەدواداچووان",
+    "followingSuccess": "بەسەرکەوتوویی بەدواداچوویت",
+    "unfollowSuccess": "وازت هێنا لە بەدواداچوون"
+  },
+  "dashboard": {
+    "savedListings": "ئۆتۆمبێلی هەڵگیراو",
+    "followedDealers": "دووکانی بەدواداچوو",
+    "noFollowedDealers": "هیچ دووکانێک بەدواداچوو نییت",
+    "noFollowedDealersDesc": "دووکانەکانی پەسەندت بەدواداچۆ بۆ ئەوەی ئۆتۆمبێلی نوێیان ببینیت",
+    "latestListing": "دوایین ئۆتۆمبێل",
+    "noActiveListings": "هیچ ئۆتۆمبێلێکی چالاک نییە"
+  }
+}
 }
