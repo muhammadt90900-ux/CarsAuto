@@ -15,6 +15,20 @@ export type NotificationType =
   | 'offer_declined'
   | 'system';
 
+export interface PushNotificationPayload {
+  title: string;
+  titleKu?: string;
+  titleAr?: string;
+  body: string;
+  bodyKu?: string;
+  bodyAr?: string;
+  icon?: string;
+  badge?: string;
+  url?: string;          // click action URL
+  tag?: string;          // notification grouping
+  data?: Record<string, unknown>;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -26,10 +40,12 @@ export class NotificationsService {
     // Configure VAPID once on startup (keys come from env)
     if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       webpush.setVapidDetails(
-        `mailto:${process.env.VAPID_EMAIL ?? 'noreply@example.com'}`,
+        `mailto:${process.env.VAPID_EMAIL ?? 'noreply@carsauto.iq'}`,
         process.env.VAPID_PUBLIC_KEY,
         process.env.VAPID_PRIVATE_KEY,
       );
+    } else {
+      this.logger.warn('VAPID keys not configured — push notifications disabled');
     }
   }
 
@@ -159,7 +175,6 @@ export class NotificationsService {
         const prefs = await this.getPreferences(search.userId);
         if (!prefs.savedSearchAlerts) return;
 
-        // Simple keyword matching — replace with full-text / Elasticsearch as needed
         const filters = search.filters as Record<string, unknown>;
         const matchesCategory = !filters.categoryId || filters.categoryId === listing.categoryId;
         const matchesMaxPrice =
@@ -181,6 +196,10 @@ export class NotificationsService {
   // Push subscriptions
   // ---------------------------------------------------------------------------
 
+  getVapidPublicKey(): string {
+    return process.env.VAPID_PUBLIC_KEY ?? '';
+  }
+
   async savePushSubscription(userId: string, subscription: object) {
     const endpoint = (subscription as { endpoint: string }).endpoint;
     await this.prisma.pushSubscription.upsert({
@@ -194,27 +213,63 @@ export class NotificationsService {
     await this.prisma.pushSubscription.deleteMany({ where: { userId, endpoint } });
   }
 
-  async sendWebPush(userId: string, payload: { title: string; body: string; data?: unknown }) {
+  /**
+   * Send a multilingual push notification to all of a user's subscriptions.
+   * Picks the best locale title/body based on the user's stored language preference.
+   * Handles 410 Gone (expired) by deleting the subscription.
+   */
+  async sendPush(userId: string, payload: PushNotificationPayload): Promise<void> {
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+
     const subscriptions = await this.prisma.pushSubscription.findMany({ where: { userId } });
+    if (subscriptions.length === 0) return;
+
+    // Resolve best-fit title/body (fall back to EN → original)
+    const title = payload.titleKu ?? payload.title;
+    const body  = payload.bodyKu  ?? payload.body;
+
+    const pushData = {
+      title,
+      body,
+      icon:  payload.icon  ?? '/icons/icon-192x192.png',
+      badge: payload.badge ?? '/icons/icon-72x72.png',
+      url:   payload.url   ?? '/ku',
+      tag:   payload.tag   ?? 'carsauto-notification',
+      data:  payload.data  ?? {},
+      // Include all locale variants so SW can pick based on client locale
+      titleKu: payload.titleKu,
+      titleAr: payload.titleAr,
+      bodyKu:  payload.bodyKu,
+      bodyAr:  payload.bodyAr,
+    };
 
     await Promise.all(
       subscriptions.map(async (sub: any) => {
         try {
           await webpush.sendNotification(
             sub.subscription as unknown as webpush.PushSubscription,
-            JSON.stringify(payload),
+            JSON.stringify(pushData),
           );
         } catch (err: unknown) {
-          // 410 Gone = subscription expired; clean up
           const status = (err as { statusCode?: number }).statusCode;
           if (status === 410 || status === 404) {
-            await this.prisma.pushSubscription.delete({ where: { id: sub.id } });
+            // Subscription expired — clean up silently
+            await this.prisma.pushSubscription
+              .delete({ where: { id: sub.id } })
+              .catch(() => {});
           } else {
-            this.logger.error('Web push failed', err);
+            this.logger.error(`Web push failed for user ${userId}`, err);
           }
         }
       }),
     );
+  }
+
+  /**
+   * @deprecated Use sendPush() instead — kept for backward compatibility.
+   */
+  async sendWebPush(userId: string, payload: { title: string; body: string; data?: unknown }) {
+    return this.sendPush(userId, { title: payload.title, body: payload.body });
   }
 
   // ---------------------------------------------------------------------------
