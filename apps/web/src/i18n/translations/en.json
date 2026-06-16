@@ -419,4 +419,22 @@
     "removeFrame":      "Remove frame {n}",
     "uploadFrame":      "Upload frame {n} ({angle}°)"
   }
+    {
+  "dealers": {
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followers": "Followers",
+    "followingSuccess": "You are now following this dealer",
+    "unfollowSuccess": "You unfollowed this dealer"
+  },
+  "dashboard": {
+    "savedListings": "Saved Listings",
+    "followedDealers": "Followed Dealers",
+    "noFollowedDealers": "You're not following any dealers yet",
+    "noFollowedDealersDesc": "Follow your favorite dealers to see their latest listings",
+    "latestListing": "Latest Listing",
+    "noActiveListings": "No active listings"
+  }
+}
+
 }
