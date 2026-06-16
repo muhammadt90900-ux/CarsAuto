@@ -282,7 +282,7 @@
       "translating": "正在翻译...",
       "translated": "已自动翻译"
     }
-    "currency": {
+,    "currency": {
   "converting": "正在换算价格...",
   "liveRates": "实时汇率",
   "fallbackRates": "标准汇率（离线）",
@@ -295,8 +295,7 @@
   "gbp": "英镑",
   "thousandsIqd": "{{amount}}千第纳尔",
   "convertedNote": "按当前汇率"
-}
-    {
+},
   "china": {
     "marketTitle": "中国市场",
     "evBrands": "中国新能源品牌",
@@ -341,8 +340,7 @@
     "viewerReady": "360°视图已就绪 — 买家可以旋转车辆",
     "removeFrame": "删除第{n}帧",
     "uploadFrame": "上传第{n}帧（{angle}°）"
-}
-    {
+},
   "dealers": {
     "follow": "关注",
     "unfollow": "取消关注",
