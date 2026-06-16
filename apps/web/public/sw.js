@@ -1,5 +1,5 @@
 /**
- * AutoBazaar Pro — Service Worker
+ * AutoBazaar Pro — Service Worker  (Feature 8: enhanced push)
  * Strategy:
  *   - App shell    → Cache-First (immutable Next.js static assets)
  *   - API/listings → Network-First with 5 s timeout, fallback to cache
@@ -19,7 +19,6 @@ const CACHE_NAMES = {
 const OFFLINE_PAGE = '/offline';
 const OFFLINE_IMAGE = '/icons/icon-192x192.png';
 
-// App shell — precached on install
 const SHELL_ASSETS = [
   '/offline',
   '/manifest.json',
@@ -28,14 +27,13 @@ const SHELL_ASSETS = [
   '/icons/icon-144x144.png',
 ];
 
-// Cache size limits
 const MAX_CACHE_ENTRIES = {
   images: 60,
   api: 30,
   pages: 20,
 };
 
-// ─── Install ─────────────────────────────────────────────────────────────────
+// ─── Install ──────────────────────────────────────────────────────────────────
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -47,7 +45,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ─── Activate ────────────────────────────────────────────────────────────────
+// ─── Activate ─────────────────────────────────────────────────────────────────
 
 self.addEventListener('activate', (event) => {
   const validCaches = new Set(Object.values(CACHE_NAMES));
@@ -66,35 +64,29 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ─── Fetch ───────────────────────────────────────────────────────────────────
+// ─── Fetch ────────────────────────────────────────────────────────────────────
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Only handle same-origin + trusted CDNs
   const isSameOrigin = url.origin === self.location.origin;
   const isCloudinary = url.hostname.includes('cloudinary.com');
   const isNextStaticCDN = url.pathname.startsWith('/_next/static/');
 
   if (!isSameOrigin && !isCloudinary) return;
-
-  // Non-GET → skip (POST, WebSocket upgrades, etc.)
   if (request.method !== 'GET') return;
 
-  // ── Next.js immutable static assets → Cache-First ──────────────────────
   if (isNextStaticCDN || url.pathname.startsWith('/fonts/')) {
     event.respondWith(cacheFirst(request, CACHE_NAMES.shell));
     return;
   }
 
-  // ── Icons / manifest → Cache-First ─────────────────────────────────────
   if (url.pathname.startsWith('/icons/') || url.pathname === '/manifest.json') {
     event.respondWith(cacheFirst(request, CACHE_NAMES.shell));
     return;
   }
 
-  // ── Images (local + Cloudinary) → Stale-While-Revalidate ───────────────
   const isImage =
     isCloudinary ||
     /\.(png|jpg|jpeg|gif|webp|avif|svg|ico)(\?.*)?$/.test(url.pathname) ||
@@ -105,22 +97,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── Internal API calls → Network-First with offline fallback ───────────
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstWithTimeout(request, CACHE_NAMES.api, 5000, MAX_CACHE_ENTRIES.api));
     return;
   }
 
-  // ── HTML page navigations → Network-First, /offline fallback ───────────
   if (request.mode === 'navigate') {
     event.respondWith(navigationHandler(request));
     return;
   }
 });
 
-// ─── Strategies ──────────────────────────────────────────────────────────────
+// ─── Strategies ───────────────────────────────────────────────────────────────
 
-/** Cache-First: return cached copy; fetch+cache if miss. */
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -135,7 +124,6 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-/** Stale-While-Revalidate: serve from cache, revalidate in background. */
 async function staleWhileRevalidate(request, cacheName, maxEntries) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -153,7 +141,6 @@ async function staleWhileRevalidate(request, cacheName, maxEntries) {
   return cached ?? (await networkFetch) ?? new Response(null, { status: 204 });
 }
 
-/** Network-First with configurable timeout; falls back to cached. */
 async function networkFirstWithTimeout(request, cacheName, timeout, maxEntries) {
   const cache = await caches.open(cacheName);
 
@@ -178,7 +165,6 @@ async function networkFirstWithTimeout(request, cacheName, timeout, maxEntries) 
   }
 }
 
-/** Navigation handler: network-first, /offline page fallback. */
 async function navigationHandler(request) {
   const cache = await caches.open(CACHE_NAMES.pages);
 
@@ -193,18 +179,15 @@ async function navigationHandler(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    // Try exact offline page first, then root cached page
     const offlinePage = await cache.match(OFFLINE_PAGE);
     if (offlinePage) return offlinePage;
 
-    // Last resort: minimal offline HTML
     return new Response(minimalOfflineHTML(), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   }
 }
 
-/** Evict oldest entries when cache exceeds maxEntries. */
 async function trimCache(cache, maxEntries) {
   const keys = await cache.keys();
   if (keys.length <= maxEntries) return;
@@ -240,7 +223,7 @@ function minimalOfflineHTML() {
 </html>`;
 }
 
-// ─── Background Sync ─────────────────────────────────────────────────────────
+// ─── Background Sync ──────────────────────────────────────────────────────────
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-favorites') {
@@ -265,7 +248,6 @@ async function syncFavorites() {
   }
 }
 
-// Minimal IndexedDB helpers for background sync
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('autobazaar-sw', 1);
@@ -295,7 +277,21 @@ function deleteRecord(db, store, id) {
   });
 }
 
-// ─── Push Notifications ───────────────────────────────────────────────────────
+// ─── Push Notifications (Feature 8) ──────────────────────────────────────────
+
+/**
+ * Detect user's preferred locale from the SW scope URL.
+ * Falls back to 'ku' (Kurdish Sorani) as the default for CarsAuto IQ.
+ */
+function detectLocale() {
+  try {
+    const clients_url = self.location.href;
+    if (clients_url.includes('/ar/')) return 'ar';
+    if (clients_url.includes('/en/')) return 'en';
+    if (clients_url.includes('/zh/')) return 'zh';
+  } catch { /* ignore */ }
+  return 'ku';
+}
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
@@ -307,22 +303,56 @@ self.addEventListener('push', (event) => {
     data = { title: 'AutoBazaar Pro', body: event.data.text() };
   }
 
-  const options = {
-    body: data.body ?? 'New update available',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    image: data.image,
-    tag: data.tag ?? 'autobazaar-notification',
-    renotify: true,
-    requireInteraction: false,
-    data: { url: data.url ?? '/ku' },
-    actions: data.actions ?? [
-      { action: 'view', title: 'View' },
-      { action: 'dismiss', title: 'Dismiss' },
-    ],
+  // Pick the best locale variant sent by the backend
+  // Backend sends: title, titleKu, titleAr + body, bodyKu, bodyAr
+  // We try to read the client's locale from their open tabs first,
+  // otherwise fall back to 'ku' (default for Iraq market).
+  const resolveLocale = async () => {
+    try {
+      const windowClients = await self.clients.matchAll({ type: 'window' });
+      for (const client of windowClients) {
+        if (client.url.includes('/ar/')) return 'ar';
+        if (client.url.includes('/en/')) return 'en';
+        if (client.url.includes('/zh/')) return 'zh';
+      }
+    } catch { /* ignore */ }
+    return 'ku';
   };
 
-  event.waitUntil(self.registration.showNotification(data.title ?? 'AutoBazaar Pro', options));
+  event.waitUntil(
+    resolveLocale().then((locale) => {
+      let title = data.title ?? 'AutoBazaar Pro';
+      let body  = data.body  ?? 'New update available';
+
+      if (locale === 'ar' && data.titleAr) title = data.titleAr;
+      else if (locale === 'ku' && data.titleKu) title = data.titleKu;
+
+      if (locale === 'ar' && data.bodyAr) body = data.bodyAr;
+      else if (locale === 'ku' && data.bodyKu) body = data.bodyKu;
+
+      const options = {
+        body,
+        icon:  data.icon  ?? '/icons/icon-192x192.png',
+        badge: data.badge ?? '/icons/icon-72x72.png',
+        image: data.image,
+        tag:   data.tag ?? 'autobazaar-notification',
+        renotify: true,
+        requireInteraction: false,
+        dir: (locale === 'ar' || locale === 'ku') ? 'rtl' : 'ltr',
+        lang: locale === 'ar' ? 'ar' : locale === 'ku' ? 'ckb' : locale,
+        data: {
+          url: data.url ?? `/${locale}`,
+          ...(data.data ?? {}),
+        },
+        actions: data.actions ?? [
+          { action: 'view',    title: locale === 'ar' ? 'عرض' : locale === 'ku' ? 'ببینە' : 'View' },
+          { action: 'dismiss', title: locale === 'ar' ? 'تجاهل' : locale === 'ku' ? 'پاشگوێ' : 'Dismiss' },
+        ],
+      };
+
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -336,7 +366,10 @@ self.addEventListener('notificationclick', (event) => {
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        const existing = windowClients.find((c) => c.url.includes(self.location.origin));
+        // Focus existing tab if open
+        const existing = windowClients.find(
+          (c) => c.url === url || c.url.startsWith(self.location.origin)
+        );
         if (existing) {
           existing.focus();
           return existing.navigate(url);
@@ -346,7 +379,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// ─── Message channel ─────────────────────────────────────────────────────────
+// ─── Message channel ──────────────────────────────────────────────────────────
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
