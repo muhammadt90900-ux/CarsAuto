@@ -203,16 +203,6 @@ async function bootstrap() {
     }
   });
 
-  // ── Liveness endpoint ─────────────────────────────────────────────────────
-  httpAdapter.get('/health', (_req: unknown, res: any) => {
-    res.setHeader('Cache-Control', 'no-store');
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    });
-  });
-
   // ── Process-level error handlers ──────────────────────────────────────────
   process.on('unhandledRejection', (reason: unknown) => {
     errorTracker.capture({
