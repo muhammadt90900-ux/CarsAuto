@@ -119,16 +119,17 @@ export default async function HomePage({ params }: Props) {
       <HeroSearch />
 
       {/* 02 · STATS BANNER */}
-      <div className="relative overflow-hidden border-y border-[#c9a84c]/15"
+      <div className="relative overflow-hidden border-y border-[#c9a84c]/15 shadow-[inset_0_1px_0_rgba(201,168,76,0.06),inset_0_-1px_0_rgba(201,168,76,0.06)]"
            style={{ background: 'linear-gradient(90deg, #050b14 0%, #080f1c 50%, #050b14 100%)' }}>
         <div className="absolute inset-0 opacity-[0.03]"
              style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
             {PLATFORM_STATS.map(({ value, suffix, label, labelEn, icon }, i) => (
               <div key={labelEn} className="text-center stat-animate" style={{ animationDelay: `${i * 0.1}s` }}>
                 <div className="text-2xl mb-1">{icon}</div>
-                <div className="text-2xl sm:text-3xl font-black text-[#c9a84c] tabular-nums leading-none">
+                <div className="text-2xl sm:text-3xl font-black tabular-nums leading-none"
+                  style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   {value}<span className="text-lg">{suffix}</span>
                 </div>
                 <div className="text-white/50 text-xs mt-1 leading-tight">
@@ -142,6 +143,37 @@ export default async function HomePage({ params }: Props) {
           @keyframes statReveal { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
           .stat-animate { animation: statReveal 0.6s cubic-bezier(0.16,1,0.3,1) both }
         `}</style>
+      </div>
+
+      {/* 02b · COUNTRY PRESENCE */}
+      <div className="border-b border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-white/20 font-black hidden sm:block">
+              Serving
+            </span>
+            {[
+              { flag: '🇮🇶', name: 'Iraq & Kurdistan', count: '18,000+', detail: 'Baghdad · Erbil · Sulaymaniyah · Kirkuk · Duhok' },
+              { flag: '🇦🇪', name: 'UAE',              count: '4,500+',  detail: 'Dubai · Sharjah · Abu Dhabi' },
+              { flag: '🇨🇳', name: 'China',            count: '1,800+',  detail: 'Import · Export · BYD · Geely' },
+            ].map(({ flag, name, count, detail }) => (
+              <div key={name}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl
+                           border border-white/[0.06] bg-white/[0.02]
+                           hover:border-[#c9a84c]/20 hover:bg-[#c9a84c]/[0.03]
+                           transition-all duration-200 cursor-default">
+                <span className="text-2xl">{flag}</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white/70">{name}</span>
+                    <span className="text-[10px] font-black text-[#c9a84c] bg-[#c9a84c]/10 px-1.5 py-0.5 rounded-full">{count}</span>
+                  </div>
+                  <div className="text-[9px] text-white/25 mt-0.5 hidden sm:block">{detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 03 · PREMIUM CATEGORIES */}
@@ -162,11 +194,11 @@ export default async function HomePage({ params }: Props) {
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                    style={{ background: `radial-gradient(circle at 50% 0%, ${color}18 0%, transparent 70%)` }} />
               <div className="relative p-5 text-center">
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">{icon}</div>
+                <div className="text-4xl mb-3 transition-all duration-400 group-hover:scale-125 group-hover:-rotate-6 group-hover:drop-shadow-lg">{icon}</div>
                 <div className="font-bold text-white text-sm mb-0.5">{label}</div>
                 <div className="text-white/40 text-[10px]">{labelEn}</div>
                 <div className="mt-3 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block"
-                     style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}>{count}</div>
+                     style={{ color, background: `${color}15`, border: `1px solid ${color}35`, boxShadow: `0 2px 8px ${color}15` }}>{count}</div>
               </div>
             </Link>
           ))}
@@ -213,7 +245,7 @@ export default async function HomePage({ params }: Props) {
                 style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
                 <div className="relative p-4 text-center">
                   <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-xs font-black border-2 transition-all duration-300 group-hover:scale-110"
-                       style={{ background: `${color}20`, borderColor: `${color}40`, color }}>
+                       style={{ background: `${color}18`, borderColor: `${color}45`, color, boxShadow: `0 4px 12px ${color}20` }}>
                     {logoText}
                   </div>
                   <div className="font-bold text-white text-xs mb-1">{name}</div>
@@ -259,7 +291,7 @@ export default async function HomePage({ params }: Props) {
               <div key={dealer.id}
                    className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
                    style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
-                <div className="absolute top-0 inset-x-0 h-1" style={{ background: 'linear-gradient(90deg, #b8922e, #dab445, #b8922e)' }} />
+                <div className="absolute top-0 inset-x-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-350" style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, #f0d87a, #c9a84c, transparent)' }} />
                 <div className="p-6">
                   <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border border-[#c9a84c]/20">🏪</div>
                   <div className="text-[10px] font-bold text-[#c9a84c]/80 mb-2">{dealer.badge}</div>
@@ -302,7 +334,7 @@ export default async function HomePage({ params }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TESTIMONIALS.map((testimonial) => (
             <div key={testimonial.id}
-                 className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1"
+                 className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.45),0_0_0_1px_rgba(201,168,76,0.06)]"
                  style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.85), rgba(8,15,28,0.9))' }}>
               <div className="absolute top-4 end-4 text-5xl text-[#c9a84c]/10 font-serif leading-none select-none">"</div>
               <div className="flex gap-0.5 mb-4">
@@ -329,7 +361,7 @@ export default async function HomePage({ params }: Props) {
       {/* 09 · SELL CTA */}
       <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">
         <div className="relative rounded-3xl overflow-hidden py-14 sm:py-20 text-center"
-             style={{ background: 'linear-gradient(135deg, #080f1c 0%, #0f1c2e 50%, #080f1c 100%)' }}>
+             style={{ background: 'linear-gradient(135deg, #050d1a 0%, #0b1929 40%, #0f1c2e 50%, #0b1929 60%, #050d1a 100%)' }}>
           <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
                style={{ backgroundImage: 'radial-gradient(circle,rgba(201,168,76,1) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
           <div className="absolute top-0 inset-x-0 h-0.5"
@@ -340,8 +372,8 @@ export default async function HomePage({ params }: Props) {
             <p className="text-white/50 max-w-md mx-auto text-sm">{t('sellCTASubtitle')}</p>
             <div className="flex flex-wrap gap-3 justify-center pt-2">
               <Link href={`/${locale}/dashboard/listings/new`}
-                className="px-8 py-3.5 rounded-xl text-sm font-black text-[#050b14] shadow-[0_4px_24px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_40px_rgba(201,168,76,0.55)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-                style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}>
+                className="px-8 py-3.5 rounded-xl text-sm font-black text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_48px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' }}>
                 {t('sellCTAButton')} →
               </Link>
               <Link href={`/${locale}/cars`}
