@@ -201,7 +201,13 @@
     "getStarted": "ابدأ الآن",
     "currentPlanBadge": "حالياً",
     "noFavorites": "لا توجد مفضلة بعد",
-    "noFavoritesDesc": "احفظ الإعلانات التي تعجبك لتجدها هنا"
+    "noFavoritesDesc": "احفظ الإعلانات التي تعجبك لتجدها هنا",
+    "savedListings": "السيارات المحفوظة",
+    "followedDealers": "الوكلاء المتابَعون",
+    "noFollowedDealers": "لا تتابع أي وكيل حتى الآن",
+    "noFollowedDealersDesc": "تابع وكلاءك المفضلين لرؤية أحدث سياراتهم",
+    "latestListing": "آخر سيارة",
+    "noActiveListings": "لا توجد سيارات نشطة"
   },
   "notifications": {
     "newMessage": "رسالة جديدة من {name}",
@@ -282,21 +288,21 @@
       "translating": "جاري الترجمة...",
       "translated": "تمت الترجمة تلقائياً"
     }
-    "currency": {
-  "converting": "جارٍ تحويل السعر...",
-  "liveRates": "أسعار الصرف الحالية",
-  "fallbackRates": "أسعار قياسية (بدون اتصال)",
-  "updatedAt": "آخر تحديث",
-  "iqd": "دينار عراقي",
-  "usd": "دولار أمريكي",
-  "aed": "درهم إماراتي",
-  "cny": "يوان صيني",
-  "eur": "يورو",
-  "gbp": "جنيه إسترليني",
-  "thousandsIqd": "{{amount}} ألف دينار",
-  "convertedNote": "بحسب سعر الصرف الحالي"
-}
-    {
+  },
+  "currency": {
+    "converting": "جارٍ تحويل السعر...",
+    "liveRates": "أسعار الصرف الحالية",
+    "fallbackRates": "أسعار قياسية (بدون اتصال)",
+    "updatedAt": "آخر تحديث",
+    "iqd": "دينار عراقي",
+    "usd": "دولار أمريكي",
+    "aed": "درهم إماراتي",
+    "cny": "يوان صيني",
+    "eur": "يورو",
+    "gbp": "جنيه إسترليني",
+    "thousandsIqd": "{{amount}} ألف دينار",
+    "convertedNote": "بحسب سعر الصرف الحالي"
+  },
   "china": {
     "marketTitle": "السوق الصيني",
     "evBrands": "علامات السيارات الكهربائية الصينية",
@@ -314,26 +320,25 @@
       "name": "ويتشات باي",
       "hint": "قريباً — يتطلب حساباً تجارياً"
     }
-    {
+  },
   "chat": {
-    "voiceNote":               "مقطع صوتي",
-    "voiceNoteRecording":      "جارٍ التسجيل…",
-    "voiceNoteSending":        "جارٍ إرسال المقطع الصوتي…",
-    "voiceNoteError":          "فشل إرسال المقطع الصوتي",
-    "voiceNoteTooLong":        "الحد الأقصى دقيقتان",
-    "voiceNoteTooLarge":       "الملف كبير جداً (الحد الأقصى 2 MB)",
-    "voiceNoteRetry":          "إعادة المحاولة",
-    "voiceNoteCancel":         "إلغاء",
-    "voiceNoteStop":           "إيقاف التسجيل",
-    "voiceNoteSend":           "إرسال المقطع الصوتي",
-    "voiceNotePlay":           "تشغيل",
-    "voiceNotePause":          "إيقاف مؤقت",
-    "microphonePermission":    "تم رفض الوصول إلى الميكروفون. تحقق من إعدادات المتصفح.",
-    "rateLimit":               "رسائل صوتية كثيرة جداً — الرجاء الانتظار لحظة",
-    "inputPlaceholder":        "اكتب رسالة…",
-    "noMessages":              "ابدأ المحادثة"
-  }
-,
+    "voiceNote": "مقطع صوتي",
+    "voiceNoteRecording": "جارٍ التسجيل…",
+    "voiceNoteSending": "جارٍ إرسال المقطع الصوتي…",
+    "voiceNoteError": "فشل إرسال المقطع الصوتي",
+    "voiceNoteTooLong": "الحد الأقصى دقيقتان",
+    "voiceNoteTooLarge": "الملف كبير جداً (الحد الأقصى 2 MB)",
+    "voiceNoteRetry": "إعادة المحاولة",
+    "voiceNoteCancel": "إلغاء",
+    "voiceNoteStop": "إيقاف التسجيل",
+    "voiceNoteSend": "إرسال المقطع الصوتي",
+    "voiceNotePlay": "تشغيل",
+    "voiceNotePause": "إيقاف مؤقت",
+    "microphonePermission": "تم رفض الوصول إلى الميكروفون. تحقق من إعدادات المتصفح.",
+    "rateLimit": "رسائل صوتية كثيرة جداً — الرجاء الانتظار لحظة",
+    "inputPlaceholder": "اكتب رسالة…",
+    "noMessages": "ابدأ المحادثة"
+  },
   "viewer360": {
     "tabLabel": "عرض ٣٦٠°",
     "tabPhotos": "الصور",
@@ -347,7 +352,7 @@
     "loading": "جارٍ تحميل عرض ٣٦٠°…",
     "frameCounter": "{current} / {total}",
     "badge": "٣٦٠°"
-},
+  },
   "sell360": {
     "sectionTitle": "مجموعة صور ٣٦٠°",
     "optional": "اختياري",
@@ -359,22 +364,12 @@
     "viewerReady": "عرض ٣٦٠° جاهز — يمكن للمشترين تدوير السيارة",
     "removeFrame": "إزالة الإطار {n}",
     "uploadFrame": "رفع الإطار {n} ({angle}°)"
-}
-    {
+  },
   "dealers": {
     "follow": "متابعة",
     "unfollow": "إلغاء المتابعة",
     "followers": "متابعون",
     "followingSuccess": "تمت المتابعة بنجاح",
     "unfollowSuccess": "تم إلغاء المتابعة"
-  },
-  "dashboard": {
-    "savedListings": "السيارات المحفوظة",
-    "followedDealers": "الوكلاء المتابَعون",
-    "noFollowedDealers": "لا تتابع أي وكيل حتى الآن",
-    "noFollowedDealersDesc": "تابع وكلاءك المفضلين لرؤية أحدث سياراتهم",
-    "latestListing": "آخر سيارة",
-    "noActiveListings": "لا توجد سيارات نشطة"
   }
-}
 }
