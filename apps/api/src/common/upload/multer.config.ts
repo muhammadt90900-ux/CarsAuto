@@ -9,6 +9,7 @@
 
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { BadRequestException } from '@nestjs/common';
+import { memoryStorage } from 'multer';
 
 // Hard ceiling at the transport layer — 15 MB
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -17,7 +18,10 @@ const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_FILES = 20;
 
 export const imageUploadOptions: MulterOptions = {
-  storage: undefined, // use memoryStorage (default when storage is omitted with @nestjs/platform-express)
+  // BUG #1 FIX: explicit memoryStorage() — storage: undefined relies on undocumented
+  // multer default behaviour; some versions fall back to DiskStorage (/tmp) instead,
+  // causing file.buffer to be undefined and breaking processImageUpload().
+  storage: memoryStorage(),
 
   limits: {
     fileSize:   MAX_BYTES,   // bytes — multer rejects before calling fileFilter
@@ -72,5 +76,4 @@ export const imageUploadOptions: MulterOptions = {
   },
 };
 
-// Re-export a memoryStorage instance for explicit use in module configuration
-export { memoryStorage } from 'multer';
+// memoryStorage is imported above and used in imageUploadOptions.storage
