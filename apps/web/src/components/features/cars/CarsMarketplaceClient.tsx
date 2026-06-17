@@ -74,8 +74,8 @@ const MOCK_CARS = Array.from({ length: 12 }, (_, i) => ({
 /* ── Skeleton ───────────────────────────────────────────────────── */
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden bg-white dark:bg-[#0b1525]
-                    border border-slate-100 dark:border-white/[0.06] shadow-[var(--shadow-md)]"
+    <div className="rounded-2xl overflow-hidden bg-white dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]
+                    border border-slate-100 dark:border-white/[0.05] shadow-[var(--shadow-md)]"
          aria-hidden>
       <div className="h-52 skeleton" />
       <div className="p-4 space-y-3">
@@ -231,7 +231,7 @@ const CarCard = memo(function CarCard({
           </div>
 
           <div className="mt-auto pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-            <span className="price-tag text-xl">{fmtPrice.format(car.price)}</span>
+            <span className="price-tag text-xl" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice.format(car.price)}</span>
             <span className="flex items-center gap-1 text-[10px] text-[var(--text-faint)]">
               <Zap className="w-3 h-3 text-[var(--gold)]"/>Quick View
             </span>
@@ -465,7 +465,8 @@ export function CarsMarketplaceClient({
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-[calc(var(--navbar-h)+1.5rem)] rounded-2xl
-                            bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
+                            bg-white dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528] border border-[var(--border-default)]
+                            border-white/[0.07] dark:shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)]
                             shadow-[var(--shadow-sm)] p-5 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
@@ -504,11 +505,11 @@ export function CarsMarketplaceClient({
                 </div>
                 <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
                   <button onClick={() => setView('grid')}
-                    className={`p-2 transition-colors ${view==='grid' ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                    className={`p-2 transition-all duration-200 ${view==='grid' ? 'bg-gradient-to-r from-[#a87828] to-[#c9a84c] text-[#050b14]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <Grid3X3 className="w-4 h-4"/>
                   </button>
                   <button onClick={() => setView('list')}
-                    className={`p-2 transition-colors ${view==='list' ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                    className={`p-2 transition-all duration-200 ${view==='list' ? 'bg-gradient-to-r from-[#a87828] to-[#c9a84c] text-[#050b14]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <List className="w-4 h-4"/>
                   </button>
                 </div>
@@ -569,7 +570,8 @@ export function CarsMarketplaceClient({
                 </div>
                 <button onClick={resetAll}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
-                             bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a] transition-all">
+                             text-[var(--ink-900)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)', boxShadow: '0 4px 16px rgba(201,168,76,0.35)' }}>
                   Clear All Filters
                 </button>
               </div>
@@ -591,8 +593,9 @@ export function CarsMarketplaceClient({
                   <button key={p} onClick={() => setPage(p)}
                     className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
                       ${p === page
-                        ? 'bg-[var(--gold)] text-[var(--ink-900)]'
-                        : 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}>
+                        ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]'
+                        : 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
+                    style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' } : undefined}>
                     {p}
                   </button>
                 ))}
