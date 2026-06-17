@@ -7,11 +7,15 @@
  *   • What NOT to do (anti-pattern)
  */
 
-import { PrismaClient } from '@prisma/client';
 import { raw } from '@prisma/client/runtime/library';
 import { ListingStatus, ListingType } from './enums';
+import { PrismaService } from './prisma.service';
 
-const prisma = new PrismaClient();
+// BUG #11 FIX: this file previously did `const prisma = new PrismaClient()`
+// at module scope, bypassing the app's DI-managed connection pool and
+// lifecycle (no $disconnect() on shutdown if ever imported). Every function
+// below now takes the injected PrismaService as a parameter instead, the
+// same as every other service in the app.
 
 const SAFE_COLS = new Set([
   'titleEn', 'titleAr', 'titleKu',
@@ -38,7 +42,9 @@ interface BrowseListingsInput {
   limit?: number;
 }
 
-export async function browseListings({
+export async function browseListings(
+  prisma: PrismaService,
+  {
   type,
   locationId,
   categoryId,
@@ -130,7 +136,9 @@ interface CarFilterInput {
   limit?: number;
 }
 
-export async function searchCars({
+export async function searchCars(
+  prisma: PrismaService,
+  {
   brandId,
   modelId,
   yearMin,
@@ -198,7 +206,7 @@ export async function searchCars({
 //    Uses raw SQL for full-text — Prisma's fullTextSearch is PostgreSQL-native.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function fullTextSearch(query: string, locale: 'en' | 'ku' | 'ar', limit = 20) {
+export async function fullTextSearch(prisma: PrismaService, query: string, locale: 'en' | 'ku' | 'ar', limit = 20) {
   // GOOD: Use plainto_tsquery (safe, no syntax errors from user input).
   //       Use websearch_to_tsquery for Google-style queries.
   // BAD:  Don't use LIKE '%query%' — it can't use GIN indexes.
@@ -248,7 +256,7 @@ export async function fullTextSearch(query: string, locale: 'en' | 'ku' | 'ar', 
 //    Hits: listings_title_en_trgm_idx (GIN pg_trgm)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function autocomplete(partial: string, locale: 'en' | 'ku' | 'ar', limit = 8) {
+export async function autocomplete(prisma: PrismaService, partial: string, locale: 'en' | 'ku' | 'ar', limit = 8) {
   // GOOD: pg_trgm similarity search — fast for 3+ character inputs.
   // BAD:  Don't use LIKE '%partial%' on large tables without pg_trgm index.
 
@@ -272,7 +280,7 @@ export async function autocomplete(partial: string, locale: 'en' | 'ku' | 'ar', 
 //    Hits: PK lookup (ultra-fast), then FK indexes for includes
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getListingDetail(id: string) {
+export async function getListingDetail(prisma: PrismaService, id: string) {
   // GOOD: Fetch all related data in ONE query (Prisma batches selects).
   // BAD:  Don't make N separate queries for images, spec, location, etc.
 
@@ -322,7 +330,7 @@ export async function getListingDetail(id: string) {
 //    Hits: chats_buyer_updated_idx / chats_seller_updated_idx
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getUserInbox(userId: string, role: 'buyer' | 'seller') {
+export async function getUserInbox(prisma: PrismaService, userId: string, role: 'buyer' | 'seller') {
   // GOOD: Fetch chats sorted by updatedAt — the updatedAt is bumped by a trigger
   //       whenever a new message arrives, so this is the correct sort column.
   // BAD:  Don't load all messages and sort by message.createdAt in JS.
@@ -357,7 +365,7 @@ export async function getUserInbox(userId: string, role: 'buyer' | 'seller') {
 //    Hits: dealer_analytics_dealer_date_idx (covering)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getDealerAnalytics(dealerId: string, days = 30) {
+export async function getDealerAnalytics(prisma: PrismaService, dealerId: string, days = 30) {
   const from = new Date();
   from.setDate(from.getDate() - days);
 
@@ -405,7 +413,7 @@ export async function getDealerAnalytics(dealerId: string, days = 30) {
 //    Hits: notifications_user_unread_idx (partial WHERE read = false)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
+export async function getUnreadNotificationCount(prisma: PrismaService, userId: string): Promise<number> {
   // GOOD: count() on the partial index — extremely fast.
   // BAD:  Don't findMany() all notifications and check read === false in JS.
 
@@ -419,7 +427,7 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
 //    Hits: listings_featured_active_idx (tiny partial index)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getFeaturedListings(limit = 8) {
+export async function getFeaturedListings(prisma: PrismaService, limit = 8) {
   return prisma.listing.findMany({
     where: {
       featured: true,
@@ -454,7 +462,7 @@ export async function getFeaturedListings(limit = 8) {
 //     These tables rarely change — don't hit DB on every request.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getActiveBrandsWithModels() {
+export async function getActiveBrandsWithModels(prisma: PrismaService) {
   // Hits: car_brands isActive+slug index → car_models brandId+isActive index
   return prisma.carBrand.findMany({
     where: { isActive: true },
@@ -478,7 +486,7 @@ export async function getActiveBrandsWithModels() {
 //     Hits: saved_searches userId+isActive index
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getActiveSavedSearches() {
+export async function getActiveSavedSearches(prisma: PrismaService) {
   // GOOD: Process in batches of 100 — don't load all saved searches into memory.
   // BAD:  Don't findMany() without take — could be millions of rows.
 
@@ -507,7 +515,7 @@ export async function getActiveSavedSearches() {
 //     Hits: tokenHash unique index (single row lookup)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function validateRefreshToken(tokenHash: string) {
+export async function validateRefreshToken(prisma: PrismaService, tokenHash: string) {
   // GOOD: Single unique index lookup — O(log n).
   const token = await prisma.refreshToken.findUnique({
     where: { tokenHash },
@@ -529,7 +537,7 @@ export async function validateRefreshToken(tokenHash: string) {
 //     Hits: reports_status_type_created_idx
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getPendingReports(targetType?: string, limit = 50) {
+export async function getPendingReports(prisma: PrismaService, targetType?: string, limit = 50) {
   return prisma.report.findMany({
     where: {
       status: 'pending',
