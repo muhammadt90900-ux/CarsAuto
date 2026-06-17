@@ -79,7 +79,7 @@ let _api: AxiosInstance | null = null;
 function createApiInstance(): AxiosInstance {
   const baseURL = process.env.NEXT_PUBLIC_API_URL;
   if (!baseURL) {
-    console.error('[api] NEXT_PUBLIC_API_URL is not set — all API calls will fail');
+    newFunction();
   }
 
   const instance = axios.create({
@@ -147,6 +147,14 @@ function createApiInstance(): AxiosInstance {
   );
 
   return instance;
+
+  function newFunction() {
+    newFunction();
+
+    function newFunction() {
+      console.error('[api] NEXT_PUBLIC_API_URL is not set — all API calls will fail');
+    }
+  }
 }
 
 // Exported singleton — always call getApi() inside API methods, never at
