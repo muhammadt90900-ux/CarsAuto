@@ -33,17 +33,47 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
     <footer role="contentinfo" className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg,#050b14 0%,#030710 100%)' }}>
       <div className="h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.45),transparent)' }} />
 
+      {/* ── Country Presence Strip ──────────────────────────── */}
+      <div className="border-b border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6">
+            <span className="text-[9px] uppercase tracking-[0.18em] text-white/20 font-black w-full text-center sm:w-auto">
+              Our Markets
+            </span>
+            {[
+              { flag: '🇮🇶', name: 'Iraq & Kurdistan', detail: 'Baghdad · Erbil · Sulaymaniyah · Duhok · Kirkuk' },
+              { flag: '🇦🇪', name: 'UAE',              detail: 'Dubai · Sharjah · Abu Dhabi' },
+              { flag: '🇨🇳', name: 'China',            detail: 'Import & Export Partner' },
+            ].map(({ flag, name, detail }) => (
+              <div key={name}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl
+                           border border-white/[0.07] bg-white/[0.02]
+                           hover:border-[#c9a84c]/18 hover:bg-[#c9a84c]/[0.03]
+                           transition-all duration-200">
+                <span className="text-2xl">{flag}</span>
+                <div>
+                  <div className="text-xs font-bold text-white/65">{name}</div>
+                  <div className="text-[9px] text-white/28 mt-0.5">{detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── Newsletter / CTA Banner ─────────────────────────── */}
       <div className="border-b border-white/[0.05]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="rounded-3xl p-8 sm:p-10 flex flex-col lg:flex-row gap-8 items-center justify-between"
+          <div className="relative overflow-hidden rounded-3xl p-8 sm:p-10 flex flex-col lg:flex-row gap-8 items-center justify-between"
                style={{ background: 'linear-gradient(135deg,rgba(11,21,37,0.9),rgba(8,15,28,0.95))', border: '1px solid rgba(201,168,76,0.18)' }}>
+            <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+              style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.8) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
 
             {/* Left: text */}
             <div className="text-center lg:text-left">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c9a84c] mb-2">
-                Stay ahead of the market
-              </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.18em] bg-[#c9a84c]/10 border border-[#c9a84c]/22 text-[#c9a84c] mb-3">
+                ● Stay ahead of the market
+              </div>
               <h3 className="text-2xl font-display font-black text-white mb-2">
                 Get new listings before anyone else
               </h3>
@@ -52,7 +82,7 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
               </p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-4">
                 {TRUST_BADGES.map(({ icon: Icon, label }) => (
-                  <span key={label} className="flex items-center gap-1.5 text-xs text-white/40">
+                  <span key={label} className="flex items-center gap-1.5 text-xs text-white/45 hover:text-white/65 transition-colors duration-200 cursor-default">
                     <Icon className="w-3.5 h-3.5 text-[#c9a84c]/70" />
                     {label}
                   </span>
@@ -89,9 +119,9 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
                     type="submit"
                     aria-label="Subscribe to newsletter"
                     className="flex-shrink-0 inline-flex items-center gap-1.5 h-12 px-5 rounded-xl
-                               bg-[#c9a84c] text-[#050b14] text-sm font-bold
-                               hover:bg-[#d4b45a] transition-all
-                               shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
+                               text-[#050b14] text-sm font-bold transition-all
+                               hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)', boxShadow: '0 4px 20px rgba(201,168,76,0.40)' }}
                   >
                     Subscribe
                     <ArrowRight className="w-4 h-4" />
