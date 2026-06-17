@@ -1,6 +1,12 @@
 // apps/api/src/modules/dealers/dto/contact-dealer.dto.ts
 
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+
+export enum ContactChannel {
+  FORM     = 'form',
+  WHATSAPP = 'whatsapp',
+  PHONE    = 'phone',
+}
 
 export class ContactDealerDto {
   @IsString() @MinLength(2) @MaxLength(80)
@@ -15,8 +21,8 @@ export class ContactDealerDto {
   @IsString() @MinLength(5) @MaxLength(1000)
   message!: string;
 
-  @IsOptional() @IsString()
-  channel?: 'form' | 'whatsapp' | 'phone';
+  @IsOptional() @IsEnum(ContactChannel)
+  channel?: ContactChannel;
 
   @IsOptional() @IsString()
   listingId?: string;
