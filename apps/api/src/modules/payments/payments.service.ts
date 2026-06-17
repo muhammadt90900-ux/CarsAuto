@@ -589,7 +589,7 @@ export class PaymentsService {
       gatewayData: { stripeStatus: intent.status, error: failureReason },
       errorMessage: failureReason,
     });
-    await this.scheduleRetry(payment.id, 0, failureReason);
+    await this.scheduleRetry(payment.id, payment.retryCount, failureReason);
     this.logger.warn(`Payment failed via webhook: ${payment.id} — ${failureReason}`);
   }
 
@@ -729,17 +729,22 @@ export class PaymentsService {
       currency?: string; gatewayId?: string; gatewayData?: object; errorMessage?: string;
     },
   ) {
-    await this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        status,
-        gatewayStatus: (log.gatewayData as Record<string, any>)?.['stripeStatus'] ?? status,
-        failureReason: log.errorMessage ?? null,
-        ...(status === PaymentStatus.COMPLETED || status === PaymentStatus.REFUNDED
-          ? { nextRetryAt: null } : {}),
-      },
+    // BUG #10 FIX: both writes now happen inside a single DB transaction, so a
+    // crash/restart between them can never leave a payment status change with
+    // no corresponding TransactionLog row.
+    await this.prisma.runInTransaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          status,
+          gatewayStatus: (log.gatewayData as Record<string, any>)?.['stripeStatus'] ?? status,
+          failureReason: log.errorMessage ?? null,
+          ...(status === PaymentStatus.COMPLETED || status === PaymentStatus.REFUNDED
+            ? { nextRetryAt: null } : {}),
+        },
+      });
+      await this.logTransaction(paymentId, { ...log, status: log.status ?? status }, tx);
     });
-    await this.logTransaction(paymentId, { ...log, status: log.status ?? status });
   }
 
   private async logTransaction(
@@ -748,8 +753,9 @@ export class PaymentsService {
       event: string; status?: PaymentStatus | string; amount?: number;
       currency?: string; gatewayId?: string; gatewayData?: object; errorMessage?: string;
     },
+    tx: Pick<PrismaService, 'transactionLog'> = this.prisma,
   ) {
-    await this.prisma.transactionLog.create({
+    await tx.transactionLog.create({
       data: {
         paymentId,
         event: data.event,
