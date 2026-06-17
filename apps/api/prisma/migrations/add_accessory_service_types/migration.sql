@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS "listing_accessory_specs" (
   CONSTRAINT "listing_accessory_specs_listingId_key" UNIQUE ("listingId"),
   CONSTRAINT "listing_accessory_specs_listingId_fkey"
     FOREIGN KEY ("listingId")
-    REFERENCES "Listing"("id")
+    REFERENCES listings("id")
     ON DELETE CASCADE
 );
 
