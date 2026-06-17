@@ -52,11 +52,15 @@ const DealerCard = memo(function DealerCard({
       href={`/${locale}/dealers/${dealer.slug}`}
       className="group flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
                  bg-[#0d1b2e] border border-white/[0.07]
-                 hover:border-[#c9a84c]/30 transition-all duration-300
-                 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+                 hover:border-[#c9a84c]/32 transition-all duration-350
+                 hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(0,0,0,0.60),0_0_0_1px_rgba(201,168,76,0.05)] relative"
       style={{ '--accent': accent } as React.CSSProperties}
       prefetch={false}
     >
+      <div aria-hidden="true"
+        className="absolute top-0 inset-x-0 h-[1.5px] opacity-0 group-hover:opacity-100 transition-opacity duration-400 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.50), transparent)' }} />
+
       {/* Cover strip */}
       <div className="relative h-24 bg-gradient-to-br from-[#0b1a2e] to-[#162840] overflow-hidden">
         {dealer.coverUrl ? (
@@ -71,7 +75,7 @@ const DealerCard = memo(function DealerCard({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ background: `radial-gradient(ellipse at 60% 40%, ${accent}15, transparent 70%)` }}
+            style={{ background: `radial-gradient(ellipse at 60% 30%, ${accent}20, transparent 65%)` }}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2e] to-transparent" />
@@ -166,37 +170,43 @@ export function FeaturedDealers({ locale = 'en' }: { locale?: string }) {
   if (!isLoading && dealers.length === 0) return null;
 
   return (
-    <section className="py-12 px-4">
+    <section className="py-14 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none opacity-[0.018]"
+        style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.7) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       <div className="max-w-7xl mx-auto">
 
         {/* Section header */}
         <div className="flex items-end justify-between mb-6">
           <div>
-            <div className="flex items-center gap-2 text-[#c9a84c] text-xs font-semibold uppercase tracking-widest mb-2">
-              <span className="w-5 h-px bg-[#c9a84c]" />
-              Verified Dealers
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.16em] bg-[#c9a84c]/10 border border-[#c9a84c]/22 text-[#c9a84c] mb-3">
+              ● Verified Dealers
             </div>
-            <h2 className="font-display font-black text-white text-2xl">Top Dealerships</h2>
+            <h2 className="font-display font-black text-white text-2xl">
+              Top <span style={{ background: 'linear-gradient(135deg, #e8cc7a, #c9a84c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dealerships</span>
+            </h2>
           </div>
           <Link
             href={`/${locale}/dealers`}
-            className="flex items-center gap-1 text-sm text-white/40 hover:text-[#c9a84c] transition-colors"
+            className="flex items-center gap-1.5 text-sm font-semibold text-white/40 hover:text-[#c9a84c] transition-colors duration-200 px-3 py-1.5 rounded-lg hover:bg-[#c9a84c]/[0.06] border border-transparent hover:border-[#c9a84c]/20"
           >
             View all <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {/* Scroll track */}
-        <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"
-        >
-          {isLoading
-            ? Array.from({ length: 4 }).map((_, i) => <DealerCardSkeleton key={i} />)
-            : dealers.map(dealer => (
-                <DealerCard key={dealer.id} dealer={dealer} locale={locale} />
-              ))
-          }
+        <div className="relative">
+          <div className="absolute left-0 top-0 bottom-3 w-8 z-10 pointer-events-none bg-gradient-to-r from-[#050b14] to-transparent hidden lg:block" />
+          <div className="absolute right-0 top-0 bottom-3 w-16 z-10 pointer-events-none bg-gradient-to-l from-[#050b14] to-transparent" />
+          <div
+            ref={scrollRef}
+            className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"
+          >
+            {isLoading
+              ? Array.from({ length: 4 }).map((_, i) => <DealerCardSkeleton key={i} />)
+              : dealers.map(dealer => (
+                  <DealerCard key={dealer.id} dealer={dealer} locale={locale} />
+                ))
+            }
+          </div>
         </div>
       </div>
     </section>
