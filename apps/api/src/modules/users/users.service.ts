@@ -18,7 +18,7 @@ export class UsersService {
         createdAt: true,
         // email and phone intentionally excluded from public profile
         listings: {
-          where: { status: 'ACTIVE' },
+          where: { status: 'ACTIVE', deletedAt: null },
           take: 10,
           orderBy: { createdAt: 'desc' },
           select: {
