@@ -3,12 +3,13 @@ import { Module } from '@nestjs/common';
 import { ListingsController } from './listings.controller';
 import { ListingsService } from './listings.service';
 import { PrismaModule } from '../../common/prisma/prisma.module';
+import { AppCacheModule } from '../../common/cache/cache.module';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { PermissionsModule } from '../../common/permissions/permissions.module';
 import { AiModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule, PermissionsModule, AiModule],
+  imports: [PrismaModule, AppCacheModule, PermissionsModule, AiModule],
   controllers: [ListingsController],
   providers: [ListingsService, EmailVerifiedGuard],
   exports: [ListingsService],
