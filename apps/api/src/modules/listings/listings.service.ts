@@ -11,6 +11,7 @@ import { CacheService } from '../../common/cache/cache.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
+import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@prisma/client';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -135,6 +136,7 @@ export class ListingsService {
     private readonly cache:        CacheService,
     private readonly ai:           AiService,
     private readonly translation:  TranslationService,
+    private readonly auditLog:     AuditLogService,
   ) {}
 
   // ── Pagination helper ──────────────────────────────────────────────────────
@@ -186,8 +188,8 @@ export class ListingsService {
       const result = await this.cache.getOrSet(
         cacheKey,
         async () => {
-          const listing = await this.prisma.listing.findUnique({
-            where:   { id },
+          const listing = await this.prisma.listing.findFirst({
+            where:   { id, deletedAt: null },
             include: {
               images:   { orderBy: { order: 'asc' } },
               location: true,
@@ -319,17 +321,15 @@ export class ListingsService {
             data:  { status: 'UNDER_REVIEW' },
           }).catch(() => {});
 
-          await this.prisma.auditLog.create({
-            data: {
-              action:     'LISTING_QUARANTINED',
-              entityType: 'Listing',
-              entityId:   listing.id,
-              actorId:    data.userId,
-              metadata: {
-                spamScore:         check.spamResult.score,
-                spamReasons:       check.spamResult.reasons,
-                flaggedCategories: check.flaggedCategories,
-              },
+          await this.auditLog.log({
+            action:     AuditAction.LISTING_QUARANTINED,
+            actorId:    data.userId,
+            targetId:   listing.id,
+            targetType: 'Listing',
+            metadata: {
+              spamScore:         check.spamResult.score,
+              spamReasons:       check.spamResult.reasons,
+              flaggedCategories: check.flaggedCategories,
             },
           }).catch(() => {});
         }
@@ -365,7 +365,7 @@ export class ListingsService {
     if (!userId) throw new BadRequestException('userId is required');
     try {
       return await this.prisma.listing.findMany({
-        where:   { userId },
+        where:   { userId, deletedAt: null },
         orderBy: { createdAt: 'desc' },
         select: {
           id:        true,
@@ -446,11 +446,16 @@ export class ListingsService {
   async delete(id: string, userId: string): Promise<void> {
     if (!id || !userId) throw new BadRequestException('Listing ID and user ID are required');
     try {
-      const listing = await this.prisma.listing.findFirst({ where: { id } });
+      const listing = await this.prisma.listing.findFirst({ where: { id, deletedAt: null } });
       if (!listing) throw new NotFoundException('Listing not found');
       if (listing.userId !== userId) throw new ForbiddenException('Not authorized');
 
-      await this.prisma.listing.delete({ where: { id } });
+      // Soft delete — preserves history/audit trail and avoids cascading the
+      // hard-delete to images, favorites, chats, and vehicle specs (bug #8).
+      await this.prisma.listing.update({
+        where: { id },
+        data:  { deletedAt: new Date(), status: 'EXPIRED' },
+      });
       this.cache.del(`listings:detail:${id}`);
       this.invalidateListCache();
     } catch (err) {
@@ -472,7 +477,7 @@ export class ListingsService {
   }
 
   private buildWhereClause(params: ListingQueryParams): any {
-    const where: any = { status: 'ACTIVE' };
+    const where: any = { status: 'ACTIVE', deletedAt: null };
 
     if (params.type)       where.type       = params.type as any;
     if (params.featured === 'true') where.featured = true;
