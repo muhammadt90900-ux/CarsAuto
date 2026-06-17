@@ -295,6 +295,12 @@ export function HeroSearch() {
           style={{ background:'linear-gradient(45deg, transparent 40%, rgba(201,168,76,1) 50%, transparent 60%)', backgroundSize:'200% 200%', animation:'sweep 8s ease-in-out infinite' }} />
         {/* Top fade (navbar bleed) */}
         <div className="absolute top-0 inset-x-0 h-[68px] bg-gradient-to-b from-[#050b14] to-transparent" />
+        {/* Enterprise grid overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.022]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(201,168,76,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.08) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+          }} />
       </div>
 
       <style>{`
@@ -322,10 +328,16 @@ export function HeroSearch() {
 
         {/* Live badge */}
         <div className="flex justify-center mb-6 hero-line-1">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold
-                           bg-[#c9a84c]/[0.12] border border-[#c9a84c]/30 text-[#c9a84c]/90">
+          <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[#c9a84c]/[0.09] border border-[#c9a84c]/22 text-[#c9a84c] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse pulse-gold" />
-            Iraq · Kurdistan · Dubai · China
+            <span className="text-[#c9a84c]/65">🇮🇶</span>
+            <span className="text-white/50">Iraq</span>
+            <span className="text-white/15">·</span>
+            <span className="text-[#c9a84c]/65">🇦🇪</span>
+            <span className="text-white/50">UAE</span>
+            <span className="text-white/15">·</span>
+            <span className="text-[#c9a84c]/65">🇨🇳</span>
+            <span className="text-white/50">China</span>
           </span>
         </div>
 
@@ -334,7 +346,7 @@ export function HeroSearch() {
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl
                          font-extrabold text-white leading-[1.08] tracking-tight mb-4">
             دۆزینەوەی{' '}
-            <span className="text-[#c9a84c] relative">
+            <span className="relative" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               ئۆتۆمبێلی
               <svg className="absolute -bottom-1 left-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
                 <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="#c9a84c" strokeWidth="2" fill="none" opacity="0.5"/>
@@ -355,11 +367,11 @@ export function HeroSearch() {
               onClick={() => setCategory(id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250
                 ${category === id
-                  ? 'bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14] shadow-[0_4px_20px_rgba(201,168,76,0.35)]'
-                  : 'bg-white/[0.06] border border-white/[0.10] text-white/55 hover:bg-white/[0.09] hover:text-white hover:border-[#c9a84c]/25'
+                  ? 'bg-gradient-to-r from-[#a87828] via-[#c9a84c] to-[#dab445] text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[#c9a84c]/25 scale-[1.03]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[#c9a84c]/[0.07] hover:text-white/90 hover:border-[#c9a84c]/28 hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:scale-[1.01]'
                 }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className={`w-4 h-4 transition-colors ${category === id ? 'text-[#050b14]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
               <span className="hidden xs:inline">{label}</span>
               <span className="hidden sm:inline text-[10px] opacity-60">/ {labelEn}</span>
             </button>
@@ -385,7 +397,7 @@ export function HeroSearch() {
         <div
           className={`hero-card rounded-2xl border transition-all duration-350 overflow-visible
                        ${focused
-                         ? 'border-[#c9a84c]/50 shadow-[0_0_0_1px_rgba(201,168,76,0.12),0_24px_64px_rgba(0,0,0,0.50)]'
+                         ? 'border-[#c9a84c]/55 shadow-[0_0_0_1px_rgba(201,168,76,0.14),0_24px_72px_rgba(0,0,0,0.55),0_0_48px_rgba(201,168,76,0.05)]'
                          : 'border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.40)]'
                        }`}
           style={{ background:'linear-gradient(135deg, rgba(11,21,37,0.85) 0%, rgba(8,15,28,0.90) 100%)', backdropFilter:'blur(24px)' }}
@@ -655,13 +667,14 @@ export function HeroSearch() {
 
         {/* Stats strip */}
         <div className="mt-10">
-          <div className="h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent mb-8" />
+          <div className="h-px mb-8" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.15) 25%, rgba(201,168,76,0.35) 50%, rgba(201,168,76,0.15) 75%, transparent 100%)' }} />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-0">
             {STATS.map(({ value, label, labelEn }, i) => (
               <div key={label}
                 className={`stat-item text-center py-2 relative ${i < STATS.length - 1 ? 'sm:border-e sm:border-white/[0.08]' : ''}`}
                 style={{ animationDelay:`${0.35 + i * 0.07}s` }}>
-                <div className="text-2xl sm:text-3xl font-display font-extrabold mb-0.5 text-[#c9a84c] tabular-nums">{value}</div>
+                <div className="text-2xl sm:text-3xl font-display font-extrabold mb-0.5 tabular-nums"
+                  style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{value}</div>
                 <div className="text-white/40 text-xs font-medium">
                   {label}<span className="text-white/20 mx-1">/</span>{labelEn}
                 </div>
