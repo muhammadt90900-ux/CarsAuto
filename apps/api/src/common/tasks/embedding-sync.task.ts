@@ -60,7 +60,7 @@ export class EmbeddingSyncTask {
       if (!embedding.length) return;
 
       await this.prisma.$executeRawUnsafe(
-        `UPDATE "Listing" SET embedding = $1::vector WHERE id = $2`,
+        `UPDATE listings SET embedding = $1::vector WHERE id = $2`,
         `[${embedding.join(',')}]`,
         listingId,
       );
@@ -79,7 +79,7 @@ export class EmbeddingSyncTask {
       descriptionEn: string | null;
     }>>`
       SELECT id, "titleEn", "titleKu", "titleAr", "descriptionEn"
-      FROM "Listing"
+      FROM listings
       WHERE status = 'ACTIVE' AND embedding IS NULL
       ORDER BY "createdAt" DESC
       LIMIT ${BATCH_SIZE}
@@ -99,7 +99,7 @@ export class EmbeddingSyncTask {
 
       try {
         await this.prisma.$executeRawUnsafe(
-          `UPDATE "Listing" SET embedding = $1::vector WHERE id = $2`,
+          `UPDATE listings SET embedding = $1::vector WHERE id = $2`,
           `[${embedding.join(',')}]`,
           listings[i]!.id,
         );
