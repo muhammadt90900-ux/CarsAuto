@@ -47,6 +47,8 @@ enum ListingStatus {
   EXPIRED
   PENDING
   REJECTED
+  // ADDED: AI content-moderation quarantine state (Feature 2)
+  UNDER_REVIEW
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,6 +181,7 @@ model User {
   pushSubscriptions      PushSubscription[]
   uploads                Upload[]
   notificationPreference NotificationPreference?
+  followedDealers        DealerFollower[]
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -666,6 +669,12 @@ model Message {
   sender    User      @relation(fields: [senderId], references: [id], onDelete: Restrict)
   content   String    @db.Text
   type      String    @default("text") @db.VarChar(20)
+
+  // ── Voice note fields (Feature 6) ──────────────────────────────────────────
+  messageType   String   @default("text") @db.VarChar(20) // text | image | voice | system
+  audioUrl      String?  @db.VarChar(500)
+  audioDuration Int? // seconds
+
   mediaUrl  String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
@@ -676,6 +685,8 @@ model Message {
   @@index([chatId, createdAt(sort: Desc)])
   // senderId for "messages I sent" queries
   @@index([senderId])
+  // ADDED: voice-note filtering within a chat thread
+  @@index([messageType, chatId])
   @@map("messages")
 }
 
@@ -876,10 +887,6 @@ model MessageReadReceipt {
   @@unique([messageId, userId])
   @@index([userId])
   @@map("message_read_receipts")
-messageType   String   @default("text") @db.VarChar(20)
-audioUrl      String?  @db.VarChar(500)
-audioDuration Int?
-@@index([messageType, chatId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -951,6 +958,7 @@ model Dealer {
   subscription    DealerSubscription?
   contactRequests DealerContactRequest[]
   badges          DealerBadge[]
+  followers       DealerFollower[]
 
   // CHANGE: marketplace browse composite — status + tier + rating
   @@index([status, tier, averageRating(sort: Desc)])
@@ -962,6 +970,24 @@ model Dealer {
   @@index([status, createdAt(sort: Desc)])
   // Trigram indexes on dealer names for autocomplete — created in raw migration
   @@map("dealers")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER FOLLOWER
+// ADDED: was referenced throughout dealers.service.ts but never defined
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerFollower {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerId  String   @db.Uuid
+  dealer    Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dealerId])
+  @@index([dealerId])
+  @@map("dealer_followers")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1241,6 +1267,14 @@ model Subscription {
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   plan                   String    @default("FREE") @db.VarChar(50)
+  // NOTE (audit #13): intentionally a plain String, NOT the SubscriptionStatus
+  // enum used by DealerSubscription. Per-user subscription status is written
+  // lowercase ('inactive' | 'active' | 'past_due' | 'cancelled' | 'trialing')
+  // from payments.service.ts, while DealerSubscription.status uses the
+  // uppercase SubscriptionStatus enum. These are two deliberately separate
+  // conventions — do not compare them directly across models. A CHECK
+  // constraint restricting this column to the known lowercase values is
+  // enforced in a raw migration to prevent typos.
   status                 String    @default("inactive") @db.VarChar(30)
 
   gatewaySubscriptionId  String?   @unique @db.VarChar(255)
