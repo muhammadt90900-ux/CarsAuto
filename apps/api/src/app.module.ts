@@ -76,6 +76,7 @@ import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.
     OpenAiModule,
     SecurityThrottlerModule,
     SubscriptionsModule,
+    CurrencyModule,
   ],
   providers: [TokenCleanupTask, EmbeddingSyncTask],
 })
