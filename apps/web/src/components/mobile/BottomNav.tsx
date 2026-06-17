@@ -42,7 +42,8 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
         className="fixed z-40 flex items-center gap-1.5 rounded-full shadow-[0_8px_32px_rgba(201,168,76,0.50)]
                    md:hidden px-4 h-12 text-sm font-bold text-[#050b14]"
         style={{
-          background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)',
+          background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+          boxShadow: '0 8px 32px rgba(201,168,76,0.55), 0 2px 8px rgba(201,168,76,0.30)',
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
           right: '1rem',
         }}
@@ -57,10 +58,11 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
         aria-label="Bottom navigation"
         className="fixed bottom-0 inset-x-0 z-50 md:hidden"
         style={{
-          background:           'rgba(5,11,20,0.97)',
-          backdropFilter:       'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderTop:            '1px solid rgba(255,255,255,0.07)',
+          background:           'rgba(4,9,18,0.98)',
+          backdropFilter:       'blur(28px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+          borderTop:            '1px solid rgba(201,168,76,0.10)',
+          boxShadow:            '0 -4px 24px rgba(0,0,0,0.35)',
         }}
       >
         <div
@@ -81,16 +83,16 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
               >
                 {/* Active bar */}
                 {active && (
-                  <span aria-hidden="true" className="absolute top-0 inset-x-3 h-[2px] rounded-full
-                                   bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a]" />
+                  <span aria-hidden="true" className="absolute top-0 inset-x-2 h-[2px] rounded-full"
+                    style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, #f0d87a, #c9a84c, transparent)' }} />
                 )}
 
                 <div className={`p-1.5 rounded-xl transition-all duration-200
-                                 ${active ? 'bg-[rgba(201,168,76,0.15)] scale-110' : ''}`}>
+                                 ${active ? 'bg-gradient-to-b from-[rgba(201,168,76,0.18)] to-[rgba(201,168,76,0.08)] scale-110 shadow-[0_2px_8px_rgba(201,168,76,0.12)]' : 'hover:bg-white/[0.04]'}`}>
                   <Icon className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <span className={`text-[9px] font-bold tracking-wide leading-none
-                                  ${active ? 'text-[#c9a84c]' : 'text-white/25'}`}>
+                                  ${active ? 'text-[#c9a84c] font-black' : 'text-white/25'}`}>
                   {label}
                 </span>
               </Link>
