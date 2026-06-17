@@ -10,6 +10,7 @@ import {
 import { Request } from 'express';
 import { SearchService } from './search.service';
 import { SearchProtectionService } from '../../common/throttler/search-protection.service';
+import { AdvancedSearchDto } from './dto/advanced-search.dto';
 
 @Controller('search')
 export class SearchController {
@@ -52,13 +53,9 @@ export class SearchController {
   }
 
   @Post('advanced')
-  async advancedSearch(@Body() query: any, @Req() req: Request) {
+  async advancedSearch(@Body() query: AdvancedSearchDto, @Req() req: Request) {
     const ip = this.extractIp(req);
     this.searchProtection.checkSearchRate(ip);
-
-    if (!query || typeof query !== 'object') {
-      throw new BadRequestException('Search query must be an object');
-    }
 
     return this.searchService.advancedSearch(query);
   }
