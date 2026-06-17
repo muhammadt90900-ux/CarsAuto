@@ -53,7 +53,10 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
                       shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
-          style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+          style={{
+            background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+            boxShadow: '0 8px 40px rgba(201,168,76,0.45), 0 2px 12px rgba(201,168,76,0.25)',
+          }}
           aria-hidden="true"
         >
           <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -63,10 +66,13 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
           </svg>
         </div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Welcome back</h1>
-        <p className="text-sm text-[var(--text-muted)] mt-1">Sign in to AutoBazaarPro</p>
+        <p className="text-sm text-[var(--text-muted)] mt-1">
+          Sign in to AutoBazaar
+          <span style={{ background: 'linear-gradient(135deg, #e8cc7a, #c9a84c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Pro</span>
+        </p>
       </div>
 
-      <div className="card-premium p-6 sm:p-8">
+      <div className="card-premium p-6 sm:p-8 border border-white/[0.08] dark:border-white/[0.07] dark:shadow-[0_32px_80px_rgba(0,0,0,0.60),0_0_0_1px_rgba(201,168,76,0.05)]">
         <div className="h-0.5 -mx-8 -mt-8 mb-8 rounded-t-2xl" aria-hidden="true"
              style={{ background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)' }} />
 
@@ -196,6 +202,10 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
             className="btn-gold w-full h-12 text-sm rounded-xl flex items-center justify-center gap-2
                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2"
+            style={{
+              background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+              boxShadow: '0 4px 20px rgba(201,168,76,0.40)',
+            }}
           >
             {loading ? (
               <>
