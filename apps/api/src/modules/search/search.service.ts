@@ -80,7 +80,7 @@ export class SearchService {
 
     return this.cache.getOrSet(cacheKey, async () => {
       const skip = (page - 1) * limit;
-      const where: any = { status: 'ACTIVE' };
+      const where: any = { status: 'ACTIVE', deletedAt: null };
 
       if (normalizedQuery.length >= MIN_QUERY_LENGTH) {
         where.OR = [
@@ -184,8 +184,9 @@ export class SearchService {
         Array<{ id: string; similarity: number }>
       >(
         `SELECT id, 1 - (embedding <=> $1::vector) AS similarity
-         FROM "Listing"
+         FROM listings
          WHERE status = 'ACTIVE'
+           AND "deletedAt" IS NULL
            AND embedding IS NOT NULL
          ORDER BY embedding <=> $1::vector
          LIMIT ${SEMANTIC_POOL}`,
@@ -264,8 +265,9 @@ export class SearchService {
           SELECT DISTINCT
             COALESCE("titleEn", "titleKu") AS suggestion,
             1 AS rank
-          FROM "Listing"
+          FROM listings
           WHERE status = 'ACTIVE'
+            AND "deletedAt" IS NULL
             AND (
               LOWER("titleEn") LIKE ${'%' + term + '%'}
               OR LOWER("titleKu") LIKE ${'%' + term + '%'}
@@ -278,7 +280,7 @@ export class SearchService {
           SELECT DISTINCT
             "nameEn" AS suggestion,
             2 AS rank
-          FROM "CarBrand"
+          FROM car_brands
           WHERE
             LOWER("nameEn") LIKE ${'%' + term + '%'}
             OR LOWER("nameKu") LIKE ${'%' + term + '%'}
@@ -290,8 +292,8 @@ export class SearchService {
           SELECT DISTINCT
             (b."nameEn" || ' ' || m."nameEn") AS suggestion,
             3 AS rank
-          FROM "CarModel" m
-          JOIN "CarBrand" b ON m."brandId" = b.id
+          FROM car_models m
+          JOIN car_brands b ON m."brandId" = b.id
           WHERE
             LOWER(m."nameEn") LIKE ${'%' + term + '%'}
             OR LOWER(b."nameEn" || ' ' || m."nameEn") LIKE ${'%' + term + '%'}
