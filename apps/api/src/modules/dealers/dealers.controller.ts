@@ -10,7 +10,7 @@ import { UpdateDealerDto } from './dto/update-dealer.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { DealerQueryDto } from './dto/dealer-query.dto';
 import { ContactDealerDto } from './dto/contact-dealer.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/guards/optional-jwt.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
@@ -32,14 +32,14 @@ export class DealersController {
   @Get('me/following')
   @UseGuards(JwtAuthGuard)
   getFollowedDealers(@Request() req: any) {
-    return this.service.getFollowedDealers(req.user.id);
+    return this.service.getFollowedDealers(req.user.userId);
   }
 
   /** GET /dealers/me/analytics?days=30 */
   @Get('me/analytics')
   @UseGuards(JwtAuthGuard)
   analytics(@Request() req: any, @Query('days') days = 30) {
-    return this.service.getAnalytics(req.user.id, +days);
+    return this.service.getAnalytics(req.user.userId, +days);
   }
 
   /** GET /dealers/:slug — public showroom (attaches isFollowing if authenticated) */
@@ -88,7 +88,7 @@ export class DealersController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   follow(@Param('id') id: string, @Request() req: any) {
-    return this.service.follow(req.user.id, id);
+    return this.service.follow(req.user.userId, id);
   }
 
   /** DELETE /dealers/:id/follow */
@@ -96,7 +96,7 @@ export class DealersController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   unfollow(@Param('id') id: string, @Request() req: any) {
-    return this.service.unfollow(req.user.id, id);
+    return this.service.unfollow(req.user.userId, id);
   }
 
   // ── Authenticated + verified dealer endpoints ──────────────────────────
@@ -105,14 +105,14 @@ export class DealersController {
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   create(@Body() dto: CreateDealerDto, @Request() req: any) {
-    return this.service.create(req.user.id, dto);
+    return this.service.create(req.user.userId, dto);
   }
 
   /** PATCH /dealers/me — update own dealer profile (verified email required) */
   @Patch('me')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   update(@Body() dto: UpdateDealerDto, @Request() req: any) {
-    return this.service.update(req.user.id, dto);
+    return this.service.update(req.user.userId, dto);
   }
 
   // ── Review endpoint (authenticated + verified buyer) ───────────────────
@@ -125,7 +125,7 @@ export class DealersController {
     @Body() dto: CreateReviewDto,
     @Request() req: any,
   ) {
-    return this.service.createReview(req.user.id, slug, dto);
+    return this.service.createReview(req.user.userId, slug, dto);
   }
 
   // ── Admin endpoints ────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ export class DealersController {
     @Body('tier') tier: DealerTier,
     @Request() req: any,
   ) {
-    return this.service.verify(id, req.user.id, tier);
+    return this.service.verify(id, req.user.userId, tier);
   }
 
   /** PATCH /dealers/:id/suspend */
