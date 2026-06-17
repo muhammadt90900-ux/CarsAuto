@@ -48,17 +48,17 @@ export class NotificationsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch(':id/read')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  markOneRead(@Param('id') id: string, @Request() req: any) {
-    return this.notificationsService.markOneRead(id, req.user.userId);
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Patch('read-all')
   @HttpCode(HttpStatus.NO_CONTENT)
   markAllRead(@Request() req: any) {
     return this.notificationsService.markAllRead(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  markOneRead(@Param('id') id: string, @Request() req: any) {
+    return this.notificationsService.markOneRead(id, req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
