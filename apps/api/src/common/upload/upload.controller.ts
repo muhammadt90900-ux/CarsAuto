@@ -90,6 +90,10 @@ export class UploadController {
 
     this.enforceUploadRateLimit(userId, 'single');
 
+    // BUG #2 FIX: single upload was skipping the daily cap — only batch enforced it.
+    // A user could bypass the 200/day limit by calling POST /upload/image 201 times.
+    this.enforceDailyCap(userId, 1);
+
     const result = await this.uploadService.processImageUpload({
       originalname: file.originalname,
       mimetype:     file.mimetype,
