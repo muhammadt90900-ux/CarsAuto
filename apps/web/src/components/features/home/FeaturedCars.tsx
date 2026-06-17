@@ -52,13 +52,17 @@ const CarCard = memo(function CarCard({ car, locale }: { car: any; locale?: stri
 
   return (
     <Link href={href} className="block group" prefetch={false}>
-      <article className="card-premium overflow-hidden h-full flex flex-col
+      <article className="group/card card-premium overflow-hidden h-full flex flex-col
                           rounded-2xl border border-slate-100 dark:border-white/[0.06]
-                          bg-white dark:bg-[#0b1525]
+                          bg-white dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]
                           shadow-[var(--shadow-md)]
-                          hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/30
-                          hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]
-                          transition-all duration-300 hover:-translate-y-1.5">
+                          dark:hover:border-[#c9a84c]/30
+                          hover:shadow-[0_24px_64px_rgba(0,0,0,0.30)] dark:hover:shadow-[0_24px_64px_rgba(0,0,0,0.65),0_0_0_1px_rgba(201,168,76,0.06)]
+                          transition-all duration-350 hover:-translate-y-2 relative">
+
+        <div aria-hidden="true"
+          className="absolute top-0 inset-x-0 h-[2px] opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 z-10 pointer-events-none"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent)' }} />
 
         {/* Image area */}
         <div className="relative h-52 overflow-hidden bg-slate-100 dark:bg-[#060f1a] flex-shrink-0">
@@ -81,14 +85,14 @@ const CarCard = memo(function CarCard({ car, locale }: { car: any; locale?: stri
           )}
 
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent
-                          opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent
+                          opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex gap-1.5">
             {car.featured && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black
-                               bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#050b14]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black
+                               bg-gradient-to-r from-[#a87828] to-[#dab445] text-[#050b14] shadow-[0_2px_10px_rgba(201,168,76,0.45)]">
                 <Star className="w-2.5 h-2.5 fill-current" />Featured
               </span>
             )}
@@ -166,7 +170,8 @@ const CarCard = memo(function CarCard({ car, locale }: { car: any; locale?: stri
 
           <div className="mt-auto pt-3 border-t border-[var(--border-subtle)]
                           flex items-center justify-between gap-2">
-            <span className="price-tag text-xl">
+            <span className="price-tag text-xl"
+              style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {car.price ? `$${car.price.toLocaleString()}` : (car.priceFormatted ?? 'Contact')}
             </span>
             <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--gold)]/60
@@ -199,15 +204,18 @@ export function FeaturedCars({ locale }: { locale?: string }) {
   ] as const;
 
   return (
-    <section className="py-16 bg-[var(--surface-0)] dark:bg-[#050b14]">
+    <section className="py-16 bg-[var(--surface-0)] dark:bg-[#050b14] relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none hidden dark:block opacity-[0.02]"
+        style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.8) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c9a84c] mb-2">
-              Handpicked Listings
-            </p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-px bg-gradient-to-r from-[#c9a84c] to-transparent" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c9a84c]">Handpicked Listings</p>
+            </div>
             <h2 className="text-2xl sm:text-3xl font-display font-black text-[var(--text-primary)]">
               Featured Cars
             </h2>
@@ -226,8 +234,8 @@ export function FeaturedCars({ locale }: { locale?: string }) {
         <div
           role="tablist"
           aria-label="Car listing categories"
-          className="flex gap-2 mb-6 bg-white dark:bg-[#0b1525] p-1 rounded-xl w-fit
-                        border border-slate-100 dark:border-white/[0.07]"
+          className="flex gap-1.5 mb-6 bg-white dark:bg-[#070e1c]/80 p-1 rounded-xl w-fit
+                        border border-slate-100 dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_4px_16px_rgba(0,0,0,0.20)]"
         >
           {tabs.map(tab => (
             <button
@@ -240,7 +248,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]
                           ${activeTab === tab.id
-                            ? 'bg-[#c9a84c] text-[#050b14] shadow-sm'
+                            ? 'bg-gradient-to-r from-[#a87828] to-[#c9a84c] text-[#050b14] shadow-[0_2px_12px_rgba(201,168,76,0.38)] font-bold'
                             : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
             >
               {tab.label}
@@ -287,9 +295,10 @@ export function FeaturedCars({ locale }: { locale?: string }) {
           <Link
             href={locale ? `/${locale}/cars` : '/cars'}
             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl text-sm font-bold
-                       border-2 border-[#c9a84c]/40 text-[#c9a84c]
-                       hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]
-                       transition-all duration-200"
+                       border border-[#c9a84c]/35 text-[#c9a84c]
+                       hover:bg-[#c9a84c]/08 hover:border-[#c9a84c]/70
+                       hover:shadow-[0_0_24px_rgba(201,168,76,0.15)] hover:-translate-y-0.5
+                       active:translate-y-0 transition-all duration-250"
           >
             Browse All 24,000+ Cars
             <ArrowRight className="w-4 h-4" />
