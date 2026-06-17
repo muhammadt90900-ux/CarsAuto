@@ -8,7 +8,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
 import { usePathname } from '@/i18n/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Plus, ChevronDown } from 'lucide-react';
+import { Search, X, Plus, ChevronDown, Globe } from 'lucide-react';
 
 /* ── Logo SVG ────────────────────────────────────────────────── */
 const CarLogoIcon = () => (
@@ -219,6 +219,89 @@ function MobileAuthSection({
   );
 }
 
+/* ── Country Switcher ────────────────────────────────────────── */
+const COUNTRIES = [
+  { code: 'IQ', flag: '🇮🇶', name: 'Iraq',  nameKu: 'عێراق',   cities: 'Baghdad · Erbil · Sulaymaniyah' },
+  { code: 'AE', flag: '🇦🇪', name: 'UAE',   nameKu: 'ئیماڕات', cities: 'Dubai · Sharjah · Abu Dhabi' },
+  { code: 'CN', flag: '🇨🇳', name: 'China', nameKu: 'چین',     cities: 'Import & Export' },
+] as const;
+
+function CountrySwitcher() {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(COUNTRIES[0]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative hidden md:block">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg
+                   text-xs font-semibold
+                   border border-white/[0.10] text-white/55
+                   hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                   hover:bg-[#c9a84c]/[0.06] transition-all duration-200"
+        aria-label="Select country"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className="text-base leading-none">{selected.flag}</span>
+        <span className="hidden lg:inline text-[11px]">{selected.code}</span>
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Select region"
+          className="absolute top-full right-0 mt-2 w-52 rounded-xl overflow-hidden z-50
+                     bg-[#060d1a]/99 backdrop-blur-2xl
+                     border border-[#c9a84c]/15
+                     shadow-[0_20px_56px_rgba(0,0,0,0.80),0_0_0_1px_rgba(201,168,76,0.06)]"
+        >
+          <div className="px-3 py-2.5 border-b border-white/[0.06]">
+            <p className="text-[9px] uppercase tracking-[0.16em] text-white/25 font-black flex items-center gap-1.5">
+              <Globe className="w-3 h-3" />Select Region
+            </p>
+          </div>
+          <div className="p-1.5 space-y-0.5">
+            {COUNTRIES.map(country => (
+              <button
+                key={country.code}
+                role="option"
+                aria-selected={selected.code === country.code}
+                onClick={() => { setSelected(country); setOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left
+                            transition-all duration-150
+                            ${selected.code === country.code
+                              ? 'bg-[#c9a84c]/10 text-[#c9a84c]'
+                              : 'text-white/60 hover:bg-white/[0.05] hover:text-white'
+                            }`}
+              >
+                <span className="text-xl leading-none flex-shrink-0">{country.flag}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold leading-none mb-0.5">{country.name}</div>
+                  <div className="text-[10px] opacity-40 truncate">{country.cities}</div>
+                </div>
+                {selected.code === country.code && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Props ───────────────────────────────────────────────────── */
 interface NavbarProps {
   locale: string;
@@ -281,7 +364,7 @@ export function Navbar({ locale }: NavbarProps) {
   ];
 
   const navBg = scrolled
-    ? 'bg-[#070d18]/98 backdrop-blur-2xl shadow-[0_1px_0_rgba(201,168,76,0.15)]'
+    ? 'bg-[#060c18]/98 backdrop-blur-[28px] saturate-150 shadow-[0_1px_0_rgba(201,168,76,0.18),0_4px_20px_rgba(0,0,0,0.35)]'
     : 'bg-[#050b14]/85 backdrop-blur-md';
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
@@ -301,9 +384,28 @@ export function Navbar({ locale }: NavbarProps) {
       {/* ══ Top announcement bar ══════════════════════════════════ */}
       <div className="hidden lg:flex items-center justify-center h-8 text-[10px] font-semibold tracking-widest uppercase
                        text-gold/70 bg-[#030710] border-b border-gold/10">
-        <span>🏆 Iraq & Gulf's #1 Automotive Marketplace</span>
-        <span className="mx-4 text-white/10">|</span>
-        <span>24,000+ Listings · 1,200+ Dealers · 8 Cities</span>
+        <div className="flex items-center gap-5">
+          <span className="flex items-center gap-1.5">
+            <span className="text-gold">🏆</span>
+            <span>Iraq & Gulf&apos;s #1 Automotive Marketplace</span>
+          </span>
+          <span className="text-white/10">|</span>
+          <span>24,000+ Listings · 1,200+ Dealers</span>
+          <span className="text-white/10">|</span>
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-1 text-white/50 hover:text-gold transition-colors cursor-pointer">
+              <span>🇮🇶</span><span className="text-white/30">Iraq</span>
+            </span>
+            <span className="text-white/15">·</span>
+            <span className="flex items-center gap-1 text-white/50 hover:text-gold transition-colors cursor-pointer">
+              <span>🇦🇪</span><span className="text-white/30">UAE</span>
+            </span>
+            <span className="text-white/15">·</span>
+            <span className="flex items-center gap-1 text-white/50 hover:text-gold transition-colors cursor-pointer">
+              <span>🇨🇳</span><span className="text-white/30">China</span>
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ══ Main Navbar ══════════════════════════════════════════ */}
@@ -388,6 +490,7 @@ export function Navbar({ locale }: NavbarProps) {
                 {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
               </button>
 
+              <CountrySwitcher />
               <div className="hidden md:flex items-center gap-1">
                 <LanguageSwitcher />
                 <ThemeToggle />
