@@ -53,7 +53,7 @@ export class AuthController {
   ) {
     const result = await this.authService.register(dto.email, dto.password, dto.name, this.ctx(req));
     this.setRefreshCookie(res, result.refreshToken);
-    return { access_token: result.accessToken, user: result.user };
+    return { accessToken: result.accessToken, user: result.user };
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto.email, dto.password, this.ctx(req));
     this.setRefreshCookie(res, result.refreshToken);
-    return { access_token: result.accessToken, user: result.user };
+    return { accessToken: result.accessToken, user: result.user };
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ export class AuthController {
     if (!token) throw new UnauthorizedException('No refresh token');
     const result = await this.authService.refreshToken(token, undefined, this.ctx(req));
     this.setRefreshCookie(res, result.refreshToken);
-    return { access_token: result.accessToken };
+    return { accessToken: result.accessToken };
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
