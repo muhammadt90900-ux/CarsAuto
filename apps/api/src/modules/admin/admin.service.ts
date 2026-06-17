@@ -133,11 +133,23 @@ export class AdminService {
   }
 
   // IMPROVE: Added error handling
+  // BUG #9 FIX: User.delete() previously hard-deleted, which Postgres rejects
+  // with P2003 (foreign key violation) for almost any real account, since
+  // Listing.user / Payment.user / Message.sender are all `onDelete: Restrict`.
+  // Soft-delete + anonymize instead, matching the intent of `User.deletedAt`.
   async deleteUser(id: string) {
     if (!id) throw new BadRequestException('User ID is required');
-    
+
     try {
-      return await this.prisma.user.delete({ where: { id } });
+      return await this.prisma.user.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          email: `deleted_${id}@deleted.local`,
+          password: null,
+          banned: true,
+        },
+      });
     } catch (err: any) {
       if (err.code === 'P2025') {
         throw new NotFoundException(`User ${id} not found`);
