@@ -105,7 +105,9 @@ export class UploadService {
       throw new BadRequestException('Invalid filename');
     }
     const resolved = path.resolve(path.join(this.uploadDir, filename));
-    if (!resolved.startsWith(path.resolve(this.uploadDir))) {
+    // BUG #4 FIX: add path.sep to make check consistent with persistFile —
+    // without it '/tmp/uploads2/evil' passes the startsWith('/tmp/uploads') check.
+    if (!resolved.startsWith(path.resolve(this.uploadDir) + path.sep)) {
       throw new BadRequestException('Path traversal detected');
     }
     try {
