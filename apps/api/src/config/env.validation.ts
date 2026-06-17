@@ -16,7 +16,11 @@ export interface EnvConfig {
 
   FRONTEND_URL: string;
 
-   EXCHANGE_RATE_API_KEY?: string;
+  EXCHANGE_RATE_API_KEY?: string;
+
+  // Upload
+  UPLOAD_DIR?: string;
+  UPLOAD_BASE_URL?: string;
 
   // Optional services
   SMTP_HOST?: string;
@@ -123,6 +127,19 @@ function validateEnv(): void {
 
     if (!process.env.JWT_REFRESH_EXPIRES_IN) {
       errors.push('JWT_REFRESH_EXPIRES_IN is required in production');
+    }
+
+    // ── Upload base URL validation ──────────────────────────────────────────────
+    const uploadBaseUrl = process.env.UPLOAD_BASE_URL ?? '';
+    if (
+      uploadBaseUrl.includes('localhost') ||
+      uploadBaseUrl.includes('127.0.0.1') ||
+      uploadBaseUrl === ''
+    ) {
+      errors.push(
+        'UPLOAD_BASE_URL must be set to a public-facing URL in production (not localhost). ' +
+        'Set it to your CDN or server domain, e.g. https://cdn.carsauto.com/uploads',
+      );
     }
 
     // ── Stripe validation ──────────────────────────────────────────────────────
