@@ -68,15 +68,32 @@ export class ChatService {
     });
     if (existing) return existing;
 
-    return this.prisma.chat.create({
-      data: { listingId, buyerId, sellerId: listing.userId },
-      include: {
-        listing: { include: { images: { where: { isCover: true }, take: 1 } } },
-        buyer:  { select: { id: true, name: true, avatar: true } },
-        seller: { select: { id: true, name: true, avatar: true } },
-        messages: true,
-      },
-    });
+    const chatInclude = {
+      listing: { include: { images: { where: { isCover: true }, take: 1 } } },
+      buyer:  { select: { id: true, name: true, avatar: true } },
+      seller: { select: { id: true, name: true, avatar: true } },
+      messages: true,
+    };
+
+    // BUG #14 FIX: two concurrent requests can both pass the findFirst check
+    // above before either create() completes. The @@unique([listingId, buyerId])
+    // constraint correctly rejects the second create — catch that race (P2002)
+    // and return the chat the other request just created, instead of a 500.
+    try {
+      return await this.prisma.chat.create({
+        data: { listingId, buyerId, sellerId: listing.userId },
+        include: chatInclude,
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const winner = await this.prisma.chat.findFirst({
+          where: { listingId, buyerId },
+          include: chatInclude,
+        });
+        if (winner) return winner;
+      }
+      throw err;
+    }
   }
 
   async getMyChats(userId: string) {
