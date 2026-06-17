@@ -93,8 +93,8 @@ export class CreateListingDto {
   @IsString() @MinLength(1) @MaxLength(255)
   titleAr!: string;
 
-  @IsString() @MinLength(1) @MaxLength(255)
-  titleZh!: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(255)
+  titleZh?: string;
 
   @IsNumber()
   @Type(() => Number)
