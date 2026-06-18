@@ -3,12 +3,13 @@
 // Become a dealer — application form
 
 import React, { useState, useCallback, useId } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import {
   Building2, CheckCircle2, ChevronRight,
   Loader2, Shield, Star, Zap,
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
+import { api } from '@/lib/api';
 
 const STEPS = ['Business Info', 'Contact', 'Details', 'Review'] as const;
 
@@ -48,7 +49,6 @@ function StepIndicator({ current }: { current: number }) {
 function Field({ label, children, hint, required }: { label: string; children: React.ReactNode; hint?: string; required?: boolean }) {
   const fieldId = useId();
   const hintId  = hint ? `${fieldId}-hint` : undefined;
-  // Clone child to inject id and aria-describedby
   const child = children as React.ReactElement;
   const enhancedChild = child && typeof child === 'object'
     ? React.cloneElement(child as React.ReactElement<any>, {
@@ -87,8 +87,6 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
 
 export default function DealerRegisterPage() {
   const router = useRouter();
-  const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'en');
 
   const [step,     setStep]     = useState(0);
   const [loading,  setLoading]  = useState(false);
@@ -119,21 +117,16 @@ export default function DealerRegisterPage() {
   const submit = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/dealers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nameEn, nameAr, nameKu,
-          phone, whatsapp, email, website,
-          address,
-          specialties: specialties.split(',').map(s => s.trim()).filter(Boolean),
-          descriptionEn: descEn,
-        }),
+      await api.post('/dealers', {
+        nameEn, nameAr, nameKu,
+        phone, whatsapp, email, website,
+        address,
+        specialties: specialties.split(',').map(s => s.trim()).filter(Boolean),
+        descriptionEn: descEn,
       });
-      if (!res.ok) throw new Error(await res.text());
       setSuccess(true);
     } catch (e: any) {
-      setError(e.message ?? 'Failed to submit application');
+      setError(e?.response?.data?.message ?? e.message ?? 'Failed to submit application');
     } finally {
       setLoading(false);
     }
@@ -151,7 +144,7 @@ export default function DealerRegisterPage() {
             Your dealer application is under review. We'll notify you once it's approved — usually within 24 hours.
           </p>
           <button
-            onClick={() => router.push(`/${locale}`)}
+            onClick={() => router.push('/')}
             className="px-8 py-3 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Back to Home
