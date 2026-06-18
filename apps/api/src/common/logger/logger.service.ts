@@ -49,6 +49,31 @@ export function createTraceContext(overrides?: Partial<TraceContext>): TraceCont
   };
 }
 
+// ── URL redaction (F8 fix) ────────────────────────────────────────────────────
+// Sensitive values transported via query string (e.g. email-verification tokens,
+// password-reset tokens) are written verbatim into access logs without redaction,
+// giving anyone with log access a live, exploitable token.
+// Solution: strip known sensitive param names before logging.
+
+const REDACT_PARAMS = new Set(['token', 'code', 'signature', 'access_token', 'reset_token', 'verify_token']);
+
+function redactUrl(url: string): string {
+  try {
+    const u = new URL(url, 'http://x');
+    let redacted = false;
+    REDACT_PARAMS.forEach(p => {
+      if (u.searchParams.has(p)) {
+        u.searchParams.set(p, '[REDACTED]');
+        redacted = true;
+      }
+    });
+    if (!redacted) return url;
+    return u.pathname + (u.search ? `?${u.searchParams.toString()}` : '');
+  } catch {
+    return url;
+  }
+}
+
 // ── Main logger ────────────────────────────────────────────────────────────────
 
 export class StructuredLogger implements LoggerService {
@@ -164,11 +189,11 @@ export class StructuredLogger implements LoggerService {
           // Sampling: always log non-2xx; sample 2xx by SAMPLE_RATE
           if (level === 'log' && Math.random() > SAMPLE_RATE) return;
 
-          const message = `${req.method} ${req.originalUrl} ${status} ${durationMs.toFixed(1)}ms`;
+          const message = `${req.method} ${redactUrl(req.originalUrl)} ${status} ${durationMs.toFixed(1)}ms`;  // F8
           const meta: LogMeta = {
             http: {
               method:     req.method,
-              url:        req.originalUrl,
+              url:        redactUrl(req.originalUrl),  // F8: redact sensitive query params
               statusCode: status,
               durationMs: parseFloat(durationMs.toFixed(2)),
               ip:         req.ip ?? req.socket?.remoteAddress,
