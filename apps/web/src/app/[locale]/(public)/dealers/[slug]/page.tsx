@@ -7,7 +7,7 @@ import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
 
-type Props = { params: { locale: string; slug: string } };
+type Props = { params: Promise<{ locale: string; slug: string }> };
 
 async function getDealer(slug: string) {
   try {
@@ -23,16 +23,17 @@ async function getDealer(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const dealer = await getDealer(params.slug);
+  const { locale: localeStr, slug } = await params;
+  const dealer = await getDealer(slug);
   if (!dealer) return { title: "Dealer Not Found" };
 
-  const locale = params.locale as Locale;
+  const locale = localeStr as Locale;
   const name   = locale === "ku" ? dealer.nameKu : dealer.nameEn;
   const desc   = dealer.taglineEn ?? `View ${dealer.nameEn}\'s showroom — ${dealer.activeListings} active listings.`;
-  const canonical = `${BASE_URL}/${locale}/dealers/${params.slug}`;
-  const languages: Record<string, string> = { "x-default": `${BASE_URL}/ku/dealers/${params.slug}` };
+  const canonical = `${BASE_URL}/${locale}/dealers/${slug}`;
+  const languages: Record<string, string> = { "x-default": `${BASE_URL}/ku/dealers/${slug}` };
   for (const loc of locales) {
-    languages[hreflangMap[loc]] = `${BASE_URL}/${loc}/dealers/${params.slug}`;
+    languages[hreflangMap[loc]] = `${BASE_URL}/${loc}/dealers/${slug}`;
   }
 
   return {
@@ -89,10 +90,11 @@ function buildDealerJsonLd(dealer: any, locale: string, slug: string) {
 }
 
 export default async function DealerShowroomPage({ params }: Props) {
-  const dealer = await getDealer(params.slug);
+  const { locale, slug } = await params;
+  const dealer = await getDealer(slug);
   if (!dealer) notFound();
 
-  const dealerJsonLd = buildDealerJsonLd(dealer, params.locale, params.slug);
+  const dealerJsonLd = buildDealerJsonLd(dealer, locale, slug);
 
   return (
     <>
@@ -102,7 +104,7 @@ export default async function DealerShowroomPage({ params }: Props) {
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(dealerJsonLd) }}
       />
-      <DealerShowroomClient dealer={dealer} locale={params.locale} />
+      <DealerShowroomClient dealer={dealer} locale={locale} />
     </>
   );
 }
