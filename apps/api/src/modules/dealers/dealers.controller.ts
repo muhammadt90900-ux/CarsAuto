@@ -46,7 +46,7 @@ export class DealersController {
   @Get(':slug')
   @UseGuards(OptionalJwtGuard)
   findOne(@Param('slug') slug: string, @Request() req: any) {
-    return this.service.findBySlug(slug, req.user?.id);
+    return this.service.findBySlug(slug, req.user?.userId);  // F10 fix: JwtStrategy returns { userId } not { id }
   }
 
   /** GET /dealers/:slug/reviews */
