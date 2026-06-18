@@ -4,15 +4,16 @@ import { ResetPasswordForm } from '@/components/features/auth/ResetPasswordForm'
 
 export const metadata = { title: 'Reset Password — Cars Auto' };
 
-export default function ResetPasswordPage({
+export default async function ResetPasswordPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   return (
     // Suspense boundary required: ResetPasswordForm reads searchParams via useSearchParams()
     <Suspense fallback={null}>
-      <ResetPasswordForm locale={params.locale} />
+      <ResetPasswordForm locale={locale} />
     </Suspense>
   );
 }
