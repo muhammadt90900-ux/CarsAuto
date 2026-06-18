@@ -1,43 +1,27 @@
-// apps/web/src/app/[locale]/(public)/dealers/[slug]/page.tsx
-
+// apps/web/src/app/[locale]/(public)/dealers/page.tsx
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { DealerShowroomClient } from '@/components/features/dealers/DealerShowroomClient';
+import { DealersMarketplaceClient } from '@/components/features/dealers/DealersMarketplaceClient';
 
-type Props = { params: { locale: string; slug: string } };
-
-async function getDealer(slug: string) {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dealers/${slug}`, {
-      next: { revalidate: 30 },
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error('Failed');
-    return res.json();
-  } catch {
-    return null;
-  }
-}
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<Record<string, string>>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const dealer = await getDealer(params.slug);
-  if (!dealer) return { title: 'Dealer Not Found' };
-
-  const name = params.locale === 'ku' ? dealer.nameKu : dealer.nameEn;
+  const { locale } = await params;
+  const titles: Record<string, string> = {
+    ku: 'دیلەرەکان | AutoBazaar Pro',
+    ar: 'الوكلاء | AutoBazaar Pro',
+    en: 'Car Dealers | AutoBazaar Pro',
+    zh: '汽车经销商 | AutoBazaar Pro',
+  };
   return {
-    title: `${name} | Auto Bazaar Pro`,
-    description: dealer.taglineEn ?? `View ${dealer.nameEn}'s showroom — ${dealer.activeListings} active listings.`,
-    openGraph: {
-      title: name,
-      description: dealer.taglineEn ?? '',
-      images: dealer.coverUrl ? [dealer.coverUrl] : [],
-    },
+    title: titles[locale] ?? titles.en,
+    description: 'Browse verified car dealers in Iraq, Kurdistan & UAE.',
   };
 }
 
-export default async function DealerShowroomPage({ params }: Props) {
-  const dealer = await getDealer(params.slug);
-  if (!dealer) notFound();
-
-  return <DealerShowroomClient dealer={dealer} locale={params.locale} />;
+export default async function DealersPage({ params }: Props) {
+  const { locale } = await params;
+  return <DealersMarketplaceClient locale={locale} />;
 }
