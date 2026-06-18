@@ -6,32 +6,31 @@
 //   - Always sets isHydrated: true (even when no token / on error)
 //   - Tracks isLoading properly with a finally block
 //   - Does NOT silently return without setting isHydrated when token is missing
-//     (the old code returned early with isHydrated still false, leaving AuthGuard
-//      in an infinite loading spinner)
 //
 // ✅ FIX #5 (Critical): onRehydrateStorage no longer calls setHydrated().
-//   - Old code: onRehydrateStorage → setHydrated() immediately after localStorage read.
-//     This caused AuthGuard to see isHydrated:true BEFORE the token refresh finished,
-//     so it would redirect to /login even when the user was authenticated.
-//   - New code: isHydrated is only set to true inside loadUser(), which runs AFTER
-//     the token refresh in Providers.tsx. AuthGuard waits for loadUser() to complete
-//     before making any routing decision.
+//   - isHydrated is only set to true inside loadUser(), which runs AFTER
+//     the token refresh in Providers.tsx. AuthGuard waits for loadUser() to
+//     complete before making any routing decision.
+//
+// ✅ FIX #28: Added isAuthenticated field synced with user !== null.
+//   Every action that touches `user` also sets isAuthenticated consistently.
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, setAccessToken, getAccessToken, type AuthUser } from '@/lib/api';
 
 interface AuthState {
-  user:        AuthUser | null;
-  isLoading:   boolean;
-  isHydrated:  boolean;
+  user:            AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading:       boolean;
+  isHydrated:      boolean;
 
   login:          (email: string, password: string) => Promise<void>;
   register:       (name: string, email: string, password: string, role?: string, phone?: string) => Promise<void>;
   logout:         () => Promise<void>;
   loadUser:       () => Promise<void>;
   setHydrated:    () => void;
-  setUser:        (user: AuthUser) => void;
+  setUser:        (user: AuthUser | null) => void;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword:  (token: string, newPassword: string) => Promise<{ message: string }>;
 }
@@ -39,22 +38,27 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user:       null,
-      isLoading:  false,
-      isHydrated: false,
+      user:            null,
+      isAuthenticated: false,
+      isLoading:       false,
+      isHydrated:      false,
 
+      // ── setHydrated ────────────────────────────────────────────────────────
       setHydrated: () => set({ isHydrated: true }),
 
-      setUser: (user: AuthUser) => set({ user }),
+      // ── setUser — called by profile page after successful updateMe() ───────
+      setUser: (user: AuthUser | null) =>
+        set({ user, isAuthenticated: user !== null }),
 
       // ── Login ──────────────────────────────────────────────────────────────
       login: async (email, password) => {
         set({ isLoading: true });
         try {
           const res = await authApi.login({ email, password });
-          set({ user: res.user });
+          set({ user: res.user, isAuthenticated: true });
+          // Dev-only: surface token for Swagger/Postman testing
           if (typeof window !== 'undefined') {
-            sessionStorage.setItem('_dev_token', res.access_token);  // ← زیاد بکە
+            sessionStorage.setItem('_dev_token', res.access_token);
           }
         } finally {
           set({ isLoading: false });
@@ -66,18 +70,20 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const res = await authApi.register({ name, email, password, role, phone });
-          set({ user: res.user });
+          set({ user: res.user, isAuthenticated: true });
           if (typeof window !== 'undefined') {
-      sessionStorage.setItem('_dev_token', res.access_token);  // ← زیاد بکە
-    }
+            sessionStorage.setItem('_dev_token', res.access_token);
+          }
         } finally {
           set({ isLoading: false });
         }
       },
 
       // ── Logout ─────────────────────────────────────────────────────────────
-      // Wrapped in try/catch + finally so local state is always cleared
-      // even if the backend returns 500, 401, or a network error.
+      // a. Calls API to invalidate the HttpOnly refresh-token cookie server-side
+      // b. Clears the in-memory access token
+      // c. Resets user + isAuthenticated in the store
+      // d. Non-fatal: local state is ALWAYS cleared even if the API call fails
       logout: async () => {
         try {
           await authApi.logout();
@@ -85,8 +91,10 @@ export const useAuthStore = create<AuthState>()(
           // Non-fatal — always clear local state
         } finally {
           setAccessToken(null);
-          if (typeof window !== 'undefined') sessionStorage.removeItem('_dev_token');
-          set({ user: null });
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('_dev_token');
+          }
+          set({ user: null, isAuthenticated: false });
         }
       },
 
@@ -97,17 +105,16 @@ export const useAuthStore = create<AuthState>()(
       loadUser: async () => {
         set({ isLoading: true });
         try {
-          // No token in memory → user is logged out; mark hydrated and return.
           if (!getAccessToken()) {
-            set({ user: null, isHydrated: true, isLoading: false });
+            set({ user: null, isAuthenticated: false, isHydrated: true, isLoading: false });
             return;
           }
           const user = await authApi.me();
-          set({ user, isHydrated: true });
+          set({ user, isAuthenticated: true, isHydrated: true });
         } catch {
           // Token invalid or network error — clear auth state
           setAccessToken(null);
-          set({ user: null, isHydrated: true });
+          set({ user: null, isAuthenticated: false, isHydrated: true });
         } finally {
           set({ isLoading: false });
         }
@@ -125,6 +132,7 @@ export const useAuthStore = create<AuthState>()(
 
       // Only persist minimal non-sensitive profile data.
       // The access token is NEVER stored — it lives in api.ts memory only.
+      // isAuthenticated is derived from user; not persisted (re-derived on hydration).
       partialize: (state) => ({
         user: state.user
           ? { id: state.user.id, name: state.user.name, role: state.user.role }
