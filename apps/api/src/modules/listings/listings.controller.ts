@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { ListingsService, type ListingQueryParams } from './listings.service';
 import { JwtAuthGuard }          from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtGuard }      from '../auth/guards/optional-jwt.guard';
 import { EmailVerifiedGuard }    from '../../common/guards/email-verified.guard';
 import { CreateListingDto }      from './dto/create-listing.dto';
 import { ListingType, ListingCondition, FuelType, TransmissionType } from '../../common/prisma/enums';
@@ -69,9 +70,14 @@ export class ListingsController {
 
   // ── Parameterised public endpoint — must come AFTER all static routes ─────
 
+  // F3 FIX: OptionalJwtGuard populates req.user when a valid token is present
+  // but never blocks unauthenticated requests. The userId is forwarded to
+  // findOne() so owners can see their own non-ACTIVE listings while
+  // unauthenticated (and non-owner) callers get a 404.
+  @UseGuards(OptionalJwtGuard)
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.listingsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.listingsService.findOne(id, req.user?.userId);
   }
 
   // ── Remaining authenticated endpoints ─────────────────────────────────────
