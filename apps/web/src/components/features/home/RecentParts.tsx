@@ -5,7 +5,6 @@
 import { useState, memo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Tag, Package, Zap } from 'lucide-react';
 import { listingsApi } from '@/lib/api';
@@ -37,13 +36,12 @@ function PartCardSkeleton() {
 }
 
 const PartCard = memo(function PartCard({ part }: { part: any }) {
-  const locale = useLocale();
   const [imgError, setImgError] = useState(false);
   const handleImgError = useCallback(() => setImgError(true), []);
   const imageUrl = part.images?.[0] || null;
 
   return (
-    <Link href={`/${locale}/parts/${part.id}`} className="block group" prefetch={false}>
+    <Link href={`/parts/${part.id}`} className="block group" prefetch={false}>
       <article className="rounded-xl overflow-hidden h-full flex flex-col
                           bg-white dark:bg-[#0b1525]
                           border border-slate-100 dark:border-white/[0.06]
@@ -54,7 +52,7 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
           {imageUrl && !imgError ? (
             <Image
               src={imageUrl}
-              alt={part.title || 'Spare part'}
+              alt={part.titleEn || part.titleKu || 'Spare part'}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
               className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
@@ -77,7 +75,7 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
         </div>
         <div className="p-3 flex flex-col flex-1" dir="rtl">
           <h4 className="text-xs font-semibold text-[var(--text-primary)] truncate mb-1 leading-snug group-hover:text-[#c9a84c] transition-colors duration-200 line-clamp-2">
-            {part.title}
+            {part.titleEn || part.titleKu}
           </h4>
           {part.make && (
             <p className="text-[var(--text-faint)] text-[10px] mb-2">{part.make} {part.model}</p>
