@@ -2,7 +2,13 @@
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { requireAdmin } from '@/lib/auth';
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+};
+
+export default async function Layout({ children, params }: Props) {
+  const { locale } = await params;
   // await requireAdmin();
-  return <AdminLayout>{children}</AdminLayout>;
+  return <AdminLayout locale={locale}>{children}</AdminLayout>;
 }
