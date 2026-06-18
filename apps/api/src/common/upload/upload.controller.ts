@@ -105,9 +105,12 @@ export class UploadController {
       `Image uploaded: ${result.filename} (${result.size} bytes, ${result.width}×${result.height}) by user ${userId}`,
     );
 
-    // Record ownership so DELETE can enforce IDOR protection
-    // TTL: 365 days (files are long-lived; cache is best-effort)
-    this.cache.set(`upload:owner:${result.filename}`, userId, 365 * 24 * 3600 * 1000);
+    // F7 fix: persist ownership in DB instead of in-process cache.
+    // Cache-only ownership reset on every restart, making the IDOR check
+    // silently fail-open for all files uploaded before the last deploy.
+    await this.prisma.uploadedFile.create({
+      data: { filename: result.filename, userId },
+    });
 
     return {
       url:          result.url,
@@ -169,10 +172,11 @@ export class UploadController {
 
     this.logger.log(`Batch upload: ${results.length} images processed by user ${userId}`);
 
-    // Record ownership for each uploaded file
-    for (const r of results) {
-      this.cache.set(`upload:owner:${r.filename}`, userId, 365 * 24 * 3600 * 1000);
-    }
+    // F7 fix: persist ownership for all batch files in one DB write.
+    await this.prisma.uploadedFile.createMany({
+      data: results.map(r => ({ filename: r.filename, userId })),
+      skipDuplicates: true,
+    });
 
     return results.map(r => ({
       url:          r.url,
@@ -210,15 +214,22 @@ export class UploadController {
       });
     }
 
-    // Ownership check: verify this file was uploaded by this user.
-    // cache.get() returns { value, stale } | null
-    const owned = this.cache.get<string>(`upload:owner:${filename}`);
-    if (owned !== null && owned.value !== userId) {
+    // F7 fix: fail-closed DB ownership check instead of cache-based fail-open.
+    // Old code: if cache miss (after any restart) → check skipped → anyone could delete.
+    // New code: if no DB record → NotFoundException; if wrong owner → ForbiddenException.
+    const ownerRecord = await this.prisma.uploadedFile.findUnique({
+      where: { filename },
+      select: { userId: true },
+    });
+    if (!ownerRecord) {
+      throw new ForbiddenException('You do not have permission to delete this file');
+    }
+    if (ownerRecord.userId !== userId) {
       throw new ForbiddenException('You do not have permission to delete this file');
     }
 
     await this.uploadService.deleteFile(filename);
-    this.cache.del(`upload:owner:${filename}`);
+    await this.prisma.uploadedFile.delete({ where: { filename } });
     this.logger.log(`File deleted: ${filename} by user ${userId}`);
   }
 
