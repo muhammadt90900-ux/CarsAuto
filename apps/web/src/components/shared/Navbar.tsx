@@ -1,12 +1,11 @@
 'use client';
 // components/shared/Navbar.tsx
 
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
-import { usePathname } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Search, X, Plus, ChevronDown, Globe } from 'lucide-react';
 
