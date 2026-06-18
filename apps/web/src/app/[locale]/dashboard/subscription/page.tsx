@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Check, Zap, Crown, Star, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 import { PaymentMethodSelector, GatewayId, UserCountry } from '@/components/features/payments/PaymentMethodSelector';
 import { AsiaHawalaOTPModal } from '@/components/features/payments/AsiaHawalaOTPModal';
 
