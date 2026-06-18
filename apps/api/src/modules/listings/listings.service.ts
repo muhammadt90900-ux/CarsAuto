@@ -13,6 +13,7 @@ import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@prisma/client';
+import { DealersService } from '../dealers/dealers.service';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
@@ -137,6 +138,7 @@ export class ListingsService {
     private readonly ai:           AiService,
     private readonly translation:  TranslationService,
     private readonly auditLog:     AuditLogService,
+    private readonly dealers:      DealersService,
   ) {}
 
   // ── Pagination helper ──────────────────────────────────────────────────────
@@ -147,10 +149,13 @@ export class ListingsService {
   }
 
   // ── findAll ────────────────────────────────────────────────────────────────
-  async findAll(params: ListingQueryParams) {
+  async findAll(params: ListingQueryParams, userId?: string) {
+    // userId is optional — public (unauthenticated) requests omit it entirely.
+    // The cache key intentionally excludes userId so public results are shared;
+    // isFavorited is appended in a second pass after the cached fetch.
     const cacheKey = this.buildListCacheKey(params);
     try {
-      return await this.cache.getOrSet(
+      const base = await this.cache.getOrSet(
         cacheKey,
         async () => {
           const { page, limit } = this.validatePagination(params.page, params.limit);
@@ -172,6 +177,25 @@ export class ListingsService {
         },
         CACHE_TTL_LIST,
       );
+
+      // ── isFavorited pass (only for authenticated users) ──────────────────
+      // Runs outside the cache so each user gets their own favorite flags
+      // without polluting the shared public cache.
+      if (userId && base.data.length > 0) {
+        const listingIds = base.data.map((l: any) => l.id);
+        const favorites  = await this.prisma.favorite.findMany({
+          where:  { userId, listingId: { in: listingIds } },
+          select: { listingId: true },
+        }).catch(() => [] as { listingId: string }[]);
+
+        const favSet = new Set(favorites.map((f) => f.listingId));
+        return {
+          ...base,
+          data: base.data.map((l: any) => ({ ...l, isFavorited: favSet.has(l.id) })),
+        };
+      }
+
+      return base;
     } catch (err) {
       this.logger.error(`Failed to fetch listings: ${err instanceof Error ? err.message : 'unknown error'}`);
       throw err;
@@ -376,6 +400,28 @@ export class ListingsService {
         ).catch((err: Error) => {
           this.logger.warn(`Failed to queue translation for listing ${listing.id}: ${err.message}`);
         });
+      }
+
+      // ── FEATURE 9: Notify dealer followers of new listing ─────────────────
+      // Fire-and-forget — never blocks the HTTP response.
+      // Only fires for listings that go live immediately (ACTIVE).
+      // Quarantined listings (UNDER_REVIEW) are silently skipped.
+      // Private sellers (no Dealer row) are also silently skipped.
+      if (listing.status === 'ACTIVE') {
+        this.prisma.dealer
+          .findUnique({ where: { userId: data.userId }, select: { id: true } })
+          .then((dealer) => {
+            if (!dealer) return;
+            const title = listing.titleKu ?? listing.titleEn ?? '';
+            this.dealers
+              .notifyFollowersOfNewListing(dealer.id, listing.id, title)
+              .catch((err: Error) => {
+                this.logger.warn(
+                  `Failed to notify followers for listing ${listing.id}: ${err.message}`,
+                );
+              });
+          })
+          .catch(() => {});
       }
 
       return listing;
