@@ -54,6 +54,12 @@
     "send": "ناردن",
     "searchPlaceholder": "گەڕان بۆ ئوتومبێل..."
   },
+  "nav": {
+    "dashboard": "داشبۆرد",
+    "admin": "ئەدمین",
+    "myListings": "ئۆتۆمبێلەکانم",
+    "sellCar": "فرۆشتنی ئۆتۆمبێل"
+  },
   "home": {
     "heroTitle": "سەیارە، موتەرسیکل و پارچە یەدەکە بدۆزەرەوە",
     "heroSubtitle": "بازاڕی سەرەکی بۆ عێراق، کوردستان، دوبەی و چین",
@@ -122,6 +128,39 @@
     "pending": "چاوەڕوانی",
     "sold": "فرۆشراو",
     "expired": "کاتی بەسەرچووە"
+  },
+  "sell": {
+    "pageTitle": "فرۆشتنی ئۆتۆمبێلەکەت",
+    "pageSubtitle": "دەگاتە هەزاران کڕیار لە سەرانسەری کوردستان و ئێراق",
+    "step1Title": "زانیاری سەرەکی",
+    "step1Subtitle": "ناوونیشان، نرخ، و جۆر",
+    "step2Title": "وەسف",
+    "step2Subtitle": "کڕیارەکان لەبارەی ئۆتۆمبێلەکەت بزانێ",
+    "step3Title": "وێنەکان",
+    "step3Subtitle": "تا ١٠ وێنە بەرزبکەرەوە",
+    "titleEnLabel": "ناوونیشان (ئینگلیزی)",
+    "titleKuLabel": "ناوونیشان (کوردی)",
+    "titleArLabel": "ناوونیشان (عەرەبی)",
+    "priceLabel": "نرخ",
+    "conditionLabel": "باری ئۆتۆمبێل",
+    "typeLabel": "جۆری لیستینگ",
+    "negotiableLabel": "نرخەکە گفتوگۆپێویستە",
+    "descriptionEnLabel": "وەسف (ئینگلیزی)",
+    "descriptionKuLabel": "وەسف (کوردی)",
+    "publishButton": "بڵاوکردنەوەی لیستینگ",
+    "publishingLabel": "بڵاودەکرێتەوە...",
+    "continueButton": "بەردەوامبوون",
+    "backButton": "گەڕانەوە",
+    "errors": {
+      "titleEnRequired": "ناوونیشانی ئینگلیزی پێویستە",
+      "titleKuRequired": "ناوونیشانی کوردی پێویستە",
+      "titleTooShort": "ناوونیشانەکە دەبێت لانیکەم ٥ پیت بێت",
+      "priceRequired": "نرخەکە پێویستە",
+      "priceInvalid": "نرخێکی دروست بنووسە",
+      "conditionRequired": "باری ئۆتۆمبێل هەڵبژێرە",
+      "typeRequired": "جۆری لیستینگ هەڵبژێرە",
+      "imagesRequired": "لانیکەم یەک وێنە بەرزبکەرەوە"
+    }
   },
   "auth": {
     "loginTitle": "بەخێربێیتەوە",
@@ -281,98 +320,97 @@
     "translation": {
       "translating": "وەرگێڕانی نووسین...",
       "translated": "بەشێوەیەکی ئۆتۆماتیکی وەرگێڕدراوە"
+    },
+    "currency": {
+      "converting": "گۆڕینی نرخ...",
+      "liveRates": "نرخی ئێستا",
+      "fallbackRates": "نرخی ئاستاندارد (بێ ئینتەرنێت)",
+      "updatedAt": "نوێکراوەتەوە",
+      "iqd": "دینار",
+      "usd": "دۆلار",
+      "aed": "درهەم",
+      "cny": "یوان",
+      "eur": "یۆرۆ",
+      "gbp": "پاوەند",
+      "thousandsIqd": "{{amount}} هەزار دینار",
+      "convertedNote": "بەپێی نرخی ئێستا"
+    },
+    "china": {
+      "marketTitle": "بازاڕی چین",
+      "evBrands": "مارکەکانی ئەلیکتریکی چین",
+      "comingSoon": "بەزووی دێت"
+    },
+    "payments": {
+      "methodSelector": "شێوازی پارەدان هەڵبژێرە",
+      "comingSoon": "بەزووی دێت",
+      "comingSoonHint": "ئەم شێوازە لەزووترین کاتدا بەردەست دەبێت",
+      "alipay": {
+        "name": "ئەلیپەی",
+        "hint": "بەزووی دێت — پەرتووکی بازرگانی پێویستە"
+      },
+      "wechatpay": {
+        "name": "ویچات پەی",
+        "hint": "بەزووی دێت — پەرتووکی بازرگانی پێویستە"
+      },
+      "chat": {
+        "voiceNote": "دەنگ نامە",
+        "voiceNoteRecording": "تۆمارکردن…",
+        "voiceNoteSending": "ناردنی دەنگ نامە…",
+        "voiceNoteError": "ناردنی دەنگ نامە سەرکەوتوو نەبوو",
+        "voiceNoteTooLong": "زیاتر لە ٢ خولەک نابێت",
+        "voiceNoteTooLarge": "فایلەکە زۆر گەورەیە (زیاتر لە 2 MB نابێت)",
+        "voiceNoteRetry": "دووبارە هەوڵبدەرەوە",
+        "voiceNoteCancel": "پاشگەزبوونەوە",
+        "voiceNoteStop": "وەستاندنی تۆمارکردن",
+        "voiceNoteSend": "ناردنی دەنگ نامە",
+        "voiceNotePlay": "لێدان",
+        "voiceNotePause": "وەستاندن",
+        "microphonePermission": "مۆڵەتی مایکرۆفۆن نەدراوە. ڕێکخستنەکانی وێبگەڕت بپشکنە.",
+        "rateLimit": "زۆر دەنگ نامە نارد — تکایە کەمێک چاوەڕێ بکە",
+        "inputPlaceholder": "پەیامێک بنووسە…",
+        "noMessages": "دەستی بە قسەکردن بکە"
+      },
+      "viewer360": {
+        "tabLabel": "دیمەنی ٣٦٠°",
+        "tabPhotos": "وێنەکان",
+        "dragHint": "بکێشە بۆ سووڕاندن",
+        "autoRotate": "ئۆتۆماتیک سووڕانەوە",
+        "stopRotate": "وەستاندنی سووڕانەوە",
+        "fullscreen": "پڕکردنی شاشە",
+        "exitFullscreen": "دەرچوون لە شاشەی پڕ",
+        "zoomIn": "گەورەکردن",
+        "zoomOut": "بچووکردن",
+        "loading": "بارکردنی دیمەنی ٣٦٠°…",
+        "frameCounter": "{current} / {total}",
+        "badge": "٣٦٠°"
+      },
+      "sell360": {
+        "sectionTitle": "کۆمەڵەی وێنەی ٣٦٠°",
+        "optional": "ئارەزوومەندانە",
+        "emptyHint": "١٨ تا ٣٦ وێنە زیادبکە کە هەر ١٠° دەوری ئۆتۆمبێلەکە",
+        "readyHint": "{count} فریم ئامادەیە — دیمەنی ٣٦٠° چالاکە",
+        "progressHint": "{count}/18 فریم بارکرا — {remaining}ی دیکە پێویستە",
+        "instructions": "هەر ١٠° دەوری ئۆتۆمبێلەکە وێنە بکە. لە پێشەوە-چەپ دەست پێبکە و بەئاراستەی ئەمجار بسووڕەوە. کەمترین ١٨ وێنە پێویستە.",
+        "bulkUpload": "چەندین فریم بارکە",
+        "viewerReady": "دیمەنی ٣٦٠° ئامادەیە — کڕیارەکان دەتوانن بیسوورێننەوە",
+        "removeFrame": "لابردنی فریمی {n}",
+        "uploadFrame": "بارکردنی فریمی {n} ({angle}°)"
+      },
+      "dealers": {
+        "follow": "بەدواداچوون",
+        "unfollow": "وازهێنان لە بەدواداچوون",
+        "followers": "بەدواداچووان",
+        "followingSuccess": "بەسەرکەوتوویی بەدواداچوویت",
+        "unfollowSuccess": "وازت هێنا لە بەدواداچوون"
+      },
+      "dashboard": {
+        "savedListings": "ئۆتۆمبێلی هەڵگیراو",
+        "followedDealers": "دووکانی بەدواداچوو",
+        "noFollowedDealers": "هیچ دووکانێک بەدواداچوو نییت",
+        "noFollowedDealersDesc": "دووکانەکانی پەسەندت بەدواداچۆ بۆ ئەوەی ئۆتۆمبێلی نوێیان ببینیت",
+        "latestListing": "دوایین ئۆتۆمبێل",
+        "noActiveListings": "هیچ ئۆتۆمبێلێکی چالاک نییە"
+      }
     }
-,    "currency": {
-  "converting": "گۆڕینی نرخ...",
-  "liveRates": "نرخی ئێستا",
-  "fallbackRates": "نرخی ئاستاندارد (بێ ئینتەرنێت)",
-  "updatedAt": "نوێکراوەتەوە",
-  "iqd": "دینار",
-  "usd": "دۆلار",
-  "aed": "درهەم",
-  "cny": "یوان",
-  "eur": "یۆرۆ",
-  "gbp": "پاوەند",
-  "thousandsIqd": "{{amount}} هەزار دینار",
-  "convertedNote": "بەپێی نرخی ئێستا"
-},
-  "china": {
-    "marketTitle": "بازاڕی چین",
-    "evBrands": "مارکەکانی ئەلیکتریکی چین",
-    "comingSoon": "بەزووی دێت"
-  },
-  "payments": {
-    "methodSelector": "شێوازی پارەدان هەڵبژێرە",
-    "comingSoon": "بەزووی دێت",
-    "comingSoonHint": "ئەم شێوازە لەزووترین کاتدا بەردەست دەبێت",
-    "alipay": {
-      "name": "ئەلیپەی",
-      "hint": "بەزووی دێت — پەرتووکی بازرگانی پێویستە"
-    },
-    "wechatpay": {
-      "name": "ویچات پەی",
-      "hint": "بەزووی دێت — پەرتووکی بازرگانی پێویستە"
-    },
-  "chat": {
-    "voiceNote":               "دەنگ نامە",
-    "voiceNoteRecording":      "تۆمارکردن…",
-    "voiceNoteSending":        "ناردنی دەنگ نامە…",
-    "voiceNoteError":          "ناردنی دەنگ نامە سەرکەوتوو نەبوو",
-    "voiceNoteTooLong":        "زیاتر لە ٢ خولەک نابێت",
-    "voiceNoteTooLarge":       "فایلەکە زۆر گەورەیە (زیاتر لە 2 MB نابێت)",
-    "voiceNoteRetry":          "دووبارە هەوڵبدەرەوە",
-    "voiceNoteCancel":         "پاشگەزبوونەوە",
-    "voiceNoteStop":           "وەستاندنی تۆمارکردن",
-    "voiceNoteSend":           "ناردنی دەنگ نامە",
-    "voiceNotePlay":           "لێدان",
-    "voiceNotePause":          "وەستاندن",
-    "microphonePermission":    "مۆڵەتی مایکرۆفۆن نەدراوە. ڕێکخستنەکانی وێبگەڕت بپشکنە.",
-    "rateLimit":               "زۆر دەنگ نامە نارد — تکایە کەمێک چاوەڕێ بکە",
-    "inputPlaceholder":        "پەیامێک بنووسە…",
-    "noMessages":              "دەستی بە قسەکردن بکە"
   }
-,
-  "viewer360": {
-    "tabLabel": "دیمەنی ٣٦٠°",
-    "tabPhotos": "وێنەکان",
-    "dragHint": "بکێشە بۆ سووڕاندن",
-    "autoRotate": "ئۆتۆماتیک سووڕانەوە",
-    "stopRotate": "وەستاندنی سووڕانەوە",
-    "fullscreen": "پڕکردنی شاشە",
-    "exitFullscreen": "دەرچوون لە شاشەی پڕ",
-    "zoomIn": "گەورەکردن",
-    "zoomOut": "بچووکردن",
-    "loading": "بارکردنی دیمەنی ٣٦٠°…",
-    "frameCounter": "{current} / {total}",
-    "badge": "٣٦٠°"
-},
-  "sell360": {
-    "sectionTitle": "کۆمەڵەی وێنەی ٣٦٠°",
-    "optional": "ئارەزوومەندانە",
-    "emptyHint": "١٨ تا ٣٦ وێنە زیادبکە کە هەر ١٠° دەوری ئۆتۆمبێلەکە",
-    "readyHint": "{count} فریم ئامادەیە — دیمەنی ٣٦٠° چالاکە",
-    "progressHint": "{count}/18 فریم بارکرا — {remaining}ی دیکە پێویستە",
-    "instructions": "هەر ١٠° دەوری ئۆتۆمبێلەکە وێنە بکە. لە پێشەوە-چەپ دەست پێبکە و بەئاراستەی ئەمجار بسووڕەوە. کەمترین ١٨ وێنە پێویستە.",
-    "bulkUpload": "چەندین فریم بارکە",
-    "viewerReady": "دیمەنی ٣٦٠° ئامادەیە — کڕیارەکان دەتوانن بیسوورێننەوە",
-    "removeFrame": "لابردنی فریمی {n}",
-    "uploadFrame": "بارکردنی فریمی {n} ({angle}°)"
-},
-  "dealers": {
-    "follow": "بەدواداچوون",
-    "unfollow": "وازهێنان لە بەدواداچوون",
-    "followers": "بەدواداچووان",
-    "followingSuccess": "بەسەرکەوتوویی بەدواداچوویت",
-    "unfollowSuccess": "وازت هێنا لە بەدواداچوون"
-  },
-  "dashboard": {
-    "savedListings": "ئۆتۆمبێلی هەڵگیراو",
-    "followedDealers": "دووکانی بەدواداچوو",
-    "noFollowedDealers": "هیچ دووکانێک بەدواداچوو نییت",
-    "noFollowedDealersDesc": "دووکانەکانی پەسەندت بەدواداچۆ بۆ ئەوەی ئۆتۆمبێلی نوێیان ببینیت",
-    "latestListing": "دوایین ئۆتۆمبێل",
-    "noActiveListings": "هیچ ئۆتۆمبێلێکی چالاک نییە"
-  }
-}
-}
 }
