@@ -319,6 +319,84 @@ export const subscriptionApi = {
       .then((r) => r.data),
 };
 
+// ── Dealers API ───────────────────────────────────────────────────────────────
+export const dealersApi = {
+  getAll: (params: Record<string, unknown> = {}) =>
+    cachedGet<{ data: any[]; total: number }>(
+      '/dealers?' + new URLSearchParams(params as any).toString(),
+    ),
+
+  getBySlug: (slug: string) =>
+    cachedGet<any>(`/dealers/${slug}`),
+
+  getLeads: () =>
+    api.get<{ data: any[] }>('/dealers/me/leads').then((r) => r.data),
+
+  getAnalytics: () =>
+    api.get<any>('/dealers/me/analytics').then((r) => r.data),
+
+  updateProfile: (data: Record<string, unknown>) =>
+    api.patch<any>('/dealers/me', data).then((r) => r.data),
+
+  register: (data: Record<string, unknown>) =>
+    api.post<any>('/dealers', data).then((r) => r.data),
+
+  follow: (dealerId: string) =>
+    api.post<any>(`/dealers/${dealerId}/follow`).then((r) => r.data),
+
+  contact: (dealerId: string, data: Record<string, unknown>) =>
+    api.post<any>(`/dealers/${dealerId}/contact`, data).then((r) => r.data),
+};
+
+// ── Users API ─────────────────────────────────────────────────────────────────
+export const usersApi = {
+  getMe: () =>
+    api.get<any>('/users/me').then((r) => r.data),
+
+  updateMe: (data: Record<string, unknown>) =>
+    api.patch<any>('/users/me', data).then((r) => r.data),
+
+  getFavorites: () =>
+    api.get<{ data: any[] }>('/users/me/favorites').then((r) => r.data),
+
+  addFavorite: (listingId: string) =>
+    api.post<any>(`/users/me/favorites/${listingId}`).then((r) => r.data),
+
+  removeFavorite: (listingId: string) =>
+    api.delete<any>(`/users/me/favorites/${listingId}`).then((r) => r.data),
+};
+
+// ── Notifications API ─────────────────────────────────────────────────────────
+export const notificationsApi = {
+  getAll: () =>
+    api.get<{ data: any[] }>('/notifications').then((r) => r.data),
+
+  markRead: (id: string) =>
+    api.patch<any>(`/notifications/${id}/read`).then((r) => r.data),
+
+  markAllRead: () =>
+    api.patch<any>('/notifications/read-all').then((r) => r.data),
+
+  delete: (id: string) =>
+    api.delete<any>(`/notifications/${id}`).then((r) => r.data),
+};
+
+// ── Chat API ──────────────────────────────────────────────────────────────────
+export const chatApi = {
+  getConversations: () =>
+    api.get<{ data: any[] }>('/chat/conversations').then((r) => r.data),
+
+  getMessages: (conversationId: string) =>
+    api
+      .get<{ data: any[] }>(`/chat/conversations/${conversationId}/messages`)
+      .then((r) => r.data),
+
+  sendMessage: (conversationId: string, content: string) =>
+    api
+      .post<any>(`/chat/conversations/${conversationId}/messages`, { content })
+      .then((r) => r.data),
+};
+
 // ── Cache invalidation ────────────────────────────────────────────────────────
 export function invalidateListingsCache(): void {
   for (const k of cache.keys()) {
@@ -347,3 +425,5 @@ export interface PermissionStatus {
   subscriptionEnd?:     string; // ISO date string from JSON
   plan?:                string;
 }
+
+export default api;
