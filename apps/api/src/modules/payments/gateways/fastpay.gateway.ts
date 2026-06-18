@@ -58,11 +58,42 @@ export class FastPayGateway implements IGateway {
     }
   }
 
-  async verifyWebhook(payload: unknown, signature: string): Promise<boolean> {
+  /**
+   * F4 FIX (a): Accept raw Buffer from the webhook route (registered with
+   * express.raw() in main.ts before json() middleware runs).
+   *
+   * Previously: re-serialised the already-parsed JS object via JSON.stringify(),
+   * which is NOT guaranteed to reproduce the original bytes (key order, number
+   * formatting, Unicode escapes can differ). This caused signature mismatches on
+   * legitimate webhooks and would not have caught forged payloads that exploited
+   * the normalisation difference.
+   *
+   * Previously also: used createHash (plain hash) with concatenation instead of
+   * createHmac — concatenation-then-hash is not a standard MAC construction.
+   *
+   * Now: HMAC-SHA256 over the raw bytes with the API key as the secret.
+   * Confirm with FastPay docs whether they use a dedicated webhook signing secret
+   * separate from FASTPAY_API_KEY; if so, source it from FASTPAY_WEBHOOK_SECRET
+   * instead.
+   */
+  async verifyWebhook(payload: Buffer | unknown, signature: string): Promise<boolean> {
     const apiKey = this.config.get<string>('FASTPAY_API_KEY');
     if (!apiKey) return false;
-    const raw = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    const expected = crypto.createHash('sha256').update(raw + apiKey).digest('hex');
+
+    // payload must be a raw Buffer (registered via express.raw() in main.ts)
+    if (!Buffer.isBuffer(payload)) {
+      this.logger.error(
+        'FastPay verifyWebhook received a non-Buffer payload — ' +
+        'ensure /api/payments/fastpay/webhook is registered with express.raw() before json()',
+      );
+      return false;
+    }
+
+    const expected = crypto
+      .createHmac('sha256', apiKey)
+      .update(payload)          // raw bytes — no re-serialisation
+      .digest('hex');
+
     try {
       return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
     } catch {
