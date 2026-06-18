@@ -7,14 +7,15 @@ import { VerifyEmailForm } from '@/components/features/auth/VerifyEmailForm';
 
 export const metadata = { title: 'Verify Email — Cars Auto' };
 
-export default function VerifyEmailPage({
+export default async function VerifyEmailPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   return (
     <Suspense fallback={null}>
-      <VerifyEmailForm locale={params.locale} />
+      <VerifyEmailForm locale={locale} />
     </Suspense>
   );
 }
