@@ -54,9 +54,13 @@ export class ListingsController {
 
   // ── Public endpoints ──────────────────────────────────────────────────────
 
+  // OptionalJwtGuard: never blocks unauthenticated requests — populates
+  // req.user only when a valid JWT is present. This lets findAll() attach
+  // isFavorited flags for logged-in users without throwing for public callers.
+  @UseGuards(OptionalJwtGuard)
   @Get()
-  findAll(@Query() query: ListingQueryDto) {
-    return this.listingsService.findAll(query);
+  findAll(@Query() query: ListingQueryDto, @Request() req: any) {
+    return this.listingsService.findAll(query, req.user?.userId);
   }
 
   // IMPORTANT: Static-segment routes MUST be declared BEFORE @Get(':id').
