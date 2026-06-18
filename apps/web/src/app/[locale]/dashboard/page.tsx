@@ -4,6 +4,9 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { listingsApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 import {
   TrendingUp, Eye, Car, MessageSquare, DollarSign,
   ArrowUpRight, ArrowDownRight, Plus, ChevronRight,
@@ -72,20 +75,73 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const params = useParams();
   const locale = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'en');
+  const user = useAuthStore(s => s.user);
 
+  // ── Real data: fetch the user's own listings ─────────────────────────────
+  const { data: myListings, isLoading: listingsLoading } = useQuery({
+    queryKey: ['listings', 'my'],
+    queryFn:  () => listingsApi.myListings(),
+    staleTime: 60_000,
+  });
+
+  const activeCount = myListings
+    ? (myListings as any[]).filter((l: any) => l.status === 'ACTIVE').length
+    : null;
+
+  const totalViews = myListings
+    ? (myListings as any[]).reduce((sum: number, l: any) => sum + (l.views ?? 0), 0)
+    : null;
+
+  // ── Stats (first two are real; messages/revenue remain UI placeholders) ──
   const stats = [
-    { labelKey: 'totalViews',    value: '24,891', change: '+18.2%', trend: 'up',   icon: Eye,           color: 'blue',    iconBg: 'bg-blue-500/10 text-blue-500',     sparkline: [40,55,45,70,65,80,90,85,95] },
-    { labelKey: 'activeListings',value: '12',     change: '+3',     trend: 'up',   icon: Car,           color: 'emerald', iconBg: 'bg-emerald-500/10 text-emerald-500',sparkline: [6,8,7,9,10,10,11,12,12] },
-    { labelKey: 'newMessages',   value: '38',     change: '-4.1%',  trend: 'down', icon: MessageSquare, color: 'violet',  iconBg: 'bg-violet-500/10 text-violet-500',  sparkline: [50,44,48,42,45,40,38,42,38] },
-    { labelKey: 'revenue',       value: '$3,240', change: '+22.5%', trend: 'up',   icon: DollarSign,    color: 'amber',   iconBg: 'bg-amber-500/10 text-amber-500',    sparkline: [1200,1500,1350,1800,2100,2400,2800,3000,3240] },
+    {
+      labelKey: 'totalViews',
+      value:    listingsLoading ? '—' : (totalViews ?? 0).toLocaleString(),
+      change:   '+18.2%', trend: 'up',
+      icon: Eye, color: 'blue',
+      iconBg:    'bg-blue-500/10 text-blue-500',
+      sparkline: [40,55,45,70,65,80,90,85,95],
+    },
+    {
+      labelKey: 'activeListings',
+      value:    listingsLoading ? '—' : String(activeCount ?? 0),
+      change:   '+3', trend: 'up',
+      icon: Car, color: 'emerald',
+      iconBg:    'bg-emerald-500/10 text-emerald-500',
+      sparkline: [6,8,7,9,10,10,11,12,12],
+    },
+    {
+      labelKey: 'newMessages',
+      value:    '—', change: '—', trend: 'up',
+      icon: MessageSquare, color: 'violet',
+      iconBg:    'bg-violet-500/10 text-violet-500',
+      sparkline: [50,44,48,42,45,40,38,42,38],
+    },
+    {
+      labelKey: 'revenue',
+      value:    '—', change: '—', trend: 'up',
+      icon: DollarSign, color: 'amber',
+      iconBg:    'bg-amber-500/10 text-amber-500',
+      sparkline: [1200,1500,1350,1800,2100,2400,2800,3000,3240],
+    },
   ];
 
-  const recentListings = [
-    { id: 1, name: 'Toyota Camry 2022',  price: '$18,500', views: 342, status: 'active',  daysLeft: 28 },
-    { id: 2, name: 'BMW 3 Series 2021',  price: '$28,900', views: 198, status: 'active',  daysLeft: 15 },
-    { id: 3, name: 'Honda CR-V 2023',    price: '$24,200', views: 87,  status: 'pending', daysLeft: null },
-    { id: 4, name: 'Mercedes C200 2020', price: '$31,000', views: 521, status: 'active',  daysLeft: 6 },
-  ];
+  // ── Recent listings from real API (last 4) ───────────────────────────────
+  const recentListings = myListings
+    ? (myListings as any[]).slice(0, 4).map((l: any) => ({
+        id:       l.id,
+        name:     l.titleEn ?? l.titleKu ?? 'Listing',
+        price:    l.price ? `$${Number(l.price).toLocaleString()}` : 'Contact',
+        views:    l.views ?? 0,
+        status:   (l.status ?? 'active').toLowerCase() as string,
+        daysLeft: null as number | null,
+      }))
+    : [
+        { id: 1, name: 'Toyota Camry 2022',  price: '$18,500', views: 342, status: 'active',  daysLeft: 28 },
+        { id: 2, name: 'BMW 3 Series 2021',  price: '$28,900', views: 198, status: 'active',  daysLeft: 15 },
+        { id: 3, name: 'Honda CR-V 2023',    price: '$24,200', views: 87,  status: 'pending', daysLeft: null },
+        { id: 4, name: 'Mercedes C200 2020', price: '$31,000', views: 521, status: 'active',  daysLeft: 6 },
+      ];
 
   const quickActions = [
     { label: 'Post a Listing', icon: Plus,  href: `/${locale}/dashboard/listings`, color: 'text-[#c9a84c] bg-[#c9a84c]/10 hover:bg-[#c9a84c]/20', primary: true },
@@ -113,9 +169,11 @@ export default function DashboardPage() {
       {/* ── Welcome header ───────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-gray-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">
+            {user?.name ? `سڵاو، ${user.name}` : 'Dashboard'}
+          </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Good morning — here's what's happening today
+            Good morning — here&apos;s what&apos;s happening today
           </p>
         </div>
         <Link
@@ -153,7 +211,19 @@ export default function DashboardPage() {
 
       {/* ── Stats grid ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => <StatCard key={s.labelKey} {...s} t={t} />)}
+        {listingsLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
+                                      bg-white dark:bg-[#0b1525] p-5 space-y-4 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5" />
+                <div className="space-y-2">
+                  <div className="h-6 w-1/2 bg-gray-100 dark:bg-white/5 rounded" />
+                  <div className="h-3 w-3/4 bg-gray-100 dark:bg-white/5 rounded" />
+                </div>
+              </div>
+            ))
+          : stats.map(s => <StatCard key={s.labelKey} {...s} t={t} />)
+        }
       </div>
 
       {/* ── Bottom 2-col ─────────────────────────────────────── */}
