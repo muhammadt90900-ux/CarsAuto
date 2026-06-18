@@ -67,15 +67,14 @@ async function bootstrap() {
   );
 
   // ── Body parsing ──────────────────────────────────────────────────────────
-  // Raw body for ALL payment webhooks must be registered BEFORE json() middleware.
-  // F4 FIX: Added raw-body parsing for regional gateways (FastPay, QiCard, AsiaHawala)
-  // mirroring the existing Stripe pattern — HMAC verification requires the original
-  // bytes exactly as received, not a re-serialised JSON object.
-  app.use('/api/payments/webhook',            raw({ type: 'application/json' })); // Stripe
-  app.use('/api/payments/fastpay/webhook',    raw({ type: 'application/json' })); // FastPay
-  app.use('/api/payments/qicard/webhook',     raw({ type: 'application/json' })); // QiCard
-  app.use('/api/payments/asiahawala/webhook', raw({ type: 'application/json' })); // AsiaHawala
-
+  // Raw body for Stripe webhook must be registered BEFORE json() middleware.
+  app.use('/api/payments/webhook', raw({ type: 'application/json' }));
+  // F4 fix: Raw body for regional payment webhooks (FastPay, QiCard, AsiaHawala, ZainCash)
+  // HMAC/signature verification requires the original bytes, not re-serialised JSON.
+  app.use('/api/payments/zaincash/webhook',   raw({ type: 'application/json' }));
+  app.use('/api/payments/fastpay/webhook',    raw({ type: 'application/json' }));
+  app.use('/api/payments/qicard/webhook',     raw({ type: 'application/json' }));
+  app.use('/api/payments/asiahawala/webhook', raw({ type: 'application/json' }));
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
