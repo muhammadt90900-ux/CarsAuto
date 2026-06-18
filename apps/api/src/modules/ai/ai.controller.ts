@@ -14,7 +14,7 @@ import {
   IsOptional, IsArray, ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AiService, RecommendationContext } from './ai.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -55,7 +55,10 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   /** FEATURE 2C: Enhanced price suggestion with condition + location */
+  // F9 fix: tight per-IP limit — this endpoint triggers a live OpenAI call on cache miss.
+  // Global default (60/min) is far too permissive for an unauthenticated AI endpoint.
   @Post('suggest-price')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   suggestPrice(@Body() body: SuggestPriceDto) {
     return this.aiService.suggestPrice(
       body.make,
@@ -67,7 +70,9 @@ export class AiController {
     );
   }
 
+  // F9 fix: cap unauthenticated AI endpoints to limit OpenAI cost amplification
   @Get('similar')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   similarCars(
     @Query('listingId') listingId: string,
     @Query('locale') locale = 'en',
@@ -77,6 +82,7 @@ export class AiController {
   }
 
   @Get('budget')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   byBudget(
     @Query('budget', ParseIntPipe) budget: number,
     @Query('currency') currency = 'USD',
@@ -88,6 +94,7 @@ export class AiController {
   }
 
   @Post('search-history')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   bySearchHistory(@Body() body: SearchHistoryDto) {
     return this.aiService.bySearchHistory(
       body.searches,
@@ -98,6 +105,7 @@ export class AiController {
   }
 
   @Get('country')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   byCountry(
     @Query('country') country: string,
     @Query('locale') locale = 'en',
