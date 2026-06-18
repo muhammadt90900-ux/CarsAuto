@@ -27,6 +27,21 @@ function assertSafeCol(col: string): void {
     throw new Error(`SQL injection guard: column "${col}" not allowed`);
   }
 }
+
+// F10 fix: explicit locale allowlist so the locale → column-name mapping
+// can never silently accept an unexpected value even if a future caller
+// passes locale from user input without pre-validation.
+// (The ternary inside fullTextSearch/autocomplete is safe *today* because
+// only three literal outcomes are possible, but an explicit type + guard
+// closes the door permanently.)
+const SAFE_LOCALES = new Set(['en', 'ar', 'ku'] as const);
+type SafeLocale = 'en' | 'ar' | 'ku';
+
+function assertSafeLocale(locale: string): asserts locale is SafeLocale {
+  if (!SAFE_LOCALES.has(locale as SafeLocale)) {
+    throw new Error(`SQL injection guard: locale "${locale}" not allowed`);
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. LISTING BROWSE — main search page
 //    Hits: listings_status_type_created_idx (partial, deletedAt IS NULL)
@@ -206,7 +221,8 @@ export async function searchCars(
 //    Uses raw SQL for full-text — Prisma's fullTextSearch is PostgreSQL-native.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function fullTextSearch(prisma: PrismaService, query: string, locale: 'en' | 'ku' | 'ar', limit = 20) {
+export async function fullTextSearch(prisma: PrismaService, query: string, locale: string, limit = 20) {
+  assertSafeLocale(locale);  // F10: runtime guard — narrows to SafeLocale
   // GOOD: Use plainto_tsquery (safe, no syntax errors from user input).
   //       Use websearch_to_tsquery for Google-style queries.
   // BAD:  Don't use LIKE '%query%' — it can't use GIN indexes.
@@ -256,7 +272,8 @@ export async function fullTextSearch(prisma: PrismaService, query: string, local
 //    Hits: listings_title_en_trgm_idx (GIN pg_trgm)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function autocomplete(prisma: PrismaService, partial: string, locale: 'en' | 'ku' | 'ar', limit = 8) {
+export async function autocomplete(prisma: PrismaService, partial: string, locale: string, limit = 8) {
+  assertSafeLocale(locale);  // F10: runtime guard — narrows to SafeLocale
   // GOOD: pg_trgm similarity search — fast for 3+ character inputs.
   // BAD:  Don't use LIKE '%partial%' on large tables without pg_trgm index.
 
