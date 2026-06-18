@@ -3,10 +3,11 @@ import { ForgotPasswordForm } from '@/components/features/auth/ForgotPasswordFor
 
 export const metadata = { title: 'Forgot Password — Cars Auto' };
 
-export default function ForgotPasswordPage({
+export default async function ForgotPasswordPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  return <ForgotPasswordForm locale={params.locale} />;
+  const { locale } = await params;
+  return <ForgotPasswordForm locale={locale} />;
 }
