@@ -6,7 +6,10 @@ import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
 
-type Props = { params: { locale: string }; searchParams?: Record<string, string> };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<Record<string, string>>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -41,9 +44,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function SparePartsPage({ params, searchParams }: Props) {  
-  const { locale } = await params;       
-  const search = await searchParams ?? {};
-  return <SparePartsClient locale={params.locale} initialSearch={searchParams ?? {}} />;
+export default async function SparePartsPage({ params, searchParams }: Props) {
+  const { locale } = await params;
+  const search = searchParams ? await searchParams : {};
+  return <SparePartsClient locale={locale} initialSearch={search} />;
 }
 
