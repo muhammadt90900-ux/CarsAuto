@@ -280,16 +280,16 @@ export function CarsMarketplaceClient({
   locale: string;
   initialSearch: Record<string, string>;
 }) {
-  const [query,        setQuery]      = useState(initialSearch.q ?? '');
-  const [make,         setMake]       = useState(initialSearch.make ?? '');
-  const [bodyType,     setBodyType]   = useState('');
-  const [fuelType,     setFuelType]   = useState('');
-  const [transmission, setTrans]      = useState('');
-  const [condition,    setCondition]  = useState('');
-  const [city,         setCity]       = useState(initialSearch.city ?? '');
-  const [priceRange,   setPriceRange] = useState('');
-  const [colorFilter,  setColor]      = useState('');
-  const [sortBy,       setSortBy]     = useState('newest');
+  const [query,        setQuery]      = useState(initialSearch.q            ?? '');
+  const [make,         setMake]       = useState(initialSearch.make         ?? '');
+  const [bodyType,     setBodyType]   = useState(initialSearch.bodyType     ?? '');
+  const [fuelType,     setFuelType]   = useState(initialSearch.fuelType     ?? '');
+  const [transmission, setTrans]      = useState(initialSearch.transmission ?? '');
+  const [condition,    setCondition]  = useState(initialSearch.condition    ?? '');
+  const [city,         setCity]       = useState(initialSearch.city         ?? '');
+  const [priceRange,   setPriceRange] = useState(initialSearch.priceRange   ?? '');
+  const [colorFilter,  setColor]      = useState(initialSearch.color        ?? '');
+  const [sortBy,       setSortBy]     = useState(initialSearch.sort         ?? 'newest');
   const [view,         setView]       = useState<'grid' | 'list'>('grid');
   const [page,         setPage]       = useState(1);
   const [sidebarOpen,  setSidebar]    = useState(false);
@@ -428,8 +428,13 @@ export function CarsMarketplaceClient({
     </div>
   );
 
+  const isRtl = locale === 'ku' || locale === 'ar';
+
   return (
-    <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)] page-content">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)] page-content"
+    >
       {/* Page Header */}
       <div className="relative overflow-hidden border-b border-[var(--border-default)]"
            style={{ background:'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}>
