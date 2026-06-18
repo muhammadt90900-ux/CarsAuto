@@ -31,6 +31,7 @@ interface AuthState {
   logout:         () => Promise<void>;
   loadUser:       () => Promise<void>;
   setHydrated:    () => void;
+  setUser:        (user: AuthUser) => void;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword:  (token: string, newPassword: string) => Promise<{ message: string }>;
 }
@@ -43,6 +44,8 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
 
       setHydrated: () => set({ isHydrated: true }),
+
+      setUser: (user: AuthUser) => set({ user }),
 
       // ── Login ──────────────────────────────────────────────────────────────
       login: async (email, password) => {
