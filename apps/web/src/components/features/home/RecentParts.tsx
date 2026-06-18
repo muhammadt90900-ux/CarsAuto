@@ -5,6 +5,7 @@
 import { useState, memo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Tag, Package, Zap } from 'lucide-react';
 import { listingsApi } from '@/lib/api';
@@ -36,12 +37,13 @@ function PartCardSkeleton() {
 }
 
 const PartCard = memo(function PartCard({ part }: { part: any }) {
+  const locale = useLocale();
   const [imgError, setImgError] = useState(false);
   const handleImgError = useCallback(() => setImgError(true), []);
   const imageUrl = part.images?.[0] || null;
 
   return (
-    <Link href={`/parts/${part.id}`} className="block group" prefetch={false}>
+    <Link href={`/${locale}/parts/${part.id}`} className="block group" prefetch={false}>
       <article className="rounded-xl overflow-hidden h-full flex flex-col
                           bg-white dark:bg-[#0b1525]
                           border border-slate-100 dark:border-white/[0.06]
