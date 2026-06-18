@@ -101,10 +101,33 @@ export class AsiaHawalaGateway implements IGateway {
     }
   }
 
-  async verifyWebhook(payload: unknown, signature: string): Promise<boolean> {
+  /**
+   * F4 FIX (a): Accept raw Buffer from the webhook route (registered with
+   * express.raw() in main.ts before json() middleware runs).
+   *
+   * Previously: `JSON.stringify(payload)` where payload was already the parsed
+   * JS object — re-serialisation is not guaranteed to equal the original bytes,
+   * causing spurious HMAC mismatches on legitimate webhooks.
+   *
+   * Now: HMAC-SHA256 directly over the raw Buffer.
+   */
+  async verifyWebhook(payload: Buffer | unknown, signature: string): Promise<boolean> {
     const { apiKey } = this.creds();
-    const raw = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    const expected = crypto.createHmac('sha256', apiKey).update(raw).digest('hex');
+
+    // payload must be a raw Buffer (registered via express.raw() in main.ts)
+    if (!Buffer.isBuffer(payload)) {
+      this.logger.error(
+        'AsiaHawala verifyWebhook received a non-Buffer payload — ' +
+        'ensure /api/payments/asiahawala/webhook is registered with express.raw() before json()',
+      );
+      return false;
+    }
+
+    const expected = crypto
+      .createHmac('sha256', apiKey)
+      .update(payload)          // raw bytes — no re-serialisation
+      .digest('hex');
+
     try {
       return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
     } catch {
