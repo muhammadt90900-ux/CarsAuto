@@ -198,13 +198,12 @@ export class AuthController {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private ctx(req: Request) {
+    // F6 fix: use req.ip which respects the trust proxy setting from main.ts
+    // (app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']))
+    // instead of blindly trusting X-Forwarded-For which an attacker can spoof.
     return {
-      ipAddress: (
-        ((req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim()) ??
-        req.socket?.remoteAddress ??
-        undefined
-      ),
-      userAgent: (req.headers['user-agent'] as string | undefined),
+      ipAddress: (req as any).ip as string | undefined,
+      userAgent: req.headers['user-agent'] as string | undefined,
     };
   }
 
