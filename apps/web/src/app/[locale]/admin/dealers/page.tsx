@@ -3,6 +3,7 @@
 // Admin panel: review, verify, reject, suspend dealers
 
 import { useState, useEffect, useCallback } from 'react';
+import { api } from '@/lib/api';
 import {
   CheckCircle2, XCircle, PauseCircle, Eye, Search,
   ChevronDown, Loader2, Shield, Star, Building2,
@@ -32,8 +33,8 @@ export default function AdminDealersPage() {
   const fetchDealers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/dealers?status=${filter}&search=${search}`);
-      const data = await res.json();
+      const res = await api.get(`/admin/dealers?status=${filter}&search=${search}`);
+      const data = res.data;
       setDealers(data.dealers ?? []);
     } finally {
       setLoading(false);
@@ -45,10 +46,10 @@ export default function AdminDealersPage() {
   const act = useCallback(async (id: string, action: 'verify' | 'suspend' | 'reject', tier?: string) => {
     setActioning(id);
     try {
-      await fetch(`/api/dealers/${id}/${action}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier }),
+      await api.patch(`/admin/dealers/${id}/${action}`, {
+        
+        
+        { tier },
       });
       await fetchDealers();
     } finally {
