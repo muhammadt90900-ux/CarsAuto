@@ -4,10 +4,11 @@ import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
 
-type Props = { params: { locale: string } };
+type Props = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const locale = params.locale as Locale;
+  const { locale: localeStr } = await params;
+  const locale = localeStr as Locale;
   const titles: Record<Locale, string> = {
     ku: "مۆتۆسیکلەت | AutoBazaar Pro",
     ar: "الدراجات النارية | AutoBazaar Pro",
@@ -38,10 +39,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function MotorcyclesPage() {
+export default async function MotorcyclesPage({ params }: Props) {
+  const { locale } = await params;
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold">Motorcycles</h1>
+    <div className="min-h-screen bg-[#050b14] flex items-center justify-center" data-locale={locale}>
+      <p className="text-white/50">Motorcycles marketplace — coming soon</p>
     </div>
   );
 }
