@@ -6,10 +6,14 @@ import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
 
-type Props = { params: { locale: string }; searchParams?: Record<string, string> };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<Record<string, string>>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const locale = params.locale as Locale;
+  const { locale: localeStr } = await params;
+  const locale = localeStr as Locale;
   const t = await getTranslations({ locale, namespace: "meta" });
 
   const canonical = `${BASE_URL}/${locale}/cars`;
@@ -44,5 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CarsPage({ params, searchParams }: Props) {
-  return <CarsMarketplaceClient locale={params.locale} initialSearch={searchParams ?? {}} />;
+  const { locale } = await params;
+  const search = searchParams ? await searchParams : {};
+  return <CarsMarketplaceClient locale={locale} initialSearch={search} />;
 }
