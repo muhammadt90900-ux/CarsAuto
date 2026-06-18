@@ -54,6 +54,12 @@
     "send": "发送",
     "searchPlaceholder": "搜索汽车..."
   },
+  "nav": {
+    "dashboard": "仪表板",
+    "admin": "管理员",
+    "myListings": "我的列表",
+    "sellCar": "出售车辆"
+  },
   "home": {
     "heroTitle": "查找汽车、摩托车和零配件",
     "heroSubtitle": "服务于伊拉克、库尔德斯坦、迪拜和中国的优质市场",
@@ -122,6 +128,39 @@
     "pending": "待审核",
     "sold": "已售出",
     "expired": "已过期"
+  },
+  "sell": {
+    "pageTitle": "出售您的车",
+    "pageSubtitle": "覆盖库尔德斯坦和伊拉克数千名买家",
+    "step1Title": "基本信息",
+    "step1Subtitle": "标题、价格和类型",
+    "step2Title": "描述",
+    "step2Subtitle": "向买家介绍您的车辆",
+    "step3Title": "照片",
+    "step3Subtitle": "最多上传10张照片",
+    "titleEnLabel": "标题（英文）",
+    "titleKuLabel": "标题（库尔德文）",
+    "titleArLabel": "标题（阿拉伯文）",
+    "priceLabel": "价格",
+    "conditionLabel": "车况",
+    "typeLabel": "列表类型",
+    "negotiableLabel": "价格可议",
+    "descriptionEnLabel": "描述（英文）",
+    "descriptionKuLabel": "描述（库尔德文）",
+    "publishButton": "发布列表",
+    "publishingLabel": "发布中...",
+    "continueButton": "继续",
+    "backButton": "返回",
+    "errors": {
+      "titleEnRequired": "英文标题为必填项",
+      "titleKuRequired": "库尔德文标题为必填项",
+      "titleTooShort": "标题至少需要5个字符",
+      "priceRequired": "价格为必填项",
+      "priceInvalid": "请输入有效价格",
+      "conditionRequired": "请选择车况",
+      "typeRequired": "请选择列表类型",
+      "imagesRequired": "至少上传一张照片"
+    }
   },
   "auth": {
     "loginTitle": "欢迎回来",
@@ -281,44 +320,135 @@
     "translation": {
       "translating": "正在翻译...",
       "translated": "已自动翻译"
+    },
+    "currency": {
+      "converting": "正在换算价格...",
+      "liveRates": "实时汇率",
+      "fallbackRates": "标准汇率（离线）",
+      "updatedAt": "更新于",
+      "iqd": "伊拉克第纳尔",
+      "usd": "美元",
+      "aed": "阿联酋迪拉姆",
+      "cny": "人民币",
+      "eur": "欧元",
+      "gbp": "英镑",
+      "thousandsIqd": "{{amount}}千第纳尔",
+      "convertedNote": "按当前汇率"
+    },
+    "china": {
+      "marketTitle": "中国市场",
+      "evBrands": "中国新能源品牌",
+      "comingSoon": "即将推出"
+    },
+    "payments": {
+      "methodSelector": "选择支付方式",
+      "comingSoon": "即将推出",
+      "comingSoonHint": "此支付方式即将开放",
+      "alipay": {
+        "name": "支付宝",
+        "hint": "即将推出 — 需要获批商家账户"
+      },
+      "wechatpay": {
+        "name": "微信支付",
+        "hint": "即将推出 — 需要获批商家账户"
+      }
+    },
+    "viewer360": {
+      "tabLabel": "360°全景",
+      "tabPhotos": "照片",
+      "dragHint": "拖拽旋转",
+      "autoRotate": "自动旋转",
+      "stopRotate": "停止旋转",
+      "fullscreen": "全屏",
+      "exitFullscreen": "退出全屏",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "loading": "正在加载360°视图…",
+      "frameCounter": "{current} / {total}",
+      "badge": "360°"
+    },
+    "sell360": {
+      "sectionTitle": "360°照片组",
+      "optional": "可选",
+      "emptyHint": "添加18-36张每隔10°拍摄的车辆照片",
+      "readyHint": "{count}帧已就绪 — 360°视图已启用",
+      "progressHint": "已上传{count}/18帧 — 还需{remaining}帧",
+      "instructions": "每隔10°绕车拍摄一张照片，从左前方开始顺时针旋转，至少需要18张照片。",
+      "bulkUpload": "批量上传帧",
+      "viewerReady": "360°视图已就绪 — 买家可以旋转车辆",
+      "removeFrame": "删除第{n}帧",
+      "uploadFrame": "上传第{n}帧（{angle}°）"
+    },
+    "dealers": {
+      "follow": "关注",
+      "unfollow": "取消关注",
+      "followers": "关注者",
+      "followingSuccess": "您已关注此经销商",
+      "unfollowSuccess": "您已取消关注此经销商"
+    },
+    "dashboard": {
+      "savedListings": "已保存车辆",
+      "followedDealers": "已关注经销商",
+      "noFollowedDealers": "您还没有关注任何经销商",
+      "noFollowedDealersDesc": "关注您喜欢的经销商以查看最新车辆",
+      "latestListing": "最新车辆",
+      "noActiveListings": "暂无在售车辆"
     }
-,    "currency": {
-  "converting": "正在换算价格...",
-  "liveRates": "实时汇率",
-  "fallbackRates": "标准汇率（离线）",
-  "updatedAt": "更新于",
-  "iqd": "伊拉克第纳尔",
-  "usd": "美元",
-  "aed": "阿联酋迪拉姆",
-  "cny": "人民币",
-  "eur": "欧元",
-  "gbp": "英镑",
-  "thousandsIqd": "{{amount}}千第纳尔",
-  "convertedNote": "按当前汇率"
-},
+  },
+  "currency": {
+    "converting": "正在转换价格...",
+    "liveRates": "实时汇率",
+    "fallbackRates": "标准汇率（离线）",
+    "updatedAt": "最后更新",
+    "iqd": "伊拉克第纳尔",
+    "usd": "美元",
+    "aed": "阿联酋迪拉姆",
+    "cny": "人民币",
+    "eur": "欧元",
+    "gbp": "英镑",
+    "thousandsIqd": "{{amount}} 千第纳尔",
+    "convertedNote": "按当前汇率换算"
+  },
   "china": {
     "marketTitle": "中国市场",
-    "evBrands": "中国新能源品牌",
+    "evBrands": "中国电动汽车品牌",
     "comingSoon": "即将推出"
   },
   "payments": {
     "methodSelector": "选择支付方式",
     "comingSoon": "即将推出",
-    "comingSoonHint": "此支付方式即将开放",
+    "comingSoonHint": "此方式即将推出",
     "alipay": {
       "name": "支付宝",
-      "hint": "即将推出 — 需要获批商家账户"
+      "hint": "即将推出——需要商户账户"
     },
     "wechatpay": {
       "name": "微信支付",
-      "hint": "即将推出 — 需要获批商家账户"
+      "hint": "即将推出——需要商户账户"
     }
-  }
-,
+  },
+  "chat": {
+    "voiceNote": "语音消息",
+    "voiceNoteRecording": "正在录制…",
+    "voiceNoteSending": "正在发送语音消息…",
+    "voiceNoteError": "语音消息发送失败",
+    "voiceNoteTooLong": "最长2分钟",
+    "voiceNoteTooLarge": "文件太大（最大2MB）",
+    "voiceNoteRetry": "重试",
+    "voiceNoteCancel": "取消",
+    "voiceNoteStop": "停止录制",
+    "voiceNoteSend": "发送语音消息",
+    "voiceNotePlay": "播放",
+    "voiceNotePause": "暂停",
+    "microphonePermission": "麦克风访问被拒绝。请检查浏览器设置。",
+    "rateLimit": "语音消息发送过于频繁——请稍等",
+    "inputPlaceholder": "输入消息…",
+    "noMessages": "开始对话"
+  },
   "viewer360": {
-    "tabLabel": "360°全景",
+    "tabLabel": "360°视图",
     "tabPhotos": "照片",
-    "dragHint": "拖拽旋转",
+    "dragHint": "拖动旋转",
     "autoRotate": "自动旋转",
     "stopRotate": "停止旋转",
     "fullscreen": "全屏",
@@ -328,34 +458,24 @@
     "loading": "正在加载360°视图…",
     "frameCounter": "{current} / {total}",
     "badge": "360°"
-},
+  },
   "sell360": {
-    "sectionTitle": "360°照片组",
+    "sectionTitle": "360°图片集",
     "optional": "可选",
-    "emptyHint": "添加18-36张每隔10°拍摄的车辆照片",
-    "readyHint": "{count}帧已就绪 — 360°视图已启用",
-    "progressHint": "已上传{count}/18帧 — 还需{remaining}帧",
-    "instructions": "每隔10°绕车拍摄一张照片，从左前方开始顺时针旋转，至少需要18张照片。",
+    "emptyHint": "围绕车辆每10°添加18-36张照片",
+    "readyHint": "已准备{count}帧——360°视图已启用",
+    "progressHint": "已上传{count}/18帧——还需要{remaining}帧",
+    "instructions": "围绕车辆每10°拍摄照片。从左前方开始，按顺时针方向移动。最少需要18张照片。",
     "bulkUpload": "批量上传帧",
-    "viewerReady": "360°视图已就绪 — 买家可以旋转车辆",
-    "removeFrame": "删除第{n}帧",
+    "viewerReady": "360°视图已就绪——买家可以旋转车辆查看",
+    "removeFrame": "移除第{n}帧",
     "uploadFrame": "上传第{n}帧（{angle}°）"
-},
+  },
   "dealers": {
     "follow": "关注",
     "unfollow": "取消关注",
     "followers": "关注者",
-    "followingSuccess": "您已关注此经销商",
-    "unfollowSuccess": "您已取消关注此经销商"
-  },
-  "dashboard": {
-    "savedListings": "已保存车辆",
-    "followedDealers": "已关注经销商",
-    "noFollowedDealers": "您还没有关注任何经销商",
-    "noFollowedDealersDesc": "关注您喜欢的经销商以查看最新车辆",
-    "latestListing": "最新车辆",
-    "noActiveListings": "暂无在售车辆"
+    "followingSuccess": "关注成功",
+    "unfollowSuccess": "已取消关注"
   }
-}
-
 }
