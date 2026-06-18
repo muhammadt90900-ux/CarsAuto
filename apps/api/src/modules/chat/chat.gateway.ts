@@ -155,12 +155,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ─── Room management ───────────────────────────────────────────────────────
 
   @SubscribeMessage('joinChat')
-  handleJoin(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
+  async handleJoin(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
     if (typeof chatId !== 'string' || chatId.length > 40) return;
+    const userId: string = client.data.userId;
+    // F5 fix: verify the caller is a participant before joining the Socket.IO room.
+    // Without this check, any authenticated user who knows the chatId can silently
+    // receive all future messages broadcast to this room.
+    try {
+      await this.chatService.assertMembershipPublic(chatId, userId);
+    } catch {
+      client.emit('joinError', { chatId, error: 'Not a participant in this chat' });
+      return;
+    }
     client.join(chatId);
     client.to(chatId).emit('userJoined', { userId: client.data.userId, chatId });
 
-    const userId: string = client.data.userId;
     const roomClients = this.server.sockets.adapter.rooms.get(chatId);
     const onlineInRoom: string[] = [];
     if (roomClients) {
@@ -419,7 +428,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId: string = client.data.userId;
     if (!data?.chatId) return;
 
-    await this.chatService.markChatRead(data.chatId, userId);
+    // F5 fix: membership is enforced inside markChatRead (assertMembership call),
+    // so non-participants receive a ForbiddenException rather than silently succeeding.
+    try {
+      await this.chatService.markChatRead(data.chatId, userId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Access denied';
+      client.emit('markReadError', { chatId: data.chatId, error: msg });
+      return;
+    }
 
     client.to(data.chatId).emit('messagesRead', {
       chatId:     data.chatId,
