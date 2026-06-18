@@ -31,6 +31,12 @@ export class ChatService {
 
   // ─── Helper: assert membership ──────────────────────────────────────────────
 
+  // F5 fix: public wrapper so ChatGateway can call membership checks
+  // without duplicating the DB query logic.
+  async assertMembershipPublic(chatId: string, userId: string) {
+    return this.assertMembership(chatId, userId);
+  }
+
   private async assertMembership(chatId: string, userId: string) {
     const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },
@@ -373,6 +379,9 @@ export class ChatService {
   // ─── Read receipts ──────────────────────────────────────────────────────────
 
   async markChatRead(chatId: string, userId: string) {
+    // F5 fix: verify the caller is a participant before touching read receipts
+    await this.assertMembership(chatId, userId);
+
     const unreadMessages = await this.prisma.message.findMany({
       where: {
         chatId,
