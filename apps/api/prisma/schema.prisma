@@ -182,6 +182,7 @@ model User {
   uploads                Upload[]
   notificationPreference NotificationPreference?
   followedDealers        DealerFollower[]
+  uploadedFiles          UploadedFile[]
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -1323,4 +1324,25 @@ model ListingAccessorySpec {
   @@index([mobile])
   @@index([condition])
   @@map("listing_accessory_specs")
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPLOADED FILE (ownership registry — F7 fix)
+// Persists upload ownership in the database so IDOR checks survive
+// process restarts and scale-out. Previously tracked only in CacheService
+// (in-process Map), which reset on every restart and was not shared across
+// replicas, causing the ownership check to silently fail-open after any deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UploadedFile {
+  id        String   @id @default(uuid()) @db.Uuid
+  filename  String   @unique @db.VarChar(512)
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("uploaded_files")
 }
