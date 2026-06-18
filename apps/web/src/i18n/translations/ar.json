@@ -52,7 +52,12 @@
     "next": "التالي",
     "submit": "إرسال",
     "send": "إرسال",
-    "searchPlaceholder": "ابحث عن سيارات..."
+    "searchPlaceholder": "ابحث عن سيارات...",
+    "signOut": "تسجيل الخروج",
+    "myListings": "إعلاناتي",
+    "notifications": "الإشعارات",
+    "settings": "الإعدادات",
+    "SellYourCar": "بيع سيارتك"
   },
   "home": {
     "heroTitle": "ابحث عن سيارات ودراجات وقطع غيار",
@@ -121,7 +126,14 @@
     "active": "نشط",
     "pending": "قيد المراجعة",
     "sold": "مُباع",
-    "expired": "منتهي"
+    "expired": "منتهي",
+    "new": "إعلان جديد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "title": "تصفح السيارات",
+    "noResults": "لا توجد إعلانات",
+    "filters": "الفلاتر",
+    "sort": "ترتيب"
   },
   "auth": {
     "loginTitle": "مرحباً بعودتك",
@@ -207,7 +219,8 @@
     "noFollowedDealers": "لا تتابع أي وكيل حتى الآن",
     "noFollowedDealersDesc": "تابع وكلاءك المفضلين لرؤية أحدث سياراتهم",
     "latestListing": "آخر سيارة",
-    "noActiveListings": "لا توجد سيارات نشطة"
+    "noActiveListings": "لا توجد سيارات نشطة",
+    "title": "لوحة التحكم"
   },
   "notifications": {
     "newMessage": "رسالة جديدة من {name}",
@@ -219,7 +232,10 @@
     "daysAgo": "منذ {count} يوم",
     "justNow": "الآن",
     "unreadCount": "{count} إشعار غير مقروء",
-    "allCaughtUp": "تم قراءة جميع الإشعارات!"
+    "allCaughtUp": "تم قراءة جميع الإشعارات!",
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "empty": "لا توجد إشعارات"
   },
   "profile": {
     "fullName": "الاسم الكامل",
@@ -236,7 +252,10 @@
     "accountSettings": "إعدادات الحساب",
     "dangerZone": "منطقة الخطر",
     "deleteAccount": "حذف الحساب",
-    "deleteAccountWarning": "لا يمكن التراجع عن هذا الإجراء."
+    "deleteAccountWarning": "لا يمكن التراجع عن هذا الإجراء.",
+    "title": "ملفي الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "save": "حفظ التغييرات"
   },
   "search": {
     "results": "نتائج البحث",
@@ -259,7 +278,8 @@
     "serverErrorDesc": "حدث خطأ من جهتنا.",
     "networkError": "خطأ في الشبكة",
     "networkErrorDesc": "يرجى التحقق من اتصالك بالإنترنت.",
-    "goHome": "الذهاب للرئيسية"
+    "goHome": "الذهاب للرئيسية",
+    "unauthorized": "غير مصرح"
   },
   "meta": {
     "homeTitle": "AutoBazaar Pro — سوق السيارات المتميز",
@@ -287,7 +307,10 @@
     "translation": {
       "translating": "جاري الترجمة...",
       "translated": "تمت الترجمة تلقائياً"
-    }
+    },
+    "currency": "العملة",
+    "china": "الصين",
+    "payments": "المدفوعات"
   },
   "currency": {
     "converting": "جارٍ تحويل السعر...",
@@ -371,5 +394,39 @@
     "followers": "متابعون",
     "followingSuccess": "تمت المتابعة بنجاح",
     "unfollowSuccess": "تم إلغاء المتابعة"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "myListings": "My Listings",
+    "sellCar": "Sell a Car"
+  },
+  "sell": {
+    "pageTitle": "أضف إعلانك",
+    "pageSubtitle": "أضف بيانات سيارتك بسهولة",
+    "step1Title": "معلومات السيارة",
+    "step1Subtitle": "أخبرنا عن سيارتك",
+    "step2Title": "الصور",
+    "step2Subtitle": "أضف صور واضحة",
+    "step3Title": "المراجعة",
+    "step3Subtitle": "تأكد من معلوماتك",
+    "titleEnLabel": "العنوان بالإنجليزية",
+    "titleKuLabel": "العنوان بالكردية",
+    "titleArLabel": "العنوان بالعربية",
+    "priceLabel": "السعر",
+    "conditionLabel": "الحالة",
+    "typeLabel": "نوع الوقود",
+    "negotiableLabel": "قابل للتفاوض",
+    "descriptionEnLabel": "الوصف بالإنجليزية",
+    "descriptionKuLabel": "الوصف بالكردية",
+    "publishButton": "نشر الإعلان",
+    "publishingLabel": "جاري النشر...",
+    "continueButton": "متابعة",
+    "backButton": "رجوع",
+    "errors": {
+      "titleRequired": "العنوان مطلوب",
+      "priceRequired": "السعر مطلوب",
+      "imageRequired": "صورة واحدة على الأقل مطلوبة"
+    }
   }
 }
