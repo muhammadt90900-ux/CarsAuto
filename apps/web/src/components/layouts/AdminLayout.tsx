@@ -5,7 +5,12 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/Sidebar';
 
-export function AdminLayout({ children }: { children: React.ReactNode }) {
+interface AdminLayoutProps {
+  children: React.ReactNode;
+  locale?: string;
+}
+
+export function AdminLayout({ children, locale }: AdminLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
 
