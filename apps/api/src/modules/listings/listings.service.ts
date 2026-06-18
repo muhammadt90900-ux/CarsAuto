@@ -179,46 +179,71 @@ export class ListingsService {
   }
 
   // ── findOne ────────────────────────────────────────────────────────────────
-  async findOne(id: string) {
+  // F3 FIX: accepts optional requestingUserId (from OptionalJwtGuard) so that:
+  //   • Non-ACTIVE listings are only visible to the listing owner (or admins).
+  //   • seller phone is stripped for anyone who is not the owner.
+  // Cache is intentionally bypassed for non-ACTIVE listings to avoid caching
+  // a pending/draft listing that a public user should never see.
+  async findOne(id: string, requestingUserId?: string) {
     if (!id || typeof id !== 'string') {
       throw new BadRequestException('Invalid listing ID');
     }
     const cacheKey = `listings:detail:${id}`;
     try {
-      const result = await this.cache.getOrSet(
-        cacheKey,
-        async () => {
-          const listing = await this.prisma.listing.findFirst({
-            where:   { id, deletedAt: null },
+      // F3 FIX: fetch without cache first so we can check ownership/status
+      // before deciding whether to return or cache the result.
+      const listing = await this.prisma.listing.findFirst({
+        where:   { id, deletedAt: null },
+        include: {
+          images:   { orderBy: { order: 'asc' } },
+          location: true,
+          user: {
+            select: { id: true, name: true, avatar: true, verified: true, phone: true },
+          },
+          vehicleSpec: {
             include: {
-              images:   { orderBy: { order: 'asc' } },
-              location: true,
-              user: {
-                select: { id: true, name: true, avatar: true, verified: true, phone: true },
-              },
-              vehicleSpec: {
-                include: {
-                  brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
-                  model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
-                  trim: {
-                    select: {
-                      id: true, name: true, fuelType: true, transmission: true,
-                      bodyType: true, drivetrain: true, engineCC: true,
-                      engineLabel: true, powerKw: true, doors: true, seats: true,
-                    },
-                  },
+              brand: { select: { id: true, nameEn: true, nameAr: true, nameKu: true, logoUrl: true } },
+              model: { select: { id: true, nameEn: true, nameAr: true, nameKu: true } },
+              trim: {
+                select: {
+                  id: true, name: true, fuelType: true, transmission: true,
+                  bodyType: true, drivetrain: true, engineCC: true,
+                  engineLabel: true, powerKw: true, doors: true, seats: true,
                 },
               },
-              // Feature 3: include accessory/service spec on detail page
-              accessorySpec: true,
             },
-          });
-          return listing ?? null;
+          },
+          // Feature 3: include accessory/service spec on detail page
+          accessorySpec: true,
         },
-        CACHE_TTL_DETAIL,
-      );
+      });
 
-      if (!result) throw new NotFoundException('Listing not found');
+      if (!listing) throw new NotFoundException('Listing not found');
+
+      // F3 FIX: hide non-ACTIVE listings from everyone except the owner.
+      // Returns 404 (not 403) to avoid leaking that the listing exists at all.
+      const isOwner = !!requestingUserId && listing.user?.id === requestingUserId;
+      if (listing.status !== 'ACTIVE' && !isOwner) {
+        throw new NotFoundException('Listing not found');
+      }
+
+      // F3 FIX: strip seller phone for non-owners regardless of listing status,
+      // consistent with UsersController.findById() which already does this for
+      // public profile responses.
+      const result = isOwner
+        ? listing
+        : {
+            ...listing,
+            user: listing.user
+              ? { ...listing.user, phone: null }
+              : listing.user,
+          };
+
+      // Only cache ACTIVE listings — non-ACTIVE results must not be served
+      // to unauthenticated callers after a future status change to ACTIVE.
+      if (listing.status === 'ACTIVE') {
+        await this.cache.set(cacheKey, result, CACHE_TTL_DETAIL);
+      }
 
       // Batch view increment
       viewBuffer.set(id, (viewBuffer.get(id) ?? 0) + 1);
