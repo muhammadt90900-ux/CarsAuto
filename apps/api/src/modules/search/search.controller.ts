@@ -106,16 +106,9 @@ export class SearchController {
   }
 
   private extractIp(req: Request | undefined): string {
+    // F6 fix: use req.ip which respects the trust proxy setting from main.ts
+    // instead of manually re-parsing X-Forwarded-For (which an attacker can spoof).
     if (!req) return 'unknown';
-
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)
-        ?.split(',')?.[0]
-        ?.trim();
-      if (first) return first;
-    }
-
-    return req.socket?.remoteAddress ?? (req as any).ip ?? 'unknown';
+    return (req as any).ip ?? 'unknown';
   }
 }
