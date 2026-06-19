@@ -89,7 +89,7 @@ export class EmbeddingSyncTask {
 
     this.logger.log(`Embedding sync: processing ${listings.length} listings`);
 
-    const texts = listings.map((l) => this._buildEmbedText(l));
+    const texts = listings.map((l: { id: string; titleEn: string; titleKu: string; titleAr: string; descriptionEn: string | null }) => this._buildEmbedText(l));
     const embeddings = await this.openai.embedBatch(texts);
 
     let updated = 0;
