@@ -111,7 +111,7 @@ function FilterSection({ title, children, defaultOpen = true }: any) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-[var(--border-subtle)] pb-4 mb-4">
-      <button onClick={() => setOpen(v=> !v)}
+      <button onClick={() => setOpen((v: boolean) => !v)}
         className="flex items-center justify-between w-full text-sm font-bold text-[var(--text-primary)] mb-3">
         {title}
         {open ? <ChevronUp className="w-4 h-4 text-[var(--text-muted)]" /> : <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />}
