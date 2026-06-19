@@ -49,7 +49,7 @@ const DealerCard = memo(function DealerCard({
 
   return (
     <Link
-      href={`/${locale}/dealers/${dealer.slug}`}
+      href="/dealers/${dealer.slug}"
       className="group flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
                  bg-[#0d1b2e] border border-white/[0.07]
                  hover:border-[#c9a84c]/32 transition-all duration-350
@@ -186,7 +186,7 @@ export function FeaturedDealers({ locale = 'en' }: { locale?: string }) {
             </h2>
           </div>
           <Link
-            href={`/${locale}/dealers`}
+            href="/dealers"
             className="flex items-center gap-1.5 text-sm font-semibold text-white/40 hover:text-[#c9a84c] transition-colors duration-200 px-3 py-1.5 rounded-lg hover:bg-[#c9a84c]/[0.06] border border-transparent hover:border-[#c9a84c]/20"
           >
             View all <ChevronRight className="w-4 h-4" />
