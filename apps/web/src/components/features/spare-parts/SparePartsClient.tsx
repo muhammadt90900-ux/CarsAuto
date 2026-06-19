@@ -55,7 +55,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
 
   if (view === 'list') {
     return (
-      <Link href={`/${locale}/spare-parts/${part.id}`} className="block group">
+      <Link href="/spare-parts/${part.id}" className="block group">
         <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[#c9a84c]/28">
           <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e] flex items-center justify-center text-4xl">
             {PART_CATEGORIES.find(c => c.id === part.category)?.emoji || '⚙️'}
@@ -81,7 +81,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
   }
 
   return (
-    <Link href={`/${locale}/spare-parts/${part.id}`} className="block group">
+    <Link href="/spare-parts/${part.id}" className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]">
         <div className="aspect-square bg-slate-50 dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
                         group-hover:scale-105 transition-transform duration-500 overflow-hidden">
@@ -201,7 +201,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
-            <Link href={`/${locale}`} className="hover:text-[var(--gold)] transition-colors">Home</Link>
+            <Link href="/" className="hover:text-[var(--gold)] transition-colors">Home</Link>
             <span>/</span><span className="text-white/60">Spare Parts</span>
           </nav>
           <h1 className="text-3xl sm:text-4xl font-display font-black text-white mb-2">
