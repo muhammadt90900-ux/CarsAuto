@@ -192,7 +192,7 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
                 {items.map(item => (
                   <li key={item}>
                     <Link
-                      href={`/${locale}/${item.toLowerCase().replace(/\s+/g, '-').replace(/[&×]/g, '')}`}
+                      href="/${item.toLowerCase().replace(/\s+/g, '-').replace(/[&×]/g, '')}"
                       className="text-white/35 hover:text-[#c9a84c] text-xs transition-colors duration-200
                                  flex items-center gap-1 group"
                     >
