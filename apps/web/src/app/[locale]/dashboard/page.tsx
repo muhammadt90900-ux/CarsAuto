@@ -177,7 +177,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link
-          href={`/${locale}/dashboard/listings`}
+          href="/dashboard/listings"
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm font-bold
                      bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a]
                      transition-all duration-200 shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
@@ -235,7 +235,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b
                           border-gray-100 dark:border-white/[0.07]">
             <h2 className="font-bold text-gray-900 dark:text-white">Recent Listings</h2>
-            <Link href={`/${locale}/dashboard/listings`}
+            <Link href="/dashboard/listings"
                   className="text-xs text-[#c9a84c] font-semibold hover:text-[#d4b45a] transition-colors
                              flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
@@ -281,7 +281,7 @@ export default function DashboardPage() {
           </div>
           <div className="px-5 py-3 border-t border-gray-100 dark:border-white/[0.07]">
             <Link
-              href={`/${locale}/dashboard/listings`}
+              href="/dashboard/listings"
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold
                          border border-dashed border-gray-200 dark:border-white/[0.10]
                          text-gray-400 dark:text-white/30 hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
@@ -333,7 +333,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <Link
-          href={`/${locale}/dashboard/subscription`}
+          href="/dashboard/subscription"
           className="flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold
                      bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a] transition-all duration-200
                      shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
