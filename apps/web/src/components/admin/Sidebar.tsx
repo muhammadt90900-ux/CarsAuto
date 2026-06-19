@@ -78,7 +78,7 @@ export function AdminSidebar({ className }: { className?: string }) {
 
       {/* Logo */}
       <div className="px-3 pt-6 pb-4 mb-2">
-        <Link href={`/${locale}/admin`} className="flex items-center gap-2.5 group">
+        <Link href="/admin" className="flex items-center gap-2.5 group">
           <div
             className="w-9 h-9 rounded-[10px] flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
