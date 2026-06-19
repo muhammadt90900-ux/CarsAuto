@@ -85,7 +85,7 @@ function usePushSubscription(swRegistered: boolean) {
         // 4. Subscribe with VAPID key
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
+          applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as BufferSource,
         });
 
         // 5. POST subscription object to backend
