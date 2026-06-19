@@ -51,7 +51,7 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
 
   return (
     <Link
-      href={`/${locale}/dealers/${dealer.slug}`}
+      href="/dealers/${dealer.slug}"
       className={cn(
         'group relative flex flex-col rounded-2xl overflow-hidden',
         'bg-[#0d1b2e] border border-white/[0.07]',
