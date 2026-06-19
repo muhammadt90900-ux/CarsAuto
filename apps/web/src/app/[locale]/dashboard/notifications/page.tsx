@@ -5,14 +5,18 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Bell, MessageSquare, Eye, Star, CheckCircle2, Trash2, Settings, Check } from 'lucide-react';
 
-const INITIAL_NOTIFICATIONS = [
+const INITIAL_NOTIFICATIONS: Array<{
+  id: string; type: string; titleKey: string;
+  titleArgs: Record<string, string | number>;
+  body: string; time: string; read: boolean;
+}> = [
   { id: '1', type: 'message',  titleKey: 'newMessage',   titleArgs: { name: 'Ahmed' },      body: 'Is the Toyota Camry still available?', time: '2m',  read: false },
   { id: '2', type: 'view',     titleKey: 'newViews',     titleArgs: { listing: 'BMW 3 Series', count: 12 }, body: 'Your listing is trending!', time: '1h',  read: false },
   { id: '3', type: 'review',   titleKey: 'newReview',    titleArgs: { stars: 5 },            body: 'Sara Ali left a review on your profile', time: '3h',  read: false },
   { id: '4', type: 'approved', titleKey: 'listingApproved', titleArgs: { listing: 'Honda CR-V' }, body: 'Your listing is now live', time: '5h',  read: true  },
   { id: '5', type: 'message',  titleKey: 'newMessage',   titleArgs: { name: 'Omar' },        body: 'I will come to see the car tomorrow.', time: '1d',  read: true  },
   { id: '6', type: 'view',     titleKey: 'newViews',     titleArgs: { listing: 'Mercedes', count: 50 }, body: 'Getting a lot of attention!', time: '2d',  read: true  },
-] as const;
+];
 
 const iconMap = {
   message:  { Icon: MessageSquare, bg: 'bg-blue-50 dark:bg-blue-500/10',    color: 'text-blue-500'    },
