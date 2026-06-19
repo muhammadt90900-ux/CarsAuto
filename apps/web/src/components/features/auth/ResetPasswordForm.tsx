@@ -70,7 +70,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
       try {
         await authApi.resetPassword(rawToken, password);
         setSuccess(true);
-        setTimeout(() => router.push(`/${locale}/login`), 3_000);
+        setTimeout(() => router.push("/login"), 3_000);
       } catch (err: any) {
         const msg =
           err?.response?.data?.message ||
@@ -97,7 +97,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
             This link is missing or malformed. Please request a new password reset.
           </p>
           <Link
-            href={`/${locale}/forgot-password`}
+            href="/forgot-password"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a]
                        transition-all"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
@@ -130,7 +130,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
             You&apos;ve been signed out of all devices. Redirecting you to login…
           </p>
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a]"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
@@ -326,7 +326,7 @@ key={r.label}
 
         <p className="text-center text-sm text-[var(--text-muted)] mt-6">
           <Link
-            href={`/${locale}/forgot-password`}
+            href="/forgot-password"
             className="font-semibold text-[var(--accent-gold)] hover:opacity-80 transition-opacity"
           >
             Request a new link
