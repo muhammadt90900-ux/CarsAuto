@@ -221,7 +221,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
             </h2>
           </div>
           <Link
-            href={locale ? `/${locale}/cars` : '/cars'}
+            href="/cars"
             className="inline-flex items-center gap-2 text-sm font-bold text-[var(--gold)]
                        hover:text-[var(--gold-light)] transition-colors group"
           >
@@ -293,7 +293,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
         {/* Bottom CTA */}
         <div className="text-center mt-10">
           <Link
-            href={locale ? `/${locale}/cars` : '/cars'}
+            href="/cars"
             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl text-sm font-bold
                        border border-[#c9a84c]/35 text-[#c9a84c]
                        hover:bg-[#c9a84c]/08 hover:border-[#c9a84c]/70
