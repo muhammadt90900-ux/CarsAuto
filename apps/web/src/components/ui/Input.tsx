@@ -50,9 +50,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-required={props.required}
           className={cn(
             'input-base w-full',
-            leftIcon  && 'pl-10',
-            rightIcon && 'pr-10',
-            error     && 'border-[rgba(220,38,38,0.55)] focus:border-[rgba(220,38,38,0.75)] focus:shadow-[0_0_0_3px_rgba(220,38,38,0.10)]',
+            !!leftIcon  && 'pl-10',
+            !!rightIcon && 'pr-10',
+            !!error     && 'border-[rgba(220,38,38,0.55)] focus:border-[rgba(220,38,38,0.75)] focus:shadow-[0_0_0_3px_rgba(220,38,38,0.10)]',
             className
           )}
           {...props}
