@@ -72,9 +72,9 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 pb-16">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-6" dir={locale === 'ku' || locale === 'ar' ? 'rtl' : 'ltr'}>
-          <Link href={`/${locale}`} className="hover:text-[var(--gold)]">Home</Link>
+          <Link href="/" className="hover:text-[var(--gold)]">Home</Link>
           <ChevronRight className="w-3 h-3"/>
-          <Link href={`/${locale}/dealers`} className="hover:text-[var(--gold)]">Dealers</Link>
+          <Link href="/dealers" className="hover:text-[var(--gold)]">Dealers</Link>
           <ChevronRight className="w-3 h-3"/>
           <span className="text-[var(--text-secondary)]">{dealerData.name}</span>
         </nav>
@@ -188,7 +188,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
         {activeTab === 'listings' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {MOCK_CARS.map(car => (
-              <Link key={car.id} href={`/${locale}/cars/${car.id}`}
+              <Link key={car.id} href="/cars/${car.id}"
                 className="card-premium overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
                 <div className="aspect-[16/10] bg-[var(--surface-100)] dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
                                 group-hover:scale-105 transition-transform duration-500 overflow-hidden">🚗</div>
