@@ -14,7 +14,7 @@ export interface CreateListingPayload {
   titleZh: string;
   price: number;
   currency: string;
-  condition: string;
+  condition?: string;
   type: string;
   descriptionEn?: string;
   descriptionKu?: string;
