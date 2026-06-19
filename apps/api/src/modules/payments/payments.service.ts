@@ -753,7 +753,7 @@ export class PaymentsService {
       event: string; status?: PaymentStatus | string; amount?: number;
       currency?: string; gatewayId?: string; gatewayData?: object; errorMessage?: string;
     },
-    tx: Pick<PrismaService, 'transactionLog'> = this.prisma,
+    tx: { transactionLog: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> } } = this.prisma as any,
   ) {
     await tx.transactionLog.create({
       data: {
