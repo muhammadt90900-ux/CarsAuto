@@ -14,7 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ListingType } from '@prisma/client';
+import { ListingType } from '@/common/prisma/enums';
 
 export { ListingType };
 
