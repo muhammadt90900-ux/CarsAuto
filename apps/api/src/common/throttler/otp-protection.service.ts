@@ -1,46 +1,14 @@
 // apps/api/src/common/throttler/otp-protection.service.ts
-//
-// Dedicated OTP/verification-code protection service.
-//
-// Protects against:
-//   1. Brute-force guessing   — max attempts per code window
-//   2. OTP flooding           — max send requests per user/IP
-//   3. Replay attacks         — single-use enforcement (done via DB, verified here)
-//   4. Timing attacks         — constant-time comparison
-//
-// Usage in auth service:
-//   Before accepting OTP:  await this.otpProtection.checkAttempt(userId)
-//   After failed attempt:  await this.otpProtection.recordFailure(userId)
-//   Before sending OTP:    await this.otpProtection.checkSendRate(userId, ip)
-
-import {
-  Injectable,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { CacheService } from '../cache/cache.service';
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
-/** Max failed OTP attempts before code is invalidated */
-const MAX_OTP_ATTEMPTS = 5;
-
-/** How long an OTP attempt window lasts (matches typical OTP expiry) */
-const OTP_ATTEMPT_WINDOW_MS = 10 * 60_000; // 10 minutes
-
-/** Max OTP send requests per user per window */
+const MAX_OTP_ATTEMPTS       = 5;
+const OTP_ATTEMPT_WINDOW_MS  = 10 * 60_000;
 const MAX_OTP_SENDS_PER_USER = 3;
-
-/** Max OTP send requests per IP per window */
-const MAX_OTP_SENDS_PER_IP = 10;
-
-/** Window for OTP send rate limiting */
-const OTP_SEND_WINDOW_MS = 15 * 60_000; // 15 minutes
-
-/** Minimum gap between OTP sends (prevents rapid re-send spam) */
-const OTP_RESEND_COOLDOWN_MS = 60_000; // 1 minute
+const MAX_OTP_SENDS_PER_IP   = 10;
+const OTP_SEND_WINDOW_MS     = 15 * 60_000;
+const OTP_RESEND_COOLDOWN_MS = 60_000;
 
 @Injectable()
 export class OtpProtectionService {
@@ -48,134 +16,90 @@ export class OtpProtectionService {
 
   constructor(private readonly cache: CacheService) {}
 
-  // ── Attempt tracking ──────────────────────────────────────────────────────
-
-  /**
-   * Check whether the user may attempt to validate an OTP.
-   * Throws HttpException if they've exceeded MAX_OTP_ATTEMPTS.
-   */
-  checkAttempt(identifier: string): void {
+  async checkAttempt(identifier: string): Promise<void> {
     const key     = `otp:attempts:${identifier}`;
-    const entry   = this.cache.get<number>(key);
+    const entry   = await this.cache.get<number>(key);
     const attempts = entry?.value ?? 0;
-
     if (attempts >= MAX_OTP_ATTEMPTS) {
-      this.logger.warn(`OTP attempt limit reached for identifier: ${this.mask(identifier)}`);
-      throw new HttpException('Too many incorrect OTP attempts. Please request a new code.', HttpStatus.TOO_MANY_REQUESTS);
+      this.logger.warn(`OTP attempt limit reached for: ${this.mask(identifier)}`);
+      throw new HttpException(
+        'Too many incorrect OTP attempts. Please request a new code.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
   }
 
-  /**
-   * Record a failed OTP attempt. If MAX_OTP_ATTEMPTS is reached,
-   * the caller should also invalidate the OTP in the database.
-   */
-  recordFailure(identifier: string): number {
-    const key    = `otp:attempts:${identifier}`;
-    const entry  = this.cache.get<number>(key);
+  async recordFailure(identifier: string): Promise<number> {
+    const key     = `otp:attempts:${identifier}`;
+    const entry   = await this.cache.get<number>(key);
     const current = (entry?.value ?? 0) + 1;
-    this.cache.set(key, current, OTP_ATTEMPT_WINDOW_MS);
-
+    await this.cache.set(key, current, OTP_ATTEMPT_WINDOW_MS);
     const remaining = Math.max(0, MAX_OTP_ATTEMPTS - current);
     this.logger.warn(
-      `OTP failure for ${this.mask(identifier)}: ${current}/${MAX_OTP_ATTEMPTS} attempts (${remaining} remaining)`,
+      `OTP failure for ${this.mask(identifier)}: ${current}/${MAX_OTP_ATTEMPTS} (${remaining} remaining)`,
     );
     return current;
   }
 
-  /** Clear attempt counter on successful OTP verification. */
-  clearAttempts(identifier: string): void {
-    // CacheService doesn't expose delete, so we overwrite with an expired value.
-    // Set to a sentinel that will be skipped by the check.
-    this.cache.set(`otp:attempts:${identifier}`, 0, 1); // expires in 1ms effectively
+  async clearAttempts(identifier: string): Promise<void> {
+    await this.cache.set(`otp:attempts:${identifier}`, 0, 1);
   }
 
-  // ── Send rate limiting ────────────────────────────────────────────────────
-
-  /**
-   * Check whether an OTP may be sent to this user/IP combination.
-   * Throws HttpException if either limit is exceeded.
-   * Also enforces re-send cooldown to prevent immediate re-spam.
-   */
-  checkSendRate(userId: string, ip?: string): void {
+  async checkSendRate(userId: string, ip?: string): Promise<void> {
     const now = Date.now();
 
-    // ── Cooldown check (per user) ────────────────────────────────────────
-    const cooldownKey = `otp:cooldown:${userId}`;
-    const lastSent    = this.cache.get<number>(cooldownKey);
+    const lastSent = await this.cache.get<number>(`otp:cooldown:${userId}`);
     if (lastSent) {
-      const waitMs      = OTP_RESEND_COOLDOWN_MS - (now - lastSent.value);
+      const waitMs = OTP_RESEND_COOLDOWN_MS - (now - lastSent.value);
       if (waitMs > 0) {
-        const waitSecs = Math.ceil(waitMs / 1000);
         throw new HttpException(
-          `Please wait ${waitSecs} seconds before requesting a new OTP.`,
+          `Please wait ${Math.ceil(waitMs / 1000)} seconds before requesting a new OTP.`,
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
     }
 
-    // ── Per-user send count ───────────────────────────────────────────────
-    const userSendKey = `otp:sends:user:${userId}`;
-    const userEntry   = this.cache.get<number>(userSendKey);
+    const userEntry = await this.cache.get<number>(`otp:sends:user:${userId}`);
     if ((userEntry?.value ?? 0) >= MAX_OTP_SENDS_PER_USER) {
       this.logger.warn(`OTP send limit reached for user ${this.mask(userId)}`);
-      throw new HttpException('OTP send limit reached. Please try again later or contact support.', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'OTP send limit reached. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
-    // ── Per-IP send count ────────────────────────────────────────────────
     if (ip) {
-      const ipSendKey = `otp:sends:ip:${ip}`;
-      const ipEntry   = this.cache.get<number>(ipSendKey);
+      const ipEntry = await this.cache.get<number>(`otp:sends:ip:${ip}`);
       if ((ipEntry?.value ?? 0) >= MAX_OTP_SENDS_PER_IP) {
         this.logger.warn(`OTP IP send limit reached for ${ip}`);
-        throw new HttpException('Too many OTP requests from this network. Please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+        throw new HttpException(
+          'Too many OTP requests from this network.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
     }
   }
 
-  /**
-   * Record a successful OTP send.
-   * Call AFTER the OTP has been sent to avoid blocking on send errors.
-   */
-  recordSend(userId: string, ip?: string): void {
+  async recordSend(userId: string, ip?: string): Promise<void> {
     const now = Date.now();
+    await this.cache.set(`otp:cooldown:${userId}`, now, OTP_RESEND_COOLDOWN_MS);
 
-    // Update cooldown timestamp
-    this.cache.set(`otp:cooldown:${userId}`, now, OTP_RESEND_COOLDOWN_MS);
+    const userEntry = await this.cache.get<number>(`otp:sends:user:${userId}`);
+    await this.cache.set(`otp:sends:user:${userId}`, (userEntry?.value ?? 0) + 1, OTP_SEND_WINDOW_MS);
 
-    // Increment per-user counter
-    const userSendKey = `otp:sends:user:${userId}`;
-    const userEntry   = this.cache.get<number>(userSendKey);
-    this.cache.set(userSendKey, (userEntry?.value ?? 0) + 1, OTP_SEND_WINDOW_MS);
-
-    // Increment per-IP counter
     if (ip) {
-      const ipSendKey = `otp:sends:ip:${ip}`;
-      const ipEntry   = this.cache.get<number>(ipSendKey);
-      this.cache.set(ipSendKey, (ipEntry?.value ?? 0) + 1, OTP_SEND_WINDOW_MS);
+      const ipEntry = await this.cache.get<number>(`otp:sends:ip:${ip}`);
+      await this.cache.set(`otp:sends:ip:${ip}`, (ipEntry?.value ?? 0) + 1, OTP_SEND_WINDOW_MS);
     }
   }
 
-  // ── Secure comparison ─────────────────────────────────────────────────────
-
-  /**
-   * Constant-time OTP comparison to prevent timing attacks.
-   * Returns true only if both codes match AND are the same length.
-   */
   safeCompare(submitted: string, expected: string): boolean {
-    // Normalise to same length buffers — timingSafeEqual requires equal lengths
-    const a = Buffer.from(submitted.padEnd(16, '\0'));
-    const b = Buffer.from(expected.padEnd(16, '\0'));
-    const len = Math.max(a.length, b.length);
-    const bufA = Buffer.concat([a, Buffer.alloc(Math.max(0, len - a.length))]);
-    const bufB = Buffer.concat([b, Buffer.alloc(Math.max(0, len - b.length))]);
-
-    const equal = crypto.timingSafeEqual(bufA, bufB);
-    return equal && submitted.length === expected.length;
+    const len  = Math.max(submitted.length, expected.length, 16);
+    const bufA = Buffer.from(submitted.padEnd(len, '\0'));
+    const bufB = Buffer.from(expected.padEnd(len, '\0'));
+    return crypto.timingSafeEqual(bufA, bufB) && submitted.length === expected.length;
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  /** Partially mask identifier for safe logging. */
   private mask(s: string): string {
     if (s.length <= 4) return '***';
     return s.slice(0, 2) + '***' + s.slice(-2);
