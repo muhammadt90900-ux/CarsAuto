@@ -1,4 +1,5 @@
 // apps/web/next.config.js — PERFORMANCE OPTIMISED
+const path = require('path');
 const withNextIntl = require('next-intl/plugin')('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
@@ -6,6 +7,13 @@ const nextConfig = {
   // ── Output ────────────────────────────────────────────────────────────────
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   transpilePackages: ['@auto-bazaar-pro/ui', '@auto-bazaar-pro/utils'],
+
+  // ── Turbopack root  (monorepo Docker fix) ─────────────────────────────────
+  // Turbopack needs to know the monorepo root so it can find node_modules
+  // In Docker the build context is /app (root) and the app is at /app/apps/web
+  turbopack: {
+    root: path.resolve(__dirname, '../..'),
+  },
 
   // ── Typed Routes (top-level in Next.js 16) ────────────────────────────────
   typedRoutes: false,
