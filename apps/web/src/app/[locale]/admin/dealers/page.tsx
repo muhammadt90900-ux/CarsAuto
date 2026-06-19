@@ -47,9 +47,7 @@ export default function AdminDealersPage() {
     setActioning(id);
     try {
       await api.patch(`/admin/dealers/${id}/${action}`, {
-        
-        
-        { tier },
+        ...(tier ? { tier } : {}),
       });
       await fetchDealers();
     } finally {
