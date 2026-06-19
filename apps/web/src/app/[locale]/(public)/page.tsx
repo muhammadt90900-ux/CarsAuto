@@ -188,7 +188,7 @@ export default async function HomePage({ params }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {PREMIUM_CATEGORIES.map(({ id, icon, label, labelEn, count, color }) => (
             <Link key={id}
-              href={`/${locale}/${id === 'parts' ? 'spare-parts' : 'cars'}?category=${id}`}
+              href="/${id === 'parts' ? 'spare-parts' : 'cars'}?category=${id}"
               className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
               style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -214,7 +214,7 @@ export default async function HomePage({ params }: Props) {
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">{t('featuredCars')}</h2>
           </div>
-          <Link href={`/${locale}/cars`} className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+          <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
             {t('viewAll')} →
           </Link>
         </div>
@@ -234,13 +234,13 @@ export default async function HomePage({ params }: Props) {
                 براندی{' '}<span className="text-[#c9a84c]">گەرم</span>
               </h2>
             </div>
-            <Link href={`/${locale}/cars`} className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+            <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
               All Brands →
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {TRENDING_BRANDS.map(({ name, logoText, color, listings }) => (
-              <Link key={name} href={`/${locale}/cars?make=${name}`}
+              <Link key={name} href="/cars?make=${name}"
                 className="group relative rounded-xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1"
                 style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
                 <div className="relative p-4 text-center">
@@ -266,7 +266,7 @@ export default async function HomePage({ params }: Props) {
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">{t('recentParts')}</h2>
           </div>
-          <Link href={`/${locale}/spare-parts`} className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+          <Link href="/spare-parts" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
             {t('viewAll')} →
           </Link>
         </div>
@@ -307,7 +307,7 @@ export default async function HomePage({ params }: Props) {
                       <div className="text-white/30 text-[9px]">listings</div>
                     </div>
                   </div>
-                  <Link href={`/${locale}/dealers/${dealer.id}`}
+                  <Link href="/dealers/${dealer.id}"
                     className="block text-center text-xs font-bold py-2.5 rounded-xl border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/60 transition-all duration-200">
                     View Dealer →
                   </Link>
@@ -316,7 +316,7 @@ export default async function HomePage({ params }: Props) {
             ))}
           </div>
           <div className="text-center mt-8">
-            <Link href={`/${locale}/dealers`} className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all duration-200">
+            <Link href="/dealers" className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all duration-200">
               View All Dealers →
             </Link>
           </div>
@@ -371,12 +371,12 @@ export default async function HomePage({ params }: Props) {
             <h2 className="text-3xl sm:text-4xl font-black text-white">{t('sellCTATitle')}</h2>
             <p className="text-white/50 max-w-md mx-auto text-sm">{t('sellCTASubtitle')}</p>
             <div className="flex flex-wrap gap-3 justify-center pt-2">
-              <Link href={`/${locale}/dashboard/listings/new`}
+              <Link href="/dashboard/listings/new"
                 className="px-8 py-3.5 rounded-xl text-sm font-black text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_48px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' }}>
                 {t('sellCTAButton')} →
               </Link>
-              <Link href={`/${locale}/cars`}
+              <Link href="/cars"
                 className="px-8 py-3.5 rounded-xl text-sm font-bold text-white/70 border border-white/15 hover:border-white/30 hover:text-white transition-all duration-200">
                 {t('browseAll')}
               </Link>
