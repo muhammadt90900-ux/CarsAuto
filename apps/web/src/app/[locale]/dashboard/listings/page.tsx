@@ -126,7 +126,7 @@ export default function MyListingsPage() {
             </button>
           )}
           <Link
-            href={`/${locale}/dashboard/listings/new`}
+            href="/dashboard/listings/new"
             className="inline-flex items-center gap-2 px-4 py-2.5
                        bg-[#c9a84c] hover:bg-[#d4b45a] text-[#050b14]
                        rounded-xl text-sm font-bold transition-all duration-200
@@ -206,7 +206,7 @@ export default function MyListingsPage() {
             {search ? 'Try a different search term' : 'Post your first listing to get started'}
           </p>
           <Link
-            href={`/${locale}/dashboard/listings/new`}
+            href="/dashboard/listings/new"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
                        bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a] transition-all"
           >
@@ -316,7 +316,7 @@ export default function MyListingsPage() {
                   {/* Actions */}
                   <div className="flex gap-2 pt-1">
                     <Link
-                      href={`/${locale}/dashboard/listings/${listing.id}/edit`}
+                      href="/dashboard/listings/${listing.id}/edit"
                       className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl
                                  border border-gray-200 dark:border-white/10 text-xs font-semibold
                                  text-gray-700 dark:text-gray-300
@@ -327,7 +327,7 @@ export default function MyListingsPage() {
                       Edit
                     </Link>
                     <Link
-                      href={`/${locale}/cars/${listing.id}`}
+                      href="/cars/${listing.id}"
                       className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
                                  border border-gray-200 dark:border-white/10 text-xs font-semibold
                                  text-gray-600 dark:text-gray-400
@@ -372,7 +372,7 @@ export default function MyListingsPage() {
             </div>
           </div>
           <Link
-            href={`/${locale}/dashboard/subscription`}
+            href="/dashboard/subscription"
             className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
                        text-sm font-bold bg-[#c9a84c] text-[#050b14]
                        hover:bg-[#d4b45a] transition-all duration-200
