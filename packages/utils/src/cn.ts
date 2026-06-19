@@ -1,4 +1,9 @@
 // packages/utils/src/cn.ts
-export function cn(...classes: (string | boolean | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
+type ClassValue = string | boolean | undefined | null | ClassValue[];
+
+export function cn(...classes: ClassValue[]): string {
+  return classes
+    .flat(Infinity as 1)
+    .filter((c): c is string => typeof c === 'string' && c.length > 0)
+    .join(' ');
 }
