@@ -179,7 +179,7 @@ export class AuthService {
     // Pattern: find-and-delete inside a transaction.  If a second concurrent
     // request tries to delete the same row, Prisma throws P2025 (record not
     // found) and the transaction rolls back → the second request gets a 401.
-    const result = await this.prisma.$transaction(async (tx: Omit<typeof this.prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const storedToken = await tx.refreshToken.findUnique({
         where: { tokenHash },
         include: {
