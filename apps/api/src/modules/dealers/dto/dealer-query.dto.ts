@@ -1,6 +1,6 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { DealerTier } from '@prisma/client';
+import { DealerTier } from '@/common/prisma/enums';
 
 export class DealerQueryDto {
   @IsOptional() @IsString()
@@ -16,7 +16,7 @@ export class DealerQueryDto {
   minRating?: number;
 
   @IsOptional() @IsString()
-  sortBy?: 'rating' | 'listings' | 'reviews' | 'newest';
+  sortBy?: 'rating' | 'listings' | 'reviews' | 'newest' | 'followers';
 
   @IsOptional() @Type(() => Number) @IsNumber() @Min(1)
   page?: number;
