@@ -97,7 +97,7 @@ export default function FavoritesPage() {
               return (
                 <Link
                   key={dealer.id}
-                  href={`/${locale}/dealers/${dealer.slug}`}
+                  href="/dealers/${dealer.slug}"
                   className="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0b1525]
                              p-4 hover:shadow-lg transition-shadow group"
                 >
