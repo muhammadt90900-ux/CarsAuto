@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { Mic, Square, X, Send, Loader2, AlertCircle } from 'lucide-react';
-import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { cn } from '@/lib/utils';
 
 interface VoiceRecorderButtonProps {
