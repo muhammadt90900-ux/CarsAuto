@@ -494,7 +494,7 @@ export class DealersService {
         this.prisma.dealerFollower.count({ where: { dealerId } }),
       ]);
 
-      const followers = rows.map(r => ({
+      const followers = rows.map((r: { user: { id: string; name: string; avatar: string | null }; createdAt: Date }) => ({
         id:         r.user.id,
         name:       r.user.name,
         avatar:     r.user.avatar,
@@ -526,9 +526,9 @@ export class DealersService {
     });
 
     // Filter to only verified dealers (dealer could be suspended after follow)
-    return rows
-      .filter(r => (r.dealer as any).status !== 'SUSPENDED')
-      .map(r => ({ followedAt: r.createdAt, dealer: r.dealer }));
+    return (rows as Array<{ createdAt: Date; dealer: Record<string, unknown> }>)
+      .filter((r) => r.dealer['status'] !== 'SUSPENDED')
+      .map((r) => ({ followedAt: r.createdAt, dealer: r.dealer as typeof FOLLOWED_DEALER_SELECT }));
   }
 
   /**
@@ -554,7 +554,7 @@ export class DealersService {
     if (followers.length === 0) return;
 
     // Batch notifications — one per follower
-    const notifications = followers.map(f =>
+    const notifications = followers.map((f: { userId: string }) =>
       this.notifications
         .create(
           f.userId,
