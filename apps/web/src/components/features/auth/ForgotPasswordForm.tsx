@@ -68,7 +68,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
           </p>
 
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="inline-flex items-center gap-2 text-sm font-semibold
                        text-[var(--accent-gold)] hover:opacity-80 transition-opacity"
           >
@@ -180,7 +180,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
         <p className="text-center text-sm text-[var(--text-muted)] mt-6">
           Remember your password?{' '}
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="font-semibold text-[var(--accent-gold)] hover:opacity-80 transition-opacity"
           >
             Sign in
