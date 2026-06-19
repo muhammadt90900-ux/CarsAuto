@@ -17,6 +17,18 @@
       ],
       "@auto-bazaar-pro/ui/*": [
         "../../packages/ui/src/*"
+      ],
+      "@auto-bazaar-pro/utils": [
+        "../../packages/utils/src/index.ts"
+      ],
+      "@auto-bazaar-pro/utils/*": [
+        "../../packages/utils/src/*"
+      ],
+      "@auto-bazaar-pro/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@auto-bazaar-pro/types/*": [
+        "../../packages/types/src/*"
       ]
     },
     "plugins": [
