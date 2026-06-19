@@ -5,7 +5,7 @@ import { HTMLAttributes } from 'react';
 type Variant = 'gold' | 'green' | 'blue' | 'red' | 'purple' | 'grey' | 'outline';
 type Size    = 'sm' | 'md';
 
-interface BadgeProps extends HTMLAttributes<'span'> {
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: Variant;
   size?: Size;
   dot?: boolean;
@@ -26,6 +26,16 @@ const SIZES: Record<Size, string> = {
   md: 'text-[10px] tracking-[0.12em] px-2.5 py-0.5',
 };
 
+const DOT_COLORS: Record<Variant, string> = {
+  gold:    'bg-[#c9a84c]',
+  green:   'bg-[#16a34a]',
+  blue:    'bg-[#3b82f6]',
+  red:     'bg-[#ef4444]',
+  purple:  'bg-[#a855f7]',
+  grey:    'bg-[#64748b]',
+  outline: 'bg-[#64748b]',
+};
+
 export function Badge({ variant = 'grey', size = 'sm', dot, className, children, ...props }: BadgeProps) {
   return (
     <span
@@ -37,14 +47,7 @@ export function Badge({ variant = 'grey', size = 'sm', dot, className, children,
       )}
       {...props}
     >
-      {dot && <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', {
-        'bg-[#c9a84c]': variant === 'gold',
-        'bg-[#16a34a]': variant === 'green',
-        'bg-[#3b82f6]': variant === 'blue',
-        'bg-[#ef4444]': variant === 'red',
-        'bg-[#a855f7]': variant === 'purple',
-        'bg-[#64748b]': variant === 'grey' || variant === 'outline',
-      })} />}
+      {dot && <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', DOT_COLORS[variant])} />}
       {children}
     </span>
   );
