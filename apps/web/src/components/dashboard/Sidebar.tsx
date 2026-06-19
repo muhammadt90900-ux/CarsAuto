@@ -107,7 +107,7 @@ export function Sidebar({ className }: { className?: string }) {
 
       {/* Logo */}
       <div className="px-3 pt-6 pb-4">
-        <Link href={`/${locale}/dashboard`} className="flex items-center gap-2.5 group">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <div
             className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0
                        shadow-[0_0_14px_rgba(201,168,76,0.35)]
@@ -132,7 +132,7 @@ export function Sidebar({ className }: { className?: string }) {
       {/* Post listing CTA */}
       <div className="px-1 mb-3">
         <Link
-          href={`/${locale}/dashboard/listings`}
+          href="/dashboard/listings"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold
                      bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a]
                      transition-all duration-200 shadow-[0_4px_12px_rgba(201,168,76,0.30)]"
