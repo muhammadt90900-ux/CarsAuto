@@ -235,13 +235,12 @@ export class UploadController {
 
   // ── Rate-limiting helpers ─────────────────────────────────────────────────
 
-  private enforceUploadRateLimit(userId: string, type: 'single' | 'batch'): void {
+  private async enforceUploadRateLimit(userId: string, type: 'single' | 'batch'): Promise<void> {
     const limit = type === 'single' ? SINGLE_UPLOAD_LIMIT_PER_MIN : BATCH_UPLOAD_LIMIT_PER_MIN;
     const key   = `upload:${type}:${userId}`;
     const now   = Date.now();
 
-    // cache.get() returns { value: T, stale: boolean } | null
-    const cached = this.cache.get<{ hits: number; expiresAt: number }>(key);
+    const cached = await this.cache.get<{ hits: number; expiresAt: number }>(key);
     const entry  = cached?.value ?? null;
     let hits: number;
     let expiresAt: number;
@@ -249,11 +248,11 @@ export class UploadController {
     if (entry) {
       hits      = entry.hits + 1;
       expiresAt = entry.expiresAt;
-      this.cache.set(key, { hits, expiresAt }, expiresAt - now);
+      await this.cache.set(key, { hits, expiresAt }, expiresAt - now);
     } else {
       hits      = 1;
       expiresAt = now + ONE_MINUTE_MS;
-      this.cache.set(key, { hits, expiresAt }, ONE_MINUTE_MS);
+      await this.cache.set(key, { hits, expiresAt }, ONE_MINUTE_MS);
     }
 
     if (hits > limit) {
@@ -265,14 +264,13 @@ export class UploadController {
     }
   }
 
-  private enforceDailyCap(userId: string, newCount: number): void {
-    const key    = `upload:daily:${userId}`;
-    const now    = Date.now();
+  private async enforceDailyCap(userId: string, newCount: number): Promise<void> {
+    const key = `upload:daily:${userId}`;
+    const now = Date.now();
 
-    // cache.get() returns { value: T, stale: boolean } | null
-    const cached     = this.cache.get<{ hits: number; expiresAt: number }>(key);
-    const current    = cached?.value.hits ?? 0;
-    const expiresAt  = cached?.value.expiresAt ?? (now + ONE_DAY_MS);
+    const cached    = await this.cache.get<{ hits: number; expiresAt: number }>(key);
+    const current   = cached?.value.hits ?? 0;
+    const expiresAt = cached?.value.expiresAt ?? (now + ONE_DAY_MS);
 
     if (current + newCount > DAILY_UPLOAD_CAP_PER_USER) {
       const retryAfter = Math.ceil((expiresAt - now) / 1000);
@@ -282,6 +280,6 @@ export class UploadController {
       );
     }
 
-    this.cache.set(key, { hits: current + newCount, expiresAt }, expiresAt - now);
+    await this.cache.set(key, { hits: current + newCount, expiresAt }, expiresAt - now);
   }
 }
