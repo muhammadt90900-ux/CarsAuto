@@ -169,8 +169,8 @@ export class OpenAiService {
       const result = response.results[0];
       if (!result) return safe;
 
-      const c = result.categories as Record<string, boolean>;
-      const s = result.category_scores as Record<string, number>;
+      const c = result.categories as unknown as Record<string, boolean>;
+      const s = result.category_scores as unknown as Record<string, number>;
 
       return {
         flagged: result.flagged,
