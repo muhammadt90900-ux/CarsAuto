@@ -180,9 +180,8 @@ export class SearchService {
       //    pgvector <=> operator = cosine distance (0=identical, 2=opposite)
       const vectorStr = `[${embedding.join(',')}]`;
 
-      const vectorRows = await this.prisma.$queryRawUnsafe<
-        Array<{ id: string; similarity: number }>
-      >(
+      type VectorRow = { id: string; similarity: number };
+      const vectorRows = (await this.prisma.$queryRawUnsafe(
         `SELECT id, 1 - (embedding <=> $1::vector) AS similarity
          FROM listings
          WHERE status = 'ACTIVE'
@@ -191,15 +190,15 @@ export class SearchService {
          ORDER BY embedding <=> $1::vector
          LIMIT ${SEMANTIC_POOL}`,
         vectorStr,
-      );
+      )) as VectorRow[];
 
       if (!vectorRows.length) {
         // No embeddings in DB yet — fall back to keyword search
         return this.search(q, filters);
       }
 
-      const rankedIds = vectorRows.map((r) => r.id);
-      const similarityMap = new Map(vectorRows.map((r) => [r.id, r.similarity]));
+      const rankedIds = vectorRows.map((r: { id: string; similarity: number }) => r.id);
+      const similarityMap = new Map(vectorRows.map((r: { id: string; similarity: number }) => [r.id, r.similarity] as [string, number]));
 
       // 2. Fetch full listing data for the ranked IDs
       const candidates = await this.prisma.listing.findMany({
