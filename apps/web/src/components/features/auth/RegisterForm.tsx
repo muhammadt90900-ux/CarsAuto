@@ -53,7 +53,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
     setLoading(true);
     try {
       await register(name, email, password, role, phone || undefined);
-      router.push(`/${locale}/dashboard`);
+      router.push("/dashboard");
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -261,9 +261,9 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
             <label id={termsId} className="text-xs text-[var(--text-muted)] leading-relaxed cursor-pointer"
                    onClick={() => setAgreed(v => !v)}>
               I agree to the{' '}
-              <Link href={`/${locale}/terms`} className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Terms of Service</Link>
+              <Link href="/terms" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Terms of Service</Link>
               {' '}and{' '}
-              <Link href={`/${locale}/privacy`} className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Privacy Policy</Link>
+              <Link href="/privacy" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Privacy Policy</Link>
             </label>
           </div>
 
@@ -293,7 +293,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
 
         <p className="text-center text-sm text-[var(--text-muted)] mt-6">
           Already have an account?{' '}
-          <Link href={`/${locale}/login`}
+          <Link href="/login"
                 className="text-[var(--gold)] font-semibold hover:text-[var(--gold-light)] transition-colors">
             Sign in
           </Link>
