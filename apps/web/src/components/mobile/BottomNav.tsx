@@ -19,7 +19,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
   const handleSell = (e: React.MouseEvent) => {
     if (!isHydrated || !user) {
       e.preventDefault();
-      router.push(`/${locale}/login?returnTo=/${locale}/dashboard/listings/new`);
+      router.push("/login?returnTo=/dashboard/listings/new");
     }
   };
 
@@ -38,7 +38,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
     <>
       {/* FAB — Post listing */}
       <Link
-        href={`/${locale}/dashboard/listings/new`}
+        href="/dashboard/listings/new"
         className="fixed z-40 flex items-center gap-1.5 rounded-full shadow-[0_8px_32px_rgba(201,168,76,0.50)]
                    md:hidden px-4 h-12 text-sm font-bold text-[#050b14]"
         style={{
