@@ -8,7 +8,7 @@
 //   5. ReportModal: lazy-loaded (rare interaction)
 //   6. currentUrl: derived from props (SSR-safe), not window
 
-import { useState, useEffect, useRef, memo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback, lazy, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -35,7 +35,7 @@ const fmtNum = (v: number) => _fmtNum.format(v);
 
 // PERF: lazy-load heavy below-fold components
 const FinancingSection = lazy(() =>
-  import('./FinancingSection').then(m => ({ default: m.FinancingSection })).catch(() => ({ default: () => null }))
+  (import('./FinancingSection').then(m => ({ default: m.FinancingSection })).catch(() => ({ default: () => null })) as Promise<{ default: React.ComponentType<{ price: number }> }>)
 );
 const ReportModal = lazy(() =>
   Promise.resolve({ default: ReportModalInline })
