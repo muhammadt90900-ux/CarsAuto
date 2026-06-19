@@ -43,7 +43,7 @@ function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; vie
 
   if (view === 'list') {
     return (
-      <Link href={`/${locale}/dealers/${dealer.slug}`} className="block group">
+      <Link href="/dealers/${dealer.slug}" className="block group">
         <div className="card-premium flex items-center gap-5 p-5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
                style={{ background: `${color}15`, border: `1px solid ${color}25` }}>🏪</div>
@@ -68,7 +68,7 @@ function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; vie
   }
 
   return (
-    <Link href={`/${locale}/dealers/${dealer.slug}`} className="block group">
+    <Link href="/dealers/${dealer.slug}" className="block group">
       <div className="relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5
                       hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)] cursor-pointer"
            style={{ background:'linear-gradient(145deg,rgba(11,21,37,0.92),rgba(8,15,28,0.97))', border:`1px solid ${color}25` }}>
@@ -129,7 +129,7 @@ export function DealersMarketplaceClient({ locale }: { locale: string }) {
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid"/>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
-            <Link href={`/${locale}`} className="hover:text-[var(--gold)] transition-colors">Home</Link>
+            <Link href="/" className="hover:text-[var(--gold)] transition-colors">Home</Link>
             <span>/</span><span className="text-white/60">Dealers</span>
           </nav>
           <h1 className="text-3xl sm:text-4xl font-display font-black text-white mb-2">
@@ -216,7 +216,7 @@ export function DealersMarketplaceClient({ locale }: { locale: string }) {
             <p className="text-white/45 text-sm max-w-md mx-auto mb-6">
               Join 1,200+ verified dealers reaching thousands of buyers across Iraq, Kurdistan & UAE.
             </p>
-            <Link href={`/${locale}/dealers/register`}
+            <Link href="/dealers/register"
               className="btn-gold inline-flex px-8 py-3.5 text-sm rounded-xl">
               Register as Dealer →
             </Link>
