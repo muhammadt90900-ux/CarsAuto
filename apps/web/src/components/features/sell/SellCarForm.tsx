@@ -283,7 +283,7 @@ export function SellCarForm() {
         descriptionKu: values.descriptionKu.trim() || undefined,
         images:        values.images,
         // Vehicle condition — only for vehicle types
-        ...(isVehicle ? { condition: values.condition } : {}),
+        ...(isVehicle ? { condition: values.condition ?? 'USED' } : {}),
         // Feature 3 — accessorySpec
         ...((isAccessory || isService)
           ? {
