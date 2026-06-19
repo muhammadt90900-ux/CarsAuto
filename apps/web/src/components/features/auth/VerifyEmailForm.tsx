@@ -62,7 +62,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
             This link is missing or malformed. Please request a new verification email.
           </p>
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
@@ -110,7 +110,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
           <p className="text-sm text-[var(--text-muted)] mb-6">{message}</p>
           <div className="flex flex-col gap-3 items-center">
             <Link
-              href={`/${locale}/login`}
+              href="/login"
               className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
               style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
             >
@@ -182,7 +182,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
           </p>
 
           <Link
-            href={`/${locale}/login`}
+            href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
