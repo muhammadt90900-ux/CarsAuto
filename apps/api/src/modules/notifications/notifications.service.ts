@@ -13,7 +13,12 @@ export type NotificationType =
   | 'offer_received'
   | 'offer_accepted'
   | 'offer_declined'
-  | 'system';
+  | 'system'
+  | 'SYSTEM'
+  | 'LISTING_APPROVED'
+  | 'LISTING_REJECTED'
+  | 'DEALER_VERIFIED'
+  | 'PAYMENT_RECEIVED';
 
 export interface PushNotificationPayload {
   title: string;
