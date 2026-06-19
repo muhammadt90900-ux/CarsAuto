@@ -12,7 +12,7 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
-import { ListingType } from '@prisma/client';
+import { ListingType } from '@/common/prisma/enums';
 import { DealersService } from '../dealers/dealers.service';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ export class ListingsService {
           select: { listingId: true },
         }).catch(() => [] as { listingId: string }[]);
 
-        const favSet = new Set(favorites.map((f) => f.listingId));
+        const favSet = new Set(favorites.map((f: { listingId: string }) => f.listingId));
         return {
           ...base,
           data: base.data.map((l: any) => ({ ...l, isFavorited: favSet.has(l.id) })),
@@ -410,7 +410,7 @@ export class ListingsService {
       if (listing.status === 'ACTIVE') {
         this.prisma.dealer
           .findUnique({ where: { userId: data.userId }, select: { id: true } })
-          .then((dealer) => {
+          .then((dealer: { id: string } | null) => {
             if (!dealer) return;
             const title = listing.titleKu ?? listing.titleEn ?? '';
             this.dealers
