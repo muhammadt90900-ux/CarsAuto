@@ -237,7 +237,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
           const title = car.titleEn ?? car.titleKu ?? 'Car';
           return (
             // PERF: data-prefetch-listing triggers Providers prefetch on hover
-            <Link key={car.id} href={`/${locale}/cars/${car.id}`} prefetch={false}
+            <Link key={car.id} href="/cars/${car.id}" prefetch={false}
               data-prefetch-listing={car.id}
               className="group rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
               <div className="relative h-40 overflow-hidden bg-[#060f1a]">
@@ -377,7 +377,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
       <div className="min-h-screen bg-[#050b14] pt-[66px]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-          <Link href={`/${locale}/cars`} className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-[#c9a84c] transition-colors duration-200 group">
+          <Link href="/cars" className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-[#c9a84c] transition-colors duration-200 group">
             <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Back to listings
           </Link>
@@ -420,7 +420,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                       className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <Share2 className="w-4 h-4" />
                     </button>
-                    <Link href={`/${locale}/compare?add=${listing.id}`}
+                    <Link href="/compare?add=${listing.id}"
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <GitCompare className="w-3.5 h-3.5" /> Compare
                     </Link>
