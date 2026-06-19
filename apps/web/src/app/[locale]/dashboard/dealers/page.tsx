@@ -208,7 +208,7 @@ export default function DealerDashboardPage() {
             <div className="text-sm text-white/50 mt-0.5">Upgrade to Business plan for advanced insights, lead scoring, and priority placement.</div>
           </div>
           <Link
-            href={`/${locale}/dashboard/subscription`}
+            href="/dashboard/subscription"
             className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Upgrade
