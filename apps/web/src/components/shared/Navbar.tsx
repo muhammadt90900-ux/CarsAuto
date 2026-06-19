@@ -227,7 +227,7 @@ const COUNTRIES = [
 
 function CountrySwitcher() {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(COUNTRIES[0]);
+  const [selected, setSelected] = useState<typeof COUNTRIES[number]>(COUNTRIES[0]);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
