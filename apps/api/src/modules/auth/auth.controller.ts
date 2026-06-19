@@ -98,7 +98,7 @@ export class AuthController {
     const token: string | undefined = req.cookies?.['refresh_token'];
     const user = (req as any).user as { userId: string } | undefined;
     if (token) {
-      await this.authService.revokeRefreshToken(token, user?.userId, this.ctx(req));
+      await this.authService.revokeRefreshToken(token, undefined, user?.userId, this.ctx(req));
     }
     res.clearCookie('refresh_token', this.cookieOptions());
   }
