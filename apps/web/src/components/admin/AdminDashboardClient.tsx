@@ -200,7 +200,7 @@ export function AdminDashboardClient() {
             })}
           </div>
           <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-right">
-            <Link href={`/${locale}/admin/analytics`}
+            <Link href="/admin/analytics"
                   className="text-xs font-semibold text-[var(--gold)] hover:underline flex items-center gap-1 justify-end">
               Full analytics <ArrowUpRight className="w-3 h-3"/>
             </Link>
@@ -233,7 +233,7 @@ export function AdminDashboardClient() {
             })}
           </div>
           <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-            <Link href={`/${locale}/admin/audit-logs`}
+            <Link href="/admin/audit-logs"
                   className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--gold)] flex items-center gap-1 transition-colors">
               <ClipboardList className="w-3 h-3"/> View audit log
             </Link>
@@ -315,7 +315,7 @@ export function AdminDashboardClient() {
                 </button>
               ))}
             </div>
-            <Link href={`/${locale}/admin/moderation`}
+            <Link href="/admin/moderation"
                   className="text-xs font-semibold text-[var(--gold)] hover:underline flex items-center gap-1">
               Full moderation queue <ArrowUpRight className="w-3 h-3"/>
             </Link>
