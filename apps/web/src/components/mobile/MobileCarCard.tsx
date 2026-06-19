@@ -116,10 +116,9 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
             transform: `translateX(-${cardDx}px)`,
             transition: cardDx === 0 ? 'transform 0.3s cubic-bezier(0.32,0.72,0,1)' : 'none',
           }}
-          onPointerDown={() => setPressing(true)}
-          onPointerUp={() => setPressing(false)}
-          onPointerLeave={() => setPressing(false)}
-          {...longPressProps}
+          onPointerDown={() => { setPressing(true); longPressProps.onPointerDown(); }}
+          onPointerUp={() => { setPressing(false); longPressProps.onPointerUp(); }}
+          onPointerLeave={() => { setPressing(false); longPressProps.onPointerLeave(); }}
         >
           {/* Image */}
           <div
