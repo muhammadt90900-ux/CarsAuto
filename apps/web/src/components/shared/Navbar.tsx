@@ -40,7 +40,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
 
 /* ── Auth Section (isolated to prevent hydration mismatch) ───── */
 // Renders placeholder on server + first client render, then swaps to real auth UI.
-function AuthSection({ locale }: { locale: string }) {
+function AuthSection() {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -66,7 +66,7 @@ function AuthSection({ locale }: { locale: string }) {
     return (
       <div className="hidden md:flex items-center gap-2">
         <Link
-          href={`/${locale}/login`}
+          href="/login"
           className="inline-flex items-center justify-center h-8 px-4
                      text-xs font-semibold rounded-lg
                      border border-white/[0.15] text-white/70
@@ -76,7 +76,7 @@ function AuthSection({ locale }: { locale: string }) {
           {t('login')}
         </Link>
         <Link
-          href={`/${locale}/register`}
+          href="/register"
           className="btn-gold inline-flex h-8 px-4 text-xs rounded-lg"
         >
           {t('register')}
@@ -112,7 +112,7 @@ function AuthSection({ locale }: { locale: string }) {
           </div>
           <div className="p-2 space-y-0.5">
             <Link
-              href={`/${locale}/dashboard`}
+              href="/dashboard"
               onClick={() => setUserMenuOpen(false)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                          hover:bg-white/[0.07] hover:text-white transition-all"
@@ -120,7 +120,7 @@ function AuthSection({ locale }: { locale: string }) {
               {t('dashboard')}
             </Link>
             <Link
-              href={`/${locale}/dashboard/listings`}
+              href="/dashboard/listings"
               onClick={() => setUserMenuOpen(false)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                          hover:bg-white/[0.07] hover:text-white transition-all"
@@ -128,7 +128,7 @@ function AuthSection({ locale }: { locale: string }) {
               {t('myListings')}
             </Link>
             <Link
-              href={`/${locale}/dashboard/notifications`}
+              href="/dashboard/notifications"
               onClick={() => setUserMenuOpen(false)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/65
                          hover:bg-white/[0.07] hover:text-white transition-all"
@@ -152,13 +152,7 @@ function AuthSection({ locale }: { locale: string }) {
 }
 
 /* ── Mobile Auth Section ─────────────────────────────────────── */
-function MobileAuthSection({
-  locale,
-  onClose,
-}: {
-  locale: string;
-  onClose: () => void;
-}) {
+function MobileAuthSection({ onClose }: { onClose: () => void }) {
   const t = useTranslations('common');
   const { user, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -171,7 +165,7 @@ function MobileAuthSection({
     return (
       <>
         <Link
-          href={`/${locale}/login`}
+          href="/login"
           onClick={onClose}
           className="inline-flex items-center justify-center w-full h-11
                      text-sm font-semibold rounded-xl
@@ -182,7 +176,7 @@ function MobileAuthSection({
           {t('login')}
         </Link>
         <Link
-          href={`/${locale}/register`}
+          href="/register"
           onClick={onClose}
           className="btn-gold inline-flex items-center justify-center w-full h-11
                      text-sm rounded-xl"
@@ -196,7 +190,7 @@ function MobileAuthSection({
   return (
     <>
       <Link
-        href={`/${locale}/dashboard`}
+        href="/dashboard"
         onClick={onClose}
         className="inline-flex items-center justify-center w-full h-11
                    text-sm font-semibold rounded-xl
@@ -353,13 +347,13 @@ export function Navbar({ locale }: NavbarProps) {
   }, []);
 
   // Always /sell — proxy.ts redirects logged-in users from /sell to dashboard
-  const sellHref = `/${locale}/sell`;
+  const sellHref = '/sell';
 
   const navLinks = [
-    { href: `/${locale}/cars`,        label: t('cars') },
-    { href: `/${locale}/motorcycles`, label: t('motorcycles') },
-    { href: `/${locale}/spare-parts`, label: t('spareParts') },
-    { href: `/${locale}/dealers`,     label: t('dealers') },
+    { href: '/cars',        label: t('cars') },
+    { href: '/motorcycles', label: t('motorcycles') },
+    { href: '/spare-parts', label: t('spareParts') },
+    { href: '/dealers',     label: t('dealers') },
   ];
 
   const navBg = scrolled
@@ -420,7 +414,7 @@ export function Navbar({ locale }: NavbarProps) {
 
             {/* ── Logo ─────────────────────────────────────────── */}
             <Link
-              href={`/${locale}`}
+              href="/"
               className="flex-shrink-0 flex items-center gap-2 group"
               aria-label="AutoBazaarPro Home"
             >
@@ -511,7 +505,7 @@ export function Navbar({ locale }: NavbarProps) {
               )}
 
               {/* Auth — isolated component, no SSR mismatch */}
-              <AuthSection locale={locale} />
+              <AuthSection />
 
               {/* Mobile hamburger */}
               <button
@@ -617,7 +611,7 @@ export function Navbar({ locale }: NavbarProps) {
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            <MobileAuthSection locale={locale} onClose={() => setMobileOpen(false)} />
+            <MobileAuthSection onClose={() => setMobileOpen(false)} />
           </div>
         </div>
       </div>
