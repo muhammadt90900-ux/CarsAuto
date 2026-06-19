@@ -104,7 +104,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
     >
       <SaveIndicator visible={showSwipe} />
 
-      <Link href={`/${locale}/cars/${car.id}`}>
+      <Link href="/cars/${car.id}">
         <article
           className={cn(
             'relative card-interactive',
