@@ -12,7 +12,7 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const { locale: _loc } = await params; const locale = _loc as Locale;
   // Fallback title/desc for locales without translation yet
   const titles: Record<Locale, string> = {
     ku: "پارچە یەدەکەکان | AutoBazaar Pro",
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function SparePartsPage({ params, searchParams }: Props) {
-  const { locale } = await params;
+  const { locale: _loc } = await params; const locale = _loc as Locale;
   const search = searchParams ? await searchParams : {};
   return <SparePartsClient locale={locale} initialSearch={search} />;
 }
