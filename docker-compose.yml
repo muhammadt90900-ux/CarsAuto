@@ -86,8 +86,8 @@ services:
   # ── API (NestJS) ─────────────────────────────────────────────────────────────
   api:
     build:
-      context:    ./apps/api
-      dockerfile: Dockerfile
+      context:    .
+      dockerfile: apps/api/Dockerfile
       target:     production
     container_name: cars_auto_api
     restart: unless-stopped
@@ -138,8 +138,8 @@ services:
   # ── Web (Next.js) ─────────────────────────────────────────────────────────
   web:
     build:
-      context:    ./apps/web
-      dockerfile: Dockerfile
+      context:    .
+      dockerfile: apps/web/Dockerfile
       target:     production
     container_name: cars_auto_web
     restart: unless-stopped
