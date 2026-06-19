@@ -135,7 +135,7 @@ const AICarCard = memo(function AICarCard({
 
   return (
     <Link
-      href={`/${locale}/cars/${listing.id}`}
+      href="/cars/${listing.id}"
       prefetch={false}
       className="group block"
     >
@@ -595,7 +595,7 @@ export function AIRecommendations({
             {t('powered_by', locale)}
           </div>
           <Link
-            href={`/${locale}/cars`}
+            href="/cars"
             className="flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c]/70 hover:text-[#c9a84c] transition-colors duration-200"
           >
             {t('view_all', locale)}
