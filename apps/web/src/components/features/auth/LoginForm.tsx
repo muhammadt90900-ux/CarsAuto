@@ -28,7 +28,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
       setSuccess(true);
       setTimeout(() => {
       const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-        router.push(returnTo || `/${locale}`);
+        router.push(returnTo || "/");
       }, 600);
     } catch (err: any) {
       const msg =
@@ -144,7 +144,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
                 Password <span className="text-[#ef4444]" aria-hidden="true">*</span>
               </label>
               <Link
-                href={`/${locale}/forgot-password`}
+                href="/forgot-password"
                 className="text-xs text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm"
               >
@@ -265,7 +265,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
       <p className="text-center text-sm text-[var(--text-muted)] mt-6">
         Don't have an account?{' '}
         <Link
-          href={`/${locale}/register`}
+          href="/register"
           className="text-[var(--gold)] font-semibold hover:text-[var(--gold-light)] transition-colors
                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm"
         >
