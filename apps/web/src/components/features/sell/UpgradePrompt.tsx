@@ -71,7 +71,7 @@ export function UpgradePrompt({ reason }: UpgradePromptProps) {
   const headlineEn =
     reason === 'TRIAL_EXPIRED'
       ? 'Your free trial has ended'
-      : 'You've reached the 50-post trial limit';
+      : "You've reached the 50-post trial limit";
 
   const handleSelect = async (plan: Plan) => {
     setLoading(plan);
