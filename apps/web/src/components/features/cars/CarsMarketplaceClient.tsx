@@ -117,7 +117,7 @@ const CarCard = memo(function CarCard({
 
   if (view === 'list') {
     return (
-      <Link href={`/${locale}/cars/${car.id}`} prefetch={false} className="block group">
+      <Link href="/cars/${car.id}" prefetch={false} className="block group">
         <article className="card-premium flex gap-3 sm:gap-4 p-3 sm:p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
           <div className="car-list-img relative flex-shrink-0 w-24 h-18 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
                style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
@@ -172,7 +172,7 @@ const CarCard = memo(function CarCard({
   }
 
   return (
-    <Link href={`/${locale}/cars/${car.id}`} prefetch={false} className="block group">
+    <Link href="/cars/${car.id}" prefetch={false} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col">
         <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[#0f1c2e]">
           {!imgError ? (
@@ -441,7 +441,7 @@ export function CarsMarketplaceClient({
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
-            <Link href={`/${locale}`} className="hover:text-[var(--gold)] transition-colors">Home</Link>
+            <Link href="/" className="hover:text-[var(--gold)] transition-colors">Home</Link>
             <span>/</span>
             <span className="text-white/60">Cars</span>
           </nav>
