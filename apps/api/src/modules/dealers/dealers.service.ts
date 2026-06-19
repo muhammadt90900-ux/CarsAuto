@@ -47,7 +47,7 @@ const LIST_SELECT = {
   specialties: true, createdAt: true,
   location: { select: { id: true, city: true, nameKu: true, nameEn: true } },
   badges: {
-    where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] as any[] },
     select: { code: true, label: true, icon: true },
   },
   subscription: { select: { plan: true } },
@@ -61,7 +61,7 @@ const FOLLOWED_DEALER_SELECT = {
   averageRating: true, totalReviews: true, activeListings: true,
   location: { select: { city: true, nameKu: true, nameEn: true } },
   badges: {
-    where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] as any[] },
     select: { code: true, label: true, icon: true },
     take: 3,
   },
@@ -170,7 +170,7 @@ export class DealersService {
         include: {
           location: true,
           badges: {
-            where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+            where: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] as any[] },
             orderBy: { awardedAt: 'desc' },
           },
           showroomImages: { orderBy: { order: 'asc' } },
@@ -526,9 +526,9 @@ export class DealersService {
     });
 
     // Filter to only verified dealers (dealer could be suspended after follow)
-    return (rows as Array<{ createdAt: Date; dealer: Record<string, unknown> }>)
-      .filter((r) => r.dealer['status'] !== 'SUSPENDED')
-      .map((r) => ({ followedAt: r.createdAt, dealer: r.dealer as typeof FOLLOWED_DEALER_SELECT }));
+    return (rows as any[])
+      .filter((r) => r.dealer?.["status"] !== "SUSPENDED")
+      .map((r) => ({ followedAt: r.createdAt, dealer: r.dealer }));
   }
 
   /**
