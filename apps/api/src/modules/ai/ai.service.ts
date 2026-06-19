@@ -157,11 +157,11 @@ export class AiService {
       const q3 = prices[Math.floor(sampleSize * 0.75)]!;
       const iqr = q3 - q1;
       const filtered = prices.filter(
-        (p) => p >= q1 - 1.5 * iqr && p <= q3 + 1.5 * iqr,
+        (p: number) => p >= q1 - 1.5 * iqr && p <= q3 + 1.5 * iqr,
       );
 
-      const mean = filtered.reduce((a, b) => a + b, 0) / filtered.length;
-      const variance = filtered.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / filtered.length;
+      const mean = filtered.reduce((a: number, b: number) => a + b, 0) / filtered.length;
+      const variance = filtered.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / filtered.length;
       const std = Math.sqrt(variance);
 
       const suggested = Math.round(mean);
