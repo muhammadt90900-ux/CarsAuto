@@ -1,0 +1,132 @@
+{
+  "name": "AutoBazaar Pro",
+  "short_name": "AutoBazaar",
+  "description": "Iraq & Kurdistan's premier automotive marketplace — buy and sell cars, motorcycles, and spare parts.",
+  "start_url": "/ku",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#050b14",
+  "theme_color": "#050b14",
+  "lang": "ckb",
+  "dir": "rtl",
+  "categories": ["automotive", "shopping", "utilities"],
+  "iarc_rating_id": "",
+  "prefer_related_applications": false,
+
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AutoBazaar Pro — Mobile view"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "AutoBazaar Pro — Desktop view"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Browse Cars",
+      "short_name": "Cars",
+      "description": "Browse all car listings",
+      "url": "/ku/cars",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Spare Parts",
+      "short_name": "Parts",
+      "description": "Find spare parts",
+      "url": "/ku/spare-parts",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Dealers",
+      "short_name": "Dealers",
+      "description": "Browse certified dealers",
+      "url": "/ku/dealers",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+
+  "share_target": {
+    "action": "/ku/cars/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+autobazaar",
+      "url": "/ku/cars?ref=%s"
+    }
+  ]
+}

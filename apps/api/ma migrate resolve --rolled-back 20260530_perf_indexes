@@ -1,0 +1,19 @@
+               List of relations
+ Schema |        Name        | Type  |  Owner   
+--------+--------------------+-------+----------
+ public | CarMake            | table | muhammad
+ public | CarModel           | table | muhammad
+ public | Category           | table | muhammad
+ public | Chat               | table | muhammad
+ public | Image              | table | muhammad
+ public | Listing            | table | muhammad
+ public | Location           | table | muhammad
+ public | Message            | table | muhammad
+ public | Notification       | table | muhammad
+ public | Payment            | table | muhammad
+ public | Report             | table | muhammad
+ public | Review             | table | muhammad
+ public | User               | table | muhammad
+ public | _prisma_migrations | table | muhammad
+(14 rows)
+

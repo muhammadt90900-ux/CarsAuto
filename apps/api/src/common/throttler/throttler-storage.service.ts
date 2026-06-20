@@ -1,0 +1,67 @@
+// apps/api/src/common/throttler/throttler-storage.service.ts
+import { Injectable } from '@nestjs/common';
+import { ThrottlerStorage } from '@nestjs/throttler';
+import { CacheService } from '../cache/cache.service';
+
+export interface ThrottlerStorageRecord {
+  totalHits: number;
+  timeToExpire: number;
+  isBlocked: boolean;
+  timeToBlockExpire: number;
+}
+
+@Injectable()
+export class ThrottlerStorageService implements ThrottlerStorage {
+  constructor(private readonly cache: CacheService) {}
+
+  async increment(
+    key: string,
+    ttl: number,
+    limit: number,
+    blockDuration: number,
+    throttlerName: string,
+  ): Promise<ThrottlerStorageRecord> {
+    const cacheKey = `throttle:${throttlerName}:${key}`;
+    const blockKey = `throttle:block:${throttlerName}:${key}`;
+    const now = Date.now();
+
+    // ── Check if IP is currently blocked ─────────────────────────────────
+    const blockEntry = await this.cache.get<number>(blockKey);
+    if (blockEntry) {
+      return {
+        totalHits:        limit + 1,
+        timeToExpire:     0,
+        isBlocked:        true,
+        timeToBlockExpire: Math.ceil((blockEntry.value - now) / 1000),
+      };
+    }
+
+    // ── Increment hit counter ─────────────────────────────────────────────
+    const existing = await this.cache.get<{ hits: number; expiresAt: number }>(cacheKey);
+    let hits: number;
+    let expiresAt: number;
+
+    if (existing) {
+      hits      = existing.value.hits + 1;
+      expiresAt = existing.value.expiresAt;
+      await this.cache.set(cacheKey, { hits, expiresAt }, expiresAt - now);
+    } else {
+      hits      = 1;
+      expiresAt = now + ttl;
+      await this.cache.set(cacheKey, { hits, expiresAt }, ttl);
+    }
+
+    // ── Block IP if limit exceeded ────────────────────────────────────────
+    const isBlocked = hits > limit;
+    if (isBlocked && blockDuration > 0) {
+      await this.cache.set(blockKey, now + blockDuration, blockDuration);
+    }
+
+    return {
+      totalHits:        hits,
+      timeToExpire:     Math.ceil((expiresAt - now) / 1000),
+      isBlocked,
+      timeToBlockExpire: isBlocked && blockDuration > 0 ? Math.ceil(blockDuration / 1000) : 0,
+    };
+  }
+}
