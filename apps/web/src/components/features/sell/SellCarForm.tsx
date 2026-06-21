@@ -7,6 +7,8 @@
 //   Step 1 — Basic Info  (title, price, type, condition/serviceType)
 //   Step 2 — Details     (description + type-specific spec fields)
 //   Step 3 — Photos      (image upload + submit)
+//
+// FIX: Moved all useState hooks above early returns to comply with Rules of Hooks.
 
 import { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { useRouter }       from '@/i18n/navigation';
@@ -71,7 +73,7 @@ export interface FormValues {
   descriptionEn: string;
   descriptionKu: string;
   images:        string[];
-  images360:     string[];     // Feature 7: 360° photo set (18–36 frames)
+  images360:     string[];
   // Vehicle
   condition:     string;
   // Accessory
@@ -127,8 +129,27 @@ export function SellCarForm() {
   const queryClient   = useQueryClient();
   const { user, isHydrated } = useAuthStore((s) => ({ user: s.user, isHydrated: s.isHydrated }));
 
+  // ── ALL hooks must be declared before any early return ────────────────────
   const [permStatus,  setPermStatus]  = useState<PermissionStatus | null>(null);
   const [permLoading, setPermLoading] = useState(true);
+
+  const [step, setStep]     = useState(1);
+  const [values, setValues] = useState<FormValues>({
+    titleEn: '', titleKu: '', titleAr: '',
+    price: '', currency: 'USD', type: 'CAR', negotiable: false,
+    descriptionEn: '', descriptionKu: '',
+    images: [],
+    images360: [],
+    condition: '',
+    accBrand: '', accModel: '', accCondition: '', accColor: '',
+    accMaterial: '', accWeight: '', accDimensions: '',
+    compatibleBrands: '', compatibleModels: '',
+    serviceType: '', duration: '', mobile: false,
+    warranty: '', availableDays: [],
+  });
+  const [errors,      setErrors]      = useState<FormErrors>({});
+  const [submitting,  setSubmitting]  = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isHydrated || !user) return;
@@ -139,69 +160,6 @@ export function SellCarForm() {
       .catch(() => setPermStatus({ canPost: false, reason: 'NOT_DEALER' }))
       .finally(() => setPermLoading(false));
   }, [isHydrated, user]);
-
-  if (!isHydrated || permLoading) {
-    return (
-      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[var(--text-faint)] text-sm">Loading…</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Permission gates
-  if (permStatus?.reason === 'NOT_DEALER') {
-    return (
-      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 text-center"
-          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}>
-          <div className="text-5xl mb-4">🚫</div>
-          <h2 className="text-xl font-bold text-white mb-1" dir="rtl">ئەم تایبەتمەندییە تەنها بۆ فرۆشیارانە</h2>
-          <p className="text-[var(--text-faint)] text-sm mb-6">This feature is for dealers only</p>
-          <button onClick={() => router.push('/register')}
-            className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
-                       bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14]
-                       hover:from-[#e8cc7a] hover:to-[#c9a84c] transition-all duration-200">
-            بچۆ بۆ تۆمارکردن وەک فرۆشیار / Register as Dealer
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (permStatus?.reason === 'TRIAL_EXPIRED' || permStatus?.reason === 'LIMIT_REACHED') {
-    return (
-      <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
-        <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
-          <UpgradePrompt reason={permStatus.reason as 'TRIAL_EXPIRED' | 'LIMIT_REACHED'} />
-        </div>
-      </div>
-    );
-  }
-
-  // ── Main form state ────────────────────────────────────────────────────────
-  const [step, setStep]     = useState(1);
-  const [values, setValues] = useState<FormValues>({
-    titleEn: '', titleKu: '', titleAr: '',
-    price: '', currency: 'USD', type: 'CAR', negotiable: false,
-    descriptionEn: '', descriptionKu: '',
-    images: [],
-    images360: [],
-    // vehicle
-    condition: '',
-    // accessory
-    accBrand: '', accModel: '', accCondition: '', accColor: '',
-    accMaterial: '', accWeight: '', accDimensions: '',
-    compatibleBrands: '', compatibleModels: '',
-    // service
-    serviceType: '', duration: '', mobile: false,
-    warranty: '', availableDays: [],
-  });
-  const [errors,      setErrors]      = useState<FormErrors>({});
-  const [submitting,  setSubmitting]  = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const set = useCallback(
     (field: keyof FormValues) =>
@@ -233,6 +191,47 @@ export function SellCarForm() {
         : [...v.availableDays, day],
     }));
   };
+
+  // ── Early returns AFTER all hooks ─────────────────────────────────────────
+  if (!isHydrated || permLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[var(--text-faint)] text-sm">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (permStatus?.reason === 'NOT_DEALER') {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}>
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-xl font-bold text-white mb-1" dir="rtl">ئەم تایبەتمەندییە تەنها بۆ فرۆشیارانە</h2>
+          <p className="text-[var(--text-faint)] text-sm mb-6">This feature is for dealers only</p>
+          <button onClick={() => router.push('/register')}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
+                       bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14]
+                       hover:from-[#e8cc7a] hover:to-[#c9a84c] transition-all duration-200">
+            بچۆ بۆ تۆمارکردن وەک فرۆشیار / Register as Dealer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (permStatus?.reason === 'TRIAL_EXPIRED' || permStatus?.reason === 'LIMIT_REACHED') {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
+        <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
+          <UpgradePrompt reason={permStatus.reason as 'TRIAL_EXPIRED' | 'LIMIT_REACHED'} />
+        </div>
+      </div>
+    );
+  }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const goNext = () => {
@@ -282,13 +281,10 @@ export function SellCarForm() {
         descriptionEn: values.descriptionEn.trim() || undefined,
         descriptionKu: values.descriptionKu.trim() || undefined,
         images:        values.images,
-        // Vehicle condition — only for vehicle types
         ...(isVehicle ? { condition: values.condition ?? 'USED' } : {}),
-        // Feature 3 — accessorySpec
         ...((isAccessory || isService)
           ? {
               accessorySpec: {
-                // Accessory fields
                 ...(isAccessory ? {
                   brand:            values.accBrand     || undefined,
                   model:            values.accModel     || undefined,
@@ -298,7 +294,6 @@ export function SellCarForm() {
                   weight:           values.accWeight ? Number(values.accWeight) : undefined,
                   dimensions:       values.accDimensions || undefined,
                 } : {}),
-                // Service fields
                 ...(isService ? {
                   serviceType:   values.serviceType || undefined,
                   duration:      values.duration ? Number(values.duration) : undefined,
@@ -306,7 +301,6 @@ export function SellCarForm() {
                   warranty:      values.warranty ? Number(values.warranty) : undefined,
                   availableDays: values.availableDays,
                 } : {}),
-                // Shared
                 compatibleBrands: values.compatibleBrands
                   ? values.compatibleBrands.split(',').map((s) => s.trim()).filter(Boolean)
                   : [],
@@ -334,7 +328,6 @@ export function SellCarForm() {
     }
   };
 
-  // Trial banner data
   const trialDaysRemaining = permStatus?.trialEnd
     ? Math.max(0, Math.ceil((new Date(permStatus.trialEnd).getTime() - Date.now()) / 86_400_000))
     : null;
@@ -345,7 +338,6 @@ export function SellCarForm() {
 
   return (
     <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
-      {/* Atmospheric background */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.07)_0%,transparent_70%)]" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.05)_0%,transparent_70%)]" />
@@ -353,7 +345,6 @@ export function SellCarForm() {
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 py-12">
 
-        {/* Trial banner */}
         {permStatus?.reason === 'TRIAL' && trialDaysRemaining !== null && (
           <div className="mb-6 flex items-center justify-between gap-4 flex-wrap
                           px-5 py-3 rounded-xl
@@ -372,7 +363,6 @@ export function SellCarForm() {
           </div>
         )}
 
-        {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
                           bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.2)]
@@ -388,7 +378,6 @@ export function SellCarForm() {
 
         <SellProgress step={step} />
 
-        {/* Glass card */}
         <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 mt-8"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
@@ -398,12 +387,10 @@ export function SellCarForm() {
           }}
         >
 
-          {/* ── Step 1: Basic Info ─────────────────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-6">
               <StepHeading icon="📋" title="Basic Information" subtitle="Title, price, and listing type" />
 
-              {/* Titles */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <SellFormField label="Title (English)" required error={errors.titleEn}>
                   <input type="text" placeholder="e.g. 2021 Toyota Camry SE"
@@ -423,7 +410,6 @@ export function SellCarForm() {
                   className={inputCls(false)} />
               </SellFormField>
 
-              {/* Price */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <SellFormField label="Price / نرخ" required error={errors.price} className="sm:col-span-2">
                   <div className="flex gap-2">
@@ -449,7 +435,6 @@ export function SellCarForm() {
                 </SellFormField>
               </div>
 
-              {/* Listing type — full 5-type selector */}
               <SellFormField label="Listing Type / جۆری ئیلان" required error={errors.type}>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {TYPES.map((t) => (
@@ -473,7 +458,6 @@ export function SellCarForm() {
                 {errors.type && <p className="text-[#ef4444] text-xs mt-1">{errors.type}</p>}
               </SellFormField>
 
-              {/* Condition — only for vehicle types */}
               {isVehicle && (
                 <SellFormField label="Condition / حاڵەت" required error={errors.condition}>
                   <select value={values.condition} onChange={set('condition')} className={selectCls(!!errors.condition)}>
@@ -483,7 +467,6 @@ export function SellCarForm() {
                 </SellFormField>
               )}
 
-              {/* Service type — only for SERVICE */}
               {isService && (
                 <SellFormField label="Service Type / جۆری خزمەتگوزاری" required error={errors.serviceType}>
                   <select value={values.serviceType} onChange={set('serviceType')} className={selectCls(!!errors.serviceType)}>
@@ -495,7 +478,6 @@ export function SellCarForm() {
             </div>
           )}
 
-          {/* ── Step 2: Details ────────────────────────────────────────────── */}
           {step === 2 && (
             <div className="space-y-6">
               <StepHeading
@@ -504,7 +486,6 @@ export function SellCarForm() {
                 subtitle={isService ? 'Service info & availability' : isAccessory ? 'Accessory specifications' : 'Tell buyers about your listing'}
               />
 
-              {/* Descriptions — all types */}
               <SellFormField label="Description (English)" optional>
                 <textarea placeholder="Describe your listing…"
                   value={values.descriptionEn} onChange={set('descriptionEn')}
@@ -519,14 +500,12 @@ export function SellCarForm() {
                 <CharCount current={values.descriptionKu.length} max={2000} />
               </SellFormField>
 
-              {/* ── Accessory-specific fields ─────────────────────────────── */}
               {isAccessory && (
                 <>
                   <div className="h-px bg-[rgba(255,255,255,0.06)]" />
                   <p className="text-[var(--gold)] text-xs font-semibold uppercase tracking-widest">
                     🎁 Accessory Specifications
                   </p>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <SellFormField label="Brand" optional>
                       <input type="text" placeholder="e.g. Bosch"
@@ -539,7 +518,6 @@ export function SellCarForm() {
                         className={inputCls(false)} />
                     </SellFormField>
                   </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <SellFormField label="Condition">
                       <select value={values.accCondition} onChange={set('accCondition')} className={selectCls(false)}>
@@ -559,7 +537,6 @@ export function SellCarForm() {
                         className={inputCls(false)} />
                     </SellFormField>
                   </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <SellFormField label="Weight (kg)" optional>
                       <input type="number" placeholder="0.0" min="0" step="0.1"
@@ -575,14 +552,12 @@ export function SellCarForm() {
                 </>
               )}
 
-              {/* ── Service-specific fields ───────────────────────────────── */}
               {isService && (
                 <>
                   <div className="h-px bg-[rgba(255,255,255,0.06)]" />
                   <p className="text-[var(--gold)] text-xs font-semibold uppercase tracking-widest">
                     ⚙️ Service Details
                   </p>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <SellFormField label="Estimated Duration (minutes)" optional>
                       <input type="number" placeholder="e.g. 60" min="1"
@@ -595,8 +570,6 @@ export function SellCarForm() {
                         className={inputCls(false)} />
                     </SellFormField>
                   </div>
-
-                  {/* Mobile toggle */}
                   <SellFormField label="Mobile Service / خزمەتگوزاری مۆبایل">
                     <label className="flex items-center gap-3 h-[42px] cursor-pointer select-none">
                       <span onClick={() => setValues((v) => ({ ...v, mobile: !v.mobile }))}
@@ -610,8 +583,6 @@ export function SellCarForm() {
                       </span>
                     </label>
                   </SellFormField>
-
-                  {/* Available days */}
                   <SellFormField label="Available Days / رۆژانی بەردەستبوون" optional>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {DAYS.map((day) => (
@@ -629,7 +600,6 @@ export function SellCarForm() {
                 </>
               )}
 
-              {/* Compatibility — for ACCESSORY and SERVICE */}
               {(isAccessory || isService) && (
                 <>
                   <div className="h-px bg-[rgba(255,255,255,0.06)]" />
@@ -651,7 +621,6 @@ export function SellCarForm() {
                 </>
               )}
 
-              {/* Preview */}
               <div className="rounded-xl border border-[rgba(255,255,255,0.06)] p-4 bg-[rgba(255,255,255,0.02)]">
                 <p className="text-xs text-[var(--text-faint)] mb-2 uppercase tracking-wider">Preview</p>
                 <p className="text-white font-semibold">{values.titleEn || 'Title'}</p>
@@ -665,13 +634,10 @@ export function SellCarForm() {
             </div>
           )}
 
-          {/* ── Step 3: Photos ─────────────────────────────────────────────── */}
           {step === 3 && (
             <div className="space-y-6">
               <StepHeading icon="📸" title="Photos / وێنەکان" subtitle="Upload up to 10 photos" />
               <ImageUploadGrid images={values.images} onChange={setImages} error={errors.images} />
-
-              {/* ── 360° Photo Set (optional) ─────────────────────────────────── */}
               {(values.type === 'CAR' || values.type === 'MOTORCYCLE') && (
                 <Upload360Section images360={values.images360} onChange={setImages360} />
               )}
@@ -684,7 +650,6 @@ export function SellCarForm() {
             </div>
           )}
 
-          {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-[rgba(255,255,255,0.06)]">
             {step > 1 ? (
               <button onClick={goBack} className={ghostBtn}>← Back</button>
@@ -704,7 +669,6 @@ export function SellCarForm() {
           </div>
         </div>
 
-        {/* Trust badges */}
         <div className="mt-8 flex items-center justify-center gap-6 flex-wrap">
           {[
             { icon: '🔒', label: 'Secure & Private' },
@@ -772,7 +736,6 @@ const ghostBtn = `
 `;
 
 // ── Upload360Section ──────────────────────────────────────────────────────────
-// Optional 360° photo set upload: 36 numbered frame slots (18 minimum to enable)
 const TOTAL_FRAMES = 36;
 
 function Upload360Section({
@@ -789,12 +752,9 @@ function Upload360Section({
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-
-    // Sequential fill from first empty slot
     const updated = [...images360];
     let slot = dropTarget.current ?? updated.findIndex((u) => !u);
     if (slot === -1) slot = updated.length;
-
     for (const file of files.slice(0, TOTAL_FRAMES)) {
       const url = URL.createObjectURL(file);
       updated[slot < TOTAL_FRAMES ? slot : TOTAL_FRAMES - 1] = url;
@@ -821,7 +781,6 @@ function Upload360Section({
 
   return (
     <div className="mt-6 rounded-2xl border border-dashed border-[rgba(201,168,76,0.25)] overflow-hidden">
-      {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -852,15 +811,12 @@ function Upload360Section({
         <span className="text-white/40 text-sm">{expanded ? '▲' : '▼'}</span>
       </button>
 
-      {/* Expanded grid */}
       {expanded && (
         <div className="px-5 pb-5 pt-3 bg-[rgba(0,0,0,0.3)]">
           <p className="text-[var(--text-faint)] text-xs mb-4">
             Take photos every 10° around the car for a full 360° view. Start from the front-left
             and rotate clockwise. Minimum 18 photos required to enable the 360° viewer.
           </p>
-
-          {/* Frame grid: 36 slots, 9 per row on desktop */}
           <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 mb-4">
             {Array.from({ length: TOTAL_FRAMES }, (_, i) => {
               const url = images360[i];
@@ -910,8 +866,6 @@ function Upload360Section({
               );
             })}
           </div>
-
-          {/* Bulk upload CTA */}
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -922,7 +876,6 @@ function Upload360Section({
             >
               <span>📁</span> Upload multiple frames
             </button>
-
             {is360Ready && (
               <div className="flex items-center gap-2 text-xs text-[#4ade80]">
                 <span>✓</span>
@@ -930,8 +883,6 @@ function Upload360Section({
               </div>
             )}
           </div>
-
-          {/* Hidden file input — accepts multiple */}
           <input
             ref={fileInputRef}
             type="file"

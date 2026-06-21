@@ -31,7 +31,9 @@ const nextConfig = {
   // ── Image optimisation ────────────────────────────────────────────────────
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "*.devtunnels.ms" },
+      { protocol: "http", hostname: "localhost" },
       { protocol: 'https', hostname: '*.cloudinary.com' },
     ],
     formats: ['image/avif', 'image/webp'],
