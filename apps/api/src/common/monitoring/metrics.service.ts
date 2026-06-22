@@ -41,34 +41,34 @@ export class MetricsService implements OnModuleInit {
 
   // ── Business metrics ──────────────────────────────────────────────────────
   readonly activeUsers = new Gauge({
-    name:      'autobazaar_active_users_total',
+    name:      'carsauto_active_users_total',
     help:      'Number of active authenticated users',
     registers: [this.registry],
   });
 
   readonly listingsCreated = new Counter({
-    name:       'autobazaar_listings_created_total',
+    name:       'carsauto_listings_created_total',
     help:       'Total listings created',
     labelNames: ['type', 'plan'],
     registers:  [this.registry],
   });
 
   readonly authAttempts = new Counter({
-    name:       'autobazaar_auth_attempts_total',
+    name:       'carsauto_auth_attempts_total',
     help:       'Authentication attempts',
     labelNames: ['action', 'result'],  // action: login|register|refresh; result: success|failure
     registers:  [this.registry],
   });
 
   readonly paymentEvents = new Counter({
-    name:       'autobazaar_payment_events_total',
+    name:       'carsauto_payment_events_total',
     help:       'Payment events',
     labelNames: ['event', 'plan', 'currency'],
     registers:  [this.registry],
   });
 
   readonly searchQueries = new Counter({
-    name:       'autobazaar_search_queries_total',
+    name:       'carsauto_search_queries_total',
     help:       'Search queries executed',
     labelNames: ['has_filters', 'result_count_bucket'],
     registers:  [this.registry],
@@ -76,7 +76,7 @@ export class MetricsService implements OnModuleInit {
 
   // ── Database metrics ──────────────────────────────────────────────────────
   readonly dbQueryDuration = new Histogram({
-    name:       'autobazaar_db_query_duration_ms',
+    name:       'carsauto_db_query_duration_ms',
     help:       'Database query duration in ms',
     labelNames: ['model', 'operation'],
     buckets:    [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500],
@@ -84,21 +84,21 @@ export class MetricsService implements OnModuleInit {
   });
 
   readonly dbSlowQueries = new Counter({
-    name:      'autobazaar_db_slow_queries_total',
+    name:      'carsauto_db_slow_queries_total',
     help:      'Queries exceeding slow query threshold',
     registers: [this.registry],
   });
 
   // ── Cache metrics ─────────────────────────────────────────────────────────
   readonly cacheHits = new Counter({
-    name:       'autobazaar_cache_hits_total',
+    name:       'carsauto_cache_hits_total',
     help:       'Cache hits',
     labelNames: ['store'],
     registers:  [this.registry],
   });
 
   readonly cacheMisses = new Counter({
-    name:       'autobazaar_cache_misses_total',
+    name:       'carsauto_cache_misses_total',
     help:       'Cache misses',
     labelNames: ['store'],
     registers:  [this.registry],
@@ -106,7 +106,7 @@ export class MetricsService implements OnModuleInit {
 
   // ── Error metrics ─────────────────────────────────────────────────────────
   readonly errorsTotal = new Counter({
-    name:       'autobazaar_errors_total',
+    name:       'carsauto_errors_total',
     help:       'Total application errors',
     labelNames: ['type', 'code', 'context'],
     registers:  [this.registry],
@@ -115,9 +115,9 @@ export class MetricsService implements OnModuleInit {
   onModuleInit() {
     collectDefaultMetrics({
       register: this.registry,
-      prefix:   'autobazaar_node_',
+      prefix:   'carsauto_node_',
       labels:   {
-        service: 'autobazaar-api',
+        service: 'carsauto-api',
         version: process.env.APP_VERSION ?? '1.0.0',
         env:     process.env.NODE_ENV ?? 'production',
       },

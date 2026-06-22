@@ -8,7 +8,7 @@ import {
   AlertTriangle, MessageSquare, Car, Store, ChevronLeft,
   ChevronRight, Clock, ExternalLink,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
 type ReportType   = 'LISTING' | 'DEALER' | 'USER' | 'MESSAGE';

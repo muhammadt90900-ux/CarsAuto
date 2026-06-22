@@ -7,7 +7,7 @@ import {
   MessageCircle, Phone, Mail, Clock, CheckCircle2,
   User, Car, ChevronRight, Search, Loader2, Inbox,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface Lead {
   id: string;

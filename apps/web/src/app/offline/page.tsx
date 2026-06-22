@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Offline — AutoBazaar Pro',
+  title: 'Offline — CarsAuto',
   robots: { index: false },
 };
 
@@ -117,7 +117,7 @@ export default function OfflinePage() {
         <div className="card">
           <div className="logo-wrap">
             <div className="logo-icon">🚗</div>
-            <span className="logo-text">AutoBazaar Pro</span>
+            <span className="logo-text">CarsAuto</span>
           </div>
 
           <div className="icon-wrap">📡</div>

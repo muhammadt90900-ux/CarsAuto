@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Star, MessageCircle, CheckCircle2, Shield, Zap, Award } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 const TIER_CONFIG = {
   PLATINUM: { label: 'Platinum',  labelKu: 'پلاتینیۆم', color: 'from-[#e8e0c8] to-[#c9a84c]', textColor: 'text-[#7a5c1e]',  ring: 'ring-[#c9a84c]/40',  icon: '💎' },

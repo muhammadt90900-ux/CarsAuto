@@ -8,7 +8,7 @@ import {
   AlertTriangle, Image as ImageIcon, Type, Car, Zap, MoreVertical,
   ChevronLeft, ChevronRight, Loader2, Flag, RefreshCw,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
 type ModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

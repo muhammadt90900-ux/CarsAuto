@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 export function MobileNav() {
   const pathname = usePathname();

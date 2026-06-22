@@ -1,5 +1,5 @@
 /**
- * AutoBazaarPro — Optimized Query Patterns
+ * CarsAuto — Optimized Query Patterns
  * ─────────────────────────────────────────────────────────────────────────────
  * Each query is annotated with:
  *   • Which index it hits

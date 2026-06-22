@@ -3,7 +3,7 @@
 // Context-aware sticky action bars for mobile
 
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { Heart, Share2, MessageCircle, Phone } from 'lucide-react';
 
 /* ── Haptic shim ──────────────────────────────────────────────── */

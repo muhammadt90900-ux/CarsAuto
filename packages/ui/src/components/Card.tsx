@@ -1,6 +1,6 @@
 // packages/ui/src/components/Card.tsx
 import React from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface CardProps {
   children: React.ReactNode;

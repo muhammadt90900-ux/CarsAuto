@@ -84,7 +84,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
           aria-hidden="true"
         >A</div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Create Account</h1>
-        <p className="text-sm text-[var(--text-muted)] mt-1">Join AutoBazaarPro — it's free</p>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Join CarsAuto — it's free</p>
       </div>
 
       {/* Trust signals */}

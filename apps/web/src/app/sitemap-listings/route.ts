@@ -4,7 +4,7 @@
 // Next.js serves /sitemap-listings as /sitemap-listings.xml via the route handler.
 import { locales } from '@/i18n/config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carsauto.com';
 const API_URL  = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 interface Listing {

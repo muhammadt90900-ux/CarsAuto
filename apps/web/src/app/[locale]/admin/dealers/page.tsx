@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 const STATUS_STYLES: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   PENDING:   { label: 'Pending',   dot: 'bg-yellow-400', text: 'text-yellow-300', bg: 'bg-yellow-400/10' },

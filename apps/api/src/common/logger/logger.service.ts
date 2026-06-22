@@ -107,7 +107,7 @@ export class StructuredLogger implements LoggerService {
     const entry: LogEntry = {
       level,
       timestamp:  new Date().toISOString(),
-      service:    'autobazaar-api',
+      service:    'carsauto-api',
       version:    process.env.APP_VERSION ?? '1.0.0',
       env:        process.env.NODE_ENV ?? 'development',
       message:    typeof message === 'string' ? message : JSON.stringify(message),

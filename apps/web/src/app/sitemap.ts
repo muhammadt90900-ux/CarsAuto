@@ -4,7 +4,7 @@
 import type { MetadataRoute } from 'next';
 import { locales } from '@/i18n/config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carsauto.com';
 
 // Static public routes (no auth required)
 const STATIC_ROUTES = [

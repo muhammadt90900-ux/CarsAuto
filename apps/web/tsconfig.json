@@ -15,19 +15,19 @@
       "@utils/*": [
         "../../packages/utils/src/*"
       ],
-      "@auto-bazaar-pro/ui/*": [
+      "@cars-auto/ui/*": [
         "../../packages/ui/src/*"
       ],
-      "@auto-bazaar-pro/utils": [
+      "@cars-auto/utils": [
         "../../packages/utils/src/index.ts"
       ],
-      "@auto-bazaar-pro/utils/*": [
+      "@cars-auto/utils/*": [
         "../../packages/utils/src/*"
       ],
-      "@auto-bazaar-pro/types": [
+      "@cars-auto/types": [
         "../../packages/types/src/index.ts"
       ],
-      "@auto-bazaar-pro/types/*": [
+      "@cars-auto/types/*": [
         "../../packages/types/src/*"
       ]
     },

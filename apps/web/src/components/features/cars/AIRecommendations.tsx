@@ -11,7 +11,7 @@ import {
   ChevronRight, RefreshCw, Zap, Star,
   SlidersHorizontal, X, ArrowRight,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 

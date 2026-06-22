@@ -14,7 +14,7 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carsauto.com';
 
 export async function generateMetadata({
   params,
@@ -65,13 +65,13 @@ export function generateStaticParams() {
 const organisationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'AutoBazaar Pro',
+  name: 'CarsAuto',
   url: BASE_URL,
   logo: `${BASE_URL}/logo.png`,
   sameAs: [
-    'https://www.facebook.com/AutoBazaarPro',
-    'https://twitter.com/AutoBazaarPro',
-    'https://www.instagram.com/AutoBazaarPro',
+    'https://www.facebook.com/CarsAuto',
+    'https://twitter.com/CarsAuto',
+    'https://www.instagram.com/CarsAuto',
   ],
   contactPoint: {
     '@type': 'ContactPoint',
@@ -84,7 +84,7 @@ const organisationJsonLd = {
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'AutoBazaar Pro',
+  name: 'CarsAuto',
   url: BASE_URL,
   potentialAction: {
     '@type': 'SearchAction',
@@ -139,8 +139,9 @@ export default async function LocaleLayout({ children, params }: Props) {
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="AutoBazaar" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-title" content="CarsAuto" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
         <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />

@@ -9,7 +9,7 @@ import {
   Instagram, Facebook, Send, MapPin, Clock,
   CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 const DAYS = ['mon','tue','wed','thu','fri','sat','sun'] as const;
 const DAY_LABELS: Record<string, string> = {

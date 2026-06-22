@@ -141,7 +141,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
         </div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">
           {/* ku: ئۆتۆ بازار پرۆ */}
-          Cars Auto
+          CarsAuto
         </h1>
       </div>
 
@@ -178,7 +178,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
 
           <p className="text-sm text-[var(--text-muted)] mb-6">
             {/* ku: ئێستا دەتوانیت بچیتە ژوورەوە */}
-            Your account is now fully activated. You can sign in and start using Cars Auto.
+            Your account is now fully activated. You can sign in and start using CarsAuto.
           </p>
 
           <Link

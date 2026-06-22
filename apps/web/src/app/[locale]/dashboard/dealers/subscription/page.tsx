@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { CheckCircle2, Zap, Shield, BarChart2, Star, Crown } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 const PLANS = [
   {
@@ -118,7 +118,7 @@ export default function DealerSubscriptionPage() {
 
   const handleUpgrade = async (planId: string) => {
     if (planId === 'ENTERPRISE') {
-      window.location.href = 'mailto:sales@autobazaarpro.com?subject=Enterprise Plan Inquiry';
+      window.location.href = 'mailto:sales@carsauto.com?subject=Enterprise Plan Inquiry';
       return;
     }
     setLoading(planId);

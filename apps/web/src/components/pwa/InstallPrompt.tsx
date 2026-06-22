@@ -102,7 +102,7 @@ export function InstallPrompt() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Install AutoBazaar Pro"
+        aria-label="Install CarsAuto"
         style={{
           position: 'fixed',
           zIndex: 9991,
@@ -146,14 +146,14 @@ export function InstallPrompt() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/icon-96x96.png"
-            alt="AutoBazaar Pro"
+            alt="CarsAuto"
             width={52}
             height={52}
             style={{ borderRadius: '14px', flexShrink: 0 }}
           />
           <div>
             <div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.3 }}>
-              AutoBazaar Pro
+              CarsAuto
             </div>
             <div style={{ color: '#D4AF37', fontSize: '0.75rem', fontWeight: 500, marginTop: '2px' }}>
               Automotive Marketplace

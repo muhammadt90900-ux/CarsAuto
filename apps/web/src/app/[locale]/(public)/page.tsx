@@ -11,7 +11,7 @@ const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDe
 
 type Props = { params: Promise<{ locale: string }> };
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://autobazaarpro.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carsauto.com';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: t('homeDesc'),
     openGraph: {
       type: 'website',
-      siteName: 'AutoBazaar Pro',
+      siteName: 'CarsAuto',
       title: t('homeTitle'),
       description: t('homeDesc'),
       url: `${BASE_URL}/${locale}`,
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@AutoBazaarPro',
+      site: '@CarsAuto',
       title: t('homeTitle'),
       description: t('homeDesc'),
       images: [`${BASE_URL}/og-default.jpg`],
@@ -96,7 +96,7 @@ export default async function HomePage({ params }: Props) {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'AutoBazaar Pro Categories',
+    name: 'CarsAuto Categories',
     url: `${BASE_URL}/${locale}`,
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Cars for Sale', url: `${BASE_URL}/${locale}/cars` },

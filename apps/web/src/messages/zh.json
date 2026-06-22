@@ -1,6 +1,6 @@
 {
   "common": {
-    "siteName": "AutoBazaar Pro",
+    "siteName": "CarsAuto",
     "tagline": "中东优质汽车市场",
     "search": "搜索",
     "sell": "出售您的汽车",
@@ -315,7 +315,7 @@
     "unauthorized": "未授权"
   },
   "meta": {
-    "homeTitle": "AutoBazaar Pro — 优质汽车市场",
+    "homeTitle": "CarsAuto — 优质汽车市场",
     "homeDesc": "中东最受信赖的优质汽车市场 — 伊拉克、库尔德斯坦、迪拜。",
     "carsTitle": "汽车出售",
     "motorcyclesTitle": "摩托车出售",

@@ -1,6 +1,6 @@
 'use client';
 // components/ui/Input.tsx — Enterprise input system (Accessibility-enhanced)
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { InputHTMLAttributes, forwardRef } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {

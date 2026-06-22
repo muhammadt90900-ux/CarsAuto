@@ -25,7 +25,7 @@ ENV_BACKUP="${ROOT_DIR}/.env.backup"
 # Defaults
 DB_CONTAINER="${DB_CONTAINER:-cars_auto_db}"
 POSTGRES_USER="${POSTGRES_USER:-carsauto}"
-POSTGRES_DB="${POSTGRES_DB:-autobazaar}"
+POSTGRES_DB="${POSTGRES_DB:-carsauto}"
 BACKUP_DIR="${BACKUP_DIR:-${ROOT_DIR}/backups}"
 RESTORE_LOG="${ROOT_DIR}/restore-$(date +%Y-%m-%dT%H-%M-%S).log"
 NO_CONFIRM="${NO_CONFIRM:-false}"

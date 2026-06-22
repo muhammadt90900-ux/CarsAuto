@@ -152,7 +152,7 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
                 </svg>
               </div>
               <div>
-                <span className="font-black text-white text-lg leading-none block">AutoBazaarPro</span>
+                <span className="font-black text-white text-lg leading-none block">CarsAuto</span>
                 <span className="text-[9px] text-[#c9a84c]/60 uppercase tracking-widest">Premium Marketplace</span>
               </div>
             </div>
@@ -212,7 +212,7 @@ export function Footer({ locale = 'en' }: { locale?: string }) {
         {/* Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-white/20 text-xs">
-            © {new Date().getFullYear()} AutoBazaarPro. All rights reserved. Iraq · Kurdistan · UAE
+            © {new Date().getFullYear()} CarsAuto. All rights reserved. Iraq · Kurdistan · UAE
           </p>
           <div className="flex gap-5 flex-wrap justify-center">
             {['Privacy Policy', 'Terms of Use', 'Cookie Policy', 'Sitemap'].map(item => (

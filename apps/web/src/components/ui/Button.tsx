@@ -1,6 +1,6 @@
 'use client';
 // components/ui/Button.tsx — Enterprise button system
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { ButtonHTMLAttributes, forwardRef } from 'react';
 
 type Variant = 'gold' | 'ghost' | 'outline' | 'danger' | 'link';

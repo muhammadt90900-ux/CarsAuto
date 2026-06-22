@@ -13,7 +13,7 @@ import { BuyerSidebar } from '@/components/dashboard/BuyerSidebar';
 import { BottomNav }    from '@/components/mobile/BottomNav';
 import { PageTransition } from '@/components/mobile/Loading';
 import { useAuthStore } from '@/store/auth.store';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
   Bell, User, Star, CreditCard, X, ChevronRight,
@@ -108,7 +108,7 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
               <ShoppingBag className="w-4 h-4 text-white" />
             </div>
             <p className="text-[.85rem] font-display font-bold text-white">
-              AutoBazaar<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[#c9a84c]">Pro</span>
             </p>
           </div>
           <button onClick={onClose}
@@ -230,7 +230,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
               </svg>
             </div>
             <p className="text-[.85rem] font-display font-bold text-white">
-              AutoBazaar<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[#c9a84c]">Pro</span>
             </p>
           </div>
           <button onClick={onClose}

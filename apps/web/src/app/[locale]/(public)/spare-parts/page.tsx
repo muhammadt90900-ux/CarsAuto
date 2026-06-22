@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { SparePartsClient } from "@/components/features/spare-parts/SparePartsClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,10 +15,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: _loc } = await params; const locale = _loc as Locale;
   // Fallback title/desc for locales without translation yet
   const titles: Record<Locale, string> = {
-    ku: "پارچە یەدەکەکان | AutoBazaar Pro",
-    ar: "قطع الغيار | AutoBazaar Pro",
-    en: "Spare Parts for Sale | AutoBazaar Pro",
-    zh: "汽车零件 | AutoBazaar Pro",
+    ku: "پارچە یەدەکەکان | CarsAuto",
+    ar: "قطع الغيار | CarsAuto",
+    en: "Spare Parts for Sale | CarsAuto",
+    zh: "汽车零件 | CarsAuto",
   };
   const descs: Record<Locale, string> = {
     ku: "هەزاران پارچە یەدەکی ئورجینال و ئەلتەرناتیف بدۆزەرەوە بۆ هەموو جۆر ئۆتۆمبێلێک.",
@@ -38,8 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: desc,
-    openGraph: { type: "website", siteName: "AutoBazaar Pro", title, description: desc, url: canonical },
-    twitter: { card: "summary", site: "@AutoBazaarPro", title, description: desc },
+    openGraph: { type: "website", siteName: "CarsAuto", title, description: desc, url: canonical },
+    twitter: { card: "summary", site: "@CarsAuto", title, description: desc },
     alternates: { canonical, languages },
   };
 }

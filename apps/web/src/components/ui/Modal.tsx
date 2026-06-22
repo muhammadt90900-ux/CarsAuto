@@ -2,7 +2,7 @@
 // components/ui/Modal.tsx — Enterprise modal system (Accessibility-enhanced)
 import { useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface ModalProps {
   open: boolean;

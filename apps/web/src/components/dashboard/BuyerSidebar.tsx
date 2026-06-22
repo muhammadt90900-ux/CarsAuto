@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, Heart, MessageSquare, Bell,
   User, ChevronRight, Search, History,
@@ -183,7 +183,7 @@ export function BuyerSidebar({ className }: { className?: string }) {
           </div>
           <div>
             <p className="text-[.82rem] font-display font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-              AutoBazaar<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[#c9a84c]">Pro</span>
             </p>
             <p className="text-[10px] text-[#c9a84c]/80 dark:text-[#d4b45a]/70 font-semibold">Buyer Dashboard</p>
           </div>

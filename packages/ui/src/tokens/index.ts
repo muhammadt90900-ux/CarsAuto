@@ -1,5 +1,5 @@
 /**
- * AutoBazaarPro — Design Tokens
+ * CarsAuto — Design Tokens
  * Single source of truth for all design values.
  * Import from here; never hard-code colors, spacing, or radii.
  */

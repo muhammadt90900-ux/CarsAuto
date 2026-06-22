@@ -1,6 +1,6 @@
 // apps/api/src/common/email/templates/password-reset.template.ts
 //
-// Black & Gold luxury email template — CarsAuto / AutoBazaar Pro
+// Black & Gold luxury email template — CarsAuto / CarsAuto
 // Renders correctly in Gmail, Outlook, Apple Mail, iOS Mail, plain text.
 
 export function buildPasswordResetEmail(options: {
@@ -24,7 +24,7 @@ export function buildPasswordResetEmail(options: {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>گۆڕینی پاسوۆرد — Cars Auto</title>
+  <title>گۆڕینی پاسوۆرد — CarsAuto</title>
   <!--[if mso]>
   <noscript>
     <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
@@ -68,7 +68,7 @@ export function buildPasswordResetEmail(options: {
               </h1>
               <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;
                         letter-spacing:3px;text-transform:uppercase;color:#666;">
-                AUTOBAZAAR PRO
+                CARSAUTO PRO
               </p>
             </td>
           </tr>
@@ -154,7 +154,7 @@ export function buildPasswordResetEmail(options: {
                     <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;
                               color:#884444;line-height:1.7;">
                       ئەگەر ئەتو ئەم داواکاریەت نەکردووە، ئیمەیڵەکەت لەگەڵ تیمی
-                      <strong style="color:#c9a84c;">Cars Auto</strong> پەیوەند بکە.
+                      <strong style="color:#c9a84c;">CarsAuto</strong> پەیوەند بکە.
                       ${safeIp ? `<br/><span style="color:#553333;font-size:11px;">IP: ${safeIp}</span>` : ''}
                     </p>
                   </td>
@@ -193,7 +193,7 @@ export function buildPasswordResetEmail(options: {
               </p>
               <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;
                         letter-spacing:1px;color:#333;">
-                © ${year} Cars Auto &nbsp;·&nbsp; AutoBazaar Pro
+                © ${year} CarsAuto &nbsp;·&nbsp; CarsAuto
               </p>
             </td>
           </tr>
@@ -226,7 +226,7 @@ export function buildPasswordResetEmail(options: {
     `ئەگەر ئەتو ئەم داواکاریەت نەکردووە، ئەم ئیمەیڵە پشتگوێ بخە.`,
     ...(safeIp ? [``, `IP: ${safeIp}`] : []),
     ``,
-    `— Cars Auto`,
+    `— CarsAuto`,
   ].join('\n');
 
   return { html, text };

@@ -10,7 +10,7 @@ import { CarDetailClient } from "@/components/features/cars/CarDetailClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
 const API      = process.env.NEXT_PUBLIC_API_URL ?? "";
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 async function getListing(id: string) {
   try {
@@ -63,7 +63,7 @@ export async function generateMetadata({
   const titleKey  = ("title" + locale.charAt(0).toUpperCase() + locale.slice(1)) as keyof typeof listing;
   const title     = (listing[titleKey] ?? listing.titleEn ?? "Car Listing") as string;
   const cover     = listing.images?.find((i: any) => i.isCover)?.url ?? listing.images?.[0]?.url;
-  const desc      = (listing.descriptionEn?.slice(0, 155) ?? `${title} for sale on AutoBazaar Pro`) as string;
+  const desc      = (listing.descriptionEn?.slice(0, 155) ?? `${title} for sale on CarsAuto`) as string;
   const canonical = `${BASE_URL}/${locale}/cars/${id}`;
 
   const languages: Record<string, string> = { "x-default": `${BASE_URL}/ku/cars/${id}` };
@@ -72,21 +72,21 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${title} — AutoBazaar Pro`,
+    title: `${title} — CarsAuto`,
     description: desc,
     openGraph: {
       title,
       description: desc,
       type: "website",
       url: canonical,
-      siteName: "AutoBazaar Pro",
+      siteName: "CarsAuto",
       images: cover
         ? [{ url: cover, width: 1200, height: 630, alt: title }]
-        : [{ url: `${BASE_URL}/og-default.jpg`, width: 1200, height: 630, alt: "AutoBazaar Pro" }],
+        : [{ url: `${BASE_URL}/og-default.jpg`, width: 1200, height: 630, alt: "CarsAuto" }],
     },
     twitter: {
       card: "summary_large_image",
-      site: "@AutoBazaarPro",
+      site: "@CarsAuto",
       title,
       description: desc,
       images: cover ? [cover] : [`${BASE_URL}/og-default.jpg`],

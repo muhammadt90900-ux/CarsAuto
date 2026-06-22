@@ -1,6 +1,6 @@
 {
   "common": {
-    "siteName": "AutoBazaar Pro",
+    "siteName": "CarsAuto",
     "tagline": "بازاڕی سەرەکی سەیارە لە ڕۆژهەڵاتی ناوین",
     "search": "گەڕان",
     "sell": "سەیارەکەت بفرۆشە",
@@ -337,7 +337,7 @@
     "unauthorized": "مۆڵەتت نییە"
   },
   "meta": {
-    "homeTitle": "AutoBazaar Pro — بازاڕی سەرەکی سەیارە",
+    "homeTitle": "CarsAuto — بازاڕی سەرەکی سەیارە",
     "homeDesc": "متمانەپێکراوترین بازاڕی سەیارەی ڕۆژهەڵاتی ناوین — عێراق، کوردستان، دوبەی.",
     "carsTitle": "سەیارە بۆ فرۆشتن",
     "motorcyclesTitle": "موتەرسیکل بۆ فرۆشتن",

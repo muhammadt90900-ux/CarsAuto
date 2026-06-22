@@ -1,11 +1,11 @@
-# monitoring/prometheus.yml — AutoBazaar Pro production scrape config
+# monitoring/prometheus.yml — CarsAuto production scrape config
 
 global:
   scrape_interval:     15s
   evaluation_interval: 15s
   external_labels:
     environment: production
-    project:     autobazaar-pro
+    project:     carsauto-pro
 
 # ── Alert rules (load from files) ────────────────────────────────────────────
 rule_files:
@@ -13,7 +13,7 @@ rule_files:
 
 scrape_configs:
   # ── NestJS API (custom app metrics + default Node.js metrics) ─────────────
-  - job_name: 'autobazaar-api'
+  - job_name: 'carsauto-api'
     static_configs:
       - targets: ['api:4000']
     metrics_path: /metrics

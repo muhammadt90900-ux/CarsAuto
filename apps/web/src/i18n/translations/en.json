@@ -1,6 +1,6 @@
 {
   "common": {
-    "siteName": "AutoBazaar Pro",
+    "siteName": "CarsAuto",
     "tagline": "The Middle East's Premium Auto Marketplace",
     "search": "Search",
     "sell": "Sell Your Car",
@@ -337,7 +337,7 @@
     "unauthorized": "Unauthorized"
   },
   "meta": {
-    "homeTitle": "AutoBazaar Pro — Premium Automotive Marketplace",
+    "homeTitle": "CarsAuto — Premium Automotive Marketplace",
     "homeDesc": "The Middle East's most trusted premium auto marketplace — Iraq, Kurdistan, Dubai.",
     "carsTitle": "Cars for Sale",
     "motorcyclesTitle": "Motorcycles for Sale",

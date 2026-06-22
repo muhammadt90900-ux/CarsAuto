@@ -1,5 +1,5 @@
 // components/ui/Skeleton.tsx
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface SkeletonProps {
   className?: string;

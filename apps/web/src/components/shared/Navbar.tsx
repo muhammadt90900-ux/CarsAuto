@@ -417,24 +417,20 @@ export function Navbar({ locale }: NavbarProps) {
             <Link
               href="/"
               className="flex-shrink-0 flex items-center gap-2 group"
-              aria-label="AutoBazaarPro Home"
+              aria-label="CarsAuto Home"
             >
               <span className="flex items-center justify-center w-9 h-9 rounded-[10px]
-                               bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+                               overflow-hidden
                                shadow-[0_0_16px_rgba(201,168,76,0.40)]
                                transition-all duration-300
                                group-hover:shadow-[0_0_24px_rgba(201,168,76,0.60)]
                                group-hover:scale-[1.06]">
-                <CarLogoIcon />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icons/icon-96x96.png" alt="CarsAuto" className="w-full h-full object-cover" />
               </span>
               <span className="text-[1.1rem] font-display font-extrabold tracking-tight leading-none">
-                <span className="text-gold">Auto</span>
-                <span className="text-white">Bazaar</span>
-                <span style={{
-                  background: 'linear-gradient(135deg,#c9a84c,#f0d278)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}>Pro</span>
+                <span className="text-gold">Cars</span>
+                <span className="text-white">Auto</span>
               </span>
             </Link>
 

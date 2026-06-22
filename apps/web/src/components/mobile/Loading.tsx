@@ -3,7 +3,7 @@
 // Premium loading states — splash screen, skeletons, spinners
 
 import { useEffect, useState } from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 /* ── Gold shimmer keyframes (inject once) ─────────────────────── */
 const SHIMMER_CSS = `

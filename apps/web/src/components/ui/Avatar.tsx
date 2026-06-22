@@ -1,6 +1,6 @@
 'use client';
 /**
- * Avatar — AutoBazaarPro Design System
+ * Avatar — CarsAuto Design System
  *
  * Usage:
  *   <Avatar src="/photo.jpg" alt="Ali Hassan" size="md" />

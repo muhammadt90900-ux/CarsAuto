@@ -12,7 +12,7 @@ import {
   XCircle, Clock, Search, Plus, Trash2, Globe, AlertCircle,
   RefreshCw, Loader2,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 type NotifAudience = 'ALL' | 'USERS' | 'DEALERS' | 'PREMIUM';
 type NotifType     = 'ANNOUNCEMENT' | 'ALERT' | 'PROMOTION' | 'MAINTENANCE';

@@ -8,7 +8,7 @@ import {
   Eye, BarChart2, Globe, Clock, Activity, ChevronDown,
   ArrowUpRight,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;

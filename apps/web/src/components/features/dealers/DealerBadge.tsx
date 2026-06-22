@@ -1,7 +1,7 @@
 // components/features/dealers/DealerBadge.tsx
 // Reusable badge pill for dealer tiers and achievement badges
 
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { CheckCircle2, Shield, Zap, Award, Star, Crown } from 'lucide-react';
 
 // ── Tier badge ─────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 /**
- * AutoBazaar Pro — Service Worker  (Feature 8: enhanced push)
+ * CarsAuto — Service Worker  (Feature 8: enhanced push)
  * Strategy:
  *   - App shell    → Cache-First (immutable Next.js static assets)
  *   - API/listings → Network-First with 5 s timeout, fallback to cache
@@ -201,7 +201,7 @@ function minimalOfflineHTML() {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Offline — AutoBazaar Pro</title>
+  <title>Offline — CarsAuto</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#050b14;color:#e2e8f0;font-family:system-ui,sans-serif;
@@ -217,7 +217,7 @@ function minimalOfflineHTML() {
 <body>
   <div class="icon">🚗</div>
   <h1>You're offline</h1>
-  <p>AutoBazaar Pro needs a connection to load new listings. Previously visited pages are still available.</p>
+  <p>CarsAuto needs a connection to load new listings. Previously visited pages are still available.</p>
   <button onclick="location.reload()">Try again</button>
 </body>
 </html>`;
@@ -250,7 +250,7 @@ async function syncFavorites() {
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('autobazaar-sw', 1);
+    const req = indexedDB.open('carsauto-sw', 1);
     req.onupgradeneeded = () => {
       req.result.createObjectStore('pendingFavorites', { keyPath: 'id', autoIncrement: true });
     };
@@ -300,7 +300,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: 'AutoBazaar Pro', body: event.data.text() };
+    data = { title: 'CarsAuto', body: event.data.text() };
   }
 
   // Pick the best locale variant sent by the backend
@@ -321,7 +321,7 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     resolveLocale().then((locale) => {
-      let title = data.title ?? 'AutoBazaar Pro';
+      let title = data.title ?? 'CarsAuto';
       let body  = data.body  ?? 'New update available';
 
       if (locale === 'ar' && data.titleAr) title = data.titleAr;
@@ -335,7 +335,7 @@ self.addEventListener('push', (event) => {
         icon:  data.icon  ?? '/icons/icon-192x192.png',
         badge: data.badge ?? '/icons/icon-72x72.png',
         image: data.image,
-        tag:   data.tag ?? 'autobazaar-notification',
+        tag:   data.tag ?? 'carsauto-notification',
         renotify: true,
         requireInteraction: false,
         dir: (locale === 'ar' || locale === 'ku') ? 'rtl' : 'ltr',

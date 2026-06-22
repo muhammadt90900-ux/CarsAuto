@@ -67,7 +67,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         </div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Welcome back</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Sign in to AutoBazaar
+          Sign in to CarsAuto
           <span style={{ background: 'linear-gradient(135deg, #e8cc7a, #c9a84c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Pro</span>
         </p>
       </div>

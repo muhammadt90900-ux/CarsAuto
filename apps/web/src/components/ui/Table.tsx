@@ -1,6 +1,6 @@
 'use client';
 /**
- * Table — AutoBazaarPro Design System
+ * Table — CarsAuto Design System
  *
  * Usage:
  *   <Table

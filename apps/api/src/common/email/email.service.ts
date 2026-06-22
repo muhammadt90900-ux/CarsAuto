@@ -1,6 +1,6 @@
 // apps/api/src/common/email/email.service.ts
 //
-// Black & Gold luxury email service — CarsAuto / AutoBazaar Pro
+// Black & Gold luxury email service — CarsAuto / CarsAuto
 // Supports Gmail App Password and SMTP providers.
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
@@ -69,7 +69,7 @@ export class EmailService implements OnModuleInit {
       return;
     }
     const mail = {
-      from:    `"Cars Auto" <${this.fromAddress}>`,
+      from:    `"CarsAuto" <${this.fromAddress}>`,
       to:      this.sanitise(options.to),
       subject: this.sanitise(options.subject),
       html:    options.html,
@@ -101,7 +101,7 @@ export class EmailService implements OnModuleInit {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>کۆدی دەستپێکردن — Cars Auto</title>
+  <title>کۆدی دەستپێکردن — CarsAuto</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0a0a0a;font-family:Georgia,serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
@@ -126,7 +126,7 @@ export class EmailService implements OnModuleInit {
                          color:#c9a84c;">CARS AUTO</h1>
               <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;
                         letter-spacing:3px;text-transform:uppercase;color:#555;">
-                AUTOBAZAAR PRO
+                CARSAUTO PRO
               </p>
             </td>
           </tr>
@@ -187,7 +187,7 @@ export class EmailService implements OnModuleInit {
                        border-top:1px solid #1e1e1e;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;
                         letter-spacing:1px;color:#333;">
-                © ${year} Cars Auto &nbsp;·&nbsp; AutoBazaar Pro
+                © ${year} CarsAuto &nbsp;·&nbsp; CarsAuto
               </p>
             </td>
           </tr>
@@ -207,9 +207,9 @@ export class EmailService implements OnModuleInit {
 
     await this.sendMail({
       to:      email,
-      subject: '✦ کۆدی دەستپێکردن — Cars Auto',
+      subject: '✦ کۆدی دەستپێکردن — CarsAuto',
       html,
-      text: `Cars Auto — کۆدی دەستپێکردن\n\nکۆدەکەت: ${code}\n\nتەنها ٥ خولەک کاریگەرە.`,
+      text: `CarsAuto — کۆدی دەستپێکردن\n\nکۆدەکەت: ${code}\n\nتەنها ٥ خولەک کاریگەرە.`,
     });
   }
 
@@ -228,7 +228,7 @@ export class EmailService implements OnModuleInit {
     });
     await this.sendMail({
       to:      options.to,
-      subject: '✦ پشتڕاستکردنەوەی ئیمەیڵ — Cars Auto',
+      subject: '✦ پشتڕاستکردنەوەی ئیمەیڵ — CarsAuto',
       html,
       text,
     });
@@ -251,7 +251,7 @@ export class EmailService implements OnModuleInit {
     });
     await this.sendMail({
       to:      options.to,
-      subject: '🔐 گۆڕینی پاسوۆرد — Cars Auto',
+      subject: '🔐 گۆڕینی پاسوۆرد — CarsAuto',
       html,
       text,
     });

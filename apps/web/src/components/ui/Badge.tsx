@@ -1,5 +1,5 @@
 // components/ui/Badge.tsx — Enterprise badge system
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { HTMLAttributes } from 'react';
 
 type Variant = 'gold' | 'green' | 'blue' | 'red' | 'purple' | 'grey' | 'outline';

@@ -2,7 +2,7 @@
 // components/admin/Sidebar.tsx — Full-featured admin sidebar with all 7 sections
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, Users, Car, ListChecks, Settings,
   BarChart3, ShieldCheck, ChevronRight, Tag, Languages,
@@ -87,7 +87,7 @@ export function AdminSidebar({ className }: { className?: string }) {
           </div>
           <div>
             <p className="text-[.82rem] font-bold text-slate-900 dark:text-white tracking-tight">
-              AutoBazaar<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[#c9a84c]">Pro</span>
             </p>
             <p className="text-[10px] text-slate-400 dark:text-white/30">Admin Panel</p>
           </div>

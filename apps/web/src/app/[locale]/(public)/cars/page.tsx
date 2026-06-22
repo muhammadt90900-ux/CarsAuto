@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { CarsMarketplaceClient } from "@/components/features/cars/CarsMarketplaceClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     languages[hreflangMap[loc]] = `${BASE_URL}/${loc}/cars`;
   }
 
-  const title = `${t("carsTitle") || "Cars for Sale"} | AutoBazaar Pro`;
+  const title = `${t("carsTitle") || "Cars for Sale"} | CarsAuto`;
   const desc  = t("carsDesc") || "Browse thousands of verified new and used car listings in Iraq, Kurdistan & UAE.";
 
   return {
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: desc,
     openGraph: {
       type: "website",
-      siteName: "AutoBazaar Pro",
+      siteName: "CarsAuto",
       title,
       description: desc,
       url: canonical,
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      site: "@AutoBazaarPro",
+      site: "@CarsAuto",
       title,
       description: desc,
       images: [`${BASE_URL}/og-cars.jpg`],

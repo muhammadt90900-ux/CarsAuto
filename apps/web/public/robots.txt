@@ -1,5 +1,5 @@
-# AutoBazaar Pro — robots.txt
-# https://autobazaarpro.com
+# CarsAuto — robots.txt
+# https://carsauto.com
 
 User-agent: *
 Allow: /
@@ -27,5 +27,5 @@ Disallow: /*?sort=*
 Crawl-delay: 1
 
 # Sitemaps
-Sitemap: https://autobazaarpro.com/sitemap.xml
-Sitemap: https://autobazaarpro.com/sitemap-listings.xml
+Sitemap: https://carsauto.com/sitemap.xml
+Sitemap: https://carsauto.com/sitemap-listings.xml

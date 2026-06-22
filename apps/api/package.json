@@ -13,7 +13,7 @@
     "test:ci": "jest --config jest.config.js --coverage --ci --forceExit"
   },
   "dependencies": {
-    "@auto-bazaar-pro/types": "^0.0.1",
+    "@cars-auto/types": "^0.0.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.26",
     "@nestjs/config": "^4.0.4",

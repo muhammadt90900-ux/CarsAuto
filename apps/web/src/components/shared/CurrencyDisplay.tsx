@@ -13,7 +13,7 @@
 'use client';
 
 import { useExchangeRates, ExchangeRates } from '@/hooks/useExchangeRates';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 // packages/utils/src/currency.ts
-import { Currency } from '@auto-bazaar-pro/types';
+import { Currency } from '@cars-auto/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -51,7 +51,7 @@ export class EmailNotificationProcessor extends WorkerHost {
         subject: title,
         html: `
           <div style="font-family: Arial; direction: rtl; padding: 24px;">
-            <h2 style="color: #2563eb;">Cars Auto</h2>
+            <h2 style="color: #2563eb;">CarsAuto</h2>
             <p>مەرحەبا ${user.name}،</p>
             <h3>${title}</h3>
             <p>${body}</p>

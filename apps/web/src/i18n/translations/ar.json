@@ -1,6 +1,6 @@
 {
   "common": {
-    "siteName": "AutoBazaar Pro",
+    "siteName": "CarsAuto",
     "tagline": "السوق المتميز للسيارات في الشرق الأوسط",
     "search": "بحث",
     "sell": "بع سيارتك",
@@ -302,7 +302,7 @@
     "unauthorized": "غير مصرح"
   },
   "meta": {
-    "homeTitle": "AutoBazaar Pro — سوق السيارات المتميز",
+    "homeTitle": "CarsAuto — سوق السيارات المتميز",
     "homeDesc": "أكثر سوق سيارات موثوقاً في الشرق الأوسط — العراق، كردستان، دبي.",
     "carsTitle": "سيارات للبيع",
     "motorcyclesTitle": "دراجات نارية للبيع",

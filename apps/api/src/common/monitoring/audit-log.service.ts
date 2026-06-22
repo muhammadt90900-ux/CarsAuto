@@ -87,7 +87,7 @@ export class AuditLogService {
       process.stdout.write(JSON.stringify({
         level:     'log',
         timestamp: entry.createdAt.toISOString(),
-        service:   'autobazaar-api',
+        service:   'carsauto-api',
         audit:     true,
         ...entry,
         before: event.before,

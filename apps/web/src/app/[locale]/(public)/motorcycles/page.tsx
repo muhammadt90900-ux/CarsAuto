@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -10,10 +10,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: localeStr } = await params;
   const locale = localeStr as Locale;
   const titles: Record<Locale, string> = {
-    ku: "مۆتۆسیکلەت | AutoBazaar Pro",
-    ar: "الدراجات النارية | AutoBazaar Pro",
-    en: "Motorcycles for Sale | AutoBazaar Pro",
-    zh: "摩托车 | AutoBazaar Pro",
+    ku: "مۆتۆسیکلەت | CarsAuto",
+    ar: "الدراجات النارية | CarsAuto",
+    en: "Motorcycles for Sale | CarsAuto",
+    zh: "摩托车 | CarsAuto",
   };
   const descs: Record<Locale, string> = {
     ku: "کڕین و فرۆشتنی مۆتۆسیکلەت لە ئێراق و کوردستان.",
@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: desc,
-    openGraph: { type: "website", siteName: "AutoBazaar Pro", title, description: desc, url: canonical },
-    twitter: { card: "summary", site: "@AutoBazaarPro", title, description: desc },
+    openGraph: { type: "website", siteName: "CarsAuto", title, description: desc, url: canonical },
+    twitter: { card: "summary", site: "@CarsAuto", title, description: desc },
     alternates: { canonical, languages },
   };
 }

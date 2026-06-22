@@ -19,7 +19,7 @@ import {
   DoorOpen, Zap, Banknote, ArrowLeft,
   Flag, ExternalLink, TrendingDown, Clock,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { ImageGallery } from './ImageGallery';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CarBrandLogo } from '@/components/shared/CarBrandLogo';

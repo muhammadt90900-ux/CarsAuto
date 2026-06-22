@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, X, AlertTriangle, CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

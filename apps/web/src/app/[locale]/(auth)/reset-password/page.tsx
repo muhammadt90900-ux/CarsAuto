@@ -2,7 +2,7 @@
 import { Suspense } from 'react';
 import { ResetPasswordForm } from '@/components/features/auth/ResetPasswordForm';
 
-export const metadata = { title: 'Reset Password — Cars Auto' };
+export const metadata = { title: 'Reset Password — CarsAuto' };
 
 export default async function ResetPasswordPage({
   params,

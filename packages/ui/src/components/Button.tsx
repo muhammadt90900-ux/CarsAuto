@@ -1,6 +1,6 @@
 // packages/ui/src/components/Button.tsx
 import React from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'accent' | 'outline' | 'ghost';

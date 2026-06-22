@@ -1,6 +1,6 @@
 'use client';
 /**
- * Dropdown — AutoBazaarPro Design System (Accessibility-enhanced)
+ * Dropdown — CarsAuto Design System (Accessibility-enhanced)
  * ARIA: role="combobox"/listbox pattern, full keyboard navigation (↑↓ Enter Esc Home End)
  */
 

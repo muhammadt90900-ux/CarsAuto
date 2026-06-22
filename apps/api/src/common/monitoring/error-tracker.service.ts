@@ -58,7 +58,7 @@ export class ErrorTrackerService {
       process.stdout.write(JSON.stringify({
         level,
         timestamp:  new Date().toISOString(),
-        service:    'autobazaar-api',
+        service:    'carsauto-api',
         message:    err.message,
         stack:      err.stack,
         ...meta,
@@ -79,7 +79,7 @@ export class ErrorTrackerService {
     const entry = {
       level,
       timestamp:  new Date().toISOString(),
-      service:    'autobazaar-api',
+      service:    'carsauto-api',
       message,
       traceId:    traceCtx?.traceId,
       requestId:  traceCtx?.requestId,

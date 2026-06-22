@@ -6,8 +6,8 @@ import type { Metadata } from 'next';
 import { SellCarForm } from '@/components/features/sell/SellCarForm';
 
 export const metadata: Metadata = {
-  title: 'Sell Your Car | AutoBazaarPro',
-  description: 'List your car on AutoBazaarPro and reach thousands of buyers.',
+  title: 'Sell Your Car | CarsAuto',
+  description: 'List your car on CarsAuto and reach thousands of buyers.',
 };
 
 export default function SellPage() {

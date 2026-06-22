@@ -10,10 +10,10 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const titles: Record<string, string> = {
-    ku: 'دیلەرەکان | AutoBazaar Pro',
-    ar: 'الوكلاء | AutoBazaar Pro',
-    en: 'Car Dealers | AutoBazaar Pro',
-    zh: '汽车经销商 | AutoBazaar Pro',
+    ku: 'دیلەرەکان | CarsAuto',
+    ar: 'الوكلاء | CarsAuto',
+    en: 'Car Dealers | CarsAuto',
+    zh: '汽车经销商 | CarsAuto',
   };
   return {
     title: titles[locale] ?? titles.en,

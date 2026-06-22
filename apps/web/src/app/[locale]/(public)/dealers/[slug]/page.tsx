@@ -5,7 +5,7 @@ import Script from "next/script";
 import { DealerShowroomClient } from "@/components/features/dealers/DealerShowroomClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://autobazaarpro.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -37,13 +37,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `${name} | AutoBazaar Pro`,
+    title: `${name} | CarsAuto`,
     description: desc,
     openGraph: {
       title: name,
       description: desc,
       type: "website",
-      siteName: "AutoBazaar Pro",
+      siteName: "CarsAuto",
       url: canonical,
       images: dealer.coverUrl
         ? [{ url: dealer.coverUrl, width: 1200, height: 630, alt: name }]
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      site: "@AutoBazaarPro",
+      site: "@CarsAuto",
       title: name,
       description: desc,
       images: dealer.coverUrl ? [dealer.coverUrl] : [`${BASE_URL}/og-default.jpg`],

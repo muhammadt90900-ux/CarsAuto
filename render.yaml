@@ -43,8 +43,8 @@ services:
 
 databases:
   - name: cars-auto-db
-    databaseName: autobazaar
-    user: autobazaar_user
+    databaseName: carsauto
+    user: carsauto_user
 
   - name: cars-auto-redis
     plan: free

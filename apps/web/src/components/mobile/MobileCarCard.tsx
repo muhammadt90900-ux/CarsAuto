@@ -5,7 +5,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Heart, MapPin, Gauge, Fuel, Star, Share2, Zap } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { useLongPress, useSwipe } from '@/hooks/useMobileGestures';
 
 const haptic = (ms = 15) => {

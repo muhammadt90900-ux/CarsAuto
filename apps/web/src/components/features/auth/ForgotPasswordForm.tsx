@@ -98,7 +98,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
         </div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Forgot password?</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          گۆڕینی پاسوۆرد / Reset your Cars Auto password
+          گۆڕینی پاسوۆرد / Reset your CarsAuto password
         </p>
       </div>
 

@@ -9,7 +9,7 @@ import {
   X, ChevronLeft, ChevronRight, Maximize2,
   Grid3X3,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { Viewer360 } from './Viewer360';
 
 interface GalleryImage {

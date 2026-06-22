@@ -1,5 +1,5 @@
 // tailwind.config.ts
-// AutoBazaarPro — Extended Tailwind config aligned with design tokens
+// CarsAuto — Extended Tailwind config aligned with design tokens
 import type { Config } from 'tailwindcss';
 
 const config: Config = {

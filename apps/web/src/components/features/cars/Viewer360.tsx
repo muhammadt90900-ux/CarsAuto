@@ -11,7 +11,7 @@ import {
   memo,
 } from 'react';
 import { RotateCcw, Maximize2, Minimize2, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 export interface Viewer360Props {

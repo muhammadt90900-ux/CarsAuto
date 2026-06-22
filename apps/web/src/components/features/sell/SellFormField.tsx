@@ -3,7 +3,7 @@
 // Labelled field wrapper with error display.
 
 import { ReactNode } from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface SellFormFieldProps {
   label: string;

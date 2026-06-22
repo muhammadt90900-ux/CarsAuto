@@ -133,7 +133,7 @@ Manual operations:
 ./scripts/backup-restore.sh list
 
 # Restore from a specific backup
-./scripts/backup-restore.sh restore backups/autobazaar_2026-05-31T02-00-00.sql.gz
+./scripts/backup-restore.sh restore backups/carsauto_2026-05-31T02-00-00.sql.gz
 ```
 
 Backup files are stored in the `backup_data` Docker volume and in `./backups/` when using the manual script.

@@ -8,7 +8,7 @@ import {
   Building2, CheckCircle2, ChevronRight,
   Loader2, Shield, Star, Zap,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
 const STEPS = ['Business Info', 'Contact', 'Details', 'Review'] as const;

@@ -13,9 +13,9 @@
     "test:ci": "jest --config jest.config.js --coverage --ci"
   },
   "dependencies": {
-    "@auto-bazaar-pro/types": "*",
-    "@auto-bazaar-pro/ui": "^0.0.1",
-    "@auto-bazaar-pro/utils": "*",
+    "@cars-auto/types": "*",
+    "@cars-auto/ui": "^0.0.1",
+    "@cars-auto/utils": "*",
     "@hookform/resolvers": "^3.9.0",
     "@nestjs/core": "11.1.24",
     "@stripe/stripe-js": "^9.8.0",

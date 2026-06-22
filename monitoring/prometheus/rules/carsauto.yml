@@ -1,0 +1,104 @@
+# monitoring/prometheus/rules/carsauto.yml
+# Alert rules for CarsAuto production
+
+groups:
+  - name: carsauto.api
+    interval: 30s
+    rules:
+
+      # High error rate — 5xx > 5% of requests over 5 min
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status_code=~"5.."}[5m])
+          /
+          rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary:     "High 5xx error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      # Slow requests — p95 latency > 2s
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:     "High p95 latency on {{ $labels.job }}"
+          description: "p95 latency is {{ $value | humanizeDuration }}."
+
+      # API down — no successful scrapes for 1 min
+      - alert: ApiDown
+        expr: up{job="carsauto-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary:     "CarsAuto API is DOWN"
+          description: "The API has been unreachable for more than 1 minute."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          carsauto_node_process_heap_bytes{type="used"}
+          /
+          carsauto_node_process_heap_bytes{type="total"} > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary:     "High heap memory usage"
+          description: "Heap usage is {{ $value | humanizePercentage }}."
+
+  - name: carsauto.database
+    interval: 60s
+    rules:
+
+      # Slow DB queries spike
+      - alert: DbSlowQuerySpike
+        expr: rate(carsauto_db_slow_queries_total[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary:     "Elevated slow database queries"
+          description: "More than 0.5 slow queries/sec over 5 minutes."
+
+      # Postgres down
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary:     "PostgreSQL is DOWN"
+
+  - name: carsauto.business
+    interval: 60s
+    rules:
+
+      # No new listings in 1 hour during business hours (9-22 UTC)
+      - alert: NoNewListings
+        expr: |
+          increase(carsauto_listings_created_total[1h]) == 0
+          and on() hour() >= 9 and on() hour() <= 22
+        for: 60m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No new listings created in the last hour during business hours"
+
+      # Auth failure spike (potential brute-force)
+      - alert: AuthFailureSpike
+        expr: rate(carsauto_auth_attempts_total{result="failure"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary:     "Spike in authentication failures (possible brute-force)"
+          description: "{{ $value | humanize }} failures/sec."

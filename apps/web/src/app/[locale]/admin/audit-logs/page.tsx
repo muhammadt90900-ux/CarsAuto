@@ -12,7 +12,7 @@ import {
   Trash2, Edit3, Eye, Key, Bell, DollarSign,
   AlertTriangle, CheckCircle2, Clock, RefreshCw,
 } from 'lucide-react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 type Severity = 'INFO' | 'WARNING' | 'CRITICAL';
 

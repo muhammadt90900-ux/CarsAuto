@@ -1,6 +1,6 @@
 // apps/api/src/common/email/templates/verification.template.ts
 //
-// Black & Gold luxury email template — CarsAuto / AutoBazaar Pro
+// Black & Gold luxury email template — CarsAuto / CarsAuto
 // Renders correctly in Gmail, Outlook, Apple Mail, iOS Mail, plain text.
 
 export function buildVerificationEmail(options: {
@@ -18,7 +18,7 @@ export function buildVerificationEmail(options: {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>پشتڕاستکردنەوەی ئیمەیڵ — Cars Auto</title>
+  <title>پشتڕاستکردنەوەی ئیمەیڵ — CarsAuto</title>
   <!--[if mso]>
   <noscript>
     <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
@@ -68,7 +68,7 @@ export function buildVerificationEmail(options: {
               </h1>
               <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;
                         letter-spacing:3px;text-transform:uppercase;color:#666;">
-                AUTOBAZAAR PRO
+                CARSAUTO PRO
               </p>
             </td>
           </tr>
@@ -99,7 +99,7 @@ export function buildVerificationEmail(options: {
 
               <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;
                         line-height:1.8;color:#999;">
-                سوپاس بۆ تۆمارکردنت لە <strong style="color:#c9a84c;">Cars Auto</strong>،
+                سوپاس بۆ تۆمارکردنت لە <strong style="color:#c9a84c;">CarsAuto</strong>،
                 پلاتفۆرمی پریمیەمی ئوتومبێل لە عێراق، کوردستان، و ئیمارات.
               </p>
               <p style="margin:0 0 32px;font-family:Arial,sans-serif;font-size:14px;
@@ -176,7 +176,7 @@ export function buildVerificationEmail(options: {
               </p>
               <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;
                         letter-spacing:1px;color:#333;">
-                © ${year} Cars Auto &nbsp;·&nbsp; AutoBazaar Pro
+                © ${year} CarsAuto &nbsp;·&nbsp; CarsAuto
               </p>
             </td>
           </tr>
@@ -208,7 +208,7 @@ export function buildVerificationEmail(options: {
     ``,
     `ئەگەر ئەتو ئەم ئەکاونتەت نەکردووە، ئەم ئیمەیڵە پشتگوێ بخە.`,
     ``,
-    `— Cars Auto`,
+    `— CarsAuto`,
   ].join('\n');
 
   return { html, text };

@@ -19,7 +19,7 @@
 #   RETENTION_DAYS        Days to keep local backups       (default: 30)
 #   DB_CONTAINER          Postgres container name          (default: cars_auto_db)
 #   POSTGRES_USER         DB user                          (default: carsauto)
-#   POSTGRES_DB           DB name                          (default: autobazaar)
+#   POSTGRES_DB           DB name                          (default: carsauto)
 #   CLOUDINARY_CLOUD_NAME Cloudinary cloud name            (required for images)
 #   CLOUDINARY_API_KEY    Cloudinary API key               (required for images)
 #   CLOUDINARY_API_SECRET Cloudinary API secret            (required for images)
@@ -41,7 +41,7 @@ BACKUP_DIR="${BACKUP_DIR:-${ROOT_DIR}/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 DB_CONTAINER="${DB_CONTAINER:-cars_auto_db}"
 POSTGRES_USER="${POSTGRES_USER:-carsauto}"
-POSTGRES_DB="${POSTGRES_DB:-autobazaar}"
+POSTGRES_DB="${POSTGRES_DB:-carsauto}"
 S3_PREFIX="${S3_PREFIX:-carsauto-backups}"
 TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S)
 LOG_FILE="${BACKUP_DIR}/backup-${TIMESTAMP}.log"

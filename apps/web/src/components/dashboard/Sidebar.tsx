@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
   Bell, User, Star, CreditCard, ChevronRight,
@@ -122,7 +122,7 @@ export function Sidebar({ className }: { className?: string }) {
           </div>
           <div>
             <p className="text-[.82rem] font-display font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-              AutoBazaar<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[#c9a84c]">Pro</span>
             </p>
             <p className="text-[10px] text-slate-400 dark:text-white/30">Seller Dashboard</p>
           </div>

@@ -3,7 +3,7 @@
 // Gesture-driven bottom sheet drawer with spring physics
 
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { cn } from '@auto-bazaar-pro/utils';
+import { cn } from '@cars-auto/utils';
 
 interface DrawerProps {
   open: boolean;
