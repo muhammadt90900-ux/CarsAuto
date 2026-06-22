@@ -1,7 +1,7 @@
 'use client';
 // components/features/dealers/DealerShowroomClient.tsx — Enterprise dealer showroom
 // FEATURE 9: Follow/Unfollow button + animated follower count added
-import { useState, useQuery } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Star, Shield, MapPin, Phone, MessageCircle, Globe, Clock, ChevronRight, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
