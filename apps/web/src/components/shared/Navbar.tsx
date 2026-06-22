@@ -214,9 +214,10 @@ function MobileAuthSection({ onClose }: { onClose: () => void }) {
 
 /* ── Country Switcher ────────────────────────────────────────── */
 const COUNTRIES = [
-  { code: 'IQ', flag: '🇮🇶', name: 'Iraq',  nameKu: 'عێراق',   cities: 'Baghdad · Erbil · Sulaymaniyah' },
-  { code: 'AE', flag: '🇦🇪', name: 'UAE',   nameKu: 'ئیماڕات', cities: 'Dubai · Sharjah · Abu Dhabi' },
-  { code: 'CN', flag: '🇨🇳', name: 'China', nameKu: 'چین',     cities: 'Import & Export' },
+  { code: 'KRI', flag: '🏔️', name: 'Kurdistan', nameKu: 'کوردستان', cities: 'Erbil · Sulaymaniyah · Duhok' },
+  { code: 'IQ',  flag: '🇮🇶', name: 'Iraq',      nameKu: 'عێراق',    cities: 'Baghdad · Basra · Mosul' },
+  { code: 'AE',  flag: '🇦🇪', name: 'UAE',       nameKu: 'ئیماڕات',  cities: 'Dubai · Sharjah · Abu Dhabi' },
+  { code: 'CN',  flag: '🇨🇳', name: 'China',     nameKu: 'چین',      cities: 'Import & Export' },
 ] as const;
 
 function CountrySwitcher() {

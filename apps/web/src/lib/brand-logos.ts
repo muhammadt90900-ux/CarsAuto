@@ -68,6 +68,7 @@ export const BRAND_META: Record<string, BrandMeta> = {
   'Aston Martin': { slug: null,           color: '004225' },
   'McLaren':      { slug: null,           color: 'ff7700' },
   'Mini':         { slug: 'mini',         color: '000000' },
+  'MINI':         { slug: 'mini',         color: '000000' },
 
   // ── Italian ─────────────────────────────────────────────────
   'Ferrari':      { slug: 'ferrari',      color: 'da0328' },
@@ -86,6 +87,8 @@ export const BRAND_META: Record<string, BrandMeta> = {
   // ── Swedish ─────────────────────────────────────────────────
   'Volvo':        { slug: 'volvo',        color: '003057' },
   'Polestar':     { slug: 'polestar',     color: '0d0e13' },
+  'SAAB':         { slug: null,           color: '003087' },
+  'Saab':         { slug: null,           color: '003087' },
 
   // ── Chinese ─────────────────────────────────────────────────
   'BYD':          { slug: 'byd',          color: '1db954' },

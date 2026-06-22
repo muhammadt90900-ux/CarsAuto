@@ -34,7 +34,7 @@ const CITIES = [
   'کەرکوک / Kirkuk','بەغدا / Baghdad','بەسرە / Basra',
   'دبی / Dubai','شارجە / Sharjah',
 ];
-const COUNTRIES      = ['Iraq','Kurdistan Region','UAE','China'];
+const COUNTRIES      = ['Kurdistan', 'Iraq', 'UAE', 'China'];
 const FUEL_TYPES     = ['Petrol','Diesel','Hybrid','Plug-in Hybrid','Electric','LPG','CNG'];
 const TRANSMISSIONS  = ['Automatic','Manual','Semi-Automatic','CVT','Dual-Clutch'];
 const CONDITIONS     = ['نوێ / New','بەکارهاتوو / Used','گووشتی / Salvage'];

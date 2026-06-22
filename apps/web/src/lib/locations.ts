@@ -26,7 +26,7 @@ export const COUNTRIES_DATA: CountryInfo[] = [
     code: 'KRI',
     name: 'Kurdistan',
     nameKu: 'کوردستان',
-    flag: '☀️',
+    flag: '🏔️',
     cities: [
       'Erbil (Hewlêr)',
       'Sulaymaniyah (Silêmanî)',
