@@ -2,6 +2,7 @@
 // components/features/home/HeroSearch.tsx
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { CarBrandLogo, BrandGrid } from '@/components/shared/CarBrandLogo';
 import {
   Search, ChevronDown, SlidersHorizontal, X,
   Car, Wrench, Bike, MapPin, Zap, Clock, TrendingUp, Star,
@@ -506,6 +507,24 @@ export function HeroSearch() {
             <div className="grid grid-cols-2 md:flex md:flex-nowrap gap-2 items-stretch">
               <Dropdown label="براند" value={make} options={MAKES}
                 onChange={v => { setMake(v); setModel(''); }} placeholder="هەموو براندەکان" />
+              {/* Brand logo quick-picks */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {MAKES.slice(0, 8).map(m => {
+                  const name = m.split(' / ').find((p: string) => /^[A-Za-z]/.test(p.trim())) ?? m;
+                  const active = make === m;
+                  return (
+                    <button key={m} type="button" onClick={() => setMake(active ? '' : m)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium
+                        transition-all duration-150
+                        ${active
+                          ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
+                          : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white/80'}`}>
+                      <CarBrandLogo brand={m} size="xs" />
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
               <Dropdown label="مۆدێل" value={model} options={activeModels}
                 onChange={setModel} placeholder="مۆدێل هەڵبژێرە" disabled={!make} />
               <Dropdown label="شار" value={city} options={CITIES}
@@ -652,7 +671,10 @@ export function HeroSearch() {
                            hover:border-[#c9a84c]/30 hover:bg-white/[0.05]
                            transition-all duration-200 cursor-pointer p-3">
                 <div className="text-[10px] text-[#c9a84c]/70 mb-1">{v.badge}</div>
-                <div className="text-sm font-semibold text-white">{v.brand} {v.model}</div>
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                    <CarBrandLogo brand={v.brand} size="xs" />
+                    {v.brand} {v.model}
+                  </div>
                 <div className="text-xs text-white/40 mt-0.5">{v.year} · {v.mileage}</div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[#c9a84c] font-bold text-sm">{v.price}</span>

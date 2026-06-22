@@ -32,22 +32,6 @@ const SORT_OPTIONS = [
   { value: 'popular', label: 'Most Popular' },
 ];
 
-const MOCK_PARTS = Array.from({ length: 12 }, (_, i) => ({
-  id: `part-${i + 1}`,
-  title: ['Engine Oil Filter', 'Brake Pads Set', 'Air Filter', 'Spark Plugs x4',
-    'Alternator', 'Water Pump', 'Radiator', 'Shock Absorber Pair',
-    'Timing Belt Kit', 'Headlight Assembly', 'Fuel Pump', 'CV Joint'][i],
-  partNumber: `OEM-${String(i + 1).padStart(5, '0')}`,
-  price: [25, 85, 18, 45, 320, 145, 280, 195, 165, 240, 175, 95][i],
-  condition: CONDITIONS[i % 4],
-  make: MAKES[i % MAKES.length],
-  category: PART_CATEGORIES[i % PART_CATEGORIES.length].id,
-  city: ['Erbil', 'Sulaymaniyah', 'Baghdad', 'Dubai'][i % 4],
-  verified: i % 3 !== 2,
-  images: [],
-  stock: i % 5 === 0 ? 1 : 3 + (i % 8),
-  rating: 4.2 + (i % 8) * 0.1,
-}));
 
 function PartCard({ part, locale, view }: { part: any; locale: string; view: 'grid' | 'list' }) {
   const [imgError, setImgError] = useState(false);
@@ -55,7 +39,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
 
   if (view === 'list') {
     return (
-      <Link href="/spare-parts/${part.id}" className="block group">
+      <Link href={`/spare-parts/${part.id}`} className="block group">
         <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[#c9a84c]/28">
           <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e] flex items-center justify-center text-4xl">
             {PART_CATEGORIES.find(c => c.id === part.category)?.emoji || '⚙️'}
@@ -81,7 +65,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
   }
 
   return (
-    <Link href="/spare-parts/${part.id}" className="block group">
+    <Link href={`/spare-parts/${part.id}`} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]">
         <div className="aspect-square bg-slate-50 dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
                         group-hover:scale-105 transition-transform duration-500 overflow-hidden">
@@ -138,7 +122,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
     placeholderData: p => p,
   });
 
-  const parts = data?.data ?? MOCK_PARTS;
+  const parts = data?.data ?? [];
   const activeCount = [category, make, condition].filter(Boolean).length;
   const resetAll = useCallback(() => { setCategory(''); setMake(''); setCondition(''); }, []);
 
@@ -277,7 +261,11 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
             <div className={view === 'grid'
               ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4'
               : 'flex flex-col gap-3'}>
-              {parts.map((part: any) => (
+              {parts.length === 0 && !isLoading ? (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-[var(--text-muted)] text-sm">No spare parts found. Try different filters.</p>
+            </div>
+          ) : parts.map((part: any) => (
                 <PartCard key={part.id} part={part} locale={locale} view={view} />
               ))}
             </div>

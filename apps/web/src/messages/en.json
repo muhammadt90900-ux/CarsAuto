@@ -253,7 +253,29 @@
     "getStarted": "Get Started",
     "currentPlanBadge": "Current",
     "noFavorites": "No favorites yet",
-    "noFavoritesDesc": "Save listings you like to view them here"
+    "noFavoritesDesc": "Save listings you like to view them here",
+    "buyerDashboard": "Buyer Dashboard",
+    "buyerAccount": "Buyer Account",
+    "savedListings": "Saved Listings",
+    "followedDealers": "Followed Dealers",
+    "browsingHistory": "Browsing History",
+    "recentlyViewed": "Recently Viewed",
+    "listingQuota": "Listing Quota",
+    "postsThisMonth": "Posts This Month",
+    "postCar": "Post a Car",
+    "noSavedCars": "No saved cars yet",
+    "browseToSave": "Browse listings and save your favorites",
+    "noBrowsingHistory": "No recent browsing",
+    "exploreListings": "Start browsing to see your history here",
+    "upgradeToSeller": "Become a Seller",
+    "upgradeToSellerDesc": "Upgrade to a dealer account for unlimited listings",
+    "buyerPlan": "Buyer Plan",
+    "buyerPlanPrice": "$2.99/month",
+    "buyerPlanDesc": "Post up to 2 cars per month",
+    "upgradeNow": "Upgrade Now",
+    "postYourCar": "Post Your Car",
+    "sellerDashboard": "Seller Dashboard",
+    "monthlyListingsUsed": "{used} of {limit} listings used this month"
   },
   "notifications": {
     "title": "Notifications",
@@ -340,98 +362,97 @@
     "translation": {
       "translating": "Translating...",
       "translated": "Auto-translated"
+    },
+    "currency": {
+      "converting": "Converting price...",
+      "liveRates": "Live Exchange Rates",
+      "fallbackRates": "Standard rates (offline)",
+      "updatedAt": "Updated",
+      "iqd": "Iraqi Dinar",
+      "usd": "US Dollar",
+      "aed": "UAE Dirham",
+      "cny": "Chinese Yuan",
+      "eur": "Euro",
+      "gbp": "British Pound",
+      "thousandsIqd": "{{amount}}K IQD",
+      "convertedNote": "at current exchange rate"
+    },
+    "china": {
+      "marketTitle": "China Market",
+      "evBrands": "Chinese EV Brands",
+      "comingSoon": "Coming Soon"
+    },
+    "payments": {
+      "methodSelector": "Select Payment Method",
+      "comingSoon": "Coming Soon",
+      "comingSoonHint": "This payment method will be available soon",
+      "alipay": {
+        "name": "Alipay",
+        "hint": "Coming soon — requires approved merchant account"
+      },
+      "wechatpay": {
+        "name": "WeChat Pay",
+        "hint": "Coming soon — requires approved merchant account"
+      },
+      "chat": {
+        "voiceNote": "Voice note",
+        "voiceNoteRecording": "Recording…",
+        "voiceNoteSending": "Sending voice note…",
+        "voiceNoteError": "Voice note failed",
+        "voiceNoteTooLong": "Maximum 2 minutes",
+        "voiceNoteTooLarge": "File too large (max 2 MB)",
+        "voiceNoteRetry": "Retry",
+        "voiceNoteCancel": "Cancel",
+        "voiceNoteStop": "Stop recording",
+        "voiceNoteSend": "Send voice note",
+        "voiceNotePlay": "Play",
+        "voiceNotePause": "Pause",
+        "microphonePermission": "Microphone access denied. Check your browser settings.",
+        "rateLimit": "Too many voice notes — please wait a moment",
+        "inputPlaceholder": "Type a message…",
+        "noMessages": "Start the conversation"
+      },
+      "viewer360": {
+        "tabLabel": "360° View",
+        "tabPhotos": "Photos",
+        "dragHint": "Drag to rotate",
+        "autoRotate": "Auto-rotate",
+        "stopRotate": "Stop rotating",
+        "fullscreen": "Fullscreen",
+        "exitFullscreen": "Exit fullscreen",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "loading": "Loading 360° view…",
+        "frameCounter": "{current} / {total}",
+        "badge": "360°"
+      },
+      "sell360": {
+        "sectionTitle": "360° Photo Set",
+        "optional": "Optional",
+        "emptyHint": "Add 18–36 photos taken every 10° around the car",
+        "readyHint": "{count} frames ready — 360° view enabled",
+        "progressHint": "{count}/18 frames uploaded — {remaining} more needed",
+        "instructions": "Take photos every 10° around the car for a full 360° view. Start from the front-left and rotate clockwise. Minimum 18 photos required.",
+        "bulkUpload": "Upload multiple frames",
+        "viewerReady": "360° view ready — buyers can rotate the car",
+        "removeFrame": "Remove frame {n}",
+        "uploadFrame": "Upload frame {n} ({angle}°)"
+      },
+      "dealers": {
+        "follow": "Follow",
+        "unfollow": "Unfollow",
+        "followers": "Followers",
+        "followingSuccess": "You are now following this dealer",
+        "unfollowSuccess": "You unfollowed this dealer"
+      },
+      "dashboard": {
+        "savedListings": "Saved Listings",
+        "followedDealers": "Followed Dealers",
+        "noFollowedDealers": "You're not following any dealers yet",
+        "noFollowedDealersDesc": "Follow your favorite dealers to see their latest listings",
+        "latestListing": "Latest Listing",
+        "noActiveListings": "No active listings"
+      }
     }
-,    "currency": {
-  "converting": "Converting price...",
-  "liveRates": "Live Exchange Rates",
-  "fallbackRates": "Standard rates (offline)",
-  "updatedAt": "Updated",
-  "iqd": "Iraqi Dinar",
-  "usd": "US Dollar",
-  "aed": "UAE Dirham",
-  "cny": "Chinese Yuan",
-  "eur": "Euro",
-  "gbp": "British Pound",
-  "thousandsIqd": "{{amount}}K IQD",
-  "convertedNote": "at current exchange rate"
-},
-  "china": {
-    "marketTitle": "China Market",
-    "evBrands": "Chinese EV Brands",
-    "comingSoon": "Coming Soon"
-  },
-  "payments": {
-    "methodSelector": "Select Payment Method",
-    "comingSoon": "Coming Soon",
-    "comingSoonHint": "This payment method will be available soon",
-    "alipay": {
-      "name": "Alipay",
-      "hint": "Coming soon — requires approved merchant account"
-    },
-    "wechatpay": {
-      "name": "WeChat Pay",
-      "hint": "Coming soon — requires approved merchant account"
-    },
-  "chat": {
-    "voiceNote":               "Voice note",
-    "voiceNoteRecording":      "Recording…",
-    "voiceNoteSending":        "Sending voice note…",
-    "voiceNoteError":          "Voice note failed",
-    "voiceNoteTooLong":        "Maximum 2 minutes",
-    "voiceNoteTooLarge":       "File too large (max 2 MB)",
-    "voiceNoteRetry":          "Retry",
-    "voiceNoteCancel":         "Cancel",
-    "voiceNoteStop":           "Stop recording",
-    "voiceNoteSend":           "Send voice note",
-    "voiceNotePlay":           "Play",
-    "voiceNotePause":          "Pause",
-    "microphonePermission":    "Microphone access denied. Check your browser settings.",
-    "rateLimit":               "Too many voice notes — please wait a moment",
-    "inputPlaceholder":        "Type a message…",
-    "noMessages":              "Start the conversation"
   }
-,
-  "viewer360": {
-    "tabLabel":         "360° View",
-    "tabPhotos":        "Photos",
-    "dragHint":         "Drag to rotate",
-    "autoRotate":       "Auto-rotate",
-    "stopRotate":       "Stop rotating",
-    "fullscreen":       "Fullscreen",
-    "exitFullscreen":   "Exit fullscreen",
-    "zoomIn":           "Zoom in",
-    "zoomOut":          "Zoom out",
-    "loading":          "Loading 360° view…",
-    "frameCounter":     "{current} / {total}",
-    "badge":            "360°"
-  },
-  "sell360": {
-    "sectionTitle":     "360° Photo Set",
-    "optional":         "Optional",
-    "emptyHint":        "Add 18–36 photos taken every 10° around the car",
-    "readyHint":        "{count} frames ready — 360° view enabled",
-    "progressHint":     "{count}/18 frames uploaded — {remaining} more needed",
-    "instructions":     "Take photos every 10° around the car for a full 360° view. Start from the front-left and rotate clockwise. Minimum 18 photos required.",
-    "bulkUpload":       "Upload multiple frames",
-    "viewerReady":      "360° view ready — buyers can rotate the car",
-    "removeFrame":      "Remove frame {n}",
-    "uploadFrame":      "Upload frame {n} ({angle}°)"
-  },
-  "dealers": {
-    "follow": "Follow",
-    "unfollow": "Unfollow",
-    "followers": "Followers",
-    "followingSuccess": "You are now following this dealer",
-    "unfollowSuccess": "You unfollowed this dealer"
-  },
-  "dashboard": {
-    "savedListings": "Saved Listings",
-    "followedDealers": "Followed Dealers",
-    "noFollowedDealers": "You're not following any dealers yet",
-    "noFollowedDealersDesc": "Follow your favorite dealers to see their latest listings",
-    "latestListing": "Latest Listing",
-    "noActiveListings": "No active listings"
-  }
-}
-}
 }

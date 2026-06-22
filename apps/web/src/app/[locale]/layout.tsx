@@ -118,9 +118,22 @@ export default async function LocaleLayout({ children, params }: Props) {
       lang={locale === 'ku' ? 'ckb' : locale}
       dir={textDir}
       suppressHydrationWarning
-      className={fontVariables}
+      className={`${fontVariables} dark`}
     >
       <head>
+        {/*
+         * Anti-FOUC theme script — runs synchronously before first paint.
+         * 'light' in localStorage → remove dark class (user chose light)
+         * anything else (null / 'dark') → add dark class (default = dark)
+         * suppressHydrationWarning on <html> absorbs the className difference
+         * between SSR ("dark" always) and client (may differ per localStorage).
+         */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('carsauto-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="manifest" href="/manifest.json" />

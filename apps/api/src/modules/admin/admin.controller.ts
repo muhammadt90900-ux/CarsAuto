@@ -4,10 +4,10 @@ import {
 } from '@nestjs/common';
 import {
   IsString, IsOptional, IsBoolean, MaxLength,
-  IsUrl, Matches, IsNumber, IsDateString, IsIn,
+  IsUrl, Matches, IsDateString, IsIn,
   IsUUID,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -127,8 +127,13 @@ export class AdminController {
   }
 
   @Get('listings/pending')
-  getPending() {
-    return this.adminService.getPendingListings();
+  getPending(
+    @Query('page')  page?:  string,
+    @Query('limit') limit?: string,
+  ) {
+    const p = Math.max(1, Number(page  ?? 1));
+    const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
+    return this.adminService.getPendingListings(p, l);
   }
 
   @Patch('listings/:id/approve')
@@ -260,5 +265,25 @@ export class AdminController {
   @Post('settings')
   upsertSetting(@Body() dto: UpsertSettingDto) {
     return this.adminService.upsertSetting(dto.key, dto.value);
+  }
+
+  // ── Audit Logs ────────────────────────────────────────────────────────────
+  @Get('audit-logs')
+  getAuditLogs(
+    @Query('page')     page?:     string,
+    @Query('limit')    limit?:    string,
+    @Query('action')   action?:   string,
+    @Query('severity') severity?: string,
+    @Query('from')     from?:     string,
+    @Query('to')       to?:       string,
+  ) {
+    return this.adminService.getAuditLogs(
+      page     ? parseInt(page,  10) : 1,
+      limit    ? parseInt(limit, 10) : 50,
+      action,
+      severity,
+      from ? new Date(from) : undefined,
+      to   ? new Date(to)   : undefined,
+    );
   }
 }

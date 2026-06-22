@@ -51,25 +51,6 @@ const fmtPrice = new Intl.NumberFormat('en-US', {
 });
 const fmtNum = new Intl.NumberFormat('en-US');
 
-const MOCK_CARS = Array.from({ length: 12 }, (_, i) => ({
-  id: `car-${i + 1}`,
-  title: ['Toyota Land Cruiser', 'BMW X5', 'Lexus LX570', 'KIA Sportage',
-    'Mercedes GLE', 'Toyota Camry Hybrid', 'Hyundai Tucson', 'Nissan Patrol',
-    'Ford Explorer', 'BYD Atto 3', 'Audi Q7', 'Honda CR-V'][i] + ` ${2020 + (i % 5)}`,
-  price: [85000,55000,92000,22000,78000,28000,24000,68000,42000,35000,65000,26000][i],
-  mileage: [12000,28000,35000,18000,22000,5000,15000,8000,31000,4000,19000,22000][i],
-  city: CITIES[i % CITIES.length],
-  fuelType: FUEL_TYPES[i % FUEL_TYPES.length],
-  transmission: i % 3 === 0 ? 'Manual' : 'Automatic',
-  condition: i < 3 ? 'New' : 'Used',
-  badge: ['🔥 Hot','⭐ Featured','💎 Premium','🏷️ Deal','⚡ New','✅ Verified'][i % 6],
-  verified: i % 3 !== 2,
-  images: [],
-  make: MAKES[i % MAKES.length],
-  year: 2020 + (i % 5),
-  rating: 4.5 + (i % 5) * 0.1,
-  views: 100 + i * 47,
-}));
 
 /* ── Skeleton ───────────────────────────────────────────────────── */
 function SkeletonCard() {
@@ -117,7 +98,7 @@ const CarCard = memo(function CarCard({
 
   if (view === 'list') {
     return (
-      <Link href="/cars/${car.id}" prefetch={false} className="block group">
+      <Link href={`/cars/${car.id}`} prefetch={false} className="block group">
         <article className="card-premium flex gap-3 sm:gap-4 p-3 sm:p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
           <div className="car-list-img relative flex-shrink-0 w-24 h-18 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
                style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
@@ -172,7 +153,7 @@ const CarCard = memo(function CarCard({
   }
 
   return (
-    <Link href="/cars/${car.id}" prefetch={false} className="block group">
+    <Link href={`/cars/${car.id}`} prefetch={false} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col">
         <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[#0f1c2e]">
           {!imgError ? (
@@ -300,7 +281,7 @@ export function CarsMarketplaceClient({
     placeholderData: (prev) => prev,
   });
 
-  const cars = data?.data ?? MOCK_CARS;
+  const cars = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   const activeCount = [make, bodyType, fuelType, transmission, condition, city, priceRange, colorFilter]

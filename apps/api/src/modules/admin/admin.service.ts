@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -13,7 +13,7 @@ export class AdminService {
 
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService,
+    @Optional() private notifications: NotificationsService,
   ) {}
 
   // IMPROVE: Added validation for pagination inputs
@@ -32,7 +32,7 @@ export class AdminService {
           this.prisma.listing.count({ where: { status: 'ACTIVE' } }),
           this.prisma.report.count({ where: { status: 'pending' } }),
           this.prisma.listing.count({ where: { status: 'PENDING' } }),
-          this.prisma.ad?.count() ?? Promise.resolve(0),
+          this.prisma.ad?.count() ?? Promise.resolve(0) as Promise<number>,
           this.prisma.listing.count({ where: { featured: true } }),
         ]);
       return { totalUsers, totalListings, activeListings, totalReports, pendingListings, totalAds, featuredListings };
@@ -238,7 +238,7 @@ export class AdminService {
       });
 
       // Feature 8: Push notification to listing owner
-      this.notifications.sendPush(listing.userId, {
+      this.notifications.sendPush?.(listing.userId, {
         title:   'Listing Approved ✅',
         titleKu: 'ئۆگێری تۆمارەکەت ✅',
         titleAr: 'تمت الموافقة على إعلانك ✅',
@@ -248,7 +248,7 @@ export class AdminService {
         url:     `/ku/listings/${listing.id}`,
         tag:     `listing-status-${listing.id}`,
         data:    { listingId: listing.id, status: 'ACTIVE' },
-      }).catch(() => {});
+      })?.catch(() => {});
 
       return listing;
     } catch (err: any) {
@@ -272,7 +272,7 @@ export class AdminService {
       });
 
       // Feature 8: Push notification to listing owner
-      this.notifications.sendPush(listing.userId, {
+      this.notifications.sendPush?.(listing.userId, {
         title:   'Listing Rejected ❌',
         titleKu: 'ئۆگێری تۆمارەکەت رەتکرایەوە ❌',
         titleAr: 'تم رفض إعلانك ❌',
@@ -282,7 +282,7 @@ export class AdminService {
         url:     `/ku/dashboard/listings`,
         tag:     `listing-status-${listing.id}`,
         data:    { listingId: listing.id, status: 'REJECTED' },
-      }).catch(() => {});
+      })?.catch(() => {});
 
       return listing;
     } catch (err: any) {
@@ -617,6 +617,48 @@ export class AdminService {
       });
     } catch (err) {
       this.logger.error(`Failed to upsert setting: ${err instanceof Error ? err.message : 'unknown error'}`);
+      throw err;
+    }
+  }
+
+
+  // ── getAuditLogs ──────────────────────────────────────────────────────────
+  // Returns paginated audit-log entries directly from the AuditLog table.
+  // Called by GET /admin/audit-logs.
+
+  async getAuditLogs(
+    page     = 1,
+    limit    = 50,
+    action?:   string,
+    severity?: string,
+    from?:     Date,
+    to?:       Date,
+  ) {
+    const { page: vp, limit: vl } = this.validatePagination(page, limit);
+    const skip = (vp - 1) * vl;
+
+    const where: Record<string, any> = {};
+    if (action)   where['action']   = action;
+    if (severity) where['severity'] = severity;
+    if (from || to) {
+      where['createdAt'] = {};
+      if (from) where['createdAt']['gte'] = from;
+      if (to)   where['createdAt']['lte'] = to;
+    }
+
+    try {
+      const [data, total] = await Promise.all([
+        this.prisma.auditLog.findMany({
+          where,
+          skip,
+          take:    vl,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.auditLog.count({ where }),
+      ]);
+      return { data, total, page: vp, limit: vl, pages: Math.ceil(total / vl) };
+    } catch (err) {
+      this.logger.error(`Failed to fetch audit logs: ${err instanceof Error ? err.message : 'unknown'}`);
       throw err;
     }
   }

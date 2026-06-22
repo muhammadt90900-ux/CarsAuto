@@ -1,25 +1,15 @@
 'use client';
 // components/features/dealers/DealerShowroomClient.tsx — Enterprise dealer showroom
 // FEATURE 9: Follow/Unfollow button + animated follower count added
-import { useState } from 'react';
+import { useState, useQuery } from 'react';
 import Link from 'next/link';
 import { Star, Shield, MapPin, Phone, MessageCircle, Globe, Clock, ChevronRight, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { listingsApi, api } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { useDealerFollow } from '@/hooks/useDealerFollow';
 
-const MOCK_CARS = Array.from({ length: 6 }, (_, i) => ({
-  id: `car-${i + 1}`,
-  title: ['Toyota Land Cruiser 2023','BMW X5 2022','Lexus LX570 2021','KIA Sportage 2023','Mercedes GLE 2022','Toyota Camry 2023'][i],
-  price: [85000, 55000, 92000, 22000, 78000, 28000][i],
-  year: [2023, 2022, 2021, 2023, 2022, 2023][i],
-  mileage: [12000, 28000, 35000, 5000, 22000, 8000][i],
-}));
 
-const REVIEWS = [
-  { id: 1, name: 'Ahmad K.', rating: 5, text: 'Excellent service. Bought my Land Cruiser here, smooth process and honest pricing.', date: '2 weeks ago' },
-  { id: 2, name: 'Sara M.',  rating: 5, text: 'Highly professional team. The car was exactly as described. Will definitely return.', date: '1 month ago' },
-  { id: 3, name: 'Hassan R.',rating: 4, text: 'Good selection and fair prices. Minor paperwork delay but overall great experience.', date: '2 months ago' },
-];
 
 export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: string }) {
   const t = useTranslations('dealers');
@@ -53,6 +43,24 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
     dealer?.isFollowing ?? false,
     dealer?._count?.followers ?? 0,
   );
+
+  // Fetch real dealer listings
+  const { data: listingsData, isLoading: listingsLoading } = useQuery({
+    queryKey: ['dealer', 'listings', dealerData.id || dealer?.slug],
+    queryFn:  () => listingsApi.getAll({ dealerId: dealerData.id, limit: 12 }),
+    enabled:  !!dealerData.id || !!dealer?.slug,
+    staleTime: 60_000,
+  });
+  const dealerListings: any[] = (listingsData as any)?.data ?? listingsData ?? [];
+
+  // Fetch real dealer reviews
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['dealer', 'reviews', dealer?.slug],
+    queryFn:  () => api.get(`/dealers/${dealer?.slug}/reviews`).then(r => r.data),
+    enabled:  !!dealer?.slug,
+    staleTime: 60_000,
+  });
+  const dealerReviews: any[] = (reviewsData as any)?.reviews ?? reviewsData?.data ?? [];
 
   const TABS = [
     { id: 'listings', label: 'Listings', count: dealerData.listings },
@@ -187,15 +195,23 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
         {/* Tab content */}
         {activeTab === 'listings' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {MOCK_CARS.map(car => (
-              <Link key={car.id} href="/cars/${car.id}"
+            {listingsLoading ? (
+            Array.from({length:3}).map((_,i) => (
+              <div key={i} className="card-premium h-48 animate-pulse" />
+            ))
+          ) : dealerListings.length === 0 ? (
+            <div className="card-premium p-10 col-span-full text-center">
+              <p className="text-[var(--text-muted)] text-sm">No listings available yet.</p>
+            </div>
+          ) : dealerListings.map((car: any) => (
+              <Link key={car.id} href={`/cars/${car.id}`}
                 className="card-premium overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
                 <div className="aspect-[16/10] bg-[var(--surface-100)] dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
                                 group-hover:scale-105 transition-transform duration-500 overflow-hidden">🚗</div>
                 <div className="p-4">
-                  <h3 className="font-bold text-[var(--text-primary)] mb-1">{car.title}</h3>
-                  <p className="text-xs text-[var(--text-muted)]">{car.year} · {fmtNum(car.mileage)} km</p>
-                  <p className="price-tag text-xl mt-3">${fmtNum(car.price)}</p>
+                  <h3 className="font-bold text-[var(--text-primary)] mb-1">{car.titleEn ?? car.titleKu ?? "Listing"}</h3>
+                  <p className="text-xs text-[var(--text-muted)]">{car.year ?? ""} · {car.mileage ? fmtNum(car.mileage) + " km" : ""}</p>
+                  <p className="price-tag text-xl mt-3">{car.price ? "$" + fmtNum(Number(car.price)) : "Contact"}</p>
                 </div>
               </Link>
             ))}
@@ -228,16 +244,24 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
                 ))}
               </div>
             </div>
-            {REVIEWS.map(r => (
+            {reviewsLoading ? (
+              Array.from({length:2}).map((_,i) => (
+                <div key={i} className="card-premium h-24 animate-pulse" />
+              ))
+            ) : dealerReviews.length === 0 ? (
+              <div className="card-premium p-10 text-center">
+                <p className="text-[var(--text-muted)] text-sm">No reviews yet.</p>
+              </div>
+            ) : dealerReviews.map((r: any) => (
               <div key={r.id} className="card-premium p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[var(--gold-subtle)] border border-[var(--border-gold)] flex items-center justify-center font-bold text-[var(--gold)] text-sm">
-                      {r.name[0]}
+                      {(r.user?.name ?? r.name ?? "U")[0]}
                     </div>
                     <div>
-                      <p className="font-semibold text-[var(--text-primary)] text-sm">{r.name}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{r.date}</p>
+                      <p className="font-semibold text-[var(--text-primary)] text-sm">{r.user?.name ?? r.name ?? "User"}</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : r.date ?? ""}</p>
                     </div>
                   </div>
                   <div className="flex gap-0.5">
@@ -246,7 +270,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
                     ))}
                   </div>
                 </div>
-                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{r.text}</p>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{r.comment ?? r.text ?? ""}</p>
               </div>
             ))}
           </div>

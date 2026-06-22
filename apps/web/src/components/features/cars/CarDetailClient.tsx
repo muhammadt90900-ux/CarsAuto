@@ -22,6 +22,7 @@ import {
 import { cn } from '@auto-bazaar-pro/utils';
 import { ImageGallery } from './ImageGallery';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
+import { CarBrandLogo } from '@/components/shared/CarBrandLogo';
 
 // PERF: hoisted Intl instances — created once per module, not per render/card
 const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -237,7 +238,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
           const title = car.titleEn ?? car.titleKu ?? 'Car';
           return (
             // PERF: data-prefetch-listing triggers Providers prefetch on hover
-            <Link key={car.id} href="/cars/${car.id}" prefetch={false}
+            <Link key={car.id} href={`/cars/${car.id}`} prefetch={false}
               data-prefetch-listing={car.id}
               className="group rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
               <div className="relative h-40 overflow-hidden bg-[#060f1a]">
@@ -260,7 +261,12 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
                 </div>
               </div>
               <div className="p-3">
-                <p className="text-sm font-semibold text-white truncate group-hover:text-[#c9a84c] transition-colors">{title}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  {car.vehicleSpec?.brand?.nameEn && (
+                    <CarBrandLogo brand={car.vehicleSpec.brand.nameEn} size="xs" />
+                  )}
+                  <p className="text-sm font-semibold text-white truncate group-hover:text-[#c9a84c] transition-colors">{title}</p>
+                </div>
                 <div className="flex items-center gap-3 mt-1">
                   {car.vehicleSpec?.year && <span className="text-xs text-white/35">{car.vehicleSpec.year}</span>}
                   {car.vehicleSpec?.mileageKm && (
@@ -420,14 +426,19 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                       className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <Share2 className="w-4 h-4" />
                     </button>
-                    <Link href="/compare?add=${listing.id}"
+                    <Link href={`/compare?add=${listing.id}`}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
                       <GitCompare className="w-3.5 h-3.5" /> Compare
                     </Link>
                   </div>
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight mb-2">{title}</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  {brand.nameEn && (
+                    <CarBrandLogo brand={brand.nameEn} size="lg" />
+                  )}
+                  <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight">{title}</h1>
+                </div>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/35 mb-4">
                   {listing.location && (

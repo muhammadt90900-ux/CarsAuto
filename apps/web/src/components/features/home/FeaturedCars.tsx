@@ -272,23 +272,14 @@ export function FeaturedCars({ locale }: { locale?: string }) {
               <CarCard key={car.id} car={car} locale={locale} />
             ))}
           </div>
-        ) : (
-          // Fallback mock grid when no API data
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { id: '1', make: 'Toyota', model: 'Land Cruiser', year: 2023, price: 85000, mileage: 12000, city: 'Erbil', fuelType: 'Petrol', featured: true },
-              { id: '2', make: 'BMW', model: '5 Series', year: 2022, price: 55000, mileage: 28000, city: 'Sulaymaniyah', fuelType: 'Petrol', verified: true },
-              { id: '3', make: 'Lexus', model: 'LX570', year: 2021, price: 92000, mileage: 35000, city: 'Baghdad', fuelType: 'Petrol' },
-              { id: '4', make: 'Toyota', model: 'Camry Hybrid', year: 2023, price: 28000, mileage: 5000, city: 'Dubai', fuelType: 'Hybrid', condition: 'New' },
-              { id: '5', make: 'Kia', model: 'Sportage', year: 2022, price: 22000, mileage: 18000, city: 'Erbil', fuelType: 'Petrol' },
-              { id: '6', make: 'Mercedes', model: 'GLE 450', year: 2022, price: 78000, mileage: 22000, city: 'Dubai', fuelType: 'Petrol', verified: true },
-              { id: '7', make: 'Nissan', model: 'Patrol', year: 2023, price: 68000, mileage: 8000, city: 'Kirkuk', fuelType: 'Petrol', condition: 'New' },
-              { id: '8', make: 'BYD', model: 'Atto 3', year: 2023, price: 35000, mileage: 4000, city: 'Erbil', fuelType: 'Electric', condition: 'New' },
-            ].map(car => (
-              <CarCard key={car.id} car={car} locale={locale} />
-            ))}
+        ) : cars.length === 0 ? (
+          // Real empty state — no fake data
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-gray-400 dark:text-white/30 text-sm">
+              No featured listings yet. Check back soon!
+            </p>
           </div>
-        )}
+        ) : null}
 
         {/* Bottom CTA */}
         <div className="text-center mt-10">
@@ -300,7 +291,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
                        hover:shadow-[0_0_24px_rgba(201,168,76,0.15)] hover:-translate-y-0.5
                        active:translate-y-0 transition-all duration-250"
           >
-            Browse All 24,000+ Cars
+            Browse All Cars
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

@@ -30,14 +30,6 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.El
 };
 
 // Mock listings for when API returns nothing
-const MOCK_LISTINGS = [
-  { id: '1', titleEn: 'Toyota Camry 2022',  titleKu: 'تۆیۆتا کامری 2022',  price: 18500, currency: 'USD', status: 'ACTIVE',  views: 342, favorites: 18, coverImage: null, daysLeft: 28 },
-  { id: '2', titleEn: 'BMW 3 Series 2021',  titleKu: 'بی ئێم دبلیو 2021',   price: 28900, currency: 'USD', status: 'ACTIVE',  views: 198, favorites: 11, coverImage: null, daysLeft: 14 },
-  { id: '3', titleEn: 'Honda CR-V 2023',    titleKu: 'هۆندا 2023',            price: 24200, currency: 'USD', status: 'PENDING', views: 87,  favorites: 5,  coverImage: null, daysLeft: null },
-  { id: '4', titleEn: 'Mercedes C200 2020', titleKu: 'مێرسێدێس 2020',        price: 31000, currency: 'USD', status: 'ACTIVE',  views: 521, favorites: 34, coverImage: null, daysLeft: 6 },
-  { id: '5', titleEn: 'Kia Sportage 2022',  titleKu: 'کیا 2022',               price: 22000, currency: 'USD', status: 'SOLD',   views: 634, favorites: 29, coverImage: null, daysLeft: null },
-  { id: '6', titleEn: 'Nissan Patrol 2021', titleKu: 'نیسان پاترول 2021',     price: 65000, currency: 'USD', status: 'EXPIRED',views: 112, favorites: 7,  coverImage: null, daysLeft: null },
-];
 
 export default function MyListingsPage() {
   const t  = useTranslations('dashboard');
@@ -52,8 +44,8 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     listingsApi.myListings()
-      .then(data => setListings(data?.length ? data : MOCK_LISTINGS))
-      .catch(() => setListings(MOCK_LISTINGS))
+      .then(data => setListings(data ?? []))
+      .catch(() => setListings([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -327,7 +319,7 @@ export default function MyListingsPage() {
                       Edit
                     </Link>
                     <Link
-                      href="/cars/${listing.id}"
+                      href={`/cars/${listing.id}`}
                       className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl
                                  border border-gray-200 dark:border-white/10 text-xs font-semibold
                                  text-gray-600 dark:text-gray-400

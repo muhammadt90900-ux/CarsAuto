@@ -3,29 +3,13 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { dealersApi } from '@/lib/api';
 import { Search, Star, Shield, MapPin, Phone, ArrowRight, Filter, X, Grid3X3, List } from 'lucide-react';
 
 const CITIES = ['Erbil','Sulaymaniyah','Duhok','Kirkuk','Baghdad','Basra','Dubai','Sharjah'];
 const SPECIALTIES = ['All Brands','Luxury','Toyota & Lexus','Import Specialist','Electric','Budget'];
 const TIERS = ['Platinum','Gold','Verified'];
 
-const MOCK_DEALERS = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  slug: `dealer-${i + 1}`,
-  name: ['Al-Najaf Premium Auto','Kurdistan Motors','Gulf Star Autos','Tigris Auto Group',
-         'Baghdad Premium Cars','Erbil Luxury Motors','Sulaymaniyah Rides','Basra Auto Hub',
-         'Dubai Select Cars','KRG Motors','Mesopotamia Auto','Silk Road Autos'][i],
-  nameKu: 'ئۆتۆمبێل پریمیئوم',
-  city: CITIES[i % CITIES.length],
-  rating: parseFloat((4.5 + (i % 5) * 0.1).toFixed(1)),
-  reviews: 80 + i * 23,
-  listings: 40 + i * 12,
-  verified: true,
-  specialty: SPECIALTIES[i % SPECIALTIES.length],
-  tier: i % 3 === 0 ? 'Platinum' : i % 3 === 1 ? 'Gold' : 'Verified',
-  yearEstablished: 2010 + (i % 13),
-  phone: '+964 750 XXX XXXX',
-}));
 
 const TIER_COLORS: Record<string, string> = {
   Platinum: '#a855f7',
@@ -43,7 +27,7 @@ function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; vie
 
   if (view === 'list') {
     return (
-      <Link href="/dealers/${dealer.slug}" className="block group">
+      <Link href={`/dealers/${dealer.slug}`} className="block group">
         <div className="card-premium flex items-center gap-5 p-5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
                style={{ background: `${color}15`, border: `1px solid ${color}25` }}>🏪</div>
@@ -68,7 +52,7 @@ function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; vie
   }
 
   return (
-    <Link href="/dealers/${dealer.slug}" className="block group">
+    <Link href={`/dealers/${dealer.slug}`} className="block group">
       <div className="relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5
                       hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)] cursor-pointer"
            style={{ background:'linear-gradient(145deg,rgba(11,21,37,0.92),rgba(8,15,28,0.97))', border:`1px solid ${color}25` }}>
@@ -113,13 +97,23 @@ export function DealersMarketplaceClient({ locale }: { locale: string }) {
   const [spec, setSpec]     = useState('');
   const [view, setView]     = useState<'grid'|'list'>('grid');
 
-  const dealers = MOCK_DEALERS.filter(d => {
-    if (query && !d.name.toLowerCase().includes(query.toLowerCase())) return false;
-    if (city && d.city !== city) return false;
-    if (tier && d.tier !== tier) return false;
-    if (spec && d.specialty !== spec) return false;
-    return true;
+  // Fetch real dealers from API, passing filters as query params
+  const { data, isLoading } = useQuery({
+    queryKey: ['dealers', 'list', { query, city, tier, spec }],
+    queryFn:  () => dealersApi.getAll({
+      ...(query && { search: query }),
+      ...(city  && { city }),
+      ...(tier  && { tier }),
+    }),
+    staleTime: 60_000,
   });
+
+  const allDealers: any[] = (data as any)?.data ?? data ?? [];
+  // Client-side filter for specialty (no backend param yet)
+  const dealers = spec
+    ? allDealers.filter((d: any) =>
+        (d.specialties?.[0] ?? d.specialty ?? '').includes(spec))
+    : allDealers;
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
@@ -135,7 +129,7 @@ export function DealersMarketplaceClient({ locale }: { locale: string }) {
           <h1 className="text-3xl sm:text-4xl font-display font-black text-white mb-2">
             فرۆشیارەکان / <span className="text-[var(--gold)]">Dealers</span>
           </h1>
-          <p className="text-white/45 text-sm mb-6">Connect with {MOCK_DEALERS.length}+ verified dealerships</p>
+          <p className="text-white/45 text-sm mb-6">Connect with verified dealerships across Iraq &amp; UAE</p>
           {/* Search */}
           <div className="relative max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"/>
@@ -201,7 +195,15 @@ export function DealersMarketplaceClient({ locale }: { locale: string }) {
           <div className={view === 'grid'
             ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5'
             : 'flex flex-col gap-3'}>
-            {dealers.map(d => <DealerCard key={d.id} dealer={d} locale={locale} view={view}/>)}
+            {isLoading ? (
+            Array.from({length:6}).map((_,i) => (
+              <div key={i} className="card-premium h-48 animate-pulse" />
+            ))
+          ) : dealers.length === 0 ? (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-white/30 text-sm">No dealers found. Try adjusting your filters.</p>
+            </div>
+          ) : dealers.map(d => <DealerCard key={d.id} dealer={d} locale={locale} view={view}/>)}
           </div>
         )}
 

@@ -17,6 +17,7 @@ export enum PaymentPlan {
   BASIC      = 'BASIC',
   PREMIUM    = 'PREMIUM',
   ENTERPRISE = 'ENTERPRISE',
+  BUYER      = 'BUYER',
 }
 
 export enum PaymentCurrency {
@@ -68,6 +69,13 @@ export const PLAN_PRICES: Record<PaymentPlan, Partial<Record<PaymentCurrency, nu
     [PaymentCurrency.AED]: 36999,
     [PaymentCurrency.CNY]: 72900,
   },
+  [PaymentPlan.BUYER]: {
+    [PaymentCurrency.USD]: 299,     // $2.99
+    [PaymentCurrency.EUR]: 279,
+    [PaymentCurrency.GBP]: 249,
+    [PaymentCurrency.AED]: 1099,
+    [PaymentCurrency.CNY]: 2199,
+  },
 };
 
 // ─── IQD pricing — full Iraqi Dinars (NOT fils) ───────────────────────────────
@@ -77,6 +85,7 @@ export const PLAN_PRICES_IQD: Record<PaymentPlan, number> = {
   [PaymentPlan.BASIC]:      26_000,
   [PaymentPlan.PREMIUM]:    65_000,
   [PaymentPlan.ENTERPRISE]: 130_000,
+  [PaymentPlan.BUYER]:      3_900,
 };
 
 // IQD is zero-decimal for our regional gateways (amounts in full dinars).

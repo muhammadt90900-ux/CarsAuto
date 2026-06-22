@@ -1,319 +1,289 @@
 'use client';
-// apps/web/src/app/[locale]/admin/audit-logs/page.tsx
-// Admin: full audit trail of all admin and system actions
+// app/[locale]/admin/audit-logs/page.tsx
+// Fetches real audit-log rows from GET /admin/audit-logs (paginated).
+// Zero mock data — shows clean empty state when the log is empty.
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import {
   Shield, Search, Download, ChevronLeft, ChevronRight,
   Filter, UserCheck, UserX, Car, Store, Settings,
   Trash2, Edit3, Eye, Key, Bell, DollarSign,
-  AlertTriangle, CheckCircle2, Clock,
+  AlertTriangle, CheckCircle2, Clock, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@auto-bazaar-pro/utils';
 
-type ActionCategory = 'USER' | 'LISTING' | 'DEALER' | 'SYSTEM' | 'AUTH' | 'PAYMENT';
+type Severity = 'INFO' | 'WARNING' | 'CRITICAL';
 
-interface AuditLog {
-  id: string;
-  action: string;
-  category: ActionCategory;
-  actor: string;
-  actorRole: string;
-  target: string;
-  targetType: string;
-  ip: string;
-  severity: 'INFO' | 'WARNING' | 'CRITICAL';
-  timestamp: string;
-  details: string;
+const SEVERITY_CONFIG: Record<Severity, { label: string; dot: string; text: string; bg: string }> = {
+  INFO:     { label: 'Info',     dot: 'bg-blue-400',   text: 'text-blue-400',   bg: 'bg-blue-400/10'   },
+  WARNING:  { label: 'Warning',  dot: 'bg-amber-400',  text: 'text-amber-400',  bg: 'bg-amber-400/10'  },
+  CRITICAL: { label: 'Critical', dot: 'bg-red-500',    text: 'text-red-400',    bg: 'bg-red-500/10'    },
+};
+
+// Icon lookup for known action types
+const ACTION_ICONS: Record<string, React.ElementType> = {
+  USER_BANNED:          UserX,
+  USER_VERIFIED:        UserCheck,
+  USER_ROLE_CHANGED:    Key,
+  LISTING_APPROVED:     CheckCircle2,
+  LISTING_REMOVED:      Trash2,
+  LISTING_UPDATED:      Edit3,
+  LISTING_VIEWED:       Eye,
+  DEALER_VERIFIED:      Store,
+  DEALER_SUSPENDED:     Store,
+  SYSTEM_CONFIG_UPDATE: Settings,
+  PAYMENT_REFUNDED:     DollarSign,
+  ADMIN_LOGIN:          Shield,
+  BULK_LISTINGS_DELETE: Trash2,
+};
+
+function ActionIcon({ action }: { action: string }) {
+  const Icon = ACTION_ICONS[action] ?? AlertTriangle;
+  return <Icon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />;
 }
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-const ACTIONS = [
-  { action: 'USER_BANNED',          category: 'USER',    severity: 'CRITICAL', icon: UserX,       color: '#ef4444', target: 'user:USR00124', details: 'Banned for repeated policy violations' },
-  { action: 'LISTING_APPROVED',     category: 'LISTING', severity: 'INFO',     icon: CheckCircle2,color: '#22c55e', target: 'listing:L4521',  details: 'Listing manually approved after review' },
-  { action: 'DEALER_VERIFIED',      category: 'DEALER',  severity: 'INFO',     icon: Store,       color: '#c9a84c', target: 'dealer:D0091',  details: 'Dealer tier set to GOLD' },
-  { action: 'LISTING_REMOVED',      category: 'LISTING', severity: 'WARNING',  icon: Trash2,       color: '#f59e0b', target: 'listing:L3982',  details: 'Removed: fraudulent price detected' },
-  { action: 'USER_ROLE_CHANGED',    category: 'USER',    severity: 'WARNING',  icon: Key,         color: '#8b5cf6', target: 'user:USR00087', details: 'Role changed USER→MODERATOR' },
-  { action: 'SYSTEM_CONFIG_UPDATE', category: 'SYSTEM',  severity: 'CRITICAL', icon: Settings,    color: '#ef4444', target: 'config:smtp',   details: 'SMTP settings updated' },
-  { action: 'DEALER_SUSPENDED',     category: 'DEALER',  severity: 'WARNING',  icon: Store,       color: '#f59e0b', target: 'dealer:D0043',  details: 'Suspended pending investigation' },
-  { action: 'PAYMENT_REFUNDED',     category: 'PAYMENT', severity: 'INFO',     icon: DollarSign,  color: '#22c55e', target: 'payment:P9912', details: 'Full refund issued: $149.00' },
-  { action: 'ADMIN_LOGIN',          category: 'AUTH',    severity: 'INFO',     icon: Shield,      color: '#3b82f6', target: 'session',       details: 'Successful admin login from 192.168.1.1' },
-  { action: 'BULK_LISTINGS_DELETE', category: 'LISTING', severity: 'CRITICAL', icon: Trash2,       color: '#ef4444', target: 'listings:x12', details: '12 duplicate listings bulk-removed' },
-] as const;
+function EmptyState({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
+        <Shield className="w-7 h-7 text-white/20" />
+      </div>
+      <p className="text-sm font-semibold text-white/40 mb-1">No audit events yet</p>
+      <p className="text-xs text-white/20 mb-5 max-w-xs">
+        Admin and system actions will appear here as they happen.
+      </p>
+      <button
+        onClick={onRefresh}
+        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                   border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all"
+      >
+        <RefreshCw className="w-3.5 h-3.5" /> Check again
+      </button>
+    </div>
+  );
+}
 
-const LOGS: AuditLog[] = Array.from({ length: 45 }, (_, i) => {
-  const action = ACTIONS[i % ACTIONS.length]!;
-  const actors = ['Admin System', 'Sarah K. (Admin)', 'Omar M. (Admin)', 'System Auto', 'Moderator Hana'];
-  const minutes = i * 23 + Math.floor(Math.random() * 20);
-  const hrs = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return {
-    id: `LOG${String(10000 + i).padStart(6, '0')}`,
-    action: action.action,
-    category: action.category as ActionCategory,
-    actor: actors[i % actors.length] ?? 'System',
-    actorRole: i % 5 === 0 ? 'SYSTEM' : i % 3 === 0 ? 'MODERATOR' : 'ADMIN',
-    target: action.target,
-    targetType: action.category,
-    ip: `192.168.${Math.floor(i / 10)}.${(i * 7 + 12) % 255}`,
-    severity: action.severity as AuditLog['severity'],
-    timestamp: hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`,
-    details: action.details,
-  };
-});
+const PAGE_SIZE = 20;
 
-const CATEGORY_STYLES: Record<ActionCategory, { label: string; color: string; bg: string; icon: any }> = {
-  USER:    { label: 'User',    color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  icon: UserCheck   },
-  LISTING: { label: 'Listing', color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   icon: Car         },
-  DEALER:  { label: 'Dealer',  color: '#c9a84c', bg: 'rgba(201,168,76,0.12)',  icon: Store       },
-  SYSTEM:  { label: 'System',  color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)',  icon: Settings    },
-  AUTH:    { label: 'Auth',    color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',   icon: Key         },
-  PAYMENT: { label: 'Payment', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: DollarSign  },
-};
+export default function AuditLogsPage() {
+  const [search,   setSearch]   = useState('');
+  const [severity, setSeverity] = useState<Severity | 'ALL'>('ALL');
+  const [action,   setAction]   = useState('');
+  const [page,     setPage]     = useState(1);
 
-const SEVERITY_STYLES = {
-  INFO:     { label: 'Info',     text: 'text-blue-400',    bg: 'bg-blue-400/10',    dot: 'bg-blue-400'    },
-  WARNING:  { label: 'Warning',  text: 'text-yellow-400',  bg: 'bg-yellow-400/10',  dot: 'bg-yellow-400'  },
-  CRITICAL: { label: 'Critical', text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
-};
+  const queryParams = new URLSearchParams({
+    page:  String(page),
+    limit: String(PAGE_SIZE),
+    ...(severity !== 'ALL' && { severity }),
+    ...(action && { action }),
+  }).toString();
 
-const PAGE_SIZE = 12;
-
-export default function AdminAuditLogsPage() {
-  const [search, setSearch]       = useState('');
-  const [catFilter, setCatFilter] = useState<ActionCategory | 'ALL'>('ALL');
-  const [sevFilter, setSevFilter] = useState<'ALL' | 'INFO' | 'WARNING' | 'CRITICAL'>('ALL');
-  const [page, setPage]           = useState(1);
-  const [detail, setDetail]       = useState<AuditLog | null>(null);
-
-  const filtered = LOGS.filter(l => {
-    const matchSearch = !search || l.action.toLowerCase().includes(search.toLowerCase()) || l.actor.toLowerCase().includes(search.toLowerCase()) || l.target.toLowerCase().includes(search.toLowerCase());
-    const matchCat = catFilter === 'ALL' || l.category === catFilter;
-    const matchSev = sevFilter === 'ALL' || l.severity === sevFilter;
-    return matchSearch && matchCat && matchSev;
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin', 'audit-logs', page, severity, action],
+    queryFn:  () => api.get(`/admin/audit-logs?${queryParams}`).then(r => r.data),
+    staleTime: 15_000,
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const logs: any[]  = data?.data  ?? [];
+  const total: number = data?.total ?? 0;
+  const pages: number = data?.pages ?? 1;
 
-  const actionIcon = (action: string) => {
-    const found = ACTIONS.find(a => a.action === action);
-    return found ? found.icon : Eye;
-  };
-  const actionColor = (action: string) => {
-    const found = ACTIONS.find(a => a.action === action);
-    return found ? found.color : '#94a3b8';
+  // Client-side search filter (for quick UX without extra API round-trips)
+  const filtered = search
+    ? logs.filter(l =>
+        l.action?.toLowerCase().includes(search.toLowerCase()) ||
+        l.actor?.toLowerCase().includes(search.toLowerCase()) ||
+        l.target?.toLowerCase().includes(search.toLowerCase()) ||
+        l.details?.toLowerCase().includes(search.toLowerCase())
+      )
+    : logs;
+
+  const exportCsv = () => {
+    const rows = [
+      ['ID','Action','Actor','Target','Severity','IP','Timestamp','Details'],
+      ...filtered.map(l => [
+        l.id, l.action, l.actor, l.target ?? '',
+        l.severity, l.ip ?? '', l.createdAt ?? '', l.details ?? '',
+      ]),
+    ];
+    const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a'); a.href = url; a.download = 'audit-logs.csv'; a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <div className="p-5 lg:p-7 space-y-5 max-w-6xl">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-black text-white text-2xl tracking-tight flex items-center gap-3">
+          <h1 className="font-display font-black text-white text-2xl flex items-center gap-2">
             <Shield className="w-6 h-6 text-[#c9a84c]" />
             Audit Logs
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">Immutable record of all admin and system actions</p>
+          <p className="text-white/40 text-sm mt-0.5">
+            {isLoading ? 'Loading…' : `${total.toLocaleString()} total events`}
+          </p>
         </div>
-        <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white/60 text-xs font-semibold hover:bg-white/[0.08] transition-all">
-          <Download className="w-3.5 h-3.5" />
-          Export Logs
+        <button
+          onClick={exportCsv}
+          disabled={!filtered.length}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
+                     border border-white/10 text-white/50 hover:text-white hover:border-white/20
+                     disabled:opacity-30 transition-all"
+        >
+          <Download className="w-3.5 h-3.5" /> Export CSV
         </button>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Critical Events', count: LOGS.filter(l => l.severity === 'CRITICAL').length, color: '#ef4444', icon: AlertTriangle },
-          { label: 'Warning Events',  count: LOGS.filter(l => l.severity === 'WARNING').length,  color: '#f59e0b', icon: Bell          },
-          { label: 'Total Events',    count: LOGS.length,                                         color: '#3b82f6', icon: Shield        },
-        ].map(s => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: `${s.color}15`, border: `1px solid ${s.color}22` }}>
-                <Icon className="w-4 h-4" style={{ color: s.color }} />
-              </div>
-              <div>
-                <p className="text-xl font-black text-white">{s.count}</p>
-                <p className="text-[0.68rem] text-white/35">{s.label}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap gap-2">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
           <input
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search actions, actors, targets…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search action, actor, target…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+                       text-white text-sm placeholder:text-white/25 focus:outline-none
+                       focus:border-[#c9a84c]/40 transition-colors"
           />
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
-          {(['ALL', 'USER', 'LISTING', 'DEALER', 'SYSTEM', 'AUTH', 'PAYMENT'] as const).map(c => (
-            <button
-              key={c}
-              onClick={() => { setCatFilter(c); setPage(1); }}
-              className={cn('px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                catFilter === c ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
-                                : 'text-white/40 hover:text-white/70')}
-            >
-              {c === 'ALL' ? 'All' : CATEGORY_STYLES[c as ActionCategory].label}
-            </button>
-          ))}
-        </div>
+
+        {/* Severity */}
         <select
-          value={sevFilter}
-          onChange={e => { setSevFilter(e.target.value as any); setPage(1); }}
-          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white/70 text-sm focus:outline-none focus:border-[#c9a84c]/40"
+          value={severity}
+          onChange={e => { setSeverity(e.target.value as any); setPage(1); }}
+          className="h-10 px-3 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+                     text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
         >
           <option value="ALL">All Severities</option>
-          <option value="INFO">Info</option>
-          <option value="WARNING">Warning</option>
-          <option value="CRITICAL">Critical</option>
+          {(Object.keys(SEVERITY_CONFIG) as Severity[]).map(s => (
+            <option key={s} value={s}>{SEVERITY_CONFIG[s].label}</option>
+          ))}
         </select>
+
+        <button
+          onClick={() => refetch()}
+          className="h-10 w-10 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+                     text-white/40 hover:text-white hover:border-white/20 transition-all
+                     flex items-center justify-center"
+          title="Refresh"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Log entries */}
-      <div className="space-y-1">
-        {paged.map((log) => {
-          const catStyle  = CATEGORY_STYLES[log.category];
-          const sevStyle  = SEVERITY_STYLES[log.severity];
-          const ActionIcon = actionIcon(log.action) as any;
-          const aColor    = actionColor(log.action);
-          const CatIcon   = catStyle.icon as any;
+      {/* Table */}
+      <div className="rounded-2xl border border-white/[0.07] bg-[#080f1c] overflow-hidden">
+        {isLoading ? (
+          <div className="p-5 space-y-2">
+            {Array.from({length: 8}).map((_,i) => (
+              <div key={i} className="h-12 rounded-xl bg-white/[0.03] animate-pulse" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="p-10 text-center text-red-400 text-sm">
+            Failed to load audit logs.{' '}
+            <button onClick={() => refetch()} className="underline">Retry</button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState onRefresh={refetch} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  {['Severity','Action','Actor','Target','IP','Time','Details'].map(h => (
+                    <th key={h}
+                        className="px-4 py-3 text-start text-[10px] font-bold uppercase
+                                   tracking-widest text-white/25">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {filtered.map((log: any) => {
+                  const sev = SEVERITY_CONFIG[log.severity as Severity] ?? SEVERITY_CONFIG.INFO;
+                  const ts  = log.createdAt
+                    ? new Date(log.createdAt).toLocaleString('en-GB', {
+                        day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit',
+                      })
+                    : '—';
+                  return (
+                    <tr key={log.id}
+                        className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-4 py-3">
+                        <span className={cn(
+                          'inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full',
+                          sev.text, sev.bg,
+                        )}>
+                          <span className={cn('w-1.5 h-1.5 rounded-full', sev.dot)} />
+                          {sev.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-1.5 text-white/70 font-mono text-xs">
+                          <ActionIcon action={log.action ?? ''} />
+                          {log.action ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-white/60 text-xs">
+                        <div>{log.actor ?? '—'}</div>
+                        {log.actorRole && (
+                          <div className="text-white/30 text-[10px]">{log.actorRole}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-white/50 text-xs font-mono">{log.target ?? '—'}</td>
+                      <td className="px-4 py-3 text-white/30 text-xs font-mono">{log.ip ?? '—'}</td>
+                      <td className="px-4 py-3 text-white/40 text-xs whitespace-nowrap">{ts}</td>
+                      <td className="px-4 py-3 text-white/40 text-xs max-w-[220px] truncate"
+                          title={log.details ?? ''}>
+                        {log.details ?? '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          return (
-            <div
-              key={log.id}
-              onClick={() => setDetail(log)}
-              className={cn(
-                'flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all',
-                log.severity === 'CRITICAL'
-                  ? 'bg-red-950/20 border-red-400/15 hover:bg-red-950/30'
-                  : log.severity === 'WARNING'
-                  ? 'bg-yellow-950/20 border-yellow-400/10 hover:bg-yellow-950/30'
-                  : 'bg-[#0a1525] border-white/[0.05] hover:bg-white/[0.03] hover:border-white/[0.09]',
-              )}
-            >
-              {/* Severity indicator */}
-              <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0', sevStyle.dot)} />
-
-              {/* Action icon */}
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                   style={{ background: `${aColor}15` }}>
-                <ActionIcon className="w-3.5 h-3.5" style={{ color: aColor }} />
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-mono font-semibold text-white">
-                      {log.action.replace(/_/g, ' ')}
-                    </p>
-                    <p className="text-xs text-white/40 mt-0.5">{log.details}</p>
-                  </div>
-                  <span className="flex items-center gap-1 text-[0.68rem] text-white/25 flex-shrink-0">
-                    <Clock className="w-2.5 h-2.5" />
-                    {log.timestamp}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="flex items-center gap-1 text-[0.68rem] text-white/40">
-                    <Shield className="w-2.5 h-2.5" />
-                    {log.actor}
-                  </span>
-                  <span className="text-[0.68rem] text-white/25">→</span>
-                  <span className="text-[0.68rem] font-mono text-white/40">{log.target}</span>
-                  <span className="text-[0.68rem] text-white/20">{log.ip}</span>
-
-                  {/* Category badge */}
-                  <span className="ml-auto flex items-center gap-1 text-[0.62rem] font-bold px-1.5 py-0.5 rounded-md"
-                        style={{ background: catStyle.bg, color: catStyle.color }}>
-                    <CatIcon className="w-2.5 h-2.5" />
-                    {catStyle.label}
-                  </span>
-                  <span className={cn('flex items-center gap-1 text-[0.62rem] font-bold px-1.5 py-0.5 rounded-md', sevStyle.bg, sevStyle.text)}>
-                    {sevStyle.label}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between pt-2">
-        <p className="text-xs text-white/30">
-          Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} events
-        </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="w-7 h-7 rounded-lg bg-white/[0.04] text-white/40 flex items-center justify-center hover:bg-white/[0.08] hover:text-white disabled:opacity-25 transition-all">
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pg = page <= 3 ? i + 1 : page + i - 2;
-            if (pg < 1 || pg > totalPages) return null;
-            return (
-              <button key={pg} onClick={() => setPage(pg)}
-                      className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                        page === pg ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
-                                    : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
-                {pg}
+        {/* Pagination */}
+        {pages > 1 && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.06]">
+            <p className="text-xs text-white/30">
+              Page {page} of {pages} · {total.toLocaleString()} events
+            </p>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="w-8 h-8 rounded-lg flex items-center justify-center
+                           border border-white/10 text-white/40 hover:text-white
+                           disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
               </button>
-            );
-          })}
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="w-7 h-7 rounded-lg bg-white/[0.04] text-white/40 flex items-center justify-center hover:bg-white/[0.08] hover:text-white disabled:opacity-25 transition-all">
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Detail panel */}
-      {detail && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
-             onClick={() => setDetail(null)}>
-          <div className="w-full sm:w-[420px] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto max-h-[80vh]"
-               onClick={e => e.stopPropagation()}>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Event Details</h3>
-                <span className="font-mono text-[0.68rem] text-white/30">{detail.id}</span>
-              </div>
-              {[
-                ['Action',    detail.action.replace(/_/g, ' ')],
-                ['Category',  detail.category],
-                ['Severity',  detail.severity],
-                ['Actor',     `${detail.actor} (${detail.actorRole})`],
-                ['Target',    detail.target],
-                ['IP Address',detail.ip],
-                ['Timestamp', detail.timestamp],
-              ].map(([key, val]) => (
-                <div key={key} className="flex items-start justify-between gap-4 py-2 border-b border-white/[0.05] last:border-0">
-                  <span className="text-xs text-white/35 flex-shrink-0">{key}</span>
-                  <span className="text-xs font-medium text-white text-right">{val}</span>
-                </div>
-              ))}
-              <div className="pt-2">
-                <p className="text-xs text-white/35 mb-1.5">Details</p>
-                <p className="text-sm text-white/70">{detail.details}</p>
-              </div>
+              <button
+                onClick={() => setPage(p => Math.min(pages, p + 1))}
+                disabled={page >= pages}
+                className="w-8 h-8 rounded-lg flex items-center justify-center
+                           border border-white/10 text-white/40 hover:text-white
+                           disabled:opacity-30 transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

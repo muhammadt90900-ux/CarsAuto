@@ -3,14 +3,33 @@
 
 import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Check, Zap, Crown, Star, Loader2, AlertCircle, Calendar } from 'lucide-react';
+import { Check, Zap, Crown, Star, Car, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 import { PaymentMethodSelector, GatewayId, UserCountry } from '@/components/features/payments/PaymentMethodSelector';
 import { AsiaHawalaOTPModal } from '@/components/features/payments/AsiaHawalaOTPModal';
 
 // ─── Plan data ────────────────────────────────────────────────────────────────
-type PlanId = 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+type PlanId = 'BASIC' | 'PREMIUM' | 'ENTERPRISE' | 'BUYER';
+
+// Buyer (USER role) plan — separate from dealer tiers, capped at 2 listings/month
+const BUYER_PLAN = {
+  id: 'BUYER' as PlanId,
+  icon: Car,
+  accent: 'text-[#c9a84c]',
+  border: 'border-[#c9a84c]/40',
+  badge: null as string | null,
+  label:    { ku: 'پلانی کڕیار', ar: 'خطة المشتري', en: 'Buyer Plan', zh: '买家计划' },
+  priceUSD: 2.99,
+  priceIQD: 3_900,
+  features: {
+    ku: ['تا ٢ ئەلانکاری لە مانگێکدا', 'دەستگەیشتنی داشبۆردی کڕیار', 'پشتیوانی ئیمەیڵ'],
+    en: ['Up to 2 listings per month', 'Buyer dashboard access', 'Email support'],
+    ar: ['حتى إعلانين شهرياً', 'الوصول إلى لوحة المشتري', 'دعم البريد الإلكتروني'],
+    zh: ['每月最多2个列表', '买家仪表板访问', '邮件支持'],
+  },
+} as const;
 
 const PLANS = [
   {
@@ -78,6 +97,11 @@ export default function SubscriptionPage() {
   const t      = useTranslations('dashboard');
   const isRtl  = locale === 'ku' || locale === 'ar';
   const lang   = ['ku', 'ar', 'en', 'zh'].includes(locale) ? locale : 'en';
+  const user   = useAuthStore(s => s.user);
+  const isBuyer = user?.role === 'USER';
+
+  // Buyers only ever see the single Buyer Plan card; dealers/admins see the 3 tiers.
+  const activePlans = isBuyer ? [BUYER_PLAN] : PLANS;
 
   const [selectedPlan,    setSelectedPlan]    = useState<PlanId | null>(null);
   const [selectedGateway, setSelectedGateway] = useState<GatewayId>('zaincash');
@@ -169,8 +193,8 @@ export default function SubscriptionPage() {
       )}
 
       {/* Plan cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {PLANS.map(({ id, icon: Icon, accent, border, badge, label, priceUSD, priceIQD, features }) => {
+      <div className={isBuyer ? 'grid grid-cols-1 sm:max-w-xs gap-4' : 'grid grid-cols-1 sm:grid-cols-3 gap-4'}>
+        {activePlans.map(({ id, icon: Icon, accent, border, badge, label, priceUSD, priceIQD, features }) => {
           const isCurrent  = id === currentPlan;
           const isSelected = selectedPlan === id;
           const planName   = label[lang as keyof typeof label] ?? label.en;
