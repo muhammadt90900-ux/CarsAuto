@@ -16,7 +16,7 @@ import { useLocale }       from 'next-intl';
 import { useQueryClient }  from '@tanstack/react-query';
 import { queryKeys }       from '@/lib/queryKeys';
 import { useAuthStore }    from '@/store/auth.store';
-import { sellApi, type CreateListingPayload } from '@/lib/sell-api';
+import { sellApi, type CreateListingPayload, type VehicleSpec, type SparePartSpec } from '@/lib/sell-api';
 import { subscriptionApi, type PermissionStatus } from '@/lib/api';
 import { ImageUploadGrid } from './ImageUploadGrid';
 import { SellFormField }   from './SellFormField';
@@ -28,6 +28,9 @@ type ListingTypeValue = 'CAR' | 'MOTORCYCLE' | 'SPARE_PART' | 'ACCESSORY' | 'SER
 
 const VEHICLE_TYPES  = new Set<ListingTypeValue>(['CAR', 'MOTORCYCLE', 'SPARE_PART']);
 const ACCESSORY_TYPES = new Set<ListingTypeValue>(['ACCESSORY', 'SERVICE']);
+
+// ── Draft auto-save (Feature: Save Draft) ───────────────────────────────────
+const DRAFT_KEY = 'carsauto_sell_draft';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TYPES = [
@@ -59,6 +62,100 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 const CURRENCIES = ['USD', 'IQD', 'EUR'];
+
+// ── Vehicle Details constants (Feature: VehicleSpec / SparePartSpec) ───────────
+const CURRENT_YEAR = 2026;
+const YEARS: number[] = Array.from({ length: CURRENT_YEAR - 1980 + 1 }, (_, i) => CURRENT_YEAR - i);
+
+const COLORS = [
+  { value: 'White',  labelKu: 'سپی',      labelAr: 'أبيض' },
+  { value: 'Black',  labelKu: 'ڕەش',      labelAr: 'أسود' },
+  { value: 'Silver', labelKu: 'زیوین',    labelAr: 'فضي' },
+  { value: 'Red',    labelKu: 'سور',      labelAr: 'أحمر' },
+  { value: 'Blue',   labelKu: 'شین',      labelAr: 'أزرق' },
+  { value: 'Grey',   labelKu: 'خۆڵەمێشی', labelAr: 'رمادي' },
+  { value: 'Brown',  labelKu: 'قاوەیی',   labelAr: 'بني' },
+  { value: 'Green',  labelKu: 'سەوز',     labelAr: 'أخضر' },
+  { value: 'Yellow', labelKu: 'زەرد',     labelAr: 'أصفر' },
+  { value: 'Orange', labelKu: 'پرتەقاڵی', labelAr: 'برتقالي' },
+  { value: 'Other',  labelKu: 'هیتر',     labelAr: 'آخر' },
+];
+
+// Hex swatches for the small colored badge in the Preview box (Feature: Step Two preview).
+const COLOR_SWATCH: Record<string, string> = {
+  White: '#f5f5f5', Black: '#1a1a1a', Silver: '#c0c0c0', Red: '#dc2626',
+  Blue: '#2563eb', Grey: '#6b7280', Brown: '#78350f', Green: '#16a34a',
+  Yellow: '#eab308', Orange: '#ea580c', Other: '#888888',
+};
+
+const FUEL_TYPES: { value: VehicleSpec['fuelType']; labelKu: string; labelAr: string }[] = [
+  { value: 'PETROL',   labelKu: 'بەنزین',   labelAr: 'بنزين' },
+  { value: 'DIESEL',   labelKu: 'گازوەیل',  labelAr: 'ديزل' },
+  { value: 'HYBRID',   labelKu: 'هایبرید',  labelAr: 'هجين' },
+  { value: 'ELECTRIC', labelKu: 'کارەبایی', labelAr: 'كهربائي' },
+  { value: 'GAS',      labelKu: 'گاز',      labelAr: 'غاز' },
+];
+
+const TRANSMISSIONS: { value: VehicleSpec['transmission']; labelKu: string; labelAr: string }[] = [
+  { value: 'AUTOMATIC',      labelKu: 'ئۆتۆماتیک',     labelAr: 'أوتوماتيك' },
+  { value: 'MANUAL',         labelKu: 'یەدەستی',        labelAr: 'يدوي' },
+  { value: 'SEMI_AUTOMATIC', labelKu: 'نیوە ئۆتۆماتیک', labelAr: 'نصف أوتوماتيك' },
+];
+
+const ENGINE_CCS = ['1000', '1300', '1600', '1800', '2000', '2500', '3000', '3500', '4000', '4500', '5000+'];
+
+const BODY_TYPES: { value: VehicleSpec['bodyType']; labelKu: string; labelAr: string }[] = [
+  { value: 'SEDAN',     labelKu: 'سیدان',      labelAr: 'سيدان' },
+  { value: 'SUV',       labelKu: 'ئێس یوو ڤی', labelAr: 'دفع رباعي' },
+  { value: 'PICKUP',    labelKu: 'پیکەپ',      labelAr: 'بيك أب' },
+  { value: 'HATCHBACK', labelKu: 'هاچبەک',     labelAr: 'هاتشباك' },
+  { value: 'COUPE',     labelKu: 'کوپێه',       labelAr: 'كوبيه' },
+  { value: 'VAN',       labelKu: 'ڤان',         labelAr: 'فان' },
+  { value: 'WAGON',     labelKu: 'واگۆن',       labelAr: 'واغن' },
+];
+
+const DRIVE_TYPES: { value: VehicleSpec['driveType']; labelKu: string }[] = [
+  { value: 'FWD', labelKu: 'FWD' },
+  { value: 'RWD', labelKu: 'RWD' },
+  { value: 'AWD', labelKu: 'AWD' },
+  { value: '4WD', labelKu: '4WD' },
+];
+
+const DOORS_OPTIONS: NonNullable<VehicleSpec['doors']>[] = [2, 3, 4, 5];
+
+const MOTO_TYPES: { value: VehicleSpec['motoType']; labelKu: string; labelAr: string }[] = [
+  { value: 'SPORT',   labelKu: 'سپۆرت',  labelAr: 'رياضية' },
+  { value: 'CRUISER', labelKu: 'کروزەر', labelAr: 'كروزر' },
+  { value: 'SCOOTER', labelKu: 'سکوتەر', labelAr: 'سكوتر' },
+  { value: 'DIRT',    labelKu: 'ئۆفرۆد', labelAr: 'دراجة ترابية' },
+  { value: 'TOURING', labelKu: 'تۆرینگ', labelAr: 'سياحية' },
+];
+
+const PART_CATEGORIES = [
+  { value: 'Engine',       labelKu: 'مۆتەر',                labelAr: 'المحرك' },
+  { value: 'Brakes',       labelKu: 'بریک',                 labelAr: 'الفرامل' },
+  { value: 'Suspension',   labelKu: 'سەسپێنشن',             labelAr: 'نظام التعليق' },
+  { value: 'Body',         labelKu: 'جەستە',                labelAr: 'الهيكل' },
+  { value: 'Electrical',   labelKu: 'کارەبایی',             labelAr: 'كهربائي' },
+  { value: 'Transmission', labelKu: 'گێربۆکس',              labelAr: 'ناقل الحركة' },
+  { value: 'Cooling',      labelKu: 'سیستەمی هێوربوونەوە',  labelAr: 'نظام التبريد' },
+  { value: 'Exhaust',      labelKu: 'ئیگزۆست',              labelAr: 'العفس' },
+  { value: 'Interior',     labelKu: 'ناوەوە',                labelAr: 'الداخلية' },
+  { value: 'Wheels',       labelKu: 'تایەر',                 labelAr: 'العجلات' },
+  { value: 'Other',        labelKu: 'هیتر',                  labelAr: 'أخرى' },
+];
+
+const PART_CONDITIONS: { value: SparePartSpec['condition']; labelKu: string; labelAr: string }[] = [
+  { value: 'OEM',         labelKu: 'OEM ڕەسەن',   labelAr: 'أصلي OEM' },
+  { value: 'AFTERMARKET', labelKu: 'ئەفتەرمارکێت', labelAr: 'غير أصلي' },
+  { value: 'USED',        labelKu: 'بەکارهاتوو',   labelAr: 'مستعمل' },
+];
+
+const CITY_GROUPS: { group: string; groupKu: string; cities: string[] }[] = [
+  { group: 'Kurdistan', groupKu: 'کوردستان', cities: ['Erbil', 'Sulaymaniyah', 'Duhok', 'Halabja', 'Zakho'] },
+  { group: 'Iraq',      groupKu: 'عێراق',    cities: ['Baghdad', 'Basra', 'Mosul', 'Kirkuk', 'Najaf', 'Karbala'] },
+  { group: 'UAE',       groupKu: 'ئیمارات',  cities: ['Dubai', 'Abu Dhabi', 'Sharjah'] },
+];
 
 // ── Form state ────────────────────────────────────────────────────────────────
 export interface FormValues {
@@ -92,6 +189,29 @@ export interface FormValues {
   mobile:        boolean;
   warranty:      string;
   availableDays: string[];
+  // Vehicle Details (Feature: CAR / MOTORCYCLE)
+  brand:         string;
+  model:         string;
+  year:          string;
+  mileage:       string;
+  vColor:        string;
+  fuelType:      VehicleSpec['fuelType'] | '';
+  transmission:  VehicleSpec['transmission'] | '';
+  engineCC:      string;
+  bodyType:      VehicleSpec['bodyType'] | '';
+  driveType:     VehicleSpec['driveType'] | '';
+  doors:         string;
+  motoType:      VehicleSpec['motoType'] | '';
+  // Spare Part Details (Feature: SPARE_PART)
+  partCategory:    string;
+  partNumber:      string;
+  partCondition:   SparePartSpec['condition'] | '';
+  compatibleBrand: string;
+  // Location & Contact (all listing types)
+  city:            string;
+  district:        string;
+  contactPhone:    string;
+  contactWhatsapp: string;
 }
 
 interface FormErrors {
@@ -103,6 +223,10 @@ interface FormErrors {
   serviceType?: string;
   images?:      string;
   general?:     string;
+  brand?:       string;
+  model?:       string;
+  year?:        string;
+  partCategory?: string;
 }
 
 function validate(values: FormValues): FormErrors {
@@ -119,6 +243,17 @@ function validate(values: FormValues): FormErrors {
   if (values.type === 'SERVICE' && !values.serviceType)
     errors.serviceType = 'Select a service type';
   if (values.images.length === 0)   errors.images    = 'Upload at least one photo';
+  if (values.type === 'CAR') {
+    if (!values.brand.trim()) errors.brand = 'Brand is required';
+    if (!values.model.trim()) errors.model = 'Model is required';
+    if (!values.year)         errors.year  = 'Year is required';
+  }
+  if (values.type === 'MOTORCYCLE') {
+    if (!values.brand.trim()) errors.brand = 'Brand is required';
+    if (!values.year)         errors.year  = 'Year is required';
+  }
+  if (values.type === 'SPARE_PART' && !values.partCategory)
+    errors.partCategory = 'Part category is required';
   return errors;
 }
 
@@ -146,10 +281,17 @@ export function SellCarForm() {
     compatibleBrands: '', compatibleModels: '',
     serviceType: '', duration: '', mobile: false,
     warranty: '', availableDays: [],
+    brand: '', model: '', year: '', mileage: '', vColor: '',
+    fuelType: '', transmission: '', engineCC: '', bodyType: '',
+    driveType: '', doors: '', motoType: '',
+    partCategory: '', partNumber: '', partCondition: '', compatibleBrand: '',
+    city: '', district: '', contactPhone: '', contactWhatsapp: '',
   });
   const [errors,      setErrors]      = useState<FormErrors>({});
   const [submitting,  setSubmitting]  = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [draftSaved,  setDraftSaved]  = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   useEffect(() => {
     if (!isHydrated || !user) return;
@@ -160,6 +302,46 @@ export function SellCarForm() {
       .catch(() => setPermStatus({ canPost: false, reason: 'NOT_DEALER' }))
       .finally(() => setPermLoading(false));
   }, [isHydrated, user]);
+
+  // ── Draft auto-save (Feature: Save Draft) ─────────────────────────────────
+  // Restore a saved draft on mount. Image URLs are intentionally NOT restored —
+  // blob: URLs created via URL.createObjectURL() die on reload and CDN URLs
+  // would resurrect orphaned uploads, so photos must always be re-added.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setValues((v) => ({ ...v, ...parsed, images: v.images, images360: v.images360 }));
+        setDraftRestored(true);
+      } catch {
+        // Corrupt draft — ignore and continue with defaults.
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist every form state change to localStorage (debounced via JSON diffing
+  // is unnecessary here — writes are cheap and infrequent relative to keystrokes).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const { images, images360, ...draftable } = values;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draftable));
+  }, [values]);
+
+  const saveDraftNow = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const { images, images360, ...draftable } = values;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draftable));
+    setDraftSaved(true);
+    setTimeout(() => setDraftSaved(false), 2500);
+  }, [values]);
+
+  const clearDraft = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(DRAFT_KEY);
+  }, []);
 
   const set = useCallback(
     (field: keyof FormValues) =>
@@ -246,6 +428,15 @@ export function SellCarForm() {
       if (errs.serviceType) step1Errs.serviceType = errs.serviceType;
       if (Object.keys(step1Errs).length) { setErrors(step1Errs); return; }
     }
+    if (step === 2) {
+      const errs = validate(values);
+      const step2Errs: FormErrors = {};
+      if (errs.brand)        step2Errs.brand        = errs.brand;
+      if (errs.model)        step2Errs.model        = errs.model;
+      if (errs.year)         step2Errs.year         = errs.year;
+      if (errs.partCategory) step2Errs.partCategory = errs.partCategory;
+      if (Object.keys(step2Errs).length) { setErrors((e) => ({ ...e, ...step2Errs })); return; }
+    }
     setStep((s) => Math.min(s + 1, 3));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -264,9 +455,12 @@ export function SellCarForm() {
     setSubmitting(true);
     setSubmitError(null);
 
-    const isVehicle   = VEHICLE_TYPES.has(values.type);
-    const isAccessory = values.type === 'ACCESSORY';
-    const isService   = values.type === 'SERVICE';
+    const isVehicle    = VEHICLE_TYPES.has(values.type);
+    const isAccessory  = values.type === 'ACCESSORY';
+    const isService    = values.type === 'SERVICE';
+    const isCar        = values.type === 'CAR';
+    const isMoto       = values.type === 'MOTORCYCLE';
+    const isSparePart  = values.type === 'SPARE_PART';
 
     try {
       const payload: CreateListingPayload = {
@@ -310,10 +504,47 @@ export function SellCarForm() {
               },
             }
           : {}),
+        ...((isCar || isMoto)
+          ? {
+              vehicleSpec: {
+                brand:        values.brand.trim() || undefined,
+                model:        values.model.trim() || undefined,
+                year:         values.year ? Number(values.year) : undefined,
+                mileage:      values.mileage ? Number(values.mileage) : undefined,
+                color:        values.vColor || undefined,
+                fuelType:     values.fuelType || undefined,
+                transmission: values.transmission || undefined,
+                engineCC:     values.engineCC ? Number(values.engineCC.replace('+', '')) : undefined,
+                ...(isCar ? {
+                  bodyType:  values.bodyType || undefined,
+                  driveType: values.driveType || undefined,
+                  doors:     values.doors ? (Number(values.doors) as VehicleSpec['doors']) : undefined,
+                } : {}),
+                ...(isMoto ? {
+                  motoType: values.motoType || undefined,
+                } : {}),
+              },
+            }
+          : {}),
+        ...(isSparePart
+          ? {
+              sparePartSpec: {
+                partCategory:    values.partCategory || undefined,
+                partNumber:      values.partNumber.trim() || undefined,
+                condition:       values.partCondition || undefined,
+                compatibleBrand: values.compatibleBrand.trim() || undefined,
+              },
+            }
+          : {}),
+        city:            values.city || undefined,
+        district:        values.district.trim() || undefined,
+        contactPhone:    values.contactPhone.trim() || undefined,
+        contactWhatsapp: values.contactWhatsapp.trim() || undefined,
       };
 
       const listing = await sellApi.createListing(payload);
       await queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      clearDraft();
       router.push(`/cars/${listing.id}`);
     } catch (err: any) {
       const status = err?.response?.status as number | undefined;
@@ -335,6 +566,9 @@ export function SellCarForm() {
   const isVehicle   = VEHICLE_TYPES.has(values.type);
   const isAccessory = values.type === 'ACCESSORY';
   const isService   = values.type === 'SERVICE';
+  const isCar       = values.type === 'CAR';
+  const isMoto      = values.type === 'MOTORCYCLE';
+  const isSparePart = values.type === 'SPARE_PART';
 
   return (
     <div className="min-h-screen bg-[var(--ink-950)] relative overflow-hidden">
@@ -500,6 +734,182 @@ export function SellCarForm() {
                 <CharCount current={values.descriptionKu.length} max={2000} />
               </SellFormField>
 
+              {(isCar || isMoto || isSparePart) && (
+                <>
+                  <div className="h-px bg-[rgba(255,255,255,0.06)]" />
+                  <p className="text-[var(--gold)] text-xs font-semibold uppercase tracking-widest" dir="auto">
+                    🚗 زانیاری ئۆتۆمبێل · Vehicle Details
+                  </p>
+
+                  {isCar && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Brand / مارکە" required error={errors.brand}>
+                          <input type="text" dir="auto" placeholder="e.g. Toyota"
+                            value={values.brand} onChange={set('brand')} maxLength={50}
+                            className={inputCls(!!errors.brand)} />
+                        </SellFormField>
+                        <SellFormField label="Model / مۆدێل" required error={errors.model}>
+                          <input type="text" dir="auto" placeholder="e.g. Camry"
+                            value={values.model} onChange={set('model')} maxLength={50}
+                            className={inputCls(!!errors.model)} />
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Year / ساڵ" required error={errors.year}>
+                          <select dir="auto" value={values.year} onChange={set('year')} className={selectCls(!!errors.year)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Mileage (km) / کیلۆمەتر" optional>
+                          <input type="number" dir="auto" placeholder="0" min="0"
+                            value={values.mileage} onChange={set('mileage')}
+                            className={inputCls(false)} />
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Color / ڕەنگ" optional>
+                          <select dir="auto" value={values.vColor} onChange={set('vColor')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {COLORS.map((c) => <option key={c.value} value={c.value}>{c.value} / {c.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Fuel Type / سووتەمەنی" optional>
+                          <select dir="auto" value={values.fuelType} onChange={set('fuelType')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {FUEL_TYPES.map((f) => <option key={f.value} value={f.value}>{f.value} / {f.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Transmission / گێربۆکس" optional>
+                          <select dir="auto" value={values.transmission} onChange={set('transmission')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {TRANSMISSIONS.map((t) => <option key={t.value} value={t.value}>{t.value} / {t.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Engine CC / بەهێزی مۆتەر" optional>
+                          <select dir="auto" value={values.engineCC} onChange={set('engineCC')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {ENGINE_CCS.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
+                          </select>
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Body Type / جۆری جەستە" optional>
+                          <select dir="auto" value={values.bodyType} onChange={set('bodyType')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {BODY_TYPES.map((b) => <option key={b.value} value={b.value}>{b.value} / {b.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Drive Type / جۆری درایڤ" optional>
+                          <select dir="auto" value={values.driveType} onChange={set('driveType')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {DRIVE_TYPES.map((d) => <option key={d.value} value={d.value}>{d.value}</option>)}
+                          </select>
+                        </SellFormField>
+                      </div>
+                      <SellFormField label="Doors / دەرگا" optional>
+                        <select dir="auto" value={values.doors} onChange={set('doors')} className={selectCls(false)}>
+                          <option value="">هەڵبژێرە / اختر / Select</option>
+                          {DOORS_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </SellFormField>
+                    </>
+                  )}
+
+                  {isMoto && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Brand / مارکە" required error={errors.brand}>
+                          <input type="text" dir="auto" placeholder="e.g. Honda"
+                            value={values.brand} onChange={set('brand')} maxLength={50}
+                            className={inputCls(!!errors.brand)} />
+                        </SellFormField>
+                        <SellFormField label="Model / مۆدێل" optional>
+                          <input type="text" dir="auto" placeholder="e.g. CBR500R"
+                            value={values.model} onChange={set('model')} maxLength={50}
+                            className={inputCls(false)} />
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Year / ساڵ" required error={errors.year}>
+                          <select dir="auto" value={values.year} onChange={set('year')} className={selectCls(!!errors.year)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Mileage (km) / کیلۆمەتر" optional>
+                          <input type="number" dir="auto" placeholder="0" min="0"
+                            value={values.mileage} onChange={set('mileage')}
+                            className={inputCls(false)} />
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Color / ڕەنگ" optional>
+                          <select dir="auto" value={values.vColor} onChange={set('vColor')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {COLORS.map((c) => <option key={c.value} value={c.value}>{c.value} / {c.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Fuel Type / سووتەمەنی" optional>
+                          <select dir="auto" value={values.fuelType} onChange={set('fuelType')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {FUEL_TYPES.map((f) => <option key={f.value} value={f.value}>{f.value} / {f.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Transmission / گێربۆکس" optional>
+                          <select dir="auto" value={values.transmission} onChange={set('transmission')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {TRANSMISSIONS.map((t) => <option key={t.value} value={t.value}>{t.value} / {t.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Moto Type / جۆری مۆتۆ" optional>
+                          <select dir="auto" value={values.motoType} onChange={set('motoType')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {MOTO_TYPES.map((m) => <option key={m.value} value={m.value}>{m.value} / {m.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                      </div>
+                    </>
+                  )}
+
+                  {isSparePart && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Part Category / کەتەگۆری" required error={errors.partCategory}>
+                          <select dir="auto" value={values.partCategory} onChange={set('partCategory')} className={selectCls(!!errors.partCategory)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {PART_CATEGORIES.map((p) => <option key={p.value} value={p.value}>{p.value} / {p.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Part Number / ژمارەی پارچە" optional>
+                          <input type="text" dir="auto" placeholder="e.g. 04465-33450"
+                            value={values.partNumber} onChange={set('partNumber')} maxLength={100}
+                            className={inputCls(false)} />
+                        </SellFormField>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <SellFormField label="Condition / حاڵەت" optional>
+                          <select dir="auto" value={values.partCondition} onChange={set('partCondition')} className={selectCls(false)}>
+                            <option value="">هەڵبژێرە / اختر / Select</option>
+                            {PART_CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.value} / {c.labelKu}</option>)}
+                          </select>
+                        </SellFormField>
+                        <SellFormField label="Compatible Brand / گونجاو بۆ" optional>
+                          <input type="text" dir="auto" placeholder="e.g. Toyota"
+                            value={values.compatibleBrand} onChange={set('compatibleBrand')} maxLength={100}
+                            className={inputCls(false)} />
+                        </SellFormField>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
               {isAccessory && (
                 <>
                   <div className="h-px bg-[rgba(255,255,255,0.06)]" />
@@ -621,12 +1031,87 @@ export function SellCarForm() {
                 </>
               )}
 
+              <div className="h-px bg-[rgba(255,255,255,0.06)]" />
+              <p className="text-[var(--gold)] text-xs font-semibold uppercase tracking-widest" dir="auto">
+                📍 شوێن و پەیوەندی · Location &amp; Contact
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <SellFormField label="City / شار" optional>
+                  <select dir="auto" value={values.city} onChange={set('city')} className={selectCls(false)}>
+                    <option value="">هەڵبژێرە / اختر / Select</option>
+                    {CITY_GROUPS.map((g) => (
+                      <optgroup key={g.group} label={`${g.group} / ${g.groupKu}`}>
+                        {g.cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </SellFormField>
+                <SellFormField label="District / ناوچە" optional>
+                  <input type="text" dir="auto" placeholder="e.g. Ankawa"
+                    value={values.district} onChange={set('district')} maxLength={100}
+                    className={inputCls(false)} />
+                </SellFormField>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <SellFormField label="Phone / تەلەفۆن" optional>
+                  <input type="tel" dir="auto" placeholder="+964 750 000 0000"
+                    value={values.contactPhone} onChange={set('contactPhone')} maxLength={20}
+                    className={inputCls(false)} />
+                </SellFormField>
+                <SellFormField label="WhatsApp" optional>
+                  <input type="tel" dir="auto" placeholder="+964 750 000 0000"
+                    value={values.contactWhatsapp} onChange={set('contactWhatsapp')} maxLength={20}
+                    className={inputCls(false)} />
+                </SellFormField>
+              </div>
+
               <div className="rounded-xl border border-[rgba(255,255,255,0.06)] p-4 bg-[rgba(255,255,255,0.02)]">
                 <p className="text-xs text-[var(--text-faint)] mb-2 uppercase tracking-wider">Preview</p>
                 <p className="text-white font-semibold">{values.titleEn || 'Title'}</p>
                 <p className="text-[var(--gold)] text-sm mt-1">
                   {values.price ? `${Number(values.price).toLocaleString()} ${values.currency}` : 'Price not set'}
                 </p>
+                {(values.brand || values.model || values.year) && (
+                  <p className="text-[var(--text-secondary)] text-sm mt-1">
+                    {[values.brand, values.model, values.year].filter(Boolean).join(' ')}
+                  </p>
+                )}
+                {values.mileage && (
+                  <p className="text-[var(--text-faint)] text-xs mt-1">
+                    {Number(values.mileage).toLocaleString()} km
+                  </p>
+                )}
+                {values.city && (
+                  <p className="text-[var(--text-faint)] text-xs mt-1 flex items-center gap-1">
+                    <span>📍</span>{values.city}
+                  </p>
+                )}
+                {(values.vColor || values.fuelType || values.transmission) && (
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {values.vColor && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium
+                                       bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] text-[var(--text-secondary)]">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-white/20"
+                          style={{ backgroundColor: COLOR_SWATCH[values.vColor] ?? '#888' }}
+                        />
+                        {values.vColor}
+                      </span>
+                    )}
+                    {values.fuelType && (
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium
+                                       bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)]">
+                        {values.fuelType}
+                      </span>
+                    )}
+                    {values.transmission && (
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium
+                                       bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)]">
+                        {values.transmission}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {values.descriptionEn && (
                   <p className="text-[var(--text-muted)] text-sm mt-2 line-clamp-2">{values.descriptionEn}</p>
                 )}
@@ -650,22 +1135,42 @@ export function SellCarForm() {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-[rgba(255,255,255,0.06)]">
-            {step > 1 ? (
-              <button onClick={goBack} className={ghostBtn}>← Back</button>
-            ) : <div />}
-            {step < 3 ? (
-              <button onClick={goNext} className={goldBtn}>Continue →</button>
-            ) : (
-              <button onClick={handleSubmit} disabled={submitting} className={`${goldBtn} min-w-[160px]`}>
-                {submitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-[#050b14] border-t-transparent rounded-full animate-spin" />
-                    Publishing…
-                  </span>
-                ) : '🚀 Publish Listing'}
+          {draftRestored && step === 1 && (
+            <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-xl text-xs
+                            bg-[rgba(201,168,76,0.08)] border border-[rgba(201,168,76,0.2)] text-[var(--gold)]">
+              <span>📝</span>
+              <span dir="auto">درافتێکی پاشەکەوتکراو گەڕێنرایەوە · تم استرجاع مسودة محفوظة · A saved draft was restored</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-[rgba(255,255,255,0.06)] flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              {step > 1 ? (
+                <button onClick={goBack} className={ghostBtn}>← Back</button>
+              ) : <div />}
+              <button type="button" onClick={saveDraftNow} className={draftBtn} dir="auto">
+                💾 دراف پاراستن · حفظ كمسودة · Save Draft
               </button>
-            )}
+            </div>
+            <div className="flex items-center gap-3">
+              {draftSaved && (
+                <span className="text-xs text-[#4ade80] flex items-center gap-1.5 animate-pulse" dir="auto">
+                  ✓ پاشەکەوتکرا · تم الحفظ · Saved
+                </span>
+              )}
+              {step < 3 ? (
+                <button onClick={goNext} className={goldBtn}>Continue →</button>
+              ) : (
+                <button onClick={handleSubmit} disabled={submitting} className={`${goldBtn} min-w-[160px]`}>
+                  {submitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-[#050b14] border-t-transparent rounded-full animate-spin" />
+                      Publishing…
+                    </span>
+                  ) : '🚀 Publish Listing'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -733,6 +1238,11 @@ const ghostBtn = `
   inline-flex items-center gap-2 h-11 px-5 rounded-xl font-semibold text-sm
   bg-transparent text-[var(--text-muted)] border border-[rgba(255,255,255,0.08)]
   hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all duration-200 cursor-pointer
+`;
+const draftBtn = `
+  inline-flex items-center gap-2 h-11 px-5 rounded-xl font-semibold text-sm
+  bg-transparent text-[var(--gold)] border border-[#c9a84c]
+  hover:bg-[rgba(201,168,76,0.08)] transition-all duration-200 cursor-pointer
 `;
 
 // ── Upload360Section ──────────────────────────────────────────────────────────

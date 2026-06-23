@@ -7,6 +7,29 @@ import { api, invalidateListingsCache } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface VehicleSpec {
+  brandId?: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  mileage?: number;
+  color?: string;
+  fuelType?: 'PETROL' | 'DIESEL' | 'HYBRID' | 'ELECTRIC' | 'GAS';
+  transmission?: 'MANUAL' | 'AUTOMATIC' | 'SEMI_AUTOMATIC';
+  engineCC?: number;
+  bodyType?: 'SEDAN' | 'SUV' | 'PICKUP' | 'HATCHBACK' | 'COUPE' | 'VAN' | 'WAGON';
+  driveType?: 'FWD' | 'RWD' | 'AWD' | '4WD';
+  doors?: 2 | 3 | 4 | 5;
+  motoType?: 'SPORT' | 'CRUISER' | 'SCOOTER' | 'DIRT' | 'TOURING';
+}
+
+export interface SparePartSpec {
+  partCategory?: string;
+  partNumber?: string;
+  condition?: 'OEM' | 'AFTERMARKET' | 'USED';
+  compatibleBrand?: string;
+}
+
 export interface CreateListingPayload {
   titleEn: string;
   titleKu: string;
@@ -23,6 +46,12 @@ export interface CreateListingPayload {
   images?: string[]; // CDN URLs returned by the upload endpoint
   locationId?: string;
   categoryId?: string;
+  vehicleSpec?: VehicleSpec;
+  sparePartSpec?: SparePartSpec;
+  city?: string;
+  district?: string;
+  contactPhone?: string;
+  contactWhatsapp?: string;
 }
 
 export interface ListingCreatedResponse {

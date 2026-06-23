@@ -3,9 +3,10 @@
 
 import { ReactNode, useEffect, lazy, Suspense } from 'react';
 
-const newLocal = import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools }));
-const ReactQueryDevtools = lazy((): Promise<{ default: never; } | { default: (props: import("@tanstack/react-query-devtools/build/legacy/_tsup-dts-rollup").DevtoolsOptions) => import("react").ReactElement | null; }> =>
-  newLocal
+const ReactQueryDevtools = lazy(() =>
+  import('@tanstack/react-query-devtools').then((m) => ({ 
+     default: m.ReactQueryDevtools as any,
+  }))
 );
 
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -125,7 +126,7 @@ export function Providers({ children }: { children : ReactNode }) {
 function DynamicDevtools() {
   return (
     <Suspense fallback={null}>
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      <ReactQueryDevtools />
     </Suspense>
   );
 }
