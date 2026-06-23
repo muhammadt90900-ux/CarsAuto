@@ -28,7 +28,26 @@ export class EmailService implements OnModuleInit {
     const gmailUser = process.env.GMAIL_USER;
     const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
-    if (host && user && pass) {
+    // FIX: When both SMTP_HOST and GMAIL_USER are set (common in dev — people
+    // leave both blocks filled in from copy-pasted .env templates), prefer the
+    // Gmail "service" transport. nodemailer's `service: 'gmail'` preset picks
+    // the correct host/port/secure combination internally, avoiding the
+    // "wrong version number" TLS error caused by a mismatched SMTP_PORT /
+    // SMTP_SECURE pair on the generic host transport.
+    if (gmailUser && gmailPass) {
+      if (host && user && pass) {
+        this.logger.warn(
+          '⚠️  Both SMTP_HOST and GMAIL_USER are set in .env — using GMAIL_USER ' +
+          '(remove SMTP_HOST/SMTP_USER/SMTP_PASS or GMAIL_USER/GMAIL_APP_PASSWORD to silence this).',
+        );
+      }
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailPass },
+      });
+      this.configured = true;
+      this.logger.log(`✅ SMTP configured via GMAIL_USER (${gmailUser})`);
+    } else if (host && user && pass) {
       this.transporter = nodemailer.createTransport({
         host,
         port:           parseInt(process.env.SMTP_PORT ?? '587', 10),
@@ -40,13 +59,6 @@ export class EmailService implements OnModuleInit {
       });
       this.configured = true;
       this.logger.log('✅ SMTP configured via SMTP_HOST');
-    } else if (gmailUser && gmailPass) {
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: gmailUser, pass: gmailPass },
-      });
-      this.configured = true;
-      this.logger.log(`✅ SMTP configured via GMAIL_USER (${gmailUser})`);
     } else {
       this.logger.warn(
         '⚠️  Email NOT configured — set GMAIL_USER + GMAIL_APP_PASSWORD in .env. Emails will be skipped.',

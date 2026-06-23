@@ -23,5 +23,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DealersPage({ params }: Props) {
   const { locale } = await params;
-  return <DealersMarketplaceClient locale={locale} />;
+  return <DealersMarketplaceClient locale={locale}/>;
 }
