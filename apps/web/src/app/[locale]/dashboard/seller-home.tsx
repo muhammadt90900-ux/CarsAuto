@@ -14,7 +14,8 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 
-function MiniSparkline({ values, color }: { values: number[]; color: string }) {
+function MiniSparkline({ values, color }: { values?: number[]; color: string }) {
+  if (!values || values.length < 2) return null;
   const max = Math.max(...values);
   const min = Math.min(...values);
   const range = max - min || 1;
@@ -67,7 +68,7 @@ function StatCard({ labelKey, value, change, trend, icon: Icon, color, iconBg, s
         <p className="text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t(labelKey as any)}</p>
       </div>
-      <MiniSparkline values={sparkline} color={color} />
+      {sparkline && sparkline.length >= 2 && <MiniSparkline values={sparkline} color={color} />}
     </div>
   );
 }

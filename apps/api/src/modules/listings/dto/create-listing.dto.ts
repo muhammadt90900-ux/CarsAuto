@@ -79,6 +79,67 @@ export class AccessorySpecDto {
   availableDays?: string[];
 }
 
+// ── Vehicle spec DTO ─────────────────────────────────────────────────────────
+export class VehicleSpecDto {
+  @IsOptional() @IsString() @MaxLength(100)
+  brand?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  model?: string;
+
+  @IsOptional() @IsInt() @Min(1900) @Max(2100)
+  @Type(() => Number)
+  year?: number;
+
+  @IsOptional() @IsInt() @Min(0)
+  @Type(() => Number)
+  mileage?: number;
+
+  @IsOptional() @IsString() @MaxLength(50)
+  color?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  fuelType?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  transmission?: string;
+
+  @IsOptional() @IsInt() @Min(0)
+  @Type(() => Number)
+  engineCC?: number;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  bodyType?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  driveType?: string;
+
+  @IsOptional() @IsInt() @Min(2) @Max(6)
+  @Type(() => Number)
+  doors?: number;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  motoType?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  condition?: string;
+}
+
+// ── Spare part spec DTO ───────────────────────────────────────────────────────
+export class SparePartSpecDto {
+  @IsOptional() @IsString() @MaxLength(100)
+  partCategory?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  partNumber?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  condition?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  compatibleBrand?: string;
+}
+
 // ── Main create DTO ───────────────────────────────────────────────────────────
 export class CreateListingDto {
   @IsEnum(ListingType)
@@ -134,4 +195,30 @@ export class CreateListingDto {
   @ValidateNested()
   @Type(() => AccessorySpecDto)
   accessorySpec?: AccessorySpecDto;
+
+  /** For CAR / MOTORCYCLE — vehicle details */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => VehicleSpecDto)
+  vehicleSpec?: VehicleSpecDto;
+
+  /** For SPARE_PART */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SparePartSpecDto)
+  sparePartSpec?: SparePartSpecDto;
+
+  /** Location fields */
+  @IsOptional() @IsString() @MaxLength(100)
+  city?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  district?: string;
+
+  /** Contact fields */
+  @IsOptional() @IsString() @MaxLength(30)
+  contactPhone?: string;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  contactWhatsapp?: string;
 }

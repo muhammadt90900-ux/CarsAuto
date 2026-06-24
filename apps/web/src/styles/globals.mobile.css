@@ -1,5 +1,5 @@
 /* globals.mobile.css  —  Add to your existing globals.css or @import this file
-   AutoBazaarPro — Mobile-Native UX Layer
+   CarsAuto — Mobile-Native UX Layer
    ─────────────────────────────────────────────────────────────────────────── */
 
 /* ── Safe-area utilities ───────────────────────────────────────── */
@@ -202,7 +202,7 @@ input, select, textarea {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   MOBILE UX FIXES — AutoBazaarPro
+   MOBILE UX FIXES — CarsAuto
    ════════════════════════════════════════════════════════════════ */
 
 /* ── Use dynamic viewport height (fixes iOS Safari address-bar) ── */

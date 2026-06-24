@@ -39,7 +39,7 @@ export class UsersService {
 
   async updateProfile(
     id: string,
-    data: { name?: string; phone?: string; locale?: string; avatar?: string },
+    data: { name?: string; phone?: string; locale?: string; avatar?: string; bio?: string },
   ) {
     return this.prisma.user.update({
       where: { id },
@@ -51,6 +51,9 @@ export class UsersService {
         phone: true,
         avatar: true,
         locale: true,
+        role: true,      // FIX: must return role so frontend setUser stays complete
+        verified: true,  // FIX: must return verified so frontend setUser stays complete
+        bio: true,       // FIX 3: return bio field
       },
     });
   }

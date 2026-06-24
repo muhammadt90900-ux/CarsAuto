@@ -143,6 +143,7 @@ model User {
   password  String?
   name      String
   avatar    String?
+  bio       String?  @db.VarChar(500)  // FIX 3: user bio field
   role      UserRole @default(USER)
   verified  Boolean  @default(false)
   locale    String   @default("ku") @db.VarChar(5)

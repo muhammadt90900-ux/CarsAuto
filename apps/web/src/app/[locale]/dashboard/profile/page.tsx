@@ -2,9 +2,9 @@
 // app/[locale]/dashboard/profile/page.tsx
 
 import { useState, useEffect } from 'react';
-import { usersApi } from '@/lib/api';
+import { authApi, usersApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { User, Phone, Mail, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Phone, FileText, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const user    = useAuthStore((s) => s.user);
@@ -12,7 +12,7 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState({
     name:  user?.name  ?? '',
-    phone: '',
+    phone: user?.phone ?? '',
     bio:   '',
   });
   const [loading, setLoading] = useState(false);
@@ -20,16 +20,22 @@ export default function ProfilePage() {
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
-    usersApi.getMe()
+    // FIX: /auth/me پڕ کردنەوەی زانیارییە نوێکانی بەکارهێنەر — URL ی درووست
+    authApi.me()
       .then((data) => {
         setForm({
           name:  data.name  ?? '',
           phone: data.phone ?? '',
-          bio:   data.bio   ?? '',
+          bio:   (data as any).bio ?? '',
         });
       })
       .catch(() => {
-        // بەکارهێنانی زانیاری store بەتەنها
+        // fallback بۆ زانیاری store ئەگەر نیەتووک
+        setForm({
+          name:  user?.name  ?? '',
+          phone: user?.phone ?? '',
+          bio:   '',
+        });
       });
   }, []);
 
@@ -37,21 +43,28 @@ export default function ProfilePage() {
     setLoading(true);
     setError(null);
     try {
+      // FIX: /users/profile ـە نەک /users/me
       const updated = await usersApi.updateMe(form);
-      setUser(updated);
+      // FIX: merge updated fields with existing user to preserve role/verified
+      if (user) setUser({ ...user, ...updated });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch {
-      setError('پاشەکەوتکردن سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? null;
+      setError(
+        Array.isArray(msg)
+          ? msg.join(' · ')
+          : msg ?? 'پاشەکەوتکردن سەرکەوتوو نەبوو. دووبارە هەوڵ بدە.'
+      );
     } finally {
       setLoading(false);
     }
   }
 
   const fields = [
-    { label: 'ناو',            field: 'name',  icon: User,  placeholder: 'ناوی تەواو',           type: 'text'  },
-    { label: 'ژمارەی مۆبایل', field: 'phone', icon: Phone, placeholder: '+964 7XX XXX XXXX',    type: 'tel'   },
-    { label: 'درباری خۆم',    field: 'bio',   icon: Mail,  placeholder: 'کورتە درباری خۆت...', type: 'text'  },
+    { label: 'ناو',            field: 'name',  icon: User,      placeholder: 'ناوی تەواو',            type: 'text' },
+    { label: 'ژمارەی مۆبایل', field: 'phone', icon: Phone,     placeholder: '+964 7XX XXX XXXX',     type: 'tel'  },
+    { label: 'درباری خۆم',    field: 'bio',   icon: FileText,  placeholder: 'کورتە درباری خۆت...',   type: 'text' },
   ] as const;
 
   return (

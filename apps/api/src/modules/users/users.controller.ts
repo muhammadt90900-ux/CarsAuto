@@ -29,6 +29,13 @@ class UpdateProfileDto {
   @IsUrl({ protocols: ['https'], require_tld: true }, { message: 'Avatar must be a valid HTTPS URL' })
   @MaxLength(2048)
   avatar?: string;
+
+  // FIX 3: bio field — user self-description
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @Transform(({ value }) => value?.trim())
+  bio?: string;
 }
 
 @Controller('users')

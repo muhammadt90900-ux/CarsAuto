@@ -291,6 +291,12 @@ export class ListingsService {
         userId,
         condition,
         accessorySpec,
+        vehicleSpec: vehicleSpecInput,
+        sparePartSpec: _sparePartSpec,
+        city:             _city,
+        district:         _district,
+        contactPhone:     _contactPhone,
+        contactWhatsapp:  _contactWhatsapp,
         vehicleSpecId: _vsId,
         ...listingData
       } = data as any;
@@ -299,13 +305,31 @@ export class ListingsService {
       const isVehicle   = VEHICLE_TYPES.has(listingType);
       const isAccessory = ACCESSORY_TYPES.has(listingType);
 
+      // Build vehicleSpec create payload from vehicleSpecInput or condition
+      const vehicleSpecCreate = isVehicle
+        ? {
+            ...(vehicleSpecInput?.year         ? { year:         vehicleSpecInput.year }         : {}),
+            ...(vehicleSpecInput?.mileage       ? { mileageKm:    vehicleSpecInput.mileage }      : {}),
+            ...(vehicleSpecInput?.color         ? { color:        vehicleSpecInput.color }         : {}),
+            ...(vehicleSpecInput?.fuelType      ? { fuelType:     vehicleSpecInput.fuelType }      : {}),
+            ...(vehicleSpecInput?.transmission  ? { transmission: vehicleSpecInput.transmission }  : {}),
+            ...(vehicleSpecInput?.engineCC      ? { engineCC:     vehicleSpecInput.engineCC }      : {}),
+            ...(vehicleSpecInput?.doors         ? { doors:        vehicleSpecInput.doors }         : {}),
+            ...(vehicleSpecInput?.bodyType      ? { bodyType:     vehicleSpecInput.bodyType }      : {}),
+            ...(vehicleSpecInput?.driveType     ? { drivetrain:   vehicleSpecInput.driveType }     : {}),
+            ...(condition                       ? { condition }                                    : {}),
+          }
+        : null;
+
       const listing = await this.prisma.listing.create({
         data: {
           ...listingData,
           user: { connect: { id: userId } },
 
           // Vehicle spec: only for CAR / MOTORCYCLE / SPARE_PART
-          ...(isVehicle && condition
+          ...(isVehicle && vehicleSpecCreate && Object.keys(vehicleSpecCreate).length > 0
+            ? { vehicleSpec: { create: vehicleSpecCreate } }
+            : isVehicle && condition
             ? { vehicleSpec: { create: { condition } } }
             : {}),
 

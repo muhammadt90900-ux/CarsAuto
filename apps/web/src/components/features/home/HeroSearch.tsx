@@ -710,7 +710,7 @@ export function HeroSearch() {
       <div className="relative z-10 h-12 overflow-hidden">
         <svg viewBox="0 0 1440 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full">
           <path d="M0,48 L0,24 Q180,0 360,24 Q540,48 720,24 Q900,0 1080,24 Q1260,48 1440,24 L1440,48 Z"
-            fill="currentColor" className="text-slate-50 dark:text-[#050b14]" />
+            fill="currentColor" className="text-[#f8fafc] dark:text-[#050b14]" />
         </svg>
       </div>
     </section>

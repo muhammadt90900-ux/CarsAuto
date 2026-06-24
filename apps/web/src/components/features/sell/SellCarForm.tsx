@@ -19,6 +19,7 @@ import { useAuthStore }    from '@/store/auth.store';
 import { sellApi, type CreateListingPayload, type VehicleSpec, type SparePartSpec } from '@/lib/sell-api';
 import { subscriptionApi, type PermissionStatus } from '@/lib/api';
 import { ImageUploadGrid } from './ImageUploadGrid';
+import { CAR_MAKES, getModelsByMake } from '@/data/carData';
 import { SellFormField }   from './SellFormField';
 import { SellProgress }    from './SellProgress';
 import { UpgradePrompt }   from './UpgradePrompt';
@@ -649,9 +650,9 @@ export function SellCarForm() {
                   <div className="flex gap-2">
                     <input type="number" placeholder="0" min="0"
                       value={values.price} onChange={set('price')}
-                      className={`${inputCls(!!errors.price)} flex-1`} />
+                      className={`${inputCls(!!errors.price)} flex-[3] min-w-0`} />
                     <select value={values.currency} onChange={set('currency')}
-                      className={`${selectCls(false)} w-24`}>
+                      className={`${selectCls(false)} flex-[1] min-w-[72px] max-w-[88px]`}>
                       {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -745,14 +746,28 @@ export function SellCarForm() {
                     <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <SellFormField label="Brand / مارکە" required error={errors.brand}>
-                          <input type="text" dir="auto" placeholder="e.g. Toyota"
-                            value={values.brand} onChange={set('brand')} maxLength={50}
-                            className={inputCls(!!errors.brand)} />
+                          <select dir="auto" value={values.brand}
+                            onChange={e => {
+                              setValues(v => ({ ...v, brand: e.target.value, model: '' }));
+                              if (errors.brand) setErrors(er => ({ ...er, brand: undefined }));
+                            }}
+                            className={selectCls(!!errors.brand)}>
+                            <option value="">مارکە هەڵبژێرە / Select Brand</option>
+                            {CAR_MAKES.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                          </select>
                         </SellFormField>
                         <SellFormField label="Model / مۆدێل" required error={errors.model}>
-                          <input type="text" dir="auto" placeholder="e.g. Camry"
-                            value={values.model} onChange={set('model')} maxLength={50}
-                            className={inputCls(!!errors.model)} />
+                          <select dir="auto" value={values.model}
+                            onChange={e => {
+                              setValues(v => ({ ...v, model: e.target.value }));
+                              if (errors.model) setErrors(er => ({ ...er, model: undefined }));
+                            }}
+                            disabled={!values.brand}
+                            className={`${selectCls(!!errors.model)} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                            <option value="">{values.brand ? 'مۆدێل هەڵبژێرە / Select Model' : 'پێشتر براند هەڵبژێرە'}</option>
+                            {getModelsByMake(values.brand).map(m => <option key={m} value={m}>{m}</option>)}
+                            <option value="__other__">Other / هیتر</option>
+                          </select>
                         </SellFormField>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -823,12 +838,19 @@ export function SellCarForm() {
                     <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <SellFormField label="Brand / مارکە" required error={errors.brand}>
-                          <input type="text" dir="auto" placeholder="e.g. Honda"
-                            value={values.brand} onChange={set('brand')} maxLength={50}
-                            className={inputCls(!!errors.brand)} />
+                          <select dir="auto" value={values.brand}
+                            onChange={e => {
+                              setValues(v => ({ ...v, brand: e.target.value, model: '' }));
+                              if (errors.brand) setErrors(er => ({ ...er, brand: undefined }));
+                            }}
+                            className={selectCls(!!errors.brand)}>
+                            <option value="">مارکە هەڵبژێرە / Select Brand</option>
+                            {CAR_MAKES.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                          </select>
                         </SellFormField>
                         <SellFormField label="Model / مۆدێل" optional>
-                          <input type="text" dir="auto" placeholder="e.g. CBR500R"
+                          <input type="text" dir="auto"
+                            placeholder={values.brand ? `e.g. ${getModelsByMake(values.brand)[0] ?? 'Model'}` : 'براند هەڵبژێرە'}
                             value={values.model} onChange={set('model')} maxLength={50}
                             className={inputCls(false)} />
                         </SellFormField>
@@ -1220,7 +1242,7 @@ const baseInput = `
   focus:bg-[rgba(255,255,255,0.07)]
 `;
 const inputCls    = (e: boolean) => `${baseInput} ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
-const selectCls   = (e: boolean) => `${baseInput} cursor-pointer appearance-none ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
+const selectCls   = (e: boolean) => `${baseInput} cursor-pointer appearance-none [&>option]:bg-[#0b1525] [&>option]:text-white [&>optgroup]:bg-[#0b1525] [&>optgroup]:text-[#c9a84c] ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
 const textareaCls = (e: boolean) =>
   `w-full px-4 py-3 rounded-xl text-sm text-white placeholder-[var(--text-faint)]
    bg-[rgba(255,255,255,0.05)] border transition-all duration-150 resize-none

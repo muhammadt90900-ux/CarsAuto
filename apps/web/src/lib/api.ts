@@ -357,7 +357,7 @@ export const usersApi = {
     api.get<any>('/users/me').then((r) => r.data),
 
   updateMe: (data: Record<string, unknown>) =>
-    api.patch<any>('/users/me', data).then((r) => r.data),
+    api.patch<any>('/users/profile', data).then((r) => r.data),  // FIX: was /users/me (404)
 
   getFavorites: () =>
     api.get<{ data: any[] }>('/users/me/favorites').then((r) => r.data),
