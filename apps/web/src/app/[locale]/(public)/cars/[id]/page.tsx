@@ -5,7 +5,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Script from "next/script";
 import { CarDetailClient } from "@/components/features/cars/CarDetailClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 
@@ -53,7 +52,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
- params: Promise<{ id: string; locale: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
   const { id, locale } = await params;
   const listing = await getListing(id);
@@ -150,7 +149,7 @@ export default async function CarDetailPage({
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
-   const { id, locale } = await params;
+  const { id, locale } = await params;
   const listing = await getListing(id);
   if (!listing) notFound();
   const { vehicleJsonLd, breadcrumbJsonLd } = buildListingJsonLd(listing, locale);
@@ -158,16 +157,14 @@ export default async function CarDetailPage({
 
   return (
     <>
-      <Script
+      <script
         id="jsonld-vehicle"
         type="application/ld+json"
-        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }}
       />
-      <Script
+      <script
         id="jsonld-breadcrumb"
         type="application/ld+json"
-        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <Suspense fallback={null}>
