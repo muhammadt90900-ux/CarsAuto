@@ -9,6 +9,6 @@ type Props = {
 
 export default async function Layout({ children, params }: Props) {
   const { locale } = await params;
-  // await requireAdmin();
+  await requireAdmin();
   return <AdminLayout locale={locale}>{children}</AdminLayout>;
 }

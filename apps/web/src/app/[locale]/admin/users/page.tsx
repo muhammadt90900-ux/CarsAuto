@@ -10,7 +10,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
-import { api } from '@/lib/api';
+import { api, adminApi } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const ROLES    = ['USER', 'DEALER', 'MODERATOR', 'ADMIN'] as const;
@@ -86,7 +86,7 @@ export default function AdminUsersPage() {
   const [page, setPage]                 = useState(1);
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [actionMenu, setActionMenu]     = useState<string | null>(null);
-  const [modal, setModal]               = useState<{ type: 'ban' | 'suspend' | 'email'; user: User } | null>(null);
+  const [modal, setModal]               = useState<{ type: 'ban' | 'suspend' | 'email' | 'role'; user: User } | null>(null);
 
   const fetchUsers = useCallback(() => {
     setLoading(true);
@@ -148,6 +148,17 @@ export default function AdminUsersPage() {
           : u
       ));
       setActionMenu(null);
+      setModal(null);
+    }
+  };
+
+  const doRoleChange = async (userId: string, role: 'USER' | 'DEALER' | 'ADMIN') => {
+    try {
+      await adminApi.setUserRole(userId, role);
+      setModal(null);
+      fetchUsers();
+    } catch {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
       setModal(null);
     }
   };
@@ -366,7 +377,7 @@ export default function AdminUsersPage() {
                             {[
                               { label: 'View Profile',  icon: Eye,       action: () => setActionMenu(null) },
                               { label: 'Send Email',    icon: Mail,      action: () => { setModal({ type: 'email', user }); setActionMenu(null); } },
-                              { label: 'Change Role',   icon: Shield,    action: () => setActionMenu(null) },
+                              { label: 'Change Role',   icon: Shield,    action: () => { setModal({ type: 'role', user }); setActionMenu(null); } },
                               user.status !== 'ACTIVE'
                                 ? { label: 'Activate',  icon: UserCheck, action: () => doAction(user.id, 'activate') }
                                 : { label: 'Suspend',   icon: ShieldOff, action: () => doAction(user.id, 'suspend') },
@@ -452,6 +463,10 @@ export default function AdminUsersPage() {
                 <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
                   <UserX className="w-5 h-5 text-red-400" />
                 </div>
+              ) : modal.type === 'role' ? (
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-purple-400" />
+                </div>
               ) : (
                 <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-blue-400" />
@@ -459,7 +474,7 @@ export default function AdminUsersPage() {
               )}
               <div>
                 <p className="font-bold text-white">
-                  {modal.type === 'ban' ? 'Ban User' : 'Send Email'}
+                  {modal.type === 'ban' ? 'Ban User' : modal.type === 'role' ? 'Change Role' : 'Send Email'}
                 </p>
                 <p className="text-sm text-white/40">{modal.user.name}</p>
               </div>
@@ -477,6 +492,29 @@ export default function AdminUsersPage() {
                 className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 resize-none"
               />
             )}
+            {modal.type === 'role' && (
+              <div className="space-y-3">
+                <p className="text-sm text-white/60">
+                  Select new role for <strong className="text-white">{modal.user.name}</strong>
+                </p>
+                <div className="flex flex-col gap-2">
+                  {(['USER', 'DEALER', 'ADMIN'] as const).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => doRoleChange(modal.user.id, r)}
+                      className={cn(
+                        'w-full py-2.5 rounded-xl text-sm font-semibold border transition-all',
+                        modal.user.role === r
+                          ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
+                          : 'border-white/[0.09] bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white'
+                      )}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -485,17 +523,19 @@ export default function AdminUsersPage() {
               >
                 Cancel
               </button>
-              <button
-                onClick={() => modal.type === 'ban' ? doAction(modal.user.id, 'ban') : setModal(null)}
-                className={cn(
-                  'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all',
-                  modal.type === 'ban'
-                    ? 'bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30'
-                    : 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]',
-                )}
-              >
-                {modal.type === 'ban' ? 'Confirm Ban' : 'Send'}
-              </button>
+              {modal.type !== 'role' && (
+                <button
+                  onClick={() => modal.type === 'ban' ? doAction(modal.user.id, 'ban') : setModal(null)}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                    modal.type === 'ban'
+                      ? 'bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30'
+                      : 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]',
+                  )}
+                >
+                  {modal.type === 'ban' ? 'Confirm Ban' : 'Send'}
+                </button>
+              )}
             </div>
           </div>
         </div>

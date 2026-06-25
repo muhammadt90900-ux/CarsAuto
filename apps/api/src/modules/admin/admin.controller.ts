@@ -66,6 +66,11 @@ class BanUserDto {
   @IsBoolean() @Transform(({ value }) => value === true || value === 'true') banned!: boolean;
 }
 
+class SetRoleDto {
+  @IsIn(['USER', 'DEALER', 'ADMIN'])
+  role!: 'USER' | 'DEALER' | 'ADMIN';
+}
+
 class ResolveReportDto {
   @IsIn(['resolved', 'dismissed']) action!: 'resolved' | 'dismissed';
 }
@@ -106,6 +111,14 @@ export class AdminController {
   @Patch('users/:id/ban')
   banUser(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BanUserDto) {
     return this.adminService.banUser(id, dto.banned);
+  }
+
+  @Patch('users/:id/role')
+  setUserRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetRoleDto,
+  ) {
+    return this.adminService.setUserRole(id, dto.role);
   }
 
   @Delete('users/:id')

@@ -351,6 +351,15 @@ export const dealersApi = {
     api.post<any>(`/dealers/${dealerId}/contact`, data).then((r) => r.data),
 };
 
+// ── Admin API ─────────────────────────────────────────────────────────────────
+export const adminApi = {
+  setUserRole: (id: string, role: 'USER' | 'DEALER' | 'ADMIN') =>
+    getApi().patch<{ id: string; email: string; role: string }>(
+      `/admin/users/${id}/role`,
+      { role }
+    ).then(r => r.data),
+};
+
 // ── Users API ─────────────────────────────────────────────────────────────────
 export const usersApi = {
   getMe: () =>

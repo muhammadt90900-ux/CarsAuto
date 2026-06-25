@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
+import Script from 'next/script';
 import { locales, dir, hreflangMap, type Locale } from '@/i18n/config';
 import { fontVariables } from '@/lib/fonts';
 import { Providers } from '@/components/Providers';
@@ -121,19 +122,6 @@ export default async function LocaleLayout({ children, params }: Props) {
       className={`${fontVariables} dark`}
     >
       <head>
-        {/*
-         * Anti-FOUC theme script — runs synchronously before first paint.
-         * 'light' in localStorage → remove dark class (user chose light)
-         * anything else (null / 'dark') → add dark class (default = dark)
-         * suppressHydrationWarning on <html> absorbs the className difference
-         * between SSR ("dark" always) and client (may differ per localStorage).
-         */}
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('carsauto-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
-          }}
-        />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="manifest" href="/manifest.json" />
@@ -150,6 +138,12 @@ export default async function LocaleLayout({ children, params }: Props) {
         <meta name="msapplication-config" content="none" />
         <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />
+        {/*
+         * JSON-LD structured data — plain <script> in <head> is correct here.
+         * This is a Server Component: React renders these to raw HTML on the
+         * server (SSR/SSG). They are never re-executed on the client, which is
+         * exactly what we want for SEO crawlers.
+         */}
         <script
           id="jsonld-organisation"
           type="application/ld+json"
@@ -162,6 +156,29 @@ export default async function LocaleLayout({ children, params }: Props) {
         />
       </head>
       <body className={`${bodyFontClass} antialiased`} suppressHydrationWarning>
+        {/*
+         * Anti-FOUC theme script — must run synchronously before first paint.
+         *
+         * ✅ next/script strategy="beforeInteractive" is the correct API here:
+         *    Next.js injects it before hydration, so it runs before React touches
+         *    the DOM. This avoids the React 19 "script tag in component" warning
+         *    that fires when a raw <script> is placed inside JSX rendered on the
+         *    client side.
+         *
+         * Logic:
+         *   'light' in localStorage → remove dark class (user chose light)
+         *   anything else (null / 'dark') → keep dark class (default = dark)
+         *
+         * suppressHydrationWarning on <html> absorbs any className mismatch
+         * between SSR ("dark" always) and client (reads localStorage).
+         */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('carsauto-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PWAProvider>
             <Providers>{children}</Providers>

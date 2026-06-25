@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, Logger, Optional } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -128,6 +129,24 @@ export class AdminService {
         throw new NotFoundException(`User ${id} not found`);
       }
       this.logger.error(`Failed to ban user ${id}: ${err.message}`);
+      throw err;
+    }
+  }
+
+  async setUserRole(id: string, role: 'USER' | 'DEALER' | 'ADMIN') {
+    const allowed: UserRole[] = [UserRole.USER, UserRole.DEALER, UserRole.ADMIN];
+    if (!allowed.includes(role as UserRole)) {
+      throw new BadRequestException(`Invalid role: ${role}`);
+    }
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: { role: role as UserRole },
+        select: { id: true, email: true, role: true },
+      });
+    } catch (err: any) {
+      if (err.code === 'P2025') throw new NotFoundException(`User ${id} not found`);
+      this.logger.error(`setUserRole failed for ${id}: ${err.message}`);
       throw err;
     }
   }

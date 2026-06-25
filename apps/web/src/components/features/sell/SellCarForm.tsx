@@ -122,7 +122,7 @@ const DRIVE_TYPES: { value: VehicleSpec['driveType']; labelKu: string }[] = [
   { value: '4WD', labelKu: '4WD' },
 ];
 
-const DOORS_OPTIONS: NonNullable<VehicleSpec['doors']>[] = [2, 3, 4, 5];
+const DOORS_OPTIONS: NonNullable<VehicleSpec['doors']>[] = [2, 3, 4];
 
 const MOTO_TYPES: { value: VehicleSpec['motoType']; labelKu: string; labelAr: string }[] = [
   { value: 'SPORT',   labelKu: 'سپۆرت',  labelAr: 'رياضية' },

@@ -42,6 +42,15 @@ const nextConfig = {
     minimumCacheTTL: 86_400,
     dangerouslyAllowSVG: false,
     contentDispositionType: 'attachment',
+    // DEV FIX: local uploads are served from http://localhost:4000 (or
+    // 127.0.0.1/::1 after DNS resolution), and Next.js Image Optimization
+    // blocks ALL loopback/private IPs as an SSRF guard — this check happens
+    // on the resolved IP, so it applies even though "localhost" is already
+    // listed in remotePatterns above. There's no remotePatterns entry that
+    // can bypass it. Disabling optimization only in dev avoids the
+    // "resolved to private ip" error; production still optimises normally
+    // since it serves images from Cloudinary/CDN, not localhost.
+    unoptimized: process.env.NODE_ENV !== 'production',
   },
 
   // ── HTTP headers ──────────────────────────────────────────────────────────
@@ -168,3 +177,4 @@ function withOptionalBundleAnalyzer(config) {
 }
 
 module.exports = withOptionalBundleAnalyzer(withNextIntl(nextConfig));
+

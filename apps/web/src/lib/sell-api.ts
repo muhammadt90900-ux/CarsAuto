@@ -19,7 +19,7 @@ export interface VehicleSpec {
   engineCC?: number;
   bodyType?: 'SEDAN' | 'SUV' | 'PICKUP' | 'HATCHBACK' | 'COUPE' | 'VAN' | 'WAGON';
   driveType?: 'FWD' | 'RWD' | 'AWD' | '4WD';
-  doors?: 2 | 3 | 4 | 5;
+  doors?: 2 | 3 | 4;
   motoType?: 'SPORT' | 'CRUISER' | 'SCOOTER' | 'DIRT' | 'TOURING';
 }
 

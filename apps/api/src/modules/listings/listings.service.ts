@@ -306,6 +306,18 @@ export class ListingsService {
       const isAccessory = ACCESSORY_TYPES.has(listingType);
 
       // Build vehicleSpec create payload from vehicleSpecInput or condition
+      // Map frontend driveType values to the Prisma DrivetrainType enum.
+      // The frontend UI uses '4WD' (matches user-facing labels), but the
+      // Prisma enum is FOUR_WD (FWD / RWD / AWD / FOUR_WD) — without this
+      // mapping, listing.create() throws PrismaClientValidationError:
+      // "Invalid value for argument `drivetrain`. Expected DrivetrainType."
+      const DRIVETRAIN_MAP: Record<string, string> = {
+        FWD: 'FWD',
+        RWD: 'RWD',
+        AWD: 'AWD',
+        '4WD': 'FOUR_WD',
+      };
+
       const vehicleSpecCreate = isVehicle
         ? {
             ...(vehicleSpecInput?.year         ? { year:         vehicleSpecInput.year }         : {}),
@@ -316,7 +328,7 @@ export class ListingsService {
             ...(vehicleSpecInput?.engineCC      ? { engineCC:     vehicleSpecInput.engineCC }      : {}),
             ...(vehicleSpecInput?.doors         ? { doors:        vehicleSpecInput.doors }         : {}),
             ...(vehicleSpecInput?.bodyType      ? { bodyType:     vehicleSpecInput.bodyType }      : {}),
-            ...(vehicleSpecInput?.driveType     ? { drivetrain:   vehicleSpecInput.driveType }     : {}),
+            ...(vehicleSpecInput?.driveType     ? { drivetrain:   DRIVETRAIN_MAP[vehicleSpecInput.driveType] ?? vehicleSpecInput.driveType } : {}),
             ...(condition                       ? { condition }                                    : {}),
           }
         : null;
