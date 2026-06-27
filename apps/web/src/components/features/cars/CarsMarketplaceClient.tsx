@@ -176,7 +176,7 @@ const CarCard = memo(function CarCard({
           <div className="car-list-img relative flex-shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
                style={{ width: 'clamp(96px,25vw,160px)', height: 'clamp(72px,18vw,112px)' }}>
             {!imgError ? (
-              <Image src={car.images?.[0] || '/placeholder-car.jpg'} alt={car.title}
+              <Image src={car.images?.[0]?.url || '/placeholder-car.jpg'} alt={car.title}
                 fill sizes="160px" priority={priority}
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 onError={() => setImgError(true)} />
@@ -222,7 +222,7 @@ const CarCard = memo(function CarCard({
       <article className="card-premium overflow-hidden h-full flex flex-col">
         <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[#0f1c2e]">
           {!imgError ? (
-            <Image src={car.images?.[0] || '/placeholder-car.jpg'} alt={car.title}
+            <Image src={car.images?.[0]?.url || '/placeholder-car.jpg'} alt={car.title}
               fill sizes="(min-width:1280px) 25vw,(min-width:768px) 33vw,50vw"
               priority={priority}
               className="object-cover group-hover:scale-105 transition-transform duration-600"

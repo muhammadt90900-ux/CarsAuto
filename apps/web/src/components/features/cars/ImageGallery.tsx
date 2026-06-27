@@ -95,7 +95,7 @@ function Lightbox({
         <div className="relative max-w-full max-h-full w-full h-full">
           <Image
             key={currentIndex}
-            src={images[currentIndex]?.url}
+            src={images[currentIndex]?.url || '/placeholder-car.jpg'}
             alt={`Image ${currentIndex + 1} of ${images.length}`}
             fill
             sizes="100vw"
@@ -137,7 +137,7 @@ function Lightbox({
                 : 'border-transparent opacity-50 hover:opacity-80'
             )}
           >
-            <Image src={img.url} alt="" fill className="object-cover" sizes="48px" draggable={false} />
+            <Image src={img.url || '/placeholder-car.jpg'} alt="" fill className="object-cover" sizes="48px" draggable={false} />
           </button>
         ))}
       </div>
@@ -237,7 +237,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
         >
           <Image
             key={activeIdx}
-            src={sorted[activeIdx]?.url}
+            src={sorted[activeIdx]?.url || '/placeholder-car.jpg'}
             alt={`${title} — image ${activeIdx + 1} of ${totalImages}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
@@ -345,7 +345,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
                   )}
                 >
                   <Image
-                    src={img.url}
+                    src={img.url || '/placeholder-car.jpg'}
                     alt=""
                     fill
                     sizes="80px"
