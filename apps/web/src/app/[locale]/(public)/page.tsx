@@ -218,7 +218,7 @@ export default async function HomePage({ params }: Props) {
             {t('viewAll')} →
           </Link>
         </div>
-        <FeaturedCars />
+        {newFunction()}
       </section>
 
       {/* 05 · TRENDING BRANDS */}
@@ -307,7 +307,7 @@ export default async function HomePage({ params }: Props) {
                       <div className="text-white/30 text-[9px]">listings</div>
                     </div>
                   </div>
-                  <Link href="/dealers/${dealer.id}"
+                  <Link href={`/dealers/${dealer.id}`}
                     className="block text-center text-xs font-bold py-2.5 rounded-xl border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/60 transition-all duration-200">
                     View Dealer →
                   </Link>
@@ -386,4 +386,8 @@ export default async function HomePage({ params }: Props) {
       </section>
     </>
   );
+
+  function newFunction() {
+    return <FeaturedCars />;
+  }
 }

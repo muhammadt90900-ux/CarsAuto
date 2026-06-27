@@ -256,7 +256,6 @@ const CarCard = memo(function CarCard({
           <h3 className="font-bold text-[var(--text-primary)] text-base leading-tight line-clamp-1 mb-2">
             {car.title}
           </h3>
-          
           <div className="flex flex-wrap gap-2 mb-3">
             <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
               <Gauge className="w-3 h-3"/>{fmtNum.format(car.mileage)} km
@@ -268,7 +267,6 @@ const CarCard = memo(function CarCard({
               <MapPin className="w-3 h-3"/>{car.city}
             </span>
           </div>
-
           <div className="mt-auto pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
             <span className="price-tag text-xl"
               style={{ background: 'linear-gradient(135deg,#f0d87a 0%,#c9a84c 100%)',
