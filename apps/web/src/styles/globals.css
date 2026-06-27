@@ -823,3 +823,148 @@
    MOBILE CSS IMPORT
    ─────────────────────────────────────────────────────────────── */
 
+/* ─────────────────────────────────────────────────────────────────────────
+   ADVANCED FILTER — Dual-range slider + single range slider
+   Added by: CarsMarketplaceClient v2.0 advanced filter system
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Dual range wrapper ──────────────────────────────────────────────── */
+.dual-range-root {
+  position: relative;
+  padding: 10px 0 0;
+  user-select: none;
+}
+
+/* ── Shared track ────────────────────────────────────────────────────── */
+.dual-range-track {
+  position: relative;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-200);
+}
+.dark .dual-range-track {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* ── Coloured fill between thumbs ────────────────────────────────────── */
+.dual-range-fill {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, #a87828, #c9a84c);
+  border-radius: var(--r-full);
+  pointer-events: none;
+}
+
+/* ── Slider inputs — stacked, transparent ────────────────────────────── */
+.dual-range-input {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  top: 10px;
+  left: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  outline: none;
+}
+
+/* Webkit thumb */
+.dual-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a84c, #dab445);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.45);
+  pointer-events: all;
+  cursor: grab;
+  transition: transform 0.12s var(--t-spring, ease), box-shadow 0.12s ease;
+}
+.dual-range-input::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.65);
+}
+
+/* Firefox thumb */
+.dual-range-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a84c, #dab445);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.45);
+  cursor: grab;
+  transition: transform 0.12s ease;
+}
+.dual-range-input::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+}
+
+/* ── Single range (mileage) ──────────────────────────────────────────── */
+.single-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: linear-gradient(
+    to right,
+    #c9a84c 0%,
+    #c9a84c var(--range-pct, 0%),
+    var(--surface-200) var(--range-pct, 0%),
+    var(--surface-200) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+.dark .single-range-input {
+  background: linear-gradient(
+    to right,
+    #c9a84c 0%,
+    #c9a84c var(--range-pct, 0%),
+    rgba(255, 255, 255, 0.10) var(--range-pct, 0%),
+    rgba(255, 255, 255, 0.10) 100%
+  );
+}
+.single-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a84c, #dab445);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.45);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.single-range-input::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.65);
+}
+.single-range-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a84c, #dab445);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.45);
+  cursor: grab;
+}
+
+/* ── Active filter chips row (mobile-scroll) ─────────────────────────── */
+.filter-chips-row {
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.filter-chips-row::-webkit-scrollbar {
+  display: none;
+}
