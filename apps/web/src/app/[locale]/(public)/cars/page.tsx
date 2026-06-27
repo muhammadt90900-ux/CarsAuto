@@ -50,5 +50,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CarsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   const search = searchParams ? await searchParams : {};
-  return <CarsMarketplaceClient locale={locale} initialSearch={search} />;
+  return < CarsMarketplaceClient locale={locale} initialSearch={search} />;
 }
