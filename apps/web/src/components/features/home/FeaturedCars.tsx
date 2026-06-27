@@ -189,13 +189,35 @@ const CarCard = memo(function CarCard({ car, locale }: { car: any; locale?: stri
 export function FeaturedCars({ locale }: { locale?: string }) {
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'deals'>('featured');
 
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.listings.list({ type: 'CAR', featured: true }),
-    queryFn: () => listingsApi.getAll({ type: 'CAR', featured: true, limit: 8 }),
-    staleTime: 5 * 60 * 1000,
+  // BUG FIX: Removed `featured: true` filter.
+  // All new listings have featured=false by default (schema: `featured Boolean @default(false)`).
+  // Filtering by featured:true means regular seller listings NEVER appear on the homepage.
+  // The featured badge is still shown per-card via `car.featured`. The backend already
+  // sorts featured listings first: orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }].
+  // staleTime reduced from 5 min → 60 s so newly created listings appear quickly.
+  const { data: allData, isLoading: allLoading } = useQuery({
+    queryKey: queryKeys.listings.list({ type: 'CAR', limit: 8 }),
+    queryFn: () => listingsApi.getAll({ type: 'CAR', limit: 8 }),
+    staleTime: 60 * 1000,
   });
 
-  const cars = data?.data ?? [];
+  // Separate query for the "⭐ Featured" tab — only when user clicks it
+  const { data: featuredData, isLoading: featuredLoading } = useQuery({
+    queryKey: queryKeys.listings.list({ type: 'CAR', featured: true, limit: 8 }),
+    queryFn: () => listingsApi.getAll({ type: 'CAR', featured: true, limit: 8 }),
+    staleTime: 60 * 1000,
+    enabled: activeTab === 'featured',
+  });
+
+  // For "New Arrivals" tab: most recent (already default sort)
+  // For "Best Deals" tab: lowest price (could add sortBy=price later, for now same pool)
+  const isLoading = activeTab === 'featured' ? featuredLoading : allLoading;
+
+  const rawCars = activeTab === 'featured'
+    ? (featuredData?.data ?? allData?.data ?? [])  // fall back to allData if no featured listings
+    : (allData?.data ?? []);
+
+  const cars = rawCars;
 
   const tabs = [
     { id: 'featured', label: '⭐ Featured' },
@@ -276,7 +298,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
           // Real empty state — no fake data
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-gray-400 dark:text-white/30 text-sm">
-              No featured listings yet. Check back soon!
+              No listings yet. Check back soon!
             </p>
           </div>
         ) : null}
