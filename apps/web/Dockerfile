@@ -33,6 +33,16 @@ RUN rm -f apps/web/src/middleware.ts
 ENV NEXT_OUTPUT=standalone
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# BUG FIX: NEXT_PUBLIC_* vars are inlined into the client bundle at build time
+# by `next build` — setting them only in docker-compose's `environment:` block
+# (which applies at container *runtime*) is too late and leaves every
+# browser-side API call (axios baseURL) pointing at `undefined`. They must be
+# passed in as build ARGs and exported as ENV before `npm run build` runs.
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api
+ARG NEXT_PUBLIC_WS_URL=
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+
 WORKDIR /app/apps/web
 RUN npm run build
 

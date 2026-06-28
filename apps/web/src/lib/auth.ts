@@ -17,10 +17,20 @@ export async function requireAdmin(): Promise<void> {
     redirect('/en/login?next=/en/admin');
   }
 
+  // BUG FIX: this code runs on the Next.js *server* (inside the Docker
+  // network in production), so it must reach the API container by its
+  // Docker service name (`http://api:4000/api`) — NOT by
+  // NEXT_PUBLIC_API_URL, which is the *browser-facing* address
+  // (`http://localhost:4000/api`) baked into the client bundle at build
+  // time. Reusing NEXT_PUBLIC_API_URL here previously caused every
+  // admin-page server check to fail to reach the API in Docker, redirecting
+  // straight back to /login even with a valid ADMIN session.
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+
   let isAdmin = false;
 
   try {
-    const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+    const refreshRes = await fetch(`${apiUrl}/auth/refresh`, {
       method: 'POST',
       headers: { Cookie: `refresh_token=${refreshToken}` },
       cache: 'no-store',
@@ -28,7 +38,7 @@ export async function requireAdmin(): Promise<void> {
 
     if (refreshRes.ok) {
       const { access_token } = await refreshRes.json();
-      const meRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+      const meRes = await fetch(`${apiUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${access_token}` },
         cache: 'no-store',
       });
