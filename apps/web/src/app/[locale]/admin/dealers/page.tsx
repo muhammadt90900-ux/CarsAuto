@@ -24,6 +24,7 @@ const TIER_OPTIONS = ['BASIC', 'STANDARD', 'GOLD', 'PLATINUM'] as const;
 
 export default function AdminDealersPage() {
   const [dealers,  setDealers]  = useState<any[]>([]);
+  const [total,    setTotal]    = useState(0);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState('');
   const [filter,   setFilter]   = useState('PENDING');
@@ -33,9 +34,12 @@ export default function AdminDealersPage() {
   const fetchDealers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/admin/dealers?status=${filter}&search=${search}`);
-      const data = res.data;
-      setDealers(data.dealers ?? []);
+      const params = new URLSearchParams();
+      if (filter) params.set('status', filter);
+      if (search) params.set('search', search);
+      const res = await api.get(`/admin/dealers?${params.toString()}`);
+      setDealers(res.data?.data ?? []);
+      setTotal(res.data?.total ?? 0);
     } finally {
       setLoading(false);
     }
@@ -46,9 +50,13 @@ export default function AdminDealersPage() {
   const act = useCallback(async (id: string, action: 'verify' | 'suspend' | 'reject', tier?: string) => {
     setActioning(id);
     try {
-      await api.patch(`/admin/dealers/${id}/${action}`, {
-        ...(tier ? { tier } : {}),
-      });
+      if (action === 'verify') {
+        await api.patch(`/dealers/${id}/verify`, { tier: tier ?? 'BASIC' });
+      } else if (action === 'suspend') {
+        await api.patch(`/dealers/${id}/suspend`);
+      } else {
+        await api.patch(`/admin/dealers/${id}/reject`);
+      }
       await fetchDealers();
     } finally {
       setActioning(null);
@@ -56,7 +64,7 @@ export default function AdminDealersPage() {
   }, [fetchDealers]);
 
   const counts: Record<string, number> = {
-    PENDING: dealers.filter(d => d.status === 'PENDING').length,
+    PENDING: filter === 'PENDING' ? total : dealers.filter(d => d.status === 'PENDING').length,
   };
 
   return (
@@ -120,7 +128,7 @@ export default function AdminDealersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                {['Dealer','Status','Tier','Listings','Rating','Actions'].map(h => (
+                {['Dealer','Status','Tier','Plan','Listings','Rating','Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[0.68rem] text-white/35 uppercase tracking-wider font-semibold">
                     {h}
                   </th>
@@ -179,6 +187,23 @@ export default function AdminDealersPage() {
                         </select>
                         <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30 pointer-events-none" />
                       </div>
+                    </td>
+
+                    {/* Subscription plan */}
+                    <td className="px-4 py-3">
+                      {dealer.subscription ? (
+                        <span className={cn(
+                          'text-[0.68rem] font-bold uppercase tracking-wider px-2 py-1 rounded-md',
+                          dealer.subscription.plan === 'ENTERPRISE' ? 'bg-[#c9a84c]/15 text-[#c9a84c]' :
+                          dealer.subscription.plan === 'BUSINESS'   ? 'bg-purple-400/15 text-purple-300' :
+                          dealer.subscription.plan === 'STARTER'    ? 'bg-blue-400/15 text-blue-300' :
+                          'bg-white/[0.06] text-white/40',
+                        )}>
+                          {dealer.subscription.plan}
+                        </span>
+                      ) : (
+                        <span className="text-white/20 text-xs">—</span>
+                      )}
                     </td>
 
                     {/* Listings */}
@@ -254,6 +279,9 @@ export default function AdminDealersPage() {
               })}
             </tbody>
           </table>
+          <div className="px-4 py-3 border-t border-white/[0.07] bg-white/[0.01]">
+            <p className="text-xs text-white/30">{total} dealer{total === 1 ? '' : 's'} found</p>
+          </div>
         </div>
       )}
     </div>

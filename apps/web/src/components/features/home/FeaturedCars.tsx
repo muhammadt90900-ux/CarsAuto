@@ -47,7 +47,13 @@ const CarCard = memo(function CarCard({ car, locale }: { car: any; locale?: stri
 
   const handleImgError = useCallback(() => setImgError(true), []);
 
-  const imageUrl = car.images?.[0] || null;
+  // FIX: car.images[0] can be either a string URL or an object { url, key, width, height }
+  // Previously: car.images?.[0] — returned {} which is truthy, causing src={} error
+  const rawImage = car.images?.[0];
+  const imageUrl = typeof rawImage === 'string'
+    ? rawImage
+    : (rawImage?.url ?? null);
+
   const href = locale ? `/${locale}/cars/${car.id}` : `/cars/${car.id}`;
 
   return (
@@ -294,14 +300,14 @@ export function FeaturedCars({ locale }: { locale?: string }) {
               <CarCard key={car.id} car={car} locale={locale} />
             ))}
           </div>
-        ) : cars.length === 0 ? (
-          // Real empty state — no fake data
+        ) : (
+          // Empty state
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-gray-400 dark:text-white/30 text-sm">
               No listings yet. Check back soon!
             </p>
           </div>
-        ) : null}
+        )}
 
         {/* Bottom CTA */}
         <div className="text-center mt-10">

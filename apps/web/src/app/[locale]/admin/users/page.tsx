@@ -1,53 +1,61 @@
 'use client';
 // apps/web/src/app/[locale]/admin/users/page.tsx
-// Admin: full user management — list, search, filter, ban, role changes
+// Admin: full user management — list, search, filter, ban, suspend, role
+// changes. Maps directly onto the real User model: role is
+// USER | DEALER | ADMIN (no MODERATOR), and account status is derived from
+// banned / suspendedUntil (no PENDING — that's a listing/dealer concept,
+// not a user one). Backed by real /admin/users endpoints.
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Filter, MoreVertical, UserX, UserCheck, Shield,
-  ShieldOff, Mail, Eye, Download, Users, TrendingUp, UserPlus,
-  ChevronLeft, ChevronRight, X, AlertTriangle, CheckCircle2,
-  Loader2,
+  Search, MoreVertical, UserX, UserCheck, Shield,
+  ShieldOff, Eye, Users, AlertTriangle, UserPlus,
+  ChevronLeft, ChevronRight, X, Loader2, Calendar,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
 import { api, adminApi } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-const ROLES    = ['USER', 'DEALER', 'MODERATOR', 'ADMIN'] as const;
-const STATUSES = ['ACTIVE', 'SUSPENDED', 'BANNED', 'PENDING'] as const;
+const ROLES    = ['USER', 'DEALER', 'ADMIN'] as const;
+const STATUSES = ['ACTIVE', 'SUSPENDED', 'BANNED'] as const;
 
 type Role   = typeof ROLES[number];
 type Status = typeof STATUSES[number];
 
 interface User {
-  id:             string;
-  name:           string;
-  email:          string;
-  role:           Role;
-  status:         Status;
-  joinedAt:       string;
-  lastSeen:       string;
-  listingsCount:  number;
-  flagsCount:     number;
-  avatar?:        string;
+  id:               string;
+  name:             string;
+  email:            string;
+  phone?:           string;
+  role:             Role;
+  verified:         boolean;
+  banned:           boolean;
+  suspendedUntil?:  string | null;
+  suspendedReason?: string | null;
+  createdAt:        string;
+  _count?:          { listings: number; reports: number };
+}
+
+function statusOf(user: User): Status {
+  if (user.banned) return 'BANNED';
+  if (user.suspendedUntil && new Date(user.suspendedUntil) > new Date()) return 'SUSPENDED';
+  return 'ACTIVE';
 }
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
 const ROLE_STYLES: Record<Role, { label: string; color: string; bg: string }> = {
-  USER:      { label: 'User',      color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
-  DEALER:    { label: 'Dealer',    color: '#c9a84c', bg: 'rgba(201,168,76,0.12)'  },
-  MODERATOR: { label: 'Moderator', color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
-  ADMIN:     { label: 'Admin',     color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  USER:   { label: 'User',   color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
+  DEALER: { label: 'Dealer', color: '#c9a84c', bg: 'rgba(201,168,76,0.12)'  },
+  ADMIN:  { label: 'Admin',  color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
 };
 
 const STATUS_STYLES: Record<Status, { label: string; dot: string; text: string; bg: string }> = {
   ACTIVE:    { label: 'Active',    dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10' },
   SUSPENDED: { label: 'Suspended', dot: 'bg-yellow-400',  text: 'text-yellow-400',  bg: 'bg-yellow-400/10'  },
   BANNED:    { label: 'Banned',    dot: 'bg-red-500',     text: 'text-red-400',     bg: 'bg-red-400/10'     },
-  PENDING:   { label: 'Pending',   dot: 'bg-blue-400',    text: 'text-blue-400',    bg: 'bg-blue-400/10'    },
 };
 
-// ─── Loading spinner ──────────────────────────────────────────────────────────
+// ─── Loading / error states ───────────────────────────────────────────────────
 function LoadingState() {
   return (
     <div className="flex items-center justify-center py-20">
@@ -56,7 +64,6 @@ function LoadingState() {
   );
 }
 
-// ─── Error state ──────────────────────────────────────────────────────────────
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -86,7 +93,10 @@ export default function AdminUsersPage() {
   const [page, setPage]                 = useState(1);
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [actionMenu, setActionMenu]     = useState<string | null>(null);
-  const [modal, setModal]               = useState<{ type: 'ban' | 'suspend' | 'email' | 'role'; user: User } | null>(null);
+  const [modal, setModal]               = useState<{ type: 'ban' | 'suspend' | 'role'; user: User } | null>(null);
+  const [submitting, setSubmitting]     = useState(false);
+  const [suspendDays, setSuspendDays]   = useState(7);
+  const [suspendReason, setSuspendReason] = useState('');
 
   const fetchUsers = useCallback(() => {
     setLoading(true);
@@ -101,7 +111,7 @@ export default function AdminUsersPage() {
 
     api.get(`/admin/users?${params.toString()}`)
       .then(r => {
-        setUsers(r.data.data  ?? r.data.users ?? []);
+        setUsers(r.data.data ?? []);
         setTotal(r.data.total ?? 0);
       })
       .catch((err) => {
@@ -134,37 +144,61 @@ export default function AdminUsersPage() {
     }
   };
 
-  const doAction = async (userId: string, action: 'ban' | 'suspend' | 'activate') => {
+  const doBan = async (userId: string, banned: boolean) => {
+    setSubmitting(true);
     try {
-      await api.patch(`/admin/users/${userId}/${action}`);
+      await adminApi.banUser(userId, banned);
       setActionMenu(null);
       setModal(null);
       fetchUsers();
-    } catch {
-      // Optimistic fallback: update local state
-      setUsers(prev => prev.map(u =>
-        u.id === userId
-          ? { ...u, status: action === 'ban' ? 'BANNED' : action === 'suspend' ? 'SUSPENDED' : 'ACTIVE' }
-          : u
-      ));
-      setActionMenu(null);
-      setModal(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Failed to update ban status');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const doRoleChange = async (userId: string, role: 'USER' | 'DEALER' | 'ADMIN') => {
+  const doSuspend = async (userId: string, days: number, reason: string) => {
+    setSubmitting(true);
+    try {
+      const until = new Date(Date.now() + days * 86_400_000).toISOString();
+      await adminApi.suspendUser(userId, until, reason || undefined);
+      setActionMenu(null);
+      setModal(null);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Failed to suspend user');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const liftSuspension = async (userId: string) => {
+    setSubmitting(true);
+    try {
+      await adminApi.suspendUser(userId, null);
+      setActionMenu(null);
+      fetchUsers();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const doRoleChange = async (userId: string, role: Role) => {
+    setSubmitting(true);
     try {
       await adminApi.setUserRole(userId, role);
       setModal(null);
       fetchUsers();
-    } catch {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-      setModal(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Failed to change role');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const activeCount  = users.filter(u => u.status === 'ACTIVE').length;
-  const flaggedCount = users.filter(u => u.flagsCount > 0).length;
+  const activeCount  = users.filter(u => statusOf(u) === 'ACTIVE').length;
+  const flaggedCount = users.filter(u => (u._count?.reports ?? 0) > 0).length;
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -175,21 +209,15 @@ export default function AdminUsersPage() {
           <h1 className="font-display font-black text-white text-2xl tracking-tight">User Management</h1>
           <p className="text-white/40 text-sm mt-0.5">Manage accounts, roles, and permissions</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white/60 text-xs font-semibold hover:bg-white/[0.08] transition-all">
-            <Download className="w-3.5 h-3.5" />
-            Export CSV
-          </button>
-        </div>
       </div>
 
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Total Users',   value: total,        icon: Users,        color: '#3b82f6' },
-          { label: 'Active',        value: activeCount,  icon: UserCheck,    color: '#22c55e' },
-          { label: 'Flagged',       value: flaggedCount, icon: AlertTriangle, color: '#f59e0b' },
-          { label: 'This Page',     value: users.length, icon: UserPlus,     color: '#c9a84c' },
+          { label: 'Total Users',   value: total,        icon: Users,         color: '#3b82f6' },
+          { label: 'Active',        value: activeCount,  icon: UserCheck,     color: '#22c55e' },
+          { label: 'Reported',      value: flaggedCount, icon: AlertTriangle, color: '#f59e0b' },
+          { label: 'This Page',     value: users.length, icon: UserPlus,      color: '#c9a84c' },
         ].map(s => {
           const Icon = s.icon;
           return (
@@ -254,9 +282,12 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#c9a84c]/10 border border-[#c9a84c]/25">
           <span className="text-sm font-semibold text-[#c9a84c]">{selected.size} selected</span>
           <div className="h-4 w-px bg-[#c9a84c]/30" />
-          <button className="text-xs font-semibold text-white/60 hover:text-yellow-400 transition-colors">Suspend All</button>
-          <button className="text-xs font-semibold text-white/60 hover:text-red-400 transition-colors">Ban All</button>
-          <button className="text-xs font-semibold text-white/60 hover:text-blue-400 transition-colors">Send Email</button>
+          <button
+            onClick={() => Promise.all(Array.from(selected).map(id => adminApi.banUser(id, true))).then(() => { setSelected(new Set()); fetchUsers(); })}
+            className="text-xs font-semibold text-white/60 hover:text-red-400 transition-colors"
+          >
+            Ban All
+          </button>
           <button onClick={() => setSelected(new Set())} className="ml-auto text-white/30 hover:text-white/60 transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -286,7 +317,7 @@ export default function AdminUsersPage() {
                     className="rounded border-white/20 bg-transparent accent-[#c9a84c]"
                   />
                 </th>
-                {['User', 'Role', 'Status', 'Joined', 'Last Seen', 'Listings', 'Flags', 'Actions'].map(h => (
+                {['User', 'Role', 'Status', 'Joined', 'Listings', 'Reports', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[0.68rem] text-white/35 uppercase tracking-wider font-semibold whitespace-nowrap">
                     {h}
                   </th>
@@ -295,8 +326,9 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((user, i) => {
-                const roleStyle   = ROLE_STYLES[user.role]   ?? ROLE_STYLES.USER;
-                const statusStyle = STATUS_STYLES[user.status] ?? STATUS_STYLES.PENDING;
+                const roleStyle   = ROLE_STYLES[user.role] ?? ROLE_STYLES.USER;
+                const status      = statusOf(user);
+                const statusStyle = STATUS_STYLES[status];
                 const isSelected  = selected.has(user.id);
 
                 return (
@@ -322,7 +354,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
                              style={{ background: `${roleStyle.color}22`, color: roleStyle.color }}>
-                          {user.name?.charAt(0) ?? '?'}
+                          {user.name?.charAt(0)?.toUpperCase() ?? '?'}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white">{user.name}</p>
@@ -345,18 +377,25 @@ export default function AdminUsersPage() {
                         <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
                         {statusStyle.label}
                       </span>
+                      {status === 'SUSPENDED' && user.suspendedUntil && (
+                        <p className="text-[0.62rem] text-white/25 mt-1 flex items-center gap-1">
+                          <Calendar className="w-2.5 h-2.5" />
+                          until {new Date(user.suspendedUntil).toLocaleDateString()}
+                        </p>
+                      )}
                     </td>
 
-                    <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">{user.joinedAt}</td>
-                    <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">{user.lastSeen ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-white/60 text-center">{user.listingsCount ?? 0}</td>
+                    <td className="px-4 py-3 text-xs text-white/40 whitespace-nowrap">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white/60 text-center">{user._count?.listings ?? 0}</td>
 
-                    {/* Flags */}
+                    {/* Reports */}
                     <td className="px-4 py-3">
-                      {(user.flagsCount ?? 0) > 0 ? (
+                      {(user._count?.reports ?? 0) > 0 ? (
                         <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
                           <AlertTriangle className="w-3 h-3" />
-                          {user.flagsCount}
+                          {user._count?.reports}
                         </span>
                       ) : (
                         <span className="text-white/20 text-xs">—</span>
@@ -373,25 +412,26 @@ export default function AdminUsersPage() {
                           <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                         {actionMenu === user.id && (
-                          <div className="absolute right-0 top-8 z-50 w-44 rounded-xl bg-[#0d1b2e] border border-white/[0.12] shadow-2xl overflow-hidden py-1">
+                          <div className="absolute right-0 top-8 z-50 w-48 rounded-xl bg-[#0d1b2e] border border-white/[0.12] shadow-2xl overflow-hidden py-1">
                             {[
-                              { label: 'View Profile',  icon: Eye,       action: () => setActionMenu(null) },
-                              { label: 'Send Email',    icon: Mail,      action: () => { setModal({ type: 'email', user }); setActionMenu(null); } },
-                              { label: 'Change Role',   icon: Shield,    action: () => { setModal({ type: 'role', user }); setActionMenu(null); } },
-                              user.status !== 'ACTIVE'
-                                ? { label: 'Activate',  icon: UserCheck, action: () => doAction(user.id, 'activate') }
-                                : { label: 'Suspend',   icon: ShieldOff, action: () => doAction(user.id, 'suspend') },
-                              { label: 'Ban User',      icon: UserX,     action: () => { setModal({ type: 'ban', user }); setActionMenu(null); } },
+                              { label: 'View Profile', icon: Eye,    action: () => setActionMenu(null) },
+                              { label: 'Change Role',  icon: Shield, action: () => { setModal({ type: 'role', user }); setActionMenu(null); } },
+                              ...(status === 'SUSPENDED'
+                                ? [{ label: 'Lift Suspension', icon: UserCheck, action: () => liftSuspension(user.id) }]
+                                : [{ label: 'Suspend', icon: ShieldOff, action: () => { setSuspendDays(7); setSuspendReason(''); setModal({ type: 'suspend', user }); setActionMenu(null); } }]),
+                              status === 'BANNED'
+                                ? { label: 'Unban User', icon: UserCheck, action: () => doBan(user.id, false) }
+                                : { label: 'Ban User',   icon: UserX,     action: () => { setModal({ type: 'ban', user }); setActionMenu(null); } },
                             ].map(item => {
                               const Icon = item.icon;
-                              const isBan = item.label === 'Ban User';
+                              const isDestructive = item.label === 'Ban User' || item.label === 'Suspend';
                               return (
                                 <button
                                   key={item.label}
                                   onClick={item.action}
                                   className={cn(
                                     'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors',
-                                    isBan
+                                    isDestructive
                                       ? 'text-red-400 hover:bg-red-400/10'
                                       : 'text-white/60 hover:bg-white/[0.05] hover:text-white',
                                   )}
@@ -463,18 +503,18 @@ export default function AdminUsersPage() {
                 <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
                   <UserX className="w-5 h-5 text-red-400" />
                 </div>
-              ) : modal.type === 'role' ? (
-                <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-purple-400" />
+              ) : modal.type === 'suspend' ? (
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/15 flex items-center justify-center">
+                  <ShieldOff className="w-5 h-5 text-yellow-400" />
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-blue-400" />
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-purple-400" />
                 </div>
               )}
               <div>
                 <p className="font-bold text-white">
-                  {modal.type === 'ban' ? 'Ban User' : modal.type === 'role' ? 'Change Role' : 'Send Email'}
+                  {modal.type === 'ban' ? 'Ban User' : modal.type === 'suspend' ? 'Suspend User' : 'Change Role'}
                 </p>
                 <p className="text-sm text-white/40">{modal.user.name}</p>
               </div>
@@ -485,25 +525,45 @@ export default function AdminUsersPage() {
                 This will permanently ban <strong className="text-white">{modal.user.name}</strong> from the platform. They will not be able to log in or create listings.
               </p>
             )}
-            {modal.type === 'email' && (
-              <textarea
-                rows={4}
-                placeholder="Write your message to the user…"
-                className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 resize-none"
-              />
+
+            {modal.type === 'suspend' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-white/40 mb-1 block">Duration (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={suspendDays}
+                    onChange={e => setSuspendDays(Math.max(1, Number(e.target.value)))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 mb-1 block">Reason (optional)</label>
+                  <textarea
+                    rows={3}
+                    value={suspendReason}
+                    onChange={e => setSuspendReason(e.target.value)}
+                    placeholder="Why is this account being suspended?"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 resize-none"
+                  />
+                </div>
+              </div>
             )}
+
             {modal.type === 'role' && (
               <div className="space-y-3">
                 <p className="text-sm text-white/60">
                   Select new role for <strong className="text-white">{modal.user.name}</strong>
                 </p>
                 <div className="flex flex-col gap-2">
-                  {(['USER', 'DEALER', 'ADMIN'] as const).map(r => (
+                  {ROLES.map(r => (
                     <button
                       key={r}
                       onClick={() => doRoleChange(modal.user.id, r)}
+                      disabled={submitting}
                       className={cn(
-                        'w-full py-2.5 rounded-xl text-sm font-semibold border transition-all',
+                        'w-full py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50',
                         modal.user.role === r
                           ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
                           : 'border-white/[0.09] bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white'
@@ -525,15 +585,17 @@ export default function AdminUsersPage() {
               </button>
               {modal.type !== 'role' && (
                 <button
-                  onClick={() => modal.type === 'ban' ? doAction(modal.user.id, 'ban') : setModal(null)}
+                  onClick={() => modal.type === 'ban' ? doBan(modal.user.id, true) : doSuspend(modal.user.id, suspendDays, suspendReason)}
+                  disabled={submitting}
                   className={cn(
-                    'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                    'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2',
                     modal.type === 'ban'
                       ? 'bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30'
-                      : 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]',
+                      : 'bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/30',
                   )}
                 >
-                  {modal.type === 'ban' ? 'Confirm Ban' : 'Send'}
+                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {modal.type === 'ban' ? 'Confirm Ban' : 'Confirm Suspension'}
                 </button>
               )}
             </div>

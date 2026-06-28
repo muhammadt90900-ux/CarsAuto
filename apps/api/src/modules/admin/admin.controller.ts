@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Param, Query, Body, UseGuards, ParseUUIDPipe,
+  Param, Query, Body, UseGuards, ParseUUIDPipe, Request,
 } from '@nestjs/common';
 import {
   IsString, IsOptional, IsBoolean, MaxLength,
@@ -66,6 +66,12 @@ class BanUserDto {
   @IsBoolean() @Transform(({ value }) => value === true || value === 'true') banned!: boolean;
 }
 
+class SuspendUserDto {
+  // ISO date string for when the suspension lifts. Omit/null to lift early.
+  @IsOptional() @IsDateString() until?: string;
+  @IsOptional() @IsString() @MaxLength(255) reason?: string;
+}
+
 class SetRoleDto {
   @IsIn(['USER', 'DEALER', 'ADMIN'])
   role!: 'USER' | 'DEALER' | 'ADMIN';
@@ -102,23 +108,49 @@ export class AdminController {
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
   ) {
     const p = Math.max(1, Number(page ?? 1));
     const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
-    return this.adminService.getAllUsers(p, l, search);
+    return this.adminService.getAllUsers(p, l, search, role, status);
+  }
+
+  @Get('users/:id')
+  getUserDetail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getUserDetail(id);
   }
 
   @Patch('users/:id/ban')
-  banUser(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BanUserDto) {
-    return this.adminService.banUser(id, dto.banned);
+  banUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: BanUserDto,
+    @Request() req: any,
+  ) {
+    return this.adminService.banUser(id, dto.banned, req.user?.userId);
+  }
+
+  @Patch('users/:id/suspend')
+  suspendUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SuspendUserDto,
+    @Request() req: any,
+  ) {
+    let until: Date | null = null;
+    if (dto.until) {
+      const parsed = new Date(dto.until);
+      until = isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return this.adminService.suspendUser(id, until, dto.reason, req.user?.userId);
   }
 
   @Patch('users/:id/role')
   setUserRole(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SetRoleDto,
+    @Request() req: any,
   ) {
-    return this.adminService.setUserRole(id, dto.role);
+    return this.adminService.setUserRole(id, dto.role, req.user?.userId);
   }
 
   @Delete('users/:id')
@@ -150,18 +182,18 @@ export class AdminController {
   }
 
   @Patch('listings/:id/approve')
-  approve(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.approveListing(id);
+  approve(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.adminService.approveListing(id, req.user?.userId);
   }
 
   @Patch('listings/:id/reject')
-  reject(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.rejectListing(id);
+  reject(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.adminService.rejectListing(id, req.user?.userId);
   }
 
   @Delete('listings/:id')
-  deleteListing(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.deleteListing(id);
+  deleteListing(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.adminService.deleteListing(id, req.user?.userId);
   }
 
   // ── Featured Listings ──────────────────────────────────────────────────
@@ -185,15 +217,24 @@ export class AdminController {
 
   // ── Reports ────────────────────────────────────────────────────────────
   @Get('reports')
-  getReports(@Query('page') page: string, @Query('limit') limit: string) {
+  getReports(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+    @Query('type') type?: string,
+  ) {
     const p = Math.max(1, Number(page ?? 1));
     const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
-    return this.adminService.getReports(p, l);
+    return this.adminService.getReports(p, l, status, type);
   }
 
   @Patch('reports/:id/resolve')
-  resolveReport(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ResolveReportDto) {
-    return this.adminService.resolveReport(id, dto.action);
+  resolveReport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResolveReportDto,
+    @Request() req: any,
+  ) {
+    return this.adminService.resolveReport(id, dto.action, req.user?.userId);
   }
 
   // ── Categories ─────────────────────────────────────────────────────────
@@ -298,5 +339,70 @@ export class AdminController {
       from ? new Date(from) : undefined,
       to   ? new Date(to)   : undefined,
     );
+  }
+
+  // ── Dealers ─────────────────────────────────────────────────────────────
+  // NOTE: verify / suspend actions live on DealersController
+  // (PATCH /dealers/:id/verify, PATCH /dealers/:id/suspend) — both already
+  // guarded by JwtAuthGuard + AdminGuard. These routes add the admin-only
+  // list (all statuses) and the reject action that controller lacks.
+  @Get('dealers')
+  getDealers(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    const p = Math.max(1, Number(page ?? 1));
+    const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
+    return this.adminService.getAllDealers(p, l, status, search);
+  }
+
+  @Patch('dealers/:id/reject')
+  rejectDealer(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.adminService.rejectDealer(id, req.user?.userId);
+  }
+
+  // ── Transactions ────────────────────────────────────────────────────────
+  @Get('transactions')
+  getTransactions(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+    @Query('gateway') gateway?: string,
+    @Query('search') search?: string,
+  ) {
+    const p = Math.max(1, Number(page ?? 1));
+    const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
+    return this.adminService.getTransactions(p, l, status, gateway, search);
+  }
+
+  @Get('transactions/:id')
+  getTransactionDetail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getTransactionDetail(id);
+  }
+
+  // ── Subscriptions ───────────────────────────────────────────────────────
+  @Get('subscriptions/dealers')
+  getDealerSubscriptions(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+    @Query('plan') plan?: string,
+  ) {
+    const p = Math.max(1, Number(page ?? 1));
+    const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
+    return this.adminService.getDealerSubscriptions(p, l, status, plan);
+  }
+
+  @Get('subscriptions/users')
+  getUserSubscriptions(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+  ) {
+    const p = Math.max(1, Number(page ?? 1));
+    const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
+    return this.adminService.getUserSubscriptions(p, l, status);
   }
 }

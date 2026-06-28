@@ -14,7 +14,7 @@ import {
   TrendingUp, TrendingDown, Users, Car, Package, Store,
   DollarSign, Eye, CheckCircle2, XCircle, Clock, BarChart3,
   ArrowUpRight, Shield, Bell, RefreshCw,
-  ShieldCheck, FileWarning, ClipboardList, Megaphone,
+  ShieldCheck, FileWarning, ClipboardList, Crown,
 } from 'lucide-react';
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -124,22 +124,30 @@ export function AdminDashboardClient() {
     { key: 'totalListings',  label: 'Total Listings',    value: stats?.totalListings,  icon: Car,        color: '#3b82f6' },
     { key: 'activeListings', label: 'Active Listings',   value: stats?.activeListings, icon: Eye,        color: '#c9a84c' },
     { key: 'totalReports',   label: 'Open Reports',      value: stats?.totalReports,   icon: FileWarning,color: '#ef4444' },
+    { key: 'totalDealers',   label: 'Total Dealers',     value: stats?.totalDealers,   icon: Store,      color: '#8b5cf6' },
+    { key: 'activeSubscriptions', label: 'Premium Dealers', value: stats?.activeSubscriptions, icon: Crown, color: '#c9a84c' },
+    { key: 'totalRevenue',  label: 'Total Revenue',     value: stats?.totalRevenue,   icon: DollarSign, color: '#16a34a', isCurrency: true },
+    { key: 'bannedUsers',   label: 'Banned / Suspended', value: (stats?.bannedUsers ?? 0) + (stats?.suspendedUsers ?? 0), icon: Shield, color: '#dc2626' },
   ];
 
   // ── Quick actions using real pending counts ──────────────────────────────
   const quickActions = [
-    { label: 'Review Pending Listings', count: stats?.pendingListings, color: '#d97706', icon: Clock,        href: `/${locale}/admin/moderation`    },
-    { label: 'Open User Reports',       count: stats?.totalReports,    color: '#dc2626', icon: FileWarning,  href: `/${locale}/admin/reports`       },
-    { label: 'Manage Users',            count: stats?.totalUsers,      color: '#22c55e', icon: Users,        href: `/${locale}/admin/users`         },
-    { label: 'Active Ads',              count: stats?.totalAds,        color: '#3b82f6', icon: Megaphone,    href: `/${locale}/admin/ads`           },
-    { label: 'Featured Listings',       count: stats?.featuredListings,color: '#c9a84c', icon: Shield,       href: `/${locale}/admin/featured`      },
-    { label: 'Audit Logs',              count: null,                   color: '#8b5cf6', icon: ClipboardList, href: `/${locale}/admin/audit-logs`   },
+    { label: 'Review Pending Listings', count: stats?.pendingListings, color: '#d97706', icon: Clock,        href: `/${locale}/admin/moderation`     },
+    { label: 'Open User Reports',       count: stats?.totalReports,    color: '#dc2626', icon: FileWarning,  href: `/${locale}/admin/reports`        },
+    { label: 'Manage Users',            count: stats?.totalUsers,      color: '#22c55e', icon: Users,        href: `/${locale}/admin/users`          },
+    { label: 'Pending Dealers',         count: stats?.pendingDealers,  color: '#8b5cf6', icon: Store,        href: `/${locale}/admin/dealers`        },
+    { label: 'Featured Listings',       count: stats?.featuredListings,color: '#c9a84c', icon: Shield,       href: `/${locale}/admin/featured`       },
+    { label: 'Transactions',            count: null,                   color: '#3b82f6', icon: DollarSign,   href: `/${locale}/admin/transactions`   },
   ];
 
   // ── Feature cards using real counts ─────────────────────────────────────
   const featureCards = [
     { label: 'User Management',   desc: stats?.totalUsers    ? `${fmtNum(stats.totalUsers)} accounts`     : 'Manage accounts', icon: Users,        color: '#22c55e', href: `/${locale}/admin/users`         },
+    { label: 'Dealers',           desc: stats?.totalDealers  ? `${fmtNum(stats.totalDealers)} registered`  : 'Manage dealers',  icon: Store,        color: '#8b5cf6', href: `/${locale}/admin/dealers`       },
+    { label: 'Listings',          desc: stats?.totalListings ? `${fmtNum(stats.totalListings)} total`      : 'Manage listings', icon: Car,          color: '#3b82f6', href: `/${locale}/admin/listings`      },
     { label: 'Reports',           desc: stats?.totalReports  ? `${fmtNum(stats.totalReports)} open`        : 'No open reports', icon: FileWarning,  color: '#ef4444', href: `/${locale}/admin/reports`       },
+    { label: 'Transactions',      desc: 'Payments across all gateways',                                   icon: DollarSign,  color: '#16a34a', href: `/${locale}/admin/transactions`  },
+    { label: 'Subscriptions',     desc: stats?.activeSubscriptions ? `${fmtNum(stats.activeSubscriptions)} active` : 'Premium dealer plans', icon: Crown, color: '#c9a84c', href: `/${locale}/admin/subscriptions` },
     { label: 'Analytics',         desc: 'Listings & users over time',                                     icon: BarChart3,    color: '#3b82f6', href: `/${locale}/admin/analytics`     },
     { label: 'Audit Logs',        desc: 'Full action history',                                            icon: ClipboardList,color: '#8b5cf6', href: `/${locale}/admin/audit-logs`    },
     { label: 'Moderation',        desc: stats?.pendingListings ? `${fmtNum(stats.pendingListings)} pending` : 'Nothing pending', icon: ShieldCheck,  color: '#f59e0b', href: `/${locale}/admin/moderation`    },
@@ -182,8 +190,8 @@ export function AdminDashboardClient() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5">
         {statsLoading
-          ? Array.from({length:4}).map((_,i) => <KpiSkeleton key={i} />)
-          : kpis.map(({ key, label, value, icon: Icon, color }) => (
+          ? Array.from({length:8}).map((_,i) => <KpiSkeleton key={i} />)
+          : kpis.map(({ key, label, value, icon: Icon, color, isCurrency }) => (
             <div key={key} className="card-premium p-5">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
@@ -193,7 +201,7 @@ export function AdminDashboardClient() {
               </div>
               <div>
                 <p className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
-                  {fmtNum(value)}
+                  {isCurrency ? `$${fmtNum(value)}` : fmtNum(value)}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] mt-1">{label}</p>
               </div>

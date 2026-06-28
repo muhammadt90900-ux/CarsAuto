@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@cars-auto/utils';
 import {
-  LayoutDashboard, Users, Car, ListChecks, Settings,
-  BarChart3, ShieldCheck, ChevronRight, Tag, Languages,
-  Megaphone, Star, FileWarning, Store, Bell, ClipboardList,
-  Shield,
+  LayoutDashboard, Users, Car,
+  BarChart3, ShieldCheck, ChevronRight,
+  Star, FileWarning, Store, Bell, ClipboardList,
+  Shield, Receipt, Crown,
 } from 'lucide-react';
 
 // Badge counts — in production these would come from a real-time API call
@@ -41,8 +41,14 @@ export function AdminSidebar({ className }: { className?: string }) {
       label: 'Content',
       items: [
         { href: `/${locale}/admin/listings`,      label: 'Listings',     icon: Car             },
-        { href: `/${locale}/admin/featured`,      label: 'Featured',     icon: Star            },
-        { href: `/${locale}/admin/categories`,    label: 'Categories',   icon: Tag             },
+        { href: `/${locale}/admin/featured`,      label: 'Featured & Ads', icon: Star          },
+      ],
+    },
+    {
+      label: 'Revenue',
+      items: [
+        { href: `/${locale}/admin/transactions`,  label: 'Transactions', icon: Receipt         },
+        { href: `/${locale}/admin/subscriptions`, label: 'Subscriptions', icon: Crown          },
       ],
     },
     {
@@ -57,14 +63,6 @@ export function AdminSidebar({ className }: { className?: string }) {
       label: 'Engagement',
       items: [
         { href: `/${locale}/admin/notifications`, label: 'Notifications',icon: Bell,           badge: BADGE_COUNTS.notifications },
-        { href: `/${locale}/admin/ads`,           label: 'Ads',          icon: Megaphone       },
-      ],
-    },
-    {
-      label: 'System',
-      items: [
-        { href: `/${locale}/admin/translations`,  label: 'Translations', icon: Languages       },
-        { href: `/${locale}/admin/settings`,      label: 'Settings',     icon: Settings        },
       ],
     },
   ];

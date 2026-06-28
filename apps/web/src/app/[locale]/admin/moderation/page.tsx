@@ -1,78 +1,50 @@
 'use client';
 // apps/web/src/app/[locale]/admin/moderation/page.tsx
-// Admin: moderation queue — listings, images, text, AI-assisted flagging
+// Admin: listing moderation queue — pending approvals + spam-quarantined
+// listings (ListingStatus.UNDER_REVIEW, set automatically by content
+// moderation in listings.service.ts). Backed by real /admin/listings.
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShieldCheck, Eye, CheckCircle2, XCircle, Clock, Search,
-  AlertTriangle, Image as ImageIcon, Type, Car, Zap, MoreVertical,
-  ChevronLeft, ChevronRight, Loader2, Flag, RefreshCw,
+  ShieldCheck, CheckCircle2, XCircle, Search,
+  AlertTriangle, Car, ChevronLeft, ChevronRight, Loader2, RefreshCw, Zap,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
-type ModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-type ModerationReason = 'AI_FLAG' | 'USER_REPORT' | 'MANUAL_QUEUE' | 'PRICE_ANOMALY';
-type ContentType      = 'LISTING' | 'IMAGE' | 'TEXT' | 'PROFILE';
+type ListingStatus = 'PENDING' | 'UNDER_REVIEW' | 'ACTIVE' | 'REJECTED';
 
-interface ModerationItem {
-  id:            string;
-  type:          ContentType;
-  reason:        ModerationReason;
-  status:        ModerationStatus;
-  title:         string;
-  submittedBy:   string;
-  submittedAt:   string;
-  aiScore:       number; // 0–100, higher = more likely problematic
-  flags:         string[];
-  imageUrl?:     string;
+interface ListingRow {
+  id: string;
+  titleEn?: string;
+  titleKu?: string;
+  status: ListingStatus;
+  price: string | number;
+  currency: string;
+  createdAt: string;
+  user?: { id: string; name: string; email: string };
+  images?: { url?: string }[];
 }
 
-const TYPE_STYLES: Record<ContentType, { label: string; icon: any; color: string }> = {
-  LISTING: { label: 'Listing', icon: Car,       color: '#3b82f6' },
-  IMAGE:   { label: 'Image',   icon: ImageIcon, color: '#8b5cf6' },
-  TEXT:    { label: 'Text',    icon: Type,      color: '#22c55e' },
-  PROFILE: { label: 'Profile', icon: Eye,       color: '#c9a84c' },
+const STATUS_STYLES: Record<ListingStatus, { label: string; text: string; bg: string; dot: string }> = {
+  PENDING:      { label: 'Pending',       text: 'text-yellow-400',  bg: 'bg-yellow-400/10',  dot: 'bg-yellow-400'  },
+  UNDER_REVIEW: { label: 'Flagged (auto)', text: 'text-red-400',    bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
+  ACTIVE:       { label: 'Approved',      text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
+  REJECTED:     { label: 'Rejected',      text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
 };
-
-const REASON_STYLES: Record<ModerationReason, { label: string; icon: any; color: string }> = {
-  AI_FLAG:       { label: 'AI Flagged',    icon: Zap,           color: '#8b5cf6' },
-  USER_REPORT:   { label: 'User Report',   icon: Flag,          color: '#f43f5e' },
-  MANUAL_QUEUE:  { label: 'Manual Queue',  icon: Clock,         color: '#f59e0b' },
-  PRICE_ANOMALY: { label: 'Price Anomaly', icon: AlertTriangle, color: '#f97316' },
-};
-
-const STATUS_STYLES: Record<ModerationStatus, { label: string; text: string; bg: string; dot: string }> = {
-  PENDING:  { label: 'Pending',  text: 'text-yellow-400',  bg: 'bg-yellow-400/10',  dot: 'bg-yellow-400'  },
-  APPROVED: { label: 'Approved', text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
-  REJECTED: { label: 'Rejected', text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
-};
-
-function AiScoreBadge({ score }: { score: number }) {
-  const color = score >= 75 ? '#ef4444' : score >= 50 ? '#f59e0b' : '#22c55e';
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex-1 h-1.5 w-16 rounded-full bg-white/[0.06] overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
-      </div>
-      <span className="text-[0.68rem] font-bold tabular-nums" style={{ color }}>{score}</span>
-    </div>
-  );
-}
 
 const PAGE_SIZE = 10;
 
 export default function AdminModerationPage() {
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
-  const [items, setItems]             = useState<ModerationItem[]>([]);
-  const [total, setTotal]             = useState(0);
-  const [search, setSearch]           = useState('');
-  const [statusFilter, setStatus]     = useState<ModerationStatus | 'ALL'>('PENDING');
-  const [typeFilter, setType]         = useState<ContentType | 'ALL'>('ALL');
-  const [page, setPage]               = useState(1);
-  const [acting, setActing]           = useState<string | null>(null);
-  const [preview, setPreview]         = useState<ModerationItem | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
+  const [items, setItems]           = useState<ListingRow[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatus]   = useState<ListingStatus | 'ALL'>('PENDING');
+  const [page, setPage]             = useState(1);
+  const [acting, setActing]         = useState<string | null>(null);
+  const [preview, setPreview]       = useState<ListingRow | null>(null);
 
   const fetchQueue = useCallback(() => {
     setLoading(true);
@@ -81,14 +53,12 @@ export default function AdminModerationPage() {
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('limit', String(PAGE_SIZE));
-    // Default to PENDING unless overridden
     if (statusFilter !== 'ALL') params.set('status', statusFilter);
-    if (typeFilter   !== 'ALL') params.set('type',   typeFilter);
     if (search) params.set('search', search);
 
-    api.get(`/admin/moderation?${params.toString()}`)
+    api.get(`/admin/listings?${params.toString()}`)
       .then(r => {
-        setItems(r.data.data  ?? r.data.items ?? []);
+        setItems(r.data.data ?? []);
         setTotal(r.data.total ?? 0);
       })
       .catch((err) => {
@@ -96,24 +66,21 @@ export default function AdminModerationPage() {
         setError(msg);
       })
       .finally(() => setLoading(false));
-  }, [page, search, statusFilter, typeFilter]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => { fetchQueue(); }, [fetchQueue]);
-  useEffect(() => { setPage(1); }, [search, statusFilter, typeFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const act = async (id: string, action: 'approve' | 'reject') => {
     setActing(id);
     try {
-      await api.patch(`/admin/moderation/${id}/${action}`);
+      await api.patch(`/admin/listings/${id}/${action}`);
       fetchQueue();
     } catch {
-      // Optimistic update
       setItems(prev => prev.map(item =>
-        item.id === id
-          ? { ...item, status: action === 'approve' ? 'APPROVED' : 'REJECTED' }
-          : item
+        item.id === id ? { ...item, status: action === 'approve' ? 'ACTIVE' : 'REJECTED' } : item
       ));
     } finally {
       setActing(null);
@@ -121,8 +88,12 @@ export default function AdminModerationPage() {
     }
   };
 
-  const pendingCount  = items.filter(i => i.status === 'PENDING').length;
-  const highRiskCount = items.filter(i => i.aiScore >= 75 && i.status === 'PENDING').length;
+  const flaggedCount = statusFilter === 'UNDER_REVIEW'
+    ? total
+    : items.filter(i => i.status === 'UNDER_REVIEW').length;
+
+  const fmtPrice = (p: string | number, currency: string) =>
+    `${currency ?? 'USD'} ${new Intl.NumberFormat('en-US').format(Number(p))}`;
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -134,13 +105,13 @@ export default function AdminModerationPage() {
             <ShieldCheck className="w-6 h-6 text-[#c9a84c]" />
             Moderation
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">Review flagged listings, images, and content</p>
+          <p className="text-white/40 text-sm mt-0.5">Review pending and auto-flagged listings before they go live</p>
         </div>
         <div className="flex items-center gap-3">
-          {highRiskCount > 0 && (
+          {flaggedCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-400/10 border border-red-400/20">
               <Zap className="w-3.5 h-3.5 text-red-400" />
-              <span className="text-xs font-semibold text-red-400">{highRiskCount} high-risk</span>
+              <span className="text-xs font-semibold text-red-400">{flaggedCount} auto-flagged</span>
             </div>
           )}
           <button
@@ -148,33 +119,9 @@ export default function AdminModerationPage() {
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white/60 text-xs font-semibold hover:bg-white/[0.08] transition-all"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Refresh Queue
+            Refresh
           </button>
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Pending Review', value: total,                                          color: '#f59e0b', icon: Clock        },
-          { label: 'High Risk (AI)', value: highRiskCount,                                  color: '#ef4444', icon: Zap          },
-          { label: 'Approved',       value: items.filter(i => i.status === 'APPROVED').length, color: '#22c55e', icon: CheckCircle2 },
-          { label: 'Rejected',       value: items.filter(i => i.status === 'REJECTED').length, color: '#8b5cf6', icon: XCircle      },
-        ].map(s => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-4 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: `${s.color}15`, border: `1px solid ${s.color}22` }}>
-                <Icon className="w-4 h-4" style={{ color: s.color }} />
-              </div>
-              <div>
-                <p className="text-xl font-black text-white">{s.value}</p>
-                <p className="text-[0.68rem] text-white/35">{s.label}</p>
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       {/* Filters */}
@@ -184,12 +131,12 @@ export default function AdminModerationPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search moderation queue…"
+            placeholder="Search listings…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
-          {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(s => (
+          {(['ALL', 'PENDING', 'UNDER_REVIEW', 'ACTIVE', 'REJECTED'] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatus(s)}
@@ -197,20 +144,7 @@ export default function AdminModerationPage() {
                 statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
                                    : 'text-white/40 hover:text-white/70')}
             >
-              {s === 'ALL' ? 'All' : STATUS_STYLES[s as ModerationStatus].label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
-          {(['ALL', 'LISTING', 'IMAGE', 'TEXT', 'PROFILE'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setType(t)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                typeFilter === t ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
-                                 : 'text-white/40 hover:text-white/70')}
-            >
-              {t === 'ALL' ? 'All' : TYPE_STYLES[t as ContentType].label}
+              {s === 'ALL' ? 'All' : STATUS_STYLES[s as ListingStatus].label}
             </button>
           ))}
         </div>
@@ -242,7 +176,7 @@ export default function AdminModerationPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                {['Content', 'Type', 'Reason', 'AI Risk Score', 'Flags', 'Status', 'Submitted', 'Actions'].map(h => (
+                {['Listing', 'Seller', 'Price', 'Status', 'Submitted', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[0.68rem] text-white/35 uppercase tracking-wider font-semibold whitespace-nowrap">
                     {h}
                   </th>
@@ -251,70 +185,49 @@ export default function AdminModerationPage() {
             </thead>
             <tbody>
               {items.map((item, i) => {
-                const typeStyle   = TYPE_STYLES[item.type]   ?? TYPE_STYLES.LISTING;
-                const reasonStyle = REASON_STYLES[item.reason] ?? REASON_STYLES.MANUAL_QUEUE;
                 const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.PENDING;
-                const TypeIcon    = typeStyle.icon as any;
-                const ReasonIcon  = reasonStyle.icon as any;
                 const isActing    = acting === item.id;
+                const isFlagged   = item.status === 'UNDER_REVIEW';
+                const canAct      = item.status === 'PENDING' || item.status === 'UNDER_REVIEW';
 
                 return (
                   <tr
                     key={item.id}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
-                      item.aiScore >= 75 && item.status === 'PENDING' ? 'bg-red-950/10' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      isFlagged ? 'bg-red-950/10' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
                       'hover:bg-[#c9a84c]/[0.03] cursor-pointer',
                     )}
                     onClick={() => setPreview(item)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {item.aiScore >= 75 && item.status === 'PENDING' && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0 animate-pulse" />
-                        )}
-                        <p className="text-sm font-semibold text-white max-w-[220px] truncate">{item.title}</p>
+                        {isFlagged && <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0 animate-pulse" />}
+                        <Car className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
+                        <p className="text-sm font-semibold text-white max-w-[220px] truncate">
+                          {item.titleEn || item.titleKu || `Listing ${item.id.slice(0, 8)}`}
+                        </p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1.5 text-[0.7rem] font-semibold" style={{ color: typeStyle.color }}>
-                        <TypeIcon className="w-3 h-3" />
-                        {typeStyle.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1.5 text-[0.7rem] font-semibold" style={{ color: reasonStyle.color }}>
-                        <ReasonIcon className="w-3 h-3" />
-                        {reasonStyle.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3"><AiScoreBadge score={item.aiScore ?? 0} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(item.flags ?? []).slice(0, 2).map(f => (
-                          <span key={f} className="text-[0.6rem] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/40 border border-white/[0.06]">
-                            {f}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
+                    <td className="px-4 py-3 text-xs text-white/40">{item.user?.name ?? item.user?.email ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-[#c9a84c]">{fmtPrice(item.price, item.currency)}</td>
                     <td className="px-4 py-3">
                       <span className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full w-fit', statusStyle.bg, statusStyle.text)}>
                         <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
                         {statusStyle.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/40">{item.submittedAt}</td>
+                    <td className="px-4 py-3 text-xs text-white/30 whitespace-nowrap">{new Date(item.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      {item.status === 'PENDING' && (
+                      {canAct && (
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => act(item.id, 'approve')}
                             disabled={isActing}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 text-[0.68rem] font-semibold hover:bg-emerald-400/20 transition-all disabled:opacity-40"
+                            className="p-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/20 transition-all disabled:opacity-40"
+                            title="Approve"
                           >
-                            {isActing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
-                            Approve
+                            {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                           </button>
                           <button
                             onClick={() => act(item.id, 'reject')}
@@ -333,10 +246,9 @@ export default function AdminModerationPage() {
             </tbody>
           </table>
 
+          {/* Pagination */}
           <div className="flex items-center justify-between px-6 py-3 border-t border-white/[0.07] bg-white/[0.01]">
-            <p className="text-xs text-white/30">
-              Page {page} of {totalPages || 1} — {total} total items
-            </p>
+            <p className="text-xs text-white/30">Page {page} of {totalPages || 1} — {total} total</p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                       className="w-7 h-7 rounded-lg bg-white/[0.04] text-white/40 flex items-center justify-center hover:bg-white/[0.08] hover:text-white disabled:opacity-25 transition-all">
@@ -363,59 +275,46 @@ export default function AdminModerationPage() {
         </div>
       )}
 
-      {/* Preview detail */}
+      {/* Preview drawer */}
       {preview && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
              onClick={() => setPreview(null)}>
-          <div className="w-full sm:w-[460px] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto max-h-[80vh]"
+          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto"
                onClick={e => e.stopPropagation()}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-white">Moderation Review</h3>
-                <span className="font-mono text-[0.68rem] text-white/30">{preview.id}</span>
+                <h3 className="font-bold text-white">Listing Preview</h3>
+                <button onClick={() => setPreview(null)} className="text-white/30 hover:text-white/70 transition-colors">
+                  <XCircle className="w-4 h-4" />
+                </button>
               </div>
-              <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.07] space-y-3">
-                <p className="font-semibold text-white">{preview.title}</p>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 text-xs" style={{ color: TYPE_STYLES[preview.type]?.color }}>
-                    {preview.type}
-                  </span>
-                  <span className="text-white/20">·</span>
-                  <span className="flex items-center gap-1.5 text-xs" style={{ color: REASON_STYLES[preview.reason]?.color }}>
-                    {REASON_STYLES[preview.reason]?.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-white/40">AI Risk Score</span>
-                  <AiScoreBadge score={preview.aiScore ?? 0} />
-                </div>
-              </div>
-              {(preview.flags ?? []).length > 0 && (
-                <div>
-                  <p className="text-xs text-white/40 mb-2">Flags</p>
-                  <div className="flex flex-wrap gap-2">
-                    {preview.flags.map(f => (
-                      <span key={f} className="text-xs px-2.5 py-1 rounded-lg bg-red-400/10 border border-red-400/15 text-red-400">
-                        {f}
-                      </span>
-                    ))}
+
+              <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-3">
+                {[
+                  ['Title',  preview.titleEn || preview.titleKu],
+                  ['Price',  fmtPrice(preview.price, preview.currency)],
+                  ['Seller', preview.user?.name ?? preview.user?.email ?? '—'],
+                  ['Status', STATUS_STYLES[preview.status]?.label ?? preview.status],
+                ].map(([key, val]) => (
+                  <div key={key} className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-white/40 flex-shrink-0">{key}</span>
+                    <span className="text-sm font-semibold text-white text-right truncate">{val}</span>
                   </div>
-                </div>
-              )}
-              {preview.status === 'PENDING' && (
-                <div className="flex gap-3 pt-2">
+                ))}
+              </div>
+
+              {(preview.status === 'PENDING' || preview.status === 'UNDER_REVIEW') && (
+                <div className="flex gap-3">
                   <button
                     onClick={() => act(preview.id, 'approve')}
-                    disabled={!!acting}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-400/15 border border-emerald-400/25 text-emerald-400 text-sm font-semibold hover:bg-emerald-400/25 transition-all disabled:opacity-40"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-400/15 border border-emerald-400/25 text-emerald-400 text-sm font-semibold hover:bg-emerald-400/25 transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Approve
                   </button>
                   <button
                     onClick={() => act(preview.id, 'reject')}
-                    disabled={!!acting}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-400/15 border border-red-400/25 text-red-400 text-sm font-semibold hover:bg-red-400/25 transition-all disabled:opacity-40"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-400/15 border border-red-400/25 text-red-400 text-sm font-semibold hover:bg-red-400/25 transition-all"
                   >
                     <XCircle className="w-4 h-4" />
                     Reject

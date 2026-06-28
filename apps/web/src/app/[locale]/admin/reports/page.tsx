@@ -1,31 +1,31 @@
 'use client';
 // apps/web/src/app/[locale]/admin/reports/page.tsx
-// Admin: user-submitted reports — listings, dealers, and content flags
+// Admin: user-submitted reports — listings, dealers, and content flags.
+// Maps directly onto the real Report model (Report.status is
+// 'pending' | 'resolved' | 'dismissed'; targetType/targetId are polymorphic
+// with no FK, enriched server-side by GET /admin/reports into `target`).
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Flag, Search, Eye, CheckCircle2, XCircle, Loader2,
+  Flag, Search, CheckCircle2, XCircle, Loader2,
   AlertTriangle, MessageSquare, Car, Store, ChevronLeft,
-  ChevronRight, Clock, ExternalLink,
+  ChevronRight, Clock,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
 type ReportType   = 'LISTING' | 'DEALER' | 'USER' | 'MESSAGE';
-type ReportStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED';
-type ReportReason = 'FRAUD' | 'SPAM' | 'INAPPROPRIATE' | 'MISPRICED' | 'DUPLICATE' | 'OTHER';
+type ReportStatus = 'pending' | 'resolved' | 'dismissed';
 
 interface Report {
   id: string;
-  type: ReportType;
-  reason: ReportReason;
-  status: ReportStatus;
-  targetTitle: string;
+  targetType: ReportType;
   targetId: string;
-  reportedBy: string;
-  description: string;
+  reason: string;
+  status: ReportStatus;
   createdAt: string;
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  reporter?: { id: string; name: string; email: string } | null;
+  target?: { id: string; titleEn?: string; titleKu?: string; name?: string; email?: string } | null;
 }
 
 const TYPE_STYLES: Record<ReportType, { label: string; icon: any; color: string }> = {
@@ -36,17 +36,16 @@ const TYPE_STYLES: Record<ReportType, { label: string; icon: any; color: string 
 };
 
 const STATUS_STYLES: Record<ReportStatus, { label: string; text: string; bg: string; dot: string }> = {
-  OPEN:         { label: 'Open',         text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
-  UNDER_REVIEW: { label: 'Under Review', text: 'text-yellow-400',  bg: 'bg-yellow-400/10',  dot: 'bg-yellow-400'  },
-  RESOLVED:     { label: 'Resolved',     text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
-  DISMISSED:    { label: 'Dismissed',    text: 'text-white/30',    bg: 'bg-white/[0.05]',   dot: 'bg-white/20'    },
+  pending:   { label: 'Pending',   text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
+  resolved:  { label: 'Resolved',  text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
+  dismissed: { label: 'Dismissed', text: 'text-white/30',    bg: 'bg-white/[0.05]',   dot: 'bg-white/20'    },
 };
 
-const PRIORITY_STYLES: Record<string, { text: string; bg: string }> = {
-  HIGH:   { text: 'text-red-400',     bg: 'bg-red-400/10'    },
-  MEDIUM: { text: 'text-yellow-400',  bg: 'bg-yellow-400/10' },
-  LOW:    { text: 'text-white/40',    bg: 'bg-white/[0.04]'  },
-};
+function targetLabel(report: Report): string {
+  if (!report.target) return `#${report.targetId.slice(0, 8)}`;
+  if (report.targetType === 'LISTING') return report.target.titleEn || report.target.titleKu || 'Untitled listing';
+  return report.target.name || report.target.email || `#${report.targetId.slice(0, 8)}`;
+}
 
 const PAGE_SIZE = 10;
 
@@ -57,7 +56,7 @@ export default function AdminReportsPage() {
   const [total, setTotal]                   = useState(0);
   const [search, setSearch]                 = useState('');
   const [typeFilter, setTypeFilter]         = useState<ReportType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter]     = useState<ReportStatus | 'ALL'>('OPEN');
+  const [statusFilter, setStatusFilter]     = useState<ReportStatus | 'ALL'>('pending');
   const [page, setPage]                     = useState(1);
   const [detail, setDetail]                 = useState<Report | null>(null);
   const [acting, setActing]                 = useState<string | null>(null);
@@ -71,11 +70,10 @@ export default function AdminReportsPage() {
     params.set('limit', String(PAGE_SIZE));
     if (statusFilter !== 'ALL') params.set('status', statusFilter);
     if (typeFilter   !== 'ALL') params.set('type',   typeFilter);
-    if (search) params.set('search', search);
 
     api.get(`/admin/reports?${params.toString()}`)
       .then(r => {
-        setReports(r.data.data  ?? r.data.reports ?? []);
+        setReports(r.data.data ?? []);
         setTotal(r.data.total ?? 0);
       })
       .catch((err) => {
@@ -83,35 +81,43 @@ export default function AdminReportsPage() {
         setError(msg);
       })
       .finally(() => setLoading(false));
-  }, [page, search, typeFilter, statusFilter]);
+  }, [page, typeFilter, statusFilter]);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
-  useEffect(() => { setPage(1); }, [search, typeFilter, statusFilter]);
+  useEffect(() => { setPage(1); }, [typeFilter, statusFilter]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const resolve = async (id: string, action: 'resolve' | 'dismiss' | 'review') => {
+  // Client-side search over the current page (id, reason, reporter, target)
+  const visibleReports = search.trim()
+    ? reports.filter(r => {
+        const q = search.trim().toLowerCase();
+        return (
+          r.id.toLowerCase().includes(q) ||
+          r.reason?.toLowerCase().includes(q) ||
+          r.reporter?.name?.toLowerCase().includes(q) ||
+          r.reporter?.email?.toLowerCase().includes(q) ||
+          targetLabel(r).toLowerCase().includes(q)
+        );
+      })
+    : reports;
+
+  const resolve = async (id: string, action: 'resolved' | 'dismissed') => {
     setActing(id);
     try {
-      await api.patch(`/admin/reports/${id}/${action}`);
+      await api.patch(`/admin/reports/${id}/resolve`, { action });
       fetchReports();
     } catch {
-      // Optimistic update on failure
-      setReports(prev => prev.map(r =>
-        r.id === id
-          ? { ...r, status: action === 'resolve' ? 'RESOLVED' : action === 'dismiss' ? 'DISMISSED' : 'UNDER_REVIEW' }
-          : r
-      ));
+      setReports(prev => prev.map(r => r.id === id ? { ...r, status: action } : r));
     } finally {
       setActing(null);
       setDetail(null);
     }
   };
 
-  const openCount        = reports.filter(r => r.status === 'OPEN').length;
-  const underReviewCount = reports.filter(r => r.status === 'UNDER_REVIEW').length;
-  const resolvedCount    = reports.filter(r => r.status === 'RESOLVED').length;
-  const dismissedCount   = reports.filter(r => r.status === 'DISMISSED').length;
+  const pendingCount   = statusFilter === 'pending'   ? total : reports.filter(r => r.status === 'pending').length;
+  const resolvedCount  = statusFilter === 'resolved'  ? total : reports.filter(r => r.status === 'resolved').length;
+  const dismissedCount = statusFilter === 'dismissed' ? total : reports.filter(r => r.status === 'dismissed').length;
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -122,10 +128,10 @@ export default function AdminReportsPage() {
           <h1 className="font-display font-black text-white text-2xl tracking-tight">Reports</h1>
           <p className="text-white/40 text-sm mt-0.5">Review and action user-submitted reports</p>
         </div>
-        {openCount > 0 && (
+        {statusFilter === 'pending' && total > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-400/10 border border-red-400/20">
             <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-sm font-semibold text-red-400">{openCount} open reports</span>
+            <span className="text-sm font-semibold text-red-400">{total} pending reports</span>
           </div>
         )}
       </div>
@@ -133,15 +139,14 @@ export default function AdminReportsPage() {
       {/* Status tabs */}
       <div className="flex items-center gap-2 flex-wrap">
         {([
-          ['ALL',          'All',        null],
-          ['OPEN',         'Open',       openCount],
-          ['UNDER_REVIEW', 'In Review',  underReviewCount],
-          ['RESOLVED',     'Resolved',   resolvedCount],
-          ['DISMISSED',    'Dismissed',  dismissedCount],
+          ['ALL',       'All',       null],
+          ['pending',   'Pending',   pendingCount],
+          ['resolved',  'Resolved',  resolvedCount],
+          ['dismissed', 'Dismissed', dismissedCount],
         ] as [string, string, number | null][]).map(([val, label, count]) => (
           <button
             key={val}
-            onClick={() => { setStatusFilter(val as any); setPage(1); }}
+            onClick={() => setStatusFilter(val as any)}
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border',
               statusFilter === val
@@ -167,7 +172,7 @@ export default function AdminReportsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by report ID or target…"
+            placeholder="Filter this page by reason, reporter, target…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
           />
         </div>
@@ -205,7 +210,7 @@ export default function AdminReportsPage() {
             Retry
           </button>
         </div>
-      ) : reports.length === 0 ? (
+      ) : visibleReports.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Flag className="w-10 h-10 text-white/15" />
           <p className="text-white/30 text-sm">No reports found</p>
@@ -215,7 +220,7 @@ export default function AdminReportsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                {['ID', 'Target', 'Type', 'Reason', 'Priority', 'Status', 'Reporter', 'Age', 'Actions'].map(h => (
+                {['Target', 'Type', 'Reason', 'Status', 'Reporter', 'Age', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[0.68rem] text-white/35 uppercase tracking-wider font-semibold whitespace-nowrap">
                     {h}
                   </th>
@@ -223,12 +228,12 @@ export default function AdminReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {reports.map((report, i) => {
-                const typeStyle     = TYPE_STYLES[report.type]   ?? TYPE_STYLES.LISTING;
-                const statusStyle   = STATUS_STYLES[report.status] ?? STATUS_STYLES.OPEN;
-                const priorityStyle = PRIORITY_STYLES[report.priority] ?? PRIORITY_STYLES.LOW;
-                const TypeIcon      = typeStyle.icon;
-                const isActing      = acting === report.id;
+              {visibleReports.map((report, i) => {
+                const typeStyle   = TYPE_STYLES[report.targetType] ?? TYPE_STYLES.LISTING;
+                const statusStyle = STATUS_STYLES[report.status]   ?? STATUS_STYLES.pending;
+                const TypeIcon    = typeStyle.icon;
+                const isActing    = acting === report.id;
+                const isOpen      = report.status === 'pending';
 
                 return (
                   <tr
@@ -240,10 +245,9 @@ export default function AdminReportsPage() {
                     )}
                     onClick={() => setDetail(report)}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-white/30">{report.id}</td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-white">{report.targetTitle}</p>
-                      <p className="text-[0.68rem] text-white/30">#{report.targetId}</p>
+                      <p className="text-sm font-semibold text-white max-w-[220px] truncate">{targetLabel(report)}</p>
+                      <p className="text-[0.68rem] text-white/30">#{report.targetId.slice(0, 8)}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1.5 text-[0.7rem] font-semibold" style={{ color: typeStyle.color }}>
@@ -251,58 +255,41 @@ export default function AdminReportsPage() {
                         {typeStyle.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/50 capitalize">{report.reason?.toLowerCase()}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn('text-[0.68rem] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider', priorityStyle.bg, priorityStyle.text)}>
-                        {report.priority}
-                      </span>
-                    </td>
+                    <td className="px-4 py-3 text-xs text-white/50 max-w-[200px] truncate">{report.reason}</td>
                     <td className="px-4 py-3">
                       <span className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full w-fit', statusStyle.bg, statusStyle.text)}>
                         <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
                         {statusStyle.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/40">{report.reportedBy}</td>
+                    <td className="px-4 py-3 text-xs text-white/40">{report.reporter?.name ?? report.reporter?.email ?? '—'}</td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1 text-xs text-white/30">
                         <Clock className="w-3 h-3" />
-                        {report.createdAt}
+                        {new Date(report.createdAt).toLocaleDateString()}
                       </span>
                     </td>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5">
-                        {report.status === 'OPEN' && (
+                      {isOpen && (
+                        <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => resolve(report.id, 'review')}
+                            onClick={() => resolve(report.id, 'resolved')}
                             disabled={isActing}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-[0.68rem] font-semibold hover:bg-yellow-400/20 transition-all disabled:opacity-40"
+                            className="p-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/20 transition-all disabled:opacity-40"
+                            title="Resolve"
                           >
-                            {isActing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Eye className="w-2.5 h-2.5" />}
-                            Review
+                            {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                           </button>
-                        )}
-                        {(report.status === 'OPEN' || report.status === 'UNDER_REVIEW') && (
-                          <>
-                            <button
-                              onClick={() => resolve(report.id, 'resolve')}
-                              disabled={isActing}
-                              className="p-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/20 transition-all disabled:opacity-40"
-                              title="Resolve"
-                            >
-                              <CheckCircle2 className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => resolve(report.id, 'dismiss')}
-                              disabled={isActing}
-                              className="p-1.5 rounded-lg bg-white/[0.05] border border-white/[0.09] text-white/40 hover:text-white/70 transition-all disabled:opacity-40"
-                              title="Dismiss"
-                            >
-                              <XCircle className="w-3 h-3" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                          <button
+                            onClick={() => resolve(report.id, 'dismissed')}
+                            disabled={isActing}
+                            className="p-1.5 rounded-lg bg-white/[0.05] border border-white/[0.09] text-white/40 hover:text-white/70 transition-all disabled:opacity-40"
+                            title="Dismiss"
+                          >
+                            <XCircle className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -358,36 +345,29 @@ export default function AdminReportsPage() {
               <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-3">
                 {[
                   ['Report ID',   detail.id],
-                  ['Target',      detail.targetTitle],
-                  ['Reason',      detail.reason?.toLowerCase()],
-                  ['Priority',    detail.priority],
-                  ['Reported by', detail.reportedBy],
+                  ['Target',      targetLabel(detail)],
+                  ['Type',        TYPE_STYLES[detail.targetType]?.label ?? detail.targetType],
+                  ['Reason',      detail.reason],
+                  ['Reported by', detail.reporter?.name ?? detail.reporter?.email ?? '—'],
                 ].map(([key, val]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-xs text-white/40">{key}</span>
-                    <span className="text-sm font-semibold text-white capitalize">{val}</span>
+                  <div key={key} className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-white/40 flex-shrink-0">{key}</span>
+                    <span className="text-sm font-semibold text-white text-right truncate">{val}</span>
                   </div>
                 ))}
               </div>
 
-              {detail.description && (
-                <div>
-                  <p className="text-xs text-white/40 mb-2">Description</p>
-                  <p className="text-sm text-white/70 leading-relaxed">{detail.description}</p>
-                </div>
-              )}
-
-              {(detail.status === 'OPEN' || detail.status === 'UNDER_REVIEW') && (
+              {detail.status === 'pending' && (
                 <div className="flex gap-3">
                   <button
-                    onClick={() => resolve(detail.id, 'resolve')}
+                    onClick={() => resolve(detail.id, 'resolved')}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-400/15 border border-emerald-400/25 text-emerald-400 text-sm font-semibold hover:bg-emerald-400/25 transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Resolve
                   </button>
                   <button
-                    onClick={() => resolve(detail.id, 'dismiss')}
+                    onClick={() => resolve(detail.id, 'dismissed')}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white/50 text-sm font-semibold hover:bg-white/[0.08] transition-all"
                   >
                     <XCircle className="w-4 h-4" />

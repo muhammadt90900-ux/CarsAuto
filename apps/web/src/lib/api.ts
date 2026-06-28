@@ -358,6 +358,19 @@ export const adminApi = {
       `/admin/users/${id}/role`,
       { role }
     ).then(r => r.data),
+
+  banUser: (id: string, banned: boolean) =>
+    getApi().patch<{ id: string; banned: boolean }>(
+      `/admin/users/${id}/ban`,
+      { banned }
+    ).then(r => r.data),
+
+  // Pass until: null to lift an existing suspension early.
+  suspendUser: (id: string, until: string | null, reason?: string) =>
+    getApi().patch<{ id: string; suspendedUntil: string | null }>(
+      `/admin/users/${id}/suspend`,
+      { until, reason }
+    ).then(r => r.data),
 };
 
 // ── Users API ─────────────────────────────────────────────────────────────────

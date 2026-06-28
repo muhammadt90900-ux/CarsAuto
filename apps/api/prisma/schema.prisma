@@ -159,6 +159,11 @@ model User {
   lockedUntil         DateTime?
   passwordChangedAt   DateTime?
   banned              Boolean   @default(false)
+  // ADDED: admin temporary suspension — distinct from a permanent ban.
+  // Null = not suspended. A future date = suspended until then (checked at
+  // login). Admin can also pass null to lift a suspension early.
+  suspendedUntil      DateTime?
+  suspendedReason     String?   @db.VarChar(255)
 
   listings               Listing[]
   chatsAsBuyer           Chat[]                  @relation("BuyerChats")
@@ -193,6 +198,8 @@ model User {
   @@index([locale])
   // ADDED: banned + role composite — admin "banned users" page filters both
   @@index([banned, role])
+  // ADDED: suspension lookups — admin "suspended users" filter + login check
+  @@index([suspendedUntil])
   // deletedAt partial index, phone partial unique, lockedUntil partial index
   // all handled in raw migration SQL (Prisma cannot express partial indexes)
 }

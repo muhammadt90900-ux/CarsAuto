@@ -152,6 +152,19 @@ export class AuthService {
       throw new ForbiddenException('Account is locked');
     }
 
+    // ADDED: enforce admin ban / temporary suspension before password check,
+    // for the same timing-side-channel reason as the lockedUntil check above.
+    if (user.banned) {
+      await this.writeAuditLog(user.id, 'USER_LOGIN_FAILED', ctx, { reason: 'banned' });
+      throw new ForbiddenException('This account has been banned');
+    }
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      await this.writeAuditLog(user.id, 'USER_LOGIN_FAILED', ctx, { reason: 'suspended' });
+      throw new ForbiddenException(
+        `This account is suspended until ${user.suspendedUntil.toISOString()}`,
+      );
+    }
+
     // BUG #1 + #2 + #7 FIX: constant-time async comparison
     const isValid = await this.verifyPassword(password, user.password ?? '');
     if (!isValid) {
@@ -185,13 +198,15 @@ export class AuthService {
         include: {
           user: {
             select: {
-              id:          true,
-              name:        true,
-              email:       true,
-              phone:       true,
-              role:        true,
-              verified:    true,
-              lockedUntil: true,
+              id:             true,
+              name:           true,
+              email:          true,
+              phone:          true,
+              role:           true,
+              verified:       true,
+              lockedUntil:    true,
+              banned:         true,
+              suspendedUntil: true,
             },
           },
         },
@@ -213,6 +228,16 @@ export class AuthService {
         return { error: 'locked' as const };
       }
 
+      // ADDED: banned / suspended accounts lose their session immediately,
+      // even if the refresh token itself is still otherwise valid.
+      if (storedToken.user.banned) {
+        await tx.refreshToken.deleteMany({ where: { userId: storedToken.userId } });
+        return { error: 'banned' as const };
+      }
+      if (storedToken.user.suspendedUntil && storedToken.user.suspendedUntil > new Date()) {
+        return { error: 'suspended' as const };
+      }
+
       // Atomically delete the consumed token — if this throws (concurrent delete)
       // the whole transaction rolls back and the caller gets a 401.
       await tx.refreshToken.delete({ where: { id: storedToken.id } });
@@ -227,6 +252,12 @@ export class AuthService {
       }
       if (result.error === 'locked') {
         throw new ForbiddenException('Account is locked');
+      }
+      if (result.error === 'banned') {
+        throw new ForbiddenException('This account has been banned');
+      }
+      if (result.error === 'suspended') {
+        throw new ForbiddenException('This account is currently suspended');
       }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
