@@ -32,8 +32,8 @@
     "docker:down": "docker compose down"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
-    "prettier": "^3.0.0",
+    "@playwright/test": "^1.61.1",
+    "prettier": "^3.9.1",
     "turbo": "latest"
   },
   "dependencies": {
