@@ -10,7 +10,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { PaymentPlan, PaymentCurrency, PaymentStatus } from '../../modules/payments/dto/payment.dto';
+import { PaymentPlan, PaymentCurrency, PaymentStatus, PaymentGateway } from '../../modules/payments/dto/payment.dto';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -186,7 +186,12 @@ describe('PaymentsService', () => {
       refundedAt: null,
       amount: 19.99,
       currency: 'USD',
-      gateway: 'stripe',
+      // F-MED fix: Payment.gateway is now a Prisma enum (PaymentGateway) — the
+      // real value stored is 'STRIPE', not the old free-text 'stripe'.
+      // PaymentsService.initiateRefund() lowercases it before comparing
+      // against the gateway-routing-key vocabulary, so this fixture exercises
+      // that conversion the same way production data will.
+      gateway: PaymentGateway.STRIPE,
     };
 
     it('rejects refund on non-completed payment', async () => {

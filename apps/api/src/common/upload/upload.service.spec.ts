@@ -102,8 +102,14 @@ describe('UploadService — security checks', () => {
       .spyOn(service as any, 'optimiseImage')
       .mockResolvedValue({ buffer: jpegBuf, info: { width: 100, height: 100 } });
     const writeSpy = jest
-      .spyOn(service as any, 'persistFile')
-      .mockResolvedValue({ filename: 'test.webp', originalName: 'photo.jpg', mimeType: 'image/webp', size: 12, url: 'http://localhost/test.webp' });
+      .spyOn(service as any, 'uploadToCloudinary')
+      .mockResolvedValue({
+        filename: 'carsauto/listings/00000000-0000-0000-0000-000000000000',
+        originalName: 'photo.jpg',
+        mimeType: 'image/webp',
+        size: 12,
+        url: 'https://res.cloudinary.com/demo/image/upload/v1/carsauto/listings/test.webp',
+      });
 
     await expect(
       service.processImageUpload({
@@ -204,16 +210,27 @@ describe('UploadService — security checks', () => {
       buffer: jpeg,
     }));
 
-    await expect(service.processImageUploads(files, 20)).rejects.toThrow(BadRequestException);
+    // maxCount defaults to 20 — 21 files should still be rejected without
+    // having to pass `type`/`maxCount` explicitly.
+    await expect(service.processImageUploads(files)).rejects.toThrow(BadRequestException);
   });
 
-  // ── deleteFile path-traversal prevention ────────────────────────────────────
+  // ── deleteFile public_id validation ──────────────────────────────────────────
+  // `filename` is now a Cloudinary public_id ("carsauto/{listings|avatars}/<uuid>"),
+  // not a flat local filename — these still cover path-traversal/garbage input,
+  // just against the new expected shape.
 
-  it('deleteFile rejects path-traversal filename', async () => {
+  it('deleteFile rejects path-traversal input', async () => {
     await expect(service.deleteFile('../secrets/key.pem')).rejects.toThrow(BadRequestException);
   });
 
-  it('deleteFile rejects non-UUID filename', async () => {
+  it('deleteFile rejects garbage input that is not a carsauto public_id', async () => {
     await expect(service.deleteFile('../../etc/shadow')).rejects.toThrow(BadRequestException);
+  });
+
+  it('deleteFile rejects a public_id with an invalid folder segment', async () => {
+    await expect(
+      service.deleteFile('carsauto/not-a-real-folder/00000000-0000-0000-0000-000000000000'),
+    ).rejects.toThrow(BadRequestException);
   });
 });

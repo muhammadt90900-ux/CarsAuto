@@ -6,20 +6,13 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { json, urlencoded, raw } from 'express';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as path from 'path';
 import { StructuredLogger } from './common/logger/logger.service';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { MetricsService } from './common/monitoring/metrics.service';
 import { MetricsMiddleware } from './common/monitoring/metrics.middleware';
 import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
 import { validateEnv } from './config/env.validation';
-
-const UPLOAD_CACHE_HEADERS = {
-  'Cache-Control': 'public, max-age=31536000, immutable',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-} as const;
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 
 /** Intercepts writeHead to inject X-Response-Time before headers are flushed. */
 function responseTimeMiddleware() {
@@ -78,18 +71,10 @@ async function bootstrap() {
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
-  // ── Static assets ─────────────────────────────────────────────────────────
-  const uploadDir = process.env.UPLOAD_DIR ?? '/tmp/uploads';
-  app.useStaticAssets(path.resolve(uploadDir), {
-    prefix: '/uploads',
-    index: false,
-    dotfiles: 'deny',
-    setHeaders: (res: any) => {
-      Object.entries(UPLOAD_CACHE_HEADERS).forEach(([k, v]) =>
-        res.setHeader(k, v),
-      );
-    },
-  });
+  // F-HIGH fix: removed `app.useStaticAssets(...)` for /tmp/uploads. Uploaded
+  // images now go straight to Cloudinary (see upload.service.ts) and are
+  // served from Cloudinary's CDN via the returned secure_url — there is no
+  // longer a local /uploads directory for this server to serve.
 
   // ── Security headers ──────────────────────────────────────────────────────
   app.use(
@@ -227,6 +212,26 @@ async function bootstrap() {
     setTimeout(() => process.exit(1), 500);
   });
 
+  // ── Socket.io Redis adapter ──────────────────────────────────────────────
+  // Must be attached before app.listen() so the chat gateway's underlying
+  // Socket.io server is created with the Redis adapter already in place —
+  // otherwise WS events would only reach clients on the same replica.
+  const redisIoAdapter = new RedisIoAdapter(app);
+  try {
+    await redisIoAdapter.connectToRedis();
+    app.useWebSocketAdapter(redisIoAdapter);
+  } catch (err) {
+    errorTracker.capture({
+      error: err instanceof Error ? err : new Error(String(err)),
+      context: 'RedisIoAdapter.connectToRedis',
+      level: 'fatal',
+    });
+    logger.error(
+      `Failed to connect Socket.io Redis adapter: ${err instanceof Error ? err.message : err}`,
+    );
+    throw err; // fail fast — a chat server that can't fan out events across replicas should not start
+  }
+
   // ── Start ─────────────────────────────────────────────────────────────────
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
@@ -238,6 +243,7 @@ async function bootstrap() {
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   const shutdown = async (signal: string) => {
     logger.log(`${signal} received — shutting down gracefully`);
+    await redisIoAdapter.dispose();
     await app.close();
     process.exit(0);
   };

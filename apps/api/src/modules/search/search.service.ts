@@ -181,16 +181,22 @@ export class SearchService {
       const vectorStr = `[${embedding.join(',')}]`;
 
       type VectorRow = { id: string; similarity: number };
-      const vectorRows = (await this.prisma.$queryRawUnsafe(
-        `SELECT id, 1 - (embedding <=> $1::vector) AS similarity
-         FROM listings
-         WHERE status = 'ACTIVE'
-           AND "deletedAt" IS NULL
-           AND embedding IS NOT NULL
-         ORDER BY embedding <=> $1::vector
-         LIMIT ${SEMANTIC_POOL}`,
-        vectorStr,
-      )) as VectorRow[];
+      // F-CRIT fix: $queryRawUnsafe → $queryRaw tagged template. The previous
+      // call already bound `vectorStr` as a parameter rather than
+      // interpolating it into the SQL string, but $queryRawUnsafe still
+      // accepts a plain string as the query itself, which is an easy place
+      // for a future edit to accidentally introduce string concatenation.
+      // The tagged-template form makes that structurally impossible — every
+      // `${...}` interpolation is parameterized by Prisma, never inlined.
+      const vectorRows = await this.prisma.$queryRaw<VectorRow[]>`
+        SELECT id, 1 - (embedding <=> ${vectorStr}::vector) AS similarity
+        FROM listings
+        WHERE status = 'ACTIVE'
+          AND "deletedAt" IS NULL
+          AND embedding IS NOT NULL
+        ORDER BY embedding <=> ${vectorStr}::vector
+        LIMIT ${SEMANTIC_POOL}
+      `;
 
       if (!vectorRows.length) {
         // No embeddings in DB yet — fall back to keyword search

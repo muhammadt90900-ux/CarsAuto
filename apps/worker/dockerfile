@@ -1,0 +1,71 @@
+# ── apps/worker/Dockerfile  (BullMQ worker — Turborepo monorepo)
+# Build context must be the monorepo root (context: .)
+# Mirrors apps/api/Dockerfile's structure — same Prisma schema (shared DB),
+# but produces a worker image with NO exposed HTTP port.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: install dependencies ─────────────────────────────────────────────
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+# Copy workspace manifests (npm workspaces resolution)
+COPY package*.json                  ./
+COPY packages/types/package.json    ./packages/types/
+COPY packages/config/package.json   ./packages/config/
+COPY apps/worker/package.json       ./apps/worker/
+
+RUN npm install --ignore-scripts
+
+# ── Stage 2: build ────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+
+# Internal packages
+COPY packages/config/ ./packages/config/
+COPY packages/types/  ./packages/types/
+
+# Worker source
+COPY apps/worker/ ./apps/worker/
+
+# F-HIGH fix: the worker has no prisma/schema.prisma of its own — it shares
+# the API's schema/database. Copy just the schema (not the whole apps/api
+# tree) so `prisma generate` can produce the @prisma/client used by
+# apps/worker/src/common/prisma/prisma.service.ts.
+COPY apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
+
+WORKDIR /app/apps/worker
+RUN npx prisma generate --schema=../api/prisma/schema.prisma
+
+# Build worker (plain tsc — see apps/worker/package.json)
+RUN npm run build
+
+# ── Stage 3: production image ──────────────────────────────────────────────────
+FROM node:20-alpine AS production
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 worker
+
+# Root node_modules (includes workspace symlinks + generated Prisma client)
+COPY --from=builder --chown=worker:nodejs /app/node_modules                ./node_modules
+
+# Workspace package content (symlink target for @cars-auto/types, if ever used)
+COPY --from=builder --chown=worker:nodejs /app/packages/types/package.json ./packages/types/package.json
+
+# Compiled worker
+COPY --from=builder --chown=worker:nodejs /app/apps/worker/dist            ./apps/worker/dist
+COPY --from=builder --chown=worker:nodejs /app/apps/worker/package*.json   ./apps/worker/
+
+WORKDIR /app/apps/worker
+USER worker
+
+# No EXPOSE — this process opens no HTTP port.
+# No HEALTHCHECK hitting an HTTP endpoint, either; orchestrators should use
+# a process-liveness check instead (e.g. `docker inspect` / `kubectl get pods`
+# restart-count, since BullMQ workers don't serve /health).
+
+CMD ["node", "dist/main.js"]

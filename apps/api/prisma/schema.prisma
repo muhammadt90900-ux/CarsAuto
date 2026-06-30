@@ -130,6 +130,82 @@ enum SubscriptionStatus {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ENUMS — payments / moderation / chat / dealer inbox
+//
+// F-MED fix: these 5 enums replace plain-`String` status/gateway columns
+// that previously had NO database-level constraint — any string (a typo, an
+// old/renamed value, garbage from a bug) could be written and would sit
+// there silently. Application code already enforced these values at the
+// TypeScript layer in most call sites (see PaymentStatus/PaymentGateway in
+// payments/dto/payment.dto.ts, now re-exported from @prisma/client instead
+// of being a second, independently-maintained source of truth), but nothing
+// stopped a raw SQL script, a different service, or a future bug from
+// writing an invalid value straight into the column.
+//
+// ⚠️ MIGRATION NOTE — READ BEFORE RUNNING `npx prisma db push`:
+// This project uses `db push`, not `migrate dev` (no prisma/migrations/
+// directory exists). `db push` converts a column's type via
+// `ALTER COLUMN ... TYPE "EnumName" USING column::text::"EnumName"` — that
+// USING cast fails outright if ANY existing row's value isn't an exact
+// (case-sensitive) match for one of the new enum's labels.
+//
+// The existing string values in this codebase are lowercase
+// ('pending', 'active', 'new', 'stripe', ...) while every enum below uses
+// uppercase labels (matching every other enum already in this schema —
+// ListingStatus, DealerStatus, etc.). That means `db push` WILL fail on a
+// populated database unless you uppercase the existing data first.
+//
+// Run apps/api/prisma/migrations-manual/2026-06-status-enums.sql (included
+// alongside this schema change) BEFORE `npx prisma db push`. It:
+//   1. Prints any row whose value won't survive the uppercase+enum-cast
+//      (so you can fix genuine bad data — typos, stale values — by hand)
+//   2. UPPER()-cases the four affected columns
+//   3. Is safe to re-run (idempotent — UPPER('PENDING') = 'PENDING')
+//
+// Subscription.status (per-user subscription, distinct from
+// DealerSubscription.status) is INTENTIONALLY left as a plain String — see
+// the existing comment on that field. Do not enum-ify it as part of this
+// change; that was a deliberate prior decision, not an oversight.
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  STRIPE
+  ZAINCASH
+  FASTPAY
+  QICARD
+  ASIAHAWALA
+  ALIPAY
+  WECHATPAY
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ChatStatus {
+  ACTIVE
+  ARCHIVED
+  BLOCKED
+}
+
+enum ContactRequestStatus {
+  NEW
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // USER
 // CHANGE: added phone unique constraint, index on role, index on googleId/appleId
 //         for OAuth lookups, added deletedAt for soft-delete
@@ -159,11 +235,6 @@ model User {
   lockedUntil         DateTime?
   passwordChangedAt   DateTime?
   banned              Boolean   @default(false)
-  // ADDED: admin temporary suspension — distinct from a permanent ban.
-  // Null = not suspended. A future date = suspended until then (checked at
-  // login). Admin can also pass null to lift a suspension early.
-  suspendedUntil      DateTime?
-  suspendedReason     String?   @db.VarChar(255)
 
   listings               Listing[]
   chatsAsBuyer           Chat[]                  @relation("BuyerChats")
@@ -198,8 +269,6 @@ model User {
   @@index([locale])
   // ADDED: banned + role composite — admin "banned users" page filters both
   @@index([banned, role])
-  // ADDED: suspension lookups — admin "suspended users" filter + login check
-  @@index([suspendedUntil])
   // deletedAt partial index, phone partial unique, lockedUntil partial index
   // all handled in raw migration SQL (Prisma cannot express partial indexes)
 }
@@ -647,7 +716,7 @@ model Chat {
   buyer     User     @relation("BuyerChats", fields: [buyerId], references: [id], onDelete: Cascade)
   sellerId  String   @db.Uuid
   seller    User     @relation("SellerChats", fields: [sellerId], references: [id], onDelete: Cascade)
-  status    String   @default("active") @db.VarChar(20)
+  status    ChatStatus @default(ACTIVE)
   messages  Message[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -760,10 +829,10 @@ model Payment {
   plan           String    @db.VarChar(50)
   amount         Decimal   @db.Decimal(12, 2)
   currency       String    @db.Char(3)
-  status         String    @db.VarChar(30)   // pending | completed | failed | refunded | cancelled
+  status         PaymentStatus
 
   // Gateway fields
-  gateway        String    @default("stripe") @db.VarChar(30)   // stripe | zaincash | fastpay | qicard | asiahawala
+  gateway        PaymentGateway @default(STRIPE)
   gatewayId      String?   @unique @db.VarChar(255)
   gatewayStatus  String?   @db.VarChar(50)
 
@@ -803,7 +872,7 @@ model Report {
   targetType String   @db.VarChar(50)
   targetId   String   @db.Uuid
   reason     String   @db.VarChar(255)
-  status     String   @default("pending") @db.VarChar(30)
+  status     ReportStatus @default(PENDING)
   createdAt  DateTime @default(now())
 
   @@index([reporterId])
@@ -1152,7 +1221,7 @@ model DealerContactRequest {
   message   String   @db.Text
   channel   String   @default("form") @db.VarChar(20)
   listingId String?  @db.Uuid
-  status    String   @default("new") @db.VarChar(20)
+  status    ContactRequestStatus @default(NEW)
   readAt    DateTime?
   createdAt DateTime @default(now())
 

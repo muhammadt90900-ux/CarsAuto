@@ -59,11 +59,11 @@ export class EmbeddingSyncTask {
       const embedding = await this.openai.embed(text);
       if (!embedding.length) return;
 
-      await this.prisma.$executeRawUnsafe(
-        `UPDATE listings SET embedding = $1::vector WHERE id = $2`,
-        `[${embedding.join(',')}]`,
-        listingId,
-      );
+      // F-CRIT fix: $executeRawUnsafe → $executeRaw tagged template (see
+      // search.service.ts for the rationale — structurally prevents future
+      // string concatenation into the query).
+      const embeddingVector = `[${embedding.join(',')}]`;
+      await this.prisma.$executeRaw`UPDATE listings SET embedding = ${embeddingVector}::vector WHERE id = ${listingId}`;
     } catch (err) {
       this.logger.warn(`Failed to embed listing ${listingId}: ${(err as Error).message}`);
     }
@@ -98,11 +98,8 @@ export class EmbeddingSyncTask {
       if (!embedding || !embedding.length) continue;
 
       try {
-        await this.prisma.$executeRawUnsafe(
-          `UPDATE listings SET embedding = $1::vector WHERE id = $2`,
-          `[${embedding.join(',')}]`,
-          listings[i]!.id,
-        );
+        const embeddingVector = `[${embedding.join(',')}]`;
+        await this.prisma.$executeRaw`UPDATE listings SET embedding = ${embeddingVector}::vector WHERE id = ${listings[i]!.id}`;
         updated++;
       } catch (err) {
         this.logger.warn(`Failed to save embedding for ${listings[i]!.id}: ${(err as Error).message}`);

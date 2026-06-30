@@ -13,17 +13,34 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CacheService } from '../../common/cache/cache.service';
 
 // ─── Presence ────────────────────────────────────────────────────────────────
-/** userId → Set<socketId> */
-const onlineUsers = new Map<string, Set<string>>();
+//
+// F-CRIT fix: was `Map<string, Set<string>>` (userId → Set<socketId>) at
+// module scope. That only ever reflected sockets connected to *this*
+// replica, so a user connected to replica A appeared "offline" to anyone
+// whose query landed on replica B. Now backed by a Redis SET per user
+// (key "online:{userId}"), shared across all replicas, with a 60s TTL
+// refreshed every 30s for as long as the socket stays connected — so a
+// crashed replica's sockets self-expire instead of leaving phantom presence.
+const PRESENCE_TTL_MS = 60_000;
+const PRESENCE_REFRESH_MS = 30_000;
 
 // ─── Typing ──────────────────────────────────────────────────────────────────
-/** `${chatId}:${userId}` → auto-clear timer */
-const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+//
+// F-CRIT fix: the "is this user already marked as typing" flag is now a
+// Redis key ("typing:{chatId}:{userId}", 5s TTL) so it stays consistent even
+// if a user's connection moves to a different replica mid-session. The
+// *proactive* "stopped typing" emission after 5s of silence remains a
+// per-connection timer stored on `client.data` (not a module-level Map) —
+// this is connection-scoped state, not shared mutable global state, so it
+// doesn't have the cross-replica correctness problem the other globals had.
 const TYPING_TIMEOUT_MS = 5_000;
 
 // ─── Message delivery tracking ───────────────────────────────────────────────
+// Kept in-memory per the fix spec: this tracks in-flight acks for the
+// lifetime of a single connection and is never read by another replica.
 const pendingDelivery = new Map<
   string,
   { resolve: (msgId: string) => void; timer: ReturnType<typeof setTimeout> }
@@ -31,39 +48,18 @@ const pendingDelivery = new Map<
 const DELIVERY_TIMEOUT_MS = 8_000;
 
 // ─── Rate limiting ───────────────────────────────────────────────────────────
-const wsRateLimiter = new Map<string, { count: number; resetAt: number }>();
+//
+// F-CRIT fix: were module-level `Map<string, {count, resetAt}>`. A user with
+// sockets open against two different replicas (e.g. two browser tabs/devices
+// routed to different instances) could get 2x the intended rate limit, since
+// each replica counted independently. Now a single Redis INCR-with-TTL
+// counter per user, shared across all replicas.
 const WS_RATE_WINDOW_MS = 10_000;
 const WS_RATE_MAX = 10;
 
-function checkWsRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const state = wsRateLimiter.get(userId);
-  if (!state || now > state.resetAt) {
-    wsRateLimiter.set(userId, { count: 1, resetAt: now + WS_RATE_WINDOW_MS });
-    return true;
-  }
-  if (state.count >= WS_RATE_MAX) return false;
-  state.count++;
-  return true;
-}
-
-// ─── Voice note rate limiting (separate, stricter) ───────────────────────────
-// Voice notes are more expensive to process — 3 per 60 s
-const voiceRateLimiter = new Map<string, { count: number; resetAt: number }>();
+// Voice notes are more expensive to process — 3 per 60 s, separate counter.
 const VOICE_RATE_WINDOW_MS = 60_000;
 const VOICE_RATE_MAX = 3;
-
-function checkVoiceRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const state = voiceRateLimiter.get(userId);
-  if (!state || now > state.resetAt) {
-    voiceRateLimiter.set(userId, { count: 1, resetAt: now + VOICE_RATE_WINDOW_MS });
-    return true;
-  }
-  if (state.count >= VOICE_RATE_MAX) return false;
-  state.count++;
-  return true;
-}
 
 // ─── Gateway ─────────────────────────────────────────────────────────────────
 
@@ -89,7 +85,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private chatService: ChatService,
     private notificationsService: NotificationsService,
     private jwtService: JwtService,
+    private cache: CacheService,
   ) {}
+
+  // ─── Rate limit helpers ─────────────────────────────────────────────────────
+
+  private async checkWsRateLimit(userId: string): Promise<boolean> {
+    const count = await this.cache.incrWithTtl(`wsrl:${userId}`, WS_RATE_WINDOW_MS);
+    return count <= WS_RATE_MAX;
+  }
+
+  private async checkVoiceRateLimit(userId: string): Promise<boolean> {
+    const count = await this.cache.incrWithTtl(`voicerl:${userId}`, VOICE_RATE_WINDOW_MS);
+    return count <= VOICE_RATE_MAX;
+  }
 
   // ─── Connection ────────────────────────────────────────────────────────────
 
@@ -108,10 +117,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId: string = payload.sub ?? payload.userId;
       client.data.userId = userId;
 
-      if (!onlineUsers.has(userId)) {
-        onlineUsers.set(userId, new Set());
-      }
-      onlineUsers.get(userId)!.add(client.id);
+      await this.cache.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS);
+
+      // Heartbeat: keep the presence TTL alive for as long as this socket is
+      // connected, even if the user is idle (no typing/messages). Cleared on disconnect.
+      client.data.presenceInterval = setInterval(() => {
+        this.cache.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS).catch(() => {});
+      }, PRESENCE_REFRESH_MS);
+
+      // Per-connection typing-stop timers (see "Typing" comment above).
+      client.data.typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
       client.emit('connected', { userId, serverTime: Date.now() });
 
@@ -122,32 +137,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId: string | undefined = client.data.userId;
     if (!userId) return;
 
-    const sockets = onlineUsers.get(userId);
-    if (sockets) {
-      sockets.delete(client.id);
-      if (sockets.size === 0) {
-        onlineUsers.delete(userId);
-        client.rooms.forEach((room) => {
-          client.to(room).emit('userOffline', {
-            userId,
-            lastSeen: new Date().toISOString(),
-          });
-        });
-      }
+    if (client.data.presenceInterval) {
+      clearInterval(client.data.presenceInterval);
     }
 
-    typingTimers.forEach((timer, key) => {
-      if (key.endsWith(`:${userId}`)) {
+    await this.cache.removeFromSet(`online:${userId}`, client.id);
+    const stillOnline = await this.cache.exists(`online:${userId}`);
+    if (!stillOnline) {
+      client.rooms.forEach((room) => {
+        client.to(room).emit('userOffline', {
+          userId,
+          lastSeen: new Date().toISOString(),
+        });
+      });
+    }
+
+    const typingTimers: Map<string, ReturnType<typeof setTimeout>> | undefined =
+      client.data.typingTimers;
+    if (typingTimers) {
+      for (const [chatId, timer] of typingTimers) {
         clearTimeout(timer);
-        typingTimers.delete(key);
-        const chatId = key.split(':')[0];
-        if (chatId) this.server.to(chatId).emit('userStoppedTyping', { userId, chatId });
+        await this.cache.del(`typing:${chatId}:${userId}`);
+        this.server.to(chatId).emit('userStoppedTyping', { userId, chatId });
       }
-    });
+      typingTimers.clear();
+    }
 
     this.logger.log(`Disconnected: ${client.id} (user ${userId})`);
   }
@@ -186,59 +204,64 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('leaveChat')
-  handleLeave(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
+  async handleLeave(@MessageBody() chatId: string, @ConnectedSocket() client: Socket) {
     if (typeof chatId !== 'string' || chatId.length > 40) return;
     client.leave(chatId);
-    this._clearTyping(chatId, client.data.userId);
+    await this._clearTyping(chatId, client.data.userId, client);
   }
 
   // ─── Typing indicators ─────────────────────────────────────────────────────
 
   @SubscribeMessage('typing')
-  handleTyping(
+  async handleTyping(
     @MessageBody() data: { chatId: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (!data?.chatId || typeof data.chatId !== 'string') return;
     const userId: string = client.data.userId;
-    const key = `${data.chatId}:${userId}`;
+    const redisKey = `typing:${data.chatId}:${userId}`;
 
-    if (!typingTimers.has(key)) {
+    const alreadyTyping = await this.cache.exists(redisKey);
+    if (!alreadyTyping) {
       client
         .to(data.chatId)
         .emit('userTyping', { userId, chatId: data.chatId, startedAt: Date.now() });
     }
+    await this.cache.set(redisKey, 1, TYPING_TIMEOUT_MS);
 
-    const existing = typingTimers.get(key);
+    const typingTimers: Map<string, ReturnType<typeof setTimeout>> = client.data.typingTimers;
+    const existing = typingTimers.get(data.chatId);
     if (existing) clearTimeout(existing);
 
     typingTimers.set(
-      key,
+      data.chatId,
       setTimeout(() => {
-        this._clearTyping(data.chatId, userId);
+        this._clearTyping(data.chatId, userId, client);
         client.to(data.chatId).emit('userStoppedTyping', { userId, chatId: data.chatId });
       }, TYPING_TIMEOUT_MS),
     );
   }
 
   @SubscribeMessage('stopTyping')
-  handleStopTyping(
+  async handleStopTyping(
     @MessageBody() data: { chatId: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (!data?.chatId) return;
     const userId: string = client.data.userId;
-    this._clearTyping(data.chatId, userId);
+    await this._clearTyping(data.chatId, userId, client);
     client.to(data.chatId).emit('userStoppedTyping', { userId, chatId: data.chatId });
   }
 
-  private _clearTyping(chatId: string, userId: string) {
-    const key = `${chatId}:${userId}`;
-    const timer = typingTimers.get(key);
+  private async _clearTyping(chatId: string, userId: string, client: Socket) {
+    const typingTimers: Map<string, ReturnType<typeof setTimeout>> | undefined =
+      client.data.typingTimers;
+    const timer = typingTimers?.get(chatId);
     if (timer) {
       clearTimeout(timer);
-      typingTimers.delete(key);
+      typingTimers!.delete(chatId);
     }
+    await this.cache.del(`typing:${chatId}:${userId}`);
   }
 
   // ─── Text message sending ──────────────────────────────────────────────────
@@ -252,7 +275,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const senderId: string = client.data.userId;
     if (!senderId) throw new WsException('Unauthenticated');
 
-    if (!checkWsRateLimit(senderId)) {
+    if (!(await this.checkWsRateLimit(senderId))) {
       client.emit('messageError', { tempId: data.tempId, error: 'Rate limit exceeded — slow down' });
       return;
     }
@@ -262,7 +285,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    if (data.chatId) this._clearTyping(data.chatId, senderId);
+    if (data.chatId) await this._clearTyping(data.chatId, senderId, client);
 
     let message: Record<string, unknown>;
     try {
@@ -337,7 +360,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!senderId) throw new WsException('Unauthenticated');
 
     // ── Rate limit: stricter for voice (uploads are expensive) ───────────────
-    if (!checkVoiceRateLimit(senderId)) {
+    if (!(await this.checkVoiceRateLimit(senderId))) {
       client.emit('voiceNoteError', {
         tempId: data.tempId,
         error: 'Too many voice notes — please wait a moment',
@@ -402,17 +425,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         { chatId, senderId },
       );
 
-      const recipientSockets = onlineUsers.get(otherUserId);
-      if (recipientSockets) {
-        recipientSockets.forEach((socketId) => {
-          this.server.to(socketId).emit('notification', notification);
-          this.server.to(socketId).emit('messageDelivered', {
-            messageId: message.id,
-            chatId,
-            deliveredAt: new Date().toISOString(),
-          });
+      const recipientSockets = await this.cache.setMembers(`online:${otherUserId}`);
+      recipientSockets.forEach((socketId) => {
+        this.server.to(socketId).emit('notification', notification);
+        this.server.to(socketId).emit('messageDelivered', {
+          messageId: message.id,
+          chatId,
+          deliveredAt: new Date().toISOString(),
         });
-      }
+      });
     } catch (err) {
       this.logger.error('Failed to deliver notification', err);
     }
@@ -451,12 +472,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ─── Presence ──────────────────────────────────────────────────────────────
 
   @SubscribeMessage('getOnlineStatus')
-  handleGetOnlineStatus(
+  async handleGetOnlineStatus(
     @MessageBody() userIds: string[],
     @ConnectedSocket() client: Socket,
-  ): Record<string, boolean | string> {
+  ): Promise<Record<string, boolean | string>> {
     if (!Array.isArray(userIds) || userIds.length > 50) return {};
-    return Object.fromEntries(userIds.map((id) => [id, onlineUsers.has(id)]));
+    const entries = await Promise.all(
+      userIds.map(async (id) => [id, await this.cache.exists(`online:${id}`)] as const),
+    );
+    return Object.fromEntries(entries);
   }
 
   // ─── Reconnection ──────────────────────────────────────────────────────────
@@ -484,16 +508,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
-  pushNotification(userId: string, notification: unknown) {
-    const sockets = onlineUsers.get(userId);
-    if (sockets) {
-      sockets.forEach((socketId) =>
-        this.server.to(socketId).emit('notification', notification),
-      );
-    }
+  async pushNotification(userId: string, notification: unknown): Promise<void> {
+    const sockets = await this.cache.setMembers(`online:${userId}`);
+    sockets.forEach((socketId) =>
+      this.server.to(socketId).emit('notification', notification),
+    );
   }
 
-  isUserOnline(userId: string): boolean {
-    return onlineUsers.has(userId);
+  async isUserOnline(userId: string): Promise<boolean> {
+    return this.cache.exists(`online:${userId}`);
   }
 }

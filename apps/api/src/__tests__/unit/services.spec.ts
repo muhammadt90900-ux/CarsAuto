@@ -132,14 +132,14 @@ class PaymentsService {
   }
 
   async createPayment(userId: string, plan: string, amount: number, currency: string) {
-    return this.prisma.payment.create({ data: { userId, plan, amount, currency, status: 'pending' } });
+    return this.prisma.payment.create({ data: { userId, plan, amount, currency, status: 'PENDING' } });
   }
 
   async confirmPayment(id: string, requestingUserId: string) {
     const p = await this.prisma.payment.findUnique({ where: { id } });
     if (!p) throw new NotFoundException('Payment not found');
     if (p.userId !== requestingUserId) throw new ForbiddenException('Access denied');
-    return this.prisma.payment.update({ where: { id }, data: { status: 'completed' } });
+    return this.prisma.payment.update({ where: { id }, data: { status: 'COMPLETED' } });
   }
 }
 
@@ -403,17 +403,17 @@ describe('PaymentsService', () => {
     it('creates payment with status=pending', async () => {
       prisma.payment.create.mockResolvedValue(makePayment());
       await svc.createPayment('user-uuid-1111', 'FEATURED_LISTING', 29.99, 'USD');
-      expect(prisma.payment.create.mock.calls[0][0].data.status).toBe('pending');
+      expect(prisma.payment.create.mock.calls[0][0].data.status).toBe('PENDING');
     });
   });
 
   describe('confirmPayment() — IDOR guard', () => {
     it('confirms payment when requester is the owner', async () => {
       prisma.payment.findUnique.mockResolvedValue(makePayment({ userId: 'user-uuid-1111' }));
-      prisma.payment.update.mockResolvedValue({ ...makePayment(), status: 'completed' });
+      prisma.payment.update.mockResolvedValue({ ...makePayment(), status: 'COMPLETED' });
 
       await svc.confirmPayment('payment-uuid-7777', 'user-uuid-1111');
-      expect(prisma.payment.update.mock.calls[0][0].data.status).toBe('completed');
+      expect(prisma.payment.update.mock.calls[0][0].data.status).toBe('COMPLETED');
     });
 
     it('throws ForbiddenException when requester is NOT the payment owner (IDOR)', async () => {

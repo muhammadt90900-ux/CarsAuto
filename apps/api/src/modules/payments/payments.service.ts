@@ -94,6 +94,24 @@ export class PaymentsService {
     return map[name] ?? null;
   }
 
+  /**
+   * F-MED fix: Payment.gateway is now a Prisma enum (uppercase labels:
+   * 'STRIPE', 'WECHATPAY', ...), but the internal routing keys used
+   * throughout this service (gateway.name, the literal strings passed from
+   * each webhook route in payments.controller.ts, regionalGatewayByName())
+   * are lowercase by convention ('stripe', 'wechatpay', ...) and that
+   * naming is unrelated to this fix's scope, so it's left as-is. This is
+   * the single conversion point between the two: call this wherever a
+   * routing-key string is about to be written into, or filtered against,
+   * the Payment.gateway column.
+   */
+  private toPaymentGatewayEnum(name: string): PaymentGateway {
+    const key = name.toUpperCase() as keyof typeof PaymentGateway;
+    const value = PaymentGateway[key];
+    if (!value) throw new BadRequestException(`Unknown payment gateway: ${name}`);
+    return value;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // QUERY
   // ─────────────────────────────────────────────────────────────────────────
@@ -105,9 +123,7 @@ export class PaymentsService {
       select: {
         id: true, plan: true, amount: true, currency: true,
         status: true,
-        // NOTE: 'gateway' is selected as a raw field after Prisma regeneration.
-        // Until `npx prisma generate` runs with the new schema, we cast via
-        // the underlying DB column using a type assertion below.
+        gateway: true,
         gatewayId: true,
         refundedAt: true, refundAmount: true,
         createdAt: true, updatedAt: true,
@@ -175,7 +191,7 @@ export class PaymentsService {
         amount,
         currency: dto.currency,
         status: PaymentStatus.PENDING,
-        gateway: gateway.name,
+        gateway: this.toPaymentGatewayEnum(gateway.name),
         gatewayId: result.gatewayId,
         gatewayStatus: result.status,
         metadata: (result.checkoutData ?? {}) as object,
@@ -209,7 +225,7 @@ export class PaymentsService {
 
     // Idempotency: reuse existing pending intent if still usable
     const existingPending = await (this.prisma.payment as any).findFirst({
-      where: { userId, plan: dto.plan, status: PaymentStatus.PENDING, gateway: 'stripe' },
+      where: { userId, plan: dto.plan, status: PaymentStatus.PENDING, gateway: PaymentGateway.STRIPE },
     });
     if (existingPending?.gatewayId) {
       try {
@@ -237,7 +253,7 @@ export class PaymentsService {
         amount: this.minorToDecimal(canonicalAmount, dto.currency),
         currency: dto.currency,
         status: PaymentStatus.PENDING,
-        gateway: 'stripe',
+        gateway: PaymentGateway.STRIPE,
         gatewayId: intent.id,
         gatewayStatus: intent.status,
         metadata: { intentId: intent.id } as object,
@@ -391,7 +407,7 @@ export class PaymentsService {
     if (existing) return { received: true, skipped: true };
 
     const payment = await (this.prisma.payment as any).findFirst({
-      where: { gatewayId, gateway: gatewayName },
+      where: { gatewayId, gateway: this.toPaymentGatewayEnum(gatewayName) },
     });
 
     let processingError: string | undefined;
@@ -442,7 +458,12 @@ export class PaymentsService {
     if (payment.refundedAt) throw new ConflictException('Payment has already been refunded');
     if (!payment.gatewayId) throw new BadRequestException('Payment has no gateway ID');
 
-    const gatewayName: string = (payment as any).gateway ?? 'stripe';
+    // F-MED fix: payment.gateway is now the PaymentGateway enum (uppercase,
+    // e.g. 'WECHATPAY') — lowercase it once here since every check below
+    // (the 'stripe' comparison, regionalGatewayByName()) uses the lowercase
+    // routing-key vocabulary. No more `as any` cast needed either — gateway
+    // is now a real, properly-typed field.
+    const gatewayName: string = (payment.gateway ?? PaymentGateway.STRIPE).toLowerCase();
 
     await this.logTransaction(payment.id, {
       event: 'refund_initiated',
@@ -686,7 +707,7 @@ export class PaymentsService {
 
   private async cancelStalePending(userId: string, plan: string, gateway: string) {
     const existing = await (this.prisma.payment as any).findFirst({
-      where: { userId, plan, status: PaymentStatus.PENDING, gateway },
+      where: { userId, plan, status: PaymentStatus.PENDING, gateway: this.toPaymentGatewayEnum(gateway) },
     });
     if (!existing) return;
     await this.updatePaymentStatus(existing.id, PaymentStatus.CANCELLED, {

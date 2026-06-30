@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ChatStatus } from '../../common/prisma/enums';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ export class ChatService {
     const chats = await this.prisma.chat.findMany({
       where: {
         OR: [{ buyerId: userId }, { sellerId: userId }],
-        status: 'active',
+        status: ChatStatus.ACTIVE,
       },
       orderBy: { updatedAt: 'desc' },
       include: {
@@ -143,7 +144,7 @@ export class ChatService {
       throw new ForbiddenException('Access denied');
     await this.prisma.chat.update({
       where: { id: chatId },
-      data: { status: 'archived' },
+      data: { status: ChatStatus.ARCHIVED },
     });
   }
 

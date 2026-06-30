@@ -101,3 +101,50 @@ export enum SubscriptionStatus {
   CANCELLED = 'CANCELLED',
   TRIALING  = 'TRIALING',
 }
+
+// F-MED fix: mirrors for the 5 enums added to schema.prisma — Payment.status,
+// Payment.gateway, Report.status, Chat.status, DealerContactRequest.status.
+// These replace plain-String columns that previously had no DB-level
+// constraint. Note the values are UPPERCASE, matching every other enum in
+// this file — the OLD string columns stored lowercase values
+// ('pending', 'active', 'stripe', ...); see
+// apps/api/prisma/migrations-manual/2026-06-status-enums.sql for the
+// one-time data migration this requires.
+
+export enum PaymentStatus {
+  PENDING   = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED    = 'FAILED',
+  REFUNDED  = 'REFUNDED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum PaymentGateway {
+  STRIPE     = 'STRIPE',
+  ZAINCASH   = 'ZAINCASH',
+  FASTPAY    = 'FASTPAY',
+  QICARD     = 'QICARD',
+  ASIAHAWALA = 'ASIAHAWALA',
+  ALIPAY     = 'ALIPAY',
+  WECHATPAY  = 'WECHATPAY',
+}
+
+export enum ReportStatus {
+  PENDING   = 'PENDING',
+  REVIEWING = 'REVIEWING',
+  RESOLVED  = 'RESOLVED',
+  DISMISSED = 'DISMISSED',
+}
+
+export enum ChatStatus {
+  ACTIVE   = 'ACTIVE',
+  ARCHIVED = 'ARCHIVED',
+  BLOCKED  = 'BLOCKED',
+}
+
+export enum ContactRequestStatus {
+  NEW      = 'NEW',
+  READ     = 'READ',
+  REPLIED  = 'REPLIED',
+  ARCHIVED = 'ARCHIVED',
+}

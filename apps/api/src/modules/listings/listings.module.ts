@@ -2,6 +2,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { ListingsController } from './listings.controller';
 import { ListingsService } from './listings.service';
+import { ViewFlushTask } from './tasks/view-flush.task';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { AppCacheModule } from '../../common/cache/cache.module';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
@@ -18,7 +19,7 @@ import { DealersModule } from '../dealers/dealers.module';
     forwardRef(() => DealersModule),   // FEATURE 9 — forward-ref avoids circular dep
   ],
   controllers: [ListingsController],
-  providers: [ListingsService, EmailVerifiedGuard],
+  providers: [ListingsService, EmailVerifiedGuard, ViewFlushTask],
   exports: [ListingsService],
 })
 export class ListingsModule {}

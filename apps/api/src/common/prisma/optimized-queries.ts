@@ -8,7 +8,7 @@
  */
 
 import { raw } from '@prisma/client/runtime/library';
-import { ListingStatus, ListingType } from './enums';
+import { ListingStatus, ListingType, ChatStatus, ReportStatus } from './enums';
 import { PrismaService } from './prisma.service';
 
 // BUG #11 FIX: this file previously did `const prisma = new PrismaClient()`
@@ -355,7 +355,7 @@ export async function getUserInbox(prisma: PrismaService, userId: string, role: 
   const roleFilter = role === 'buyer' ? { buyerId: userId } : { sellerId: userId };
 
   return prisma.chat.findMany({
-    where: { ...roleFilter, status: 'active' },
+    where: { ...roleFilter, status: ChatStatus.ACTIVE },
     orderBy: { updatedAt: 'desc' },
     take: 50,
     select: {
@@ -557,7 +557,7 @@ export async function validateRefreshToken(prisma: PrismaService, tokenHash: str
 export async function getPendingReports(prisma: PrismaService, targetType?: string, limit = 50) {
   return prisma.report.findMany({
     where: {
-      status: 'pending',
+      status: ReportStatus.PENDING,
       ...(targetType && { targetType }),
     },
     orderBy: { createdAt: 'asc' }, // oldest first

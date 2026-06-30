@@ -29,21 +29,18 @@ export enum PaymentCurrency {
   CNY = 'CNY',
 }
 
-export enum PaymentStatus {
-  PENDING   = 'pending',
-  COMPLETED = 'completed',
-  FAILED    = 'failed',
-  REFUNDED  = 'refunded',
-  CANCELLED = 'cancelled',
-}
-
-export enum PaymentGateway {
-  STRIPE     = 'stripe',
-  ZAINCASH   = 'zaincash',
-  FASTPAY    = 'fastpay',
-  QICARD     = 'qicard',
-  ASIAHAWALA = 'asiahawala',
-}
+// F-MED fix: PaymentStatus/PaymentGateway used to be declared locally here
+// with lowercase values ('pending', 'stripe', ...) and PaymentGateway was
+// missing ALIPAY/WECHATPAY entirely, even though those gateways exist
+// (see modules/payments/gateways/alipay.gateway.ts,
+// wechatpay.gateway.ts). Now re-exported from the shared mirror in
+// common/prisma/enums.ts, which matches the real Prisma enums
+// (schema.prisma) exactly — uppercase values, all 7 gateways. Every
+// existing `import { PaymentStatus } from './dto/payment.dto'` elsewhere in
+// the codebase keeps working unchanged; only the values changed (now
+// uppercase) and PaymentGateway gained 2 members.
+import { PaymentStatus, PaymentGateway } from '../../../common/prisma/enums';
+export { PaymentStatus, PaymentGateway };
 
 // ─── Plan pricing — Stripe minor units (cents, fils, etc.) ───────────────────
 // Server-side enforced: client sends plan name only, never an amount.

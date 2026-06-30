@@ -1,8 +1,16 @@
 // apps/api/src/common/upload/upload.service.ts
 //
-// ✅ FIX: Replaced dynamic import('sharp') with static top-level import.
-// Dynamic import fails in Codespaces/NestJS build because sharp is a
-// native Node.js addon — must be imported at module load time, not lazily.
+// F-HIGH fix: storage backend moved from local disk (/tmp/uploads) to
+// Cloudinary. Local disk storage doesn't survive container
+// restarts/redeploys and isn't shared across multiple API replicas, so an
+// image uploaded to replica A is a 404 on a request served by replica B.
+// Cloudinary gives durable, CDN-backed, replica-independent storage and
+// handles responsive image delivery (auto format/quality negotiation)
+// at the edge.
+//
+// Validation pipeline (size limits, filename sanitisation, magic-byte MIME
+// detection, sharp-based image-integrity check) is UNCHANGED — only the
+// final storage step changed.
 
 import {
   Injectable,
@@ -13,16 +21,24 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as path   from 'path';
-import * as fs     from 'fs/promises';
 import * as crypto from 'crypto';
-import * as sharp  from 'sharp';   // ✅ static import — fixes 500 on upload
+import * as sharp  from 'sharp';
+import {
+  v2 as cloudinary,
+  UploadApiOptions,
+  UploadApiErrorResponse,
+} from 'cloudinary';
+
+/** Cloudinary folder / transformation profile. 'avatars' also covers dealer logos. */
+export type UploadFolderType = 'listings' | 'avatars';
 
 export interface UploadedFileInfo {
+  /** Cloudinary public_id, e.g. "carsauto/listings/<uuid>" — stored as the DB ownership key. */
   filename:     string;
   originalName: string;
   mimeType:     string;
   size:         number;
+  /** Cloudinary secure_url (CDN-served). */
   url:          string;
   width?:       number;
   height?:      number;
@@ -72,48 +88,94 @@ const DANGEROUS_PATTERNS = [
   /<|>|"|'|\||\?|\*/,
 ];
 
+// F-HIGH fix: per-folder Cloudinary delivery transformations, applied at
+// upload time (Cloudinary stores/derives the transformed asset).
+// - "listings": marketplace photos — constrained to a sane max width,
+//   format/quality auto-negotiated per requesting browser.
+// - "avatars":  profile photos / dealer logos — fixed square thumbnail crop.
+const CLOUDINARY_TRANSFORMATIONS: Record<UploadFolderType, Record<string, unknown>> = {
+  listings: { quality: 'auto', fetch_format: 'auto', width: 1200, crop: 'limit' },
+  avatars:  { quality: 'auto', fetch_format: 'auto', width: 400, height: 400, crop: 'fill', gravity: 'auto' },
+};
+
+const PUBLIC_ID_PATTERN = /^carsauto\/(listings|avatars)\/[a-f0-9-]+$/;
+
 @Injectable()
 export class UploadService {
-  private readonly logger    = new Logger(UploadService.name);
-  private readonly uploadDir: string;
-  private readonly baseUrl:   string;
+  private readonly logger = new Logger(UploadService.name);
+  private readonly cloudinaryConfigured: boolean;
 
   constructor(private config: ConfigService) {
-    this.uploadDir = this.config.get<string>('UPLOAD_DIR',      '/tmp/uploads');
-    this.baseUrl   = this.config.get<string>('UPLOAD_BASE_URL', 'http://localhost:4000/uploads');
+    const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey    = this.config.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
+
+    this.cloudinaryConfigured = Boolean(cloudName && apiKey && apiSecret);
+    if (this.cloudinaryConfigured) {
+      cloudinary.config({
+        cloud_name: cloudName,
+        api_key:    apiKey,
+        api_secret: apiSecret,
+        secure:     true,
+      });
+    } else {
+      // env.validation.ts already warns at boot if Cloudinary is unconfigured;
+      // this is the runtime-side guard so uploads fail with a clear error
+      // instead of a confusing Cloudinary SDK exception about missing config.
+      this.logger.warn(
+        'Cloudinary is not configured (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET) — image uploads will be rejected.',
+      );
+    }
   }
 
-  async processImageUpload(file: RawUploadedFile): Promise<UploadedFileInfo> {
+  async processImageUpload(
+    file: RawUploadedFile,
+    type: UploadFolderType = 'listings',
+  ): Promise<UploadedFileInfo> {
     this.guardAbsoluteSize(file);
     this.sanitiseOriginalName(file.originalname);
     const detectedMime = this.detectMimeType(file.buffer);
     this.assertAllowedImageMime(detectedMime, file.buffer);
     const optimised = await this.optimiseImage(file.buffer);
-    return this.persistFile(optimised.buffer, 'webp', file.originalname, optimised.info);
+    return this.uploadToCloudinary(optimised.buffer, file.originalname, optimised.info, type);
   }
 
-  async processImageUploads(files: RawUploadedFile[], maxCount = 20): Promise<UploadedFileInfo[]> {
+  async processImageUploads(
+    files: RawUploadedFile[],
+    type: UploadFolderType = 'listings',
+    maxCount = 20,
+  ): Promise<UploadedFileInfo[]> {
     if (!files || files.length === 0) return [];
     if (files.length > maxCount) {
       throw new BadRequestException(`Maximum ${maxCount} images allowed, received ${files.length}`);
     }
-    return Promise.all(files.map(f => this.processImageUpload(f)));
+    return Promise.all(files.map(f => this.processImageUpload(f, type)));
   }
 
-  async deleteFile(filename: string): Promise<void> {
-    if (!/^[a-f0-9-]+\.(webp|jpg|jpeg|png)$/.test(filename)) {
-      throw new BadRequestException('Invalid filename');
+  /**
+   * Deletes an image from Cloudinary.
+   * `publicId` must be the full Cloudinary public_id we generated on upload
+   * (e.g. "carsauto/listings/<uuid>") — this is exactly what's stored as
+   * `UploadedFile.filename` in the DB, so callers (the controller) should
+   * pass that value straight through.
+   */
+  async deleteFile(publicId: string): Promise<void> {
+    if (!PUBLIC_ID_PATTERN.test(publicId)) {
+      throw new BadRequestException('Invalid file identifier');
     }
-    const resolved = path.resolve(path.join(this.uploadDir, filename));
-    // BUG #4 FIX: add path.sep to make check consistent with persistFile —
-    // without it '/tmp/uploads2/evil' passes the startsWith('/tmp/uploads') check.
-    if (!resolved.startsWith(path.resolve(this.uploadDir) + path.sep)) {
-      throw new BadRequestException('Path traversal detected');
+    if (!this.cloudinaryConfigured) {
+      throw new InternalServerErrorException('Image storage is not configured on this server');
     }
     try {
-      await fs.unlink(resolved);
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+      if (result.result !== 'ok' && result.result !== 'not found') {
+        this.logger.warn(`Cloudinary destroy returned unexpected result for ${publicId}: ${result.result}`);
+      }
     } catch (err: any) {
-      if (err.code !== 'ENOENT') this.logger.error(`Failed to delete ${filename}: ${err.message}`);
+      this.logger.error(`Failed to delete ${publicId} from Cloudinary: ${err.message}`);
+      // Deletion failures shouldn't surface as 500s to the caller if the
+      // asset is simply already gone — but genuine API/auth errors should.
+      throw new InternalServerErrorException('Failed to delete file');
     }
   }
 
@@ -153,8 +215,11 @@ export class UploadService {
     }
   }
 
-  // ✅ FIX: No dynamic import — sharp used directly from top-level import.
-  // Handles both ESM default export and CJS module.exports shapes.
+  // Sharp still does local validation/normalisation BEFORE the buffer ever
+  // leaves this process: it proves the buffer is a genuinely decodable
+  // image (rejects corrupt files / decompression bombs that pass the magic
+  // byte check), strips EXIF/orientation metadata, and caps dimensions —
+  // independent of and in addition to whatever Cloudinary does on its side.
   private async optimiseImage(
     buffer: Buffer,
   ): Promise<{ buffer: Buffer; info: { width: number; height: number } }> {
@@ -173,27 +238,47 @@ export class UploadService {
     }
   }
 
-  private async persistFile(
-    buffer: Buffer, ext: string, originalName: string,
+  /** Streams the already-validated/optimised buffer to Cloudinary via upload_stream — no temp file ever touches disk. */
+  private uploadToCloudinary(
+    buffer: Buffer,
+    originalName: string,
     imgInfo: { width: number; height: number },
+    type: UploadFolderType,
   ): Promise<UploadedFileInfo> {
-    const uuid     = crypto.randomUUID();
-    const filename = `${uuid}.${ext}`;
-    const fullPath = path.join(this.uploadDir, filename);
-    await fs.mkdir(this.uploadDir, { recursive: true });
-    const resolved = path.resolve(fullPath);
-    if (!resolved.startsWith(path.resolve(this.uploadDir) + path.sep)) {
-      throw new InternalServerErrorException('Invalid upload path');
+    if (!this.cloudinaryConfigured) {
+      throw new InternalServerErrorException('Image upload is not configured on this server');
     }
-    await fs.writeFile(resolved, buffer, { mode: 0o644 });
-    return {
-      filename,
-      originalName,
-      mimeType: `image/${ext}`,
-      size:     buffer.length,
-      url:      `${this.baseUrl}/${filename}`,
-      width:    imgInfo.width  || undefined,
-      height:   imgInfo.height || undefined,
+
+    const uuid = crypto.randomUUID();
+    const options: UploadApiOptions = {
+      folder:        `carsauto/${type}`,
+      public_id:     uuid,
+      resource_type: 'image',
+      overwrite:     false,
+      transformation: [CLOUDINARY_TRANSFORMATIONS[type]],
     };
+
+    return new Promise<UploadedFileInfo>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        options,
+        (error: UploadApiErrorResponse | undefined, result) => {
+          if (error || !result) {
+            this.logger.error(`Cloudinary upload failed: ${error?.message ?? 'unknown error'}`);
+            reject(new BadRequestException('Image upload failed'));
+            return;
+          }
+          resolve({
+            filename:     result.public_id,
+            originalName,
+            mimeType:     'image/webp',
+            size:         result.bytes ?? buffer.length,
+            url:          result.secure_url,
+            width:        result.width  ?? imgInfo.width  ?? undefined,
+            height:       result.height ?? imgInfo.height ?? undefined,
+          });
+        },
+      );
+      uploadStream.end(buffer);
+    });
   }
 }

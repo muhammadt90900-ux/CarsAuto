@@ -17,6 +17,7 @@
     "ANALYZE",
     "OPTIMIZE_CSS",
     "NEXT_OUTPUT",
+    "OPENAI_API_KEY",
     "CI"
   ],
   "tasks": {
@@ -32,7 +33,8 @@
         "NEXT_PUBLIC_API_URL",
         "INTERNAL_API_URL",
         "NEXT_TELEMETRY_DISABLED",
-        "NEXT_OUTPUT"
+        "NEXT_OUTPUT",
+        "OPENAI_API_KEY"
       ],
       "outputs": [
         ".next/**",

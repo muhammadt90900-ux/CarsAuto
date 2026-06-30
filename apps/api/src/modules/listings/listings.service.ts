@@ -21,26 +21,17 @@ const CACHE_TTL_DETAIL = 2 * 60_000;   // 2 min — detail pages
 const MAX_PAGE_LIMIT     = 100;
 const DEFAULT_PAGE_LIMIT = 20;
 
-// ── View counter (batched DB writes every 30 s) ───────────────────────────────
-const viewBuffer = new Map<string, number>();
-let viewFlushTimer: NodeJS.Timeout | null = null;
-
-function scheduleViewFlush(prisma: PrismaService): void {
-  if (viewFlushTimer) return;
-  viewFlushTimer = setTimeout(async () => {
-    viewFlushTimer = null;
-    if (viewBuffer.size === 0) return;
-    const snapshot = new Map(viewBuffer);
-    viewBuffer.clear();
-    await Promise.all(
-      [...snapshot.entries()].map(([id, count]) =>
-        prisma.listing
-          .update({ where: { id }, data: { views: { increment: count } } })
-          .catch(() => {/* listing may have been deleted */}),
-      ),
-    );
-  }, 30_000);
-}
+// ── View counter ──────────────────────────────────────────────────────────────
+//
+// F-CRIT fix: was a module-level `Map<string, number>` + `setTimeout` flush
+// loop. That buffer lived in a single replica's process memory, so views
+// recorded against replica A were invisible to (and could be lost by a
+// crash of) replica A — they never reached replica B's buffer or the DB.
+// Views are now accumulated atomically in Redis (`views:{listingId}`, via
+// CacheService.incrBy) and flushed to the DB every 30 s by
+// ViewFlushTask (apps/api/src/modules/listings/tasks/view-flush.task.ts),
+// which runs on every replica and uses Redis GETDEL so concurrent replicas
+// flushing the same key never double-count.
 
 // ── Lean select for list pages (excludes description blobs) ──────────────────
 const LIST_SELECT = {
@@ -87,6 +78,20 @@ const LIST_SELECT = {
   },
 } as const;
 
+// F-HIGH fix: shared orderBy for both pagination modes. `id: 'desc'` is a
+// tiebreaker — without it, rows with an identical `createdAt` (entirely
+// possible at scale, e.g. several listings created in the same request
+// batch or the same millisecond) would have an unstable relative order,
+// which is exactly what breaks cursor pagination (a tied row could appear
+// twice across two pages, or be skipped entirely). See buildCursorCondition()
+// below for why this must be a tuple comparison, not Prisma's native
+// `cursor`+`skip`, once more than one field is involved.
+const LIST_ORDER_BY = [
+  { featured: 'desc' as const },
+  { createdAt: 'desc' as const },
+  { id: 'desc' as const },
+];
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = new Set<ListingType>([
   ListingType.CAR,
@@ -118,6 +123,13 @@ export interface ListingQueryParams {
   maxMileage?:   string;
   page?:         string;
   limit?:        string;
+  // F-HIGH fix: cursor-based pagination. Opaque, base64-encoded listing id.
+  // If present, findAll() uses cursor mode regardless of whether `page` is
+  // also present (cursor wins). If absent, behaviour is 100% unchanged from
+  // before this fix — every existing caller (none of which send `cursor`
+  // today) keeps getting the legacy { data, total, page, limit, totalPages }
+  // shape via offset pagination.
+  cursor?:       string;
   featured?:     string;
   search?:       string;
   sortBy?:       string;
@@ -126,6 +138,24 @@ export interface ListingQueryParams {
   // Feature 3 — accessory/service filters
   serviceType?:  string;
   mobile?:       string;
+}
+
+// F-HIGH fix: explicit response shapes for the two pagination modes
+// findAll() can return, so callers (and the controller's return type) don't
+// have to infer them structurally.
+export interface OffsetListingsResponse {
+  data:        unknown[];
+  total:       number;
+  page:        number;
+  limit:       number;
+  totalPages:  number;
+}
+
+export interface CursorListingsResponse {
+  data:        unknown[];
+  nextCursor:  string | null;
+  hasMore:     boolean;
+  total:       number;
 }
 
 @Injectable()
@@ -141,11 +171,159 @@ export class ListingsService {
     private readonly dealers:      DealersService,
   ) {}
 
-  // ── Pagination helper ──────────────────────────────────────────────────────
+  // ── Pagination helpers ──────────────────────────────────────────────────────
   private validatePagination(page?: string, limit?: string) {
     const validPage  = Math.max(1, Number(page)  || 1);
     const validLimit = Math.min(MAX_PAGE_LIMIT, Math.max(1, Number(limit) || DEFAULT_PAGE_LIMIT));
     return { page: validPage, limit: validLimit };
+  }
+
+  private validateLimit(limit?: string): number {
+    return Math.min(MAX_PAGE_LIMIT, Math.max(1, Number(limit) || DEFAULT_PAGE_LIMIT));
+  }
+
+  // ── Cursor encode/decode ─────────────────────────────────────────────────────
+  // Opaque to the client — just a base64-wrapped listing id, exactly as
+  // specified. (The extra fields cursor pagination needs for a correct tuple
+  // comparison — featured, createdAt — are looked up server-side from that id
+  // in findAllCursor(), rather than being encoded into the cursor itself, so
+  // the cursor's shape/contract stays simple and stable even if the sort
+  // fields ever change.)
+  private encodeCursor(id: string): string {
+    return Buffer.from(id, 'utf8').toString('base64');
+  }
+
+  private decodeCursor(cursor: string): string {
+    try {
+      const id = Buffer.from(cursor, 'base64').toString('utf8');
+      if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('not a uuid');
+      return id;
+    } catch {
+      throw new BadRequestException('Invalid cursor');
+    }
+  }
+
+  /**
+   * Builds the WHERE condition equivalent to "every row strictly after
+   * `cursorRow` in LIST_ORDER_BY order".
+   *
+   * F-HIGH fix: deliberately NOT using Prisma's native `cursor: { id }, skip: 1`
+   * here. That mechanism is only reliable when orderBy is a single field —
+   * with a multi-field orderBy (featured, createdAt, id) it's a documented
+   * source of skipped/duplicated rows whenever two rows share an `createdAt`
+   * value (prisma/prisma#16991, prisma/prisma#19159), which is entirely
+   * possible at scale. A manual tuple comparison, mirroring LIST_ORDER_BY
+   * field-for-field, has no such failure mode — it can never skip or repeat
+   * a row no matter how many ties exist.
+   */
+  private buildCursorCondition(cursorRow: { featured: boolean; createdAt: Date; id: string }): any {
+    const afterByCreatedAtThenId = {
+      OR: [
+        { createdAt: { lt: cursorRow.createdAt } },
+        { AND: [{ createdAt: cursorRow.createdAt }, { id: { lt: cursorRow.id } }] },
+      ],
+    };
+
+    if (cursorRow.featured) {
+      // Past-the-cursor rows are either: every non-featured row (all of
+      // which sort after every featured row), OR a featured row later in
+      // (createdAt, id) order.
+      return { OR: [{ featured: false }, { AND: [{ featured: true }, afterByCreatedAtThenId] }] };
+    }
+    // Cursor itself was non-featured — every featured row was already
+    // exhausted earlier in the result set, so just continue within
+    // featured = false.
+    return { AND: [{ featured: false }, afterByCreatedAtThenId] };
+  }
+
+  // ── Total count (only ever queried fresh on the first page) ────────────────
+  private buildCountCacheKey(params: Record<string, any>): string {
+    const filterParams = { ...params };
+    delete filterParams.page;
+    delete filterParams.limit;
+    delete filterParams.cursor;
+    return this.buildListCacheKey(filterParams).replace(/^listings:list:/, 'listings:count:');
+  }
+
+  private async getTotal(params: ListingQueryParams, where: any): Promise<number> {
+    const countKey = this.buildCountCacheKey(params);
+
+    // First page (no cursor yet) — always a fresh COUNT, then cache it for
+    // subsequent pages of this same filter set.
+    if (!params.cursor) {
+      const total = await this.prisma.listing.count({ where });
+      await this.cache.set(countKey, total, CACHE_TTL_LIST);
+      return total;
+    }
+
+    // Later pages: read the cached total from page 1 — a Redis GET, not a
+    // COUNT(*) — which is the whole point of this fix at 1M+ rows.
+    const cached = await this.cache.get<number>(countKey);
+    if (cached) return cached.value;
+
+    // Cache expired mid-scroll (CACHE_TTL_LIST is short — 30s) — fall back to
+    // a real count rather than returning a missing/stale total.
+    const total = await this.prisma.listing.count({ where });
+    await this.cache.set(countKey, total, CACHE_TTL_LIST);
+    return total;
+  }
+
+  // ── findAll (offset mode — unchanged behaviour for existing callers) ───────
+  private async findAllOffset(params: ListingQueryParams) {
+    const { page, limit } = this.validatePagination(params.page, params.limit);
+    const skip  = (page - 1) * limit;
+    const where = this.buildWhereClause(params);
+
+    const [data, total] = await Promise.all([
+      this.prisma.listing.findMany({
+        where,
+        skip,
+        take:    limit,
+        orderBy: LIST_ORDER_BY,
+        select:  LIST_SELECT,
+      }),
+      this.prisma.listing.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  // ── findAll (cursor mode — O(1) regardless of scroll depth) ─────────────────
+  private async findAllCursor(params: ListingQueryParams) {
+    const limit = this.validateLimit(params.limit);
+    const where = this.buildWhereClause(params);
+
+    let finalWhere = where;
+    if (params.cursor) {
+      const cursorId  = this.decodeCursor(params.cursor);
+      const cursorRow = await this.prisma.listing.findUnique({
+        where:  { id: cursorId },
+        select: { featured: true, createdAt: true },
+      });
+      // Cursor row was deleted (or never existed) — fail clearly rather than
+      // silently restarting from page 1, which would look like a buggy
+      // infinite-scroll loop on the client.
+      if (!cursorRow) throw new BadRequestException('Invalid or expired cursor');
+
+      finalWhere = { AND: [where, this.buildCursorCondition({ ...cursorRow, id: cursorId })] };
+    }
+
+    // Fetch one extra row to detect whether there's a next page, with no
+    // second query and no COUNT needed for this part.
+    const rows = await this.prisma.listing.findMany({
+      where:   finalWhere,
+      take:    limit + 1,
+      orderBy: LIST_ORDER_BY,
+      select:  LIST_SELECT,
+    });
+
+    const hasMore    = rows.length > limit;
+    const data       = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore ? this.encodeCursor((data[data.length - 1] as any).id) : null;
+
+    const total = await this.getTotal(params, where);
+
+    return { data, nextCursor, hasMore, total };
   }
 
   // ── findAll ────────────────────────────────────────────────────────────────
@@ -153,28 +331,19 @@ export class ListingsService {
     // userId is optional — public (unauthenticated) requests omit it entirely.
     // The cache key intentionally excludes userId so public results are shared;
     // isFavorited is appended in a second pass after the cached fetch.
+    //
+    // F-HIGH fix: buildListCacheKey() already serialises every key present in
+    // `params` generically — once `cursor` is part of ListingQueryParams, it's
+    // automatically included in the cache key whenever present (and `page`
+    // whenever IT is present instead), with no special-casing needed here.
     const cacheKey = this.buildListCacheKey(params);
     try {
+      // Cursor wins if both are somehow present; absence of `cursor` is 100%
+      // backward compatible with every existing caller (offset mode, exact
+      // same response shape as before this fix).
       const base = await this.cache.getOrSet(
         cacheKey,
-        async () => {
-          const { page, limit } = this.validatePagination(params.page, params.limit);
-          const skip  = (page - 1) * limit;
-          const where = this.buildWhereClause(params);
-
-          const [data, total] = await Promise.all([
-            this.prisma.listing.findMany({
-              where,
-              skip,
-              take:    limit,
-              orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-              select:  LIST_SELECT,
-            }),
-            this.prisma.listing.count({ where }),
-          ]);
-
-          return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
-        },
+        () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
       );
 
@@ -269,9 +438,8 @@ export class ListingsService {
         await this.cache.set(cacheKey, result, CACHE_TTL_DETAIL);
       }
 
-      // Batch view increment
-      viewBuffer.set(id, (viewBuffer.get(id) ?? 0) + 1);
-      scheduleViewFlush(this.prisma);
+      // Batch view increment — buffered in Redis, flushed to DB by ViewFlushTask
+      await this.cache.incrBy(`views:${id}`, 1);
 
       return result;
     } catch (err) {
@@ -306,18 +474,6 @@ export class ListingsService {
       const isAccessory = ACCESSORY_TYPES.has(listingType);
 
       // Build vehicleSpec create payload from vehicleSpecInput or condition
-      // Map frontend driveType values to the Prisma DrivetrainType enum.
-      // The frontend UI uses '4WD' (matches user-facing labels), but the
-      // Prisma enum is FOUR_WD (FWD / RWD / AWD / FOUR_WD) — without this
-      // mapping, listing.create() throws PrismaClientValidationError:
-      // "Invalid value for argument `drivetrain`. Expected DrivetrainType."
-      const DRIVETRAIN_MAP: Record<string, string> = {
-        FWD: 'FWD',
-        RWD: 'RWD',
-        AWD: 'AWD',
-        '4WD': 'FOUR_WD',
-      };
-
       const vehicleSpecCreate = isVehicle
         ? {
             ...(vehicleSpecInput?.year         ? { year:         vehicleSpecInput.year }         : {}),
@@ -328,7 +484,7 @@ export class ListingsService {
             ...(vehicleSpecInput?.engineCC      ? { engineCC:     vehicleSpecInput.engineCC }      : {}),
             ...(vehicleSpecInput?.doors         ? { doors:        vehicleSpecInput.doors }         : {}),
             ...(vehicleSpecInput?.bodyType      ? { bodyType:     vehicleSpecInput.bodyType }      : {}),
-            ...(vehicleSpecInput?.driveType     ? { drivetrain:   DRIVETRAIN_MAP[vehicleSpecInput.driveType] ?? vehicleSpecInput.driveType } : {}),
+            ...(vehicleSpecInput?.driveType     ? { drivetrain:   vehicleSpecInput.driveType }     : {}),
             ...(condition                       ? { condition }                                    : {}),
           }
         : null;
@@ -684,5 +840,10 @@ export class ListingsService {
 
   private invalidateListCache(): void {
     this.cache.del('listings:list:');
+    // F-HIGH fix: the cursor-pagination total-count cache (see getTotal())
+    // is a separate namespace from the list-page cache — must be cleared
+    // here too, or a stale total can outlive a create/update/delete by up
+    // to CACHE_TTL_LIST.
+    this.cache.del('listings:count:');
   }
 }

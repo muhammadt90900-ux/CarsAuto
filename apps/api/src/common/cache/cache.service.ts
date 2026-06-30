@@ -173,4 +173,144 @@ export class CacheService implements OnModuleDestroy {
       return { connected: false, dbSize: 0 };
     }
   }
+
+  // ── Existence ─────────────────────────────────────────────────────────────
+
+  async exists(key: string): Promise<boolean> {
+    if (!key) return false;
+    try {
+      return (await this.redis.exists(key)) === 1;
+    } catch (err) {
+      this.logger.error(`CacheService.exists("${key}") failed: ${(err as Error).message}`);
+      return false;
+    }
+  }
+
+  // ── Set helpers (presence, room membership) ──────────────────────────────
+  //
+  // F-CRIT fix: replaces module-level `Map<string, Set<string>>` presence
+  // tracking. Redis SETs naturally support multi-membership (multiple socket
+  // ids per user) and an empty set is auto-deleted by Redis after the last
+  // SREM, so callers can rely on `exists()`/`setCardinality()` for "is online"
+  // checks without manual cleanup.
+
+  /** Adds `member` to the set at `key` and (re)applies the TTL — used as a presence heartbeat. */
+  async addToSet(key: string, member: string, ttlMs?: number): Promise<void> {
+    if (!key || !member) return;
+    try {
+      await this.redis.sadd(key, member);
+      if (ttlMs) await this.redis.pexpire(key, ttlMs);
+    } catch (err) {
+      this.logger.error(`CacheService.addToSet("${key}") failed: ${(err as Error).message}`);
+    }
+  }
+
+  /** Removes `member` from the set at `key`. Returns the number removed (0 or 1). */
+  async removeFromSet(key: string, member: string): Promise<number> {
+    if (!key || !member) return 0;
+    try {
+      return await this.redis.srem(key, member);
+    } catch (err) {
+      this.logger.error(`CacheService.removeFromSet("${key}") failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  async setMembers(key: string): Promise<string[]> {
+    if (!key) return [];
+    try {
+      return await this.redis.smembers(key);
+    } catch (err) {
+      this.logger.error(`CacheService.setMembers("${key}") failed: ${(err as Error).message}`);
+      return [];
+    }
+  }
+
+  async setCardinality(key: string): Promise<number> {
+    if (!key) return 0;
+    try {
+      return await this.redis.scard(key);
+    } catch (err) {
+      this.logger.error(`CacheService.setCardinality("${key}") failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  // ── Counters ──────────────────────────────────────────────────────────────
+  //
+  // F-CRIT fix: replaces module-level rate-limiter Maps and the view-count
+  // buffer Map. INCR/INCRBY are atomic in Redis, so concurrent requests
+  // across replicas never lose an increment the way two replicas each
+  // mutating their own in-memory Map would.
+
+  /**
+   * Atomically increments a fixed-window counter, applying `ttlMs` only on
+   * the first increment of the window (so the window doesn't keep sliding).
+   * Returns the new count. Used for rate limiting.
+   *
+   * Fails OPEN on Redis errors (returns 0, i.e. "not yet over limit") —
+   * a Redis outage should degrade availability gracefully rather than lock
+   * every user out of chat.
+   */
+  async incrWithTtl(key: string, ttlMs: number): Promise<number> {
+    if (!key) return 0;
+    try {
+      const count = await this.redis.incr(key);
+      if (count === 1) await this.redis.pexpire(key, ttlMs);
+      return count;
+    } catch (err) {
+      this.logger.error(`CacheService.incrWithTtl("${key}") failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  /** Atomically increments a permanent (no-TTL) counter by `amount`. Used for batched view counts. */
+  async incrBy(key: string, amount: number): Promise<number> {
+    if (!key) return 0;
+    try {
+      return await this.redis.incrby(key, amount);
+    } catch (err) {
+      this.logger.error(`CacheService.incrBy("${key}") failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Atomically reads and deletes a key in one round trip (Redis GETDEL).
+   * Used by batch-flush jobs so that, if two replicas race to flush the same
+   * key, only one of them gets a non-null value — the other safely sees null
+   * instead of double-counting.
+   */
+  async getDel(key: string): Promise<string | null> {
+    if (!key) return null;
+    try {
+      return await this.redis.getdel(key);
+    } catch (err) {
+      this.logger.error(`CacheService.getDel("${key}") failed: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  /** Lists all keys matching a glob pattern via non-blocking SCAN (safe on large keyspaces, unlike KEYS). */
+  async keys(pattern: string): Promise<string[]> {
+    if (!pattern) return [];
+    const found: string[] = [];
+    let cursor = '0';
+    try {
+      do {
+        const [nextCursor, batch] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          200,
+        );
+        cursor = nextCursor;
+        found.push(...batch);
+      } while (cursor !== '0');
+    } catch (err) {
+      this.logger.error(`CacheService.keys("${pattern}") failed: ${(err as Error).message}`);
+    }
+    return found;
+  }
 }

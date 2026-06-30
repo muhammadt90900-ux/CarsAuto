@@ -115,7 +115,7 @@ export const makePayment = (overrides: Record<string, any> = {}) => ({
   plan: 'FEATURED_LISTING',
   amount: 29.99,
   currency: 'USD',
-  status: 'pending',
+  status: 'PENDING',
   createdAt: new Date('2024-06-01T00:00:00Z'),
   ...overrides,
 });

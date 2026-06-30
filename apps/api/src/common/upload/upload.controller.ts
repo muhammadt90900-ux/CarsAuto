@@ -3,9 +3,22 @@
 // Secure multipart upload endpoints with rate limiting.
 //
 // Routes:
-//   POST /api/upload/image          — single image (avatar, dealer logo, etc.)
-//   POST /api/upload/images         — batch of images (listing photos, max 20)
-//   DELETE /api/upload/:filename    — delete own uploaded file
+//   POST /api/upload/image            — single image (avatar, dealer logo, etc.)
+//   POST /api/upload/images           — batch of images (listing photos, max 20)
+//   DELETE /api/upload/:type/:id      — delete own uploaded file
+//
+// F-HIGH fix: images are stored on Cloudinary now (see upload.service.ts).
+// Both upload endpoints accept an optional `type` form field — 'listings'
+// (default, for marketplace photos) or 'avatars' (profile photos / dealer
+// logos) — which selects the Cloudinary folder and delivery transformation.
+// The existing sell-flow caller (apps/web/src/lib/sell-api.ts) doesn't send
+// `type` at all, so it defaults to 'listings' — its exact current behaviour,
+// unchanged.
+//
+// The delete route changed from `:filename` to `:type/:id` because Cloudinary
+// public_ids are path-like ("carsauto/listings/<uuid>"); Express route params
+// don't match across "/" by default, so a single `:filename` segment could
+// never have captured the full id.
 //
 // Rate limits (enforced here in addition to IpThrottleMiddleware):
 //   - Single image: 30 uploads/minute per user
@@ -17,6 +30,7 @@ import {
   Post,
   Delete,
   Param,
+  Body,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -31,11 +45,20 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
-import { UploadService } from './upload.service';
+import { UploadService, UploadFolderType } from './upload.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { imageUploadOptions } from './multer.config';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
+
+const ALLOWED_FOLDER_TYPES: UploadFolderType[] = ['listings', 'avatars'];
+
+function resolveFolderType(input: unknown): UploadFolderType {
+  if (typeof input === 'string' && (ALLOWED_FOLDER_TYPES as string[]).includes(input)) {
+    return input as UploadFolderType;
+  }
+  return 'listings'; // default — matches the only current caller's behaviour
+}
 
 // ── Upload rate limit constants ──────────────────────────────────────────────
 const SINGLE_UPLOAD_LIMIT_PER_MIN  = 30;
@@ -65,6 +88,7 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
+    @Body('type') typeInput: unknown,
     @Req() req: Request,
   ) {
     if (!file) {
@@ -72,6 +96,7 @@ export class UploadController {
         'No file provided. Send a multipart/form-data request with field name "file".',
       );
     }
+    const type = resolveFolderType(typeInput);
 
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
 
@@ -99,7 +124,7 @@ export class UploadController {
       mimetype:     file.mimetype,
       size:         file.size,
       buffer:       file.buffer,
-    });
+    }, type);
 
     this.logger.log(
       `Image uploaded: ${result.filename} (${result.size} bytes, ${result.width}×${result.height}) by user ${userId}`,
@@ -132,6 +157,7 @@ export class UploadController {
   @UseInterceptors(FilesInterceptor('files', 20, imageUploadOptions))
   async uploadImages(
     @UploadedFiles() files: Express.Multer.File[],
+    @Body('type') typeInput: unknown,
     @Req() req: Request,
   ) {
     if (!files || files.length === 0) {
@@ -139,6 +165,7 @@ export class UploadController {
         'No files provided. Send a multipart/form-data request with field name "files".',
       );
     }
+    const type = resolveFolderType(typeInput);
 
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
 
@@ -167,6 +194,7 @@ export class UploadController {
         size:         f.size,
         buffer:       f.buffer,
       })),
+      type,
       20,
     );
 
@@ -189,16 +217,31 @@ export class UploadController {
   }
 
   /**
-   * DELETE /api/upload/:filename
+   * DELETE /api/upload/:type/:id
    *
-   * Remove a previously uploaded file.
+   * Remove a previously uploaded file. `:type` is 'listings' or 'avatars',
+   * `:id` is the uuid generated at upload time — together they reconstruct
+   * the Cloudinary public_id ("carsauto/{type}/{id}") stored as
+   * UploadedFile.filename.
+   *
    * Validates ownership via the audit trail before deletion —
    * a user can only delete files they uploaded (IDOR prevention).
-   * Validates the filename before deletion (path-traversal prevention).
    */
-  @Delete(':filename')
+  @Delete(':type/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteFile(@Param('filename') filename: string, @Req() req: Request) {
+  async deleteFile(
+    @Param('type') typeParam: string,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    if (!(ALLOWED_FOLDER_TYPES as string[]).includes(typeParam)) {
+      throw new BadRequestException('Invalid upload type');
+    }
+    if (!/^[a-f0-9-]+$/.test(id)) {
+      throw new BadRequestException('Invalid file id');
+    }
+    const filename = `carsauto/${typeParam}/${id}`;
+
     const userId = (req as any).user?.userId ?? (req as any).user?.sub;
 
     // Role guard: USER (buyer) accounts cannot manage uploads

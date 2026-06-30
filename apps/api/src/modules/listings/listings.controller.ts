@@ -8,7 +8,7 @@ import {
   IsOptional, IsString, IsNumberString,
   IsEnum, MaxLength, IsBooleanString,
 } from 'class-validator';
-import { ListingsService, type ListingQueryParams } from './listings.service';
+import { ListingsService, type ListingQueryParams, type OffsetListingsResponse, type CursorListingsResponse } from './listings.service';
 import { JwtAuthGuard }          from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtGuard }      from '../auth/guards/optional-jwt.guard';
 import { EmailVerifiedGuard }    from '../../common/guards/email-verified.guard';
@@ -36,6 +36,10 @@ class ListingQueryDto implements ListingQueryParams {
   @IsOptional() @IsNumberString()           maxMileage?:   string;
   @IsOptional() @IsNumberString()           page?:         string;
   @IsOptional() @IsNumberString()           limit?:        string;
+  // F-HIGH fix: cursor-based pagination — opaque, base64-encoded listing id.
+  // If sent, takes priority over `page` (see ListingsService.findAll()).
+  // Existing callers that only ever send `page` are completely unaffected.
+  @IsOptional() @IsString() @MaxLength(512) cursor?:       string;
   @IsOptional() @IsString()                 featured?:     string;
   @IsOptional() @IsString() @MaxLength(100) search?:       string;
   @IsOptional() @IsString() @MaxLength(40)  sortBy?:       string;
@@ -59,7 +63,10 @@ export class ListingsController {
   // isFavorited flags for logged-in users without throwing for public callers.
   @UseGuards(OptionalJwtGuard)
   @Get()
-  findAll(@Query() query: ListingQueryDto, @Request() req: any) {
+  findAll(
+    @Query() query: ListingQueryDto,
+    @Request() req: any,
+  ): Promise<OffsetListingsResponse | CursorListingsResponse> {
     return this.listingsService.findAll(query, req.user?.userId);
   }
 
