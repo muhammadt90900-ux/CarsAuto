@@ -343,7 +343,7 @@ export class ListingsService {
       // same response shape as before this fix).
       const base = await this.cache.getOrSet(
         cacheKey,
-        () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
+        async () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
       );
 

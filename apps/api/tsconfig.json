@@ -6,8 +6,15 @@
     "noEmit": false,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    // NOTE: "jest" is included here only so the VS Code/editor type-checker
+    // (which always uses this file, not tsconfig.build.json) recognizes
+    // describe/it/expect/jest globals inside *.spec.ts and __tests__ files.
+    // The actual production build uses tsconfig.build.json, which does NOT
+    // extend this file and excludes test files entirely, so this has zero
+    // effect on `nest build` / `npm run build` output.
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "prisma", "**/__tests__/**", "**/*.spec.ts", "**/*.e2e.ts"]
+  "exclude": ["node_modules", "dist", "prisma"]
 }
