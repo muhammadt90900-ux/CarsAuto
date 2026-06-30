@@ -13,6 +13,7 @@ import { MetricsMiddleware } from './common/monitoring/metrics.middleware';
 import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
 import { validateEnv } from './config/env.validation';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 /** Intercepts writeHead to inject X-Response-Time before headers are flushed. */
 function responseTimeMiddleware() {
@@ -169,6 +170,41 @@ async function bootstrap() {
     }),
   );
 
+  // ── API documentation (Swagger/OpenAPI) ─────────────────────────────────────
+  // F-MED fix: was zero API documentation — no @ApiProperty decorators, no
+  // DocumentBuilder, no /api/docs endpoint, so every consumer (the frontend,
+  // any future mobile app, any third-party integrator) had to read controller
+  // source to know what an endpoint expects or returns.
+  //
+  // Gated by TWO independent conditions, both required:
+  //   1. SWAGGER_ENABLED=true — explicit opt-in, off by default
+  //   2. NODE_ENV !== 'production' — hard block regardless of the flag above
+  // This API documents Admin and Payments endpoints in detail; publishing
+  // that surface area in production (even password-protected) is a bigger
+  // decision than this fix should make unilaterally, so production is
+  // simply never an option here, full stop — not "off by default but
+  // togglable in prod with a basic-auth password."  If a real
+  // staging/production docs site is wanted later, that's worth its own
+  // explicit decision (e.g. SwaggerModule behind a dedicated auth guard,
+  // on a separate subdomain) rather than reusing this flag.
+  if (process.env.SWAGGER_ENABLED === 'true' && process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('CarsAuto API')
+      .setDescription('Multilingual automotive marketplace API — Iraq, Kurdistan, UAE')
+      .setVersion('1.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'bearer',
+      )
+      .build();
+
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, swaggerDocument, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+    logger.log('📚 Swagger docs enabled at /api/docs (SWAGGER_ENABLED=true, non-production)');
+  }
+
   // ── Global exception filter ───────────────────────────────────────────────
   const errorTracker = app.get(ErrorTrackerService);
   app.useGlobalFilters(new AllExceptionsFilter(errorTracker, metricsService));
@@ -239,6 +275,9 @@ async function bootstrap() {
   logger.log(`🚀 API listening on http://0.0.0.0:${port}/api`);
   logger.log(`📊 Metrics available at http://0.0.0.0:${port}/metrics`);
   logger.log(`❤️  Health checks at http://0.0.0.0:${port}/health/live and /health/ready`);
+  if (process.env.SWAGGER_ENABLED === 'true' && process.env.NODE_ENV !== 'production') {
+    logger.log(`📚 API docs at http://0.0.0.0:${port}/api/docs`);
+  }
 
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   const shutdown = async (signal: string) => {

@@ -7,7 +7,9 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ExchangeRateService, ExchangeRates } from './exchange-rate.service';
 import { Public } from '../decorators/public.decorator';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Currency')
 @Controller('exchange-rates')
 export class ExchangeRateController {
   constructor(private readonly exchangeRateService: ExchangeRateService) {}
@@ -26,6 +28,8 @@ export class ExchangeRateController {
    *   "source": "live"
    * }
    */
+  @ApiOperation({ summary: 'Get current USD-based exchange rates for all supported currencies' })
+  @ApiResponse({ status: 200, description: 'Exchange rates, publicly cacheable for 1 hour' })
   @Public()
   @Get()
   async getRates(@Res() res: Response): Promise<void> {

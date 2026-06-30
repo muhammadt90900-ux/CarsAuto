@@ -15,7 +15,9 @@ import { OptionalJwtGuard } from '../auth/guards/optional-jwt.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { DealerTier } from '../../common/prisma/enums';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('Dealers')
 @Controller('dealers')
 export class DealersController {
   constructor(private readonly service: DealersService) {}
@@ -30,6 +32,7 @@ export class DealersController {
 
   /** GET /dealers/me/following — dealers the current user follows. MUST be before :slug. */
   @Get('me/following')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   getFollowedDealers(@Request() req: any) {
     return this.service.getFollowedDealers(req.user.userId);
@@ -37,6 +40,7 @@ export class DealersController {
 
   /** GET /dealers/me/analytics?days=30 */
   @Get('me/analytics')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   analytics(@Request() req: any, @Query('days') days = 30) {
     return this.service.getAnalytics(req.user.userId, +days);
@@ -85,6 +89,7 @@ export class DealersController {
 
   /** POST /dealers/:id/follow */
   @Post(':id/follow')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   follow(@Param('id') id: string, @Request() req: any) {
@@ -93,6 +98,7 @@ export class DealersController {
 
   /** DELETE /dealers/:id/follow */
   @Delete(':id/follow')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   unfollow(@Param('id') id: string, @Request() req: any) {
@@ -103,6 +109,7 @@ export class DealersController {
 
   /** POST /dealers — create dealer profile (verified email required) */
   @Post()
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   create(@Body() dto: CreateDealerDto, @Request() req: any) {
     return this.service.create(req.user.userId, dto);
@@ -110,6 +117,7 @@ export class DealersController {
 
   /** PATCH /dealers/me — update own dealer profile (verified email required) */
   @Patch('me')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   update(@Body() dto: UpdateDealerDto, @Request() req: any) {
     return this.service.update(req.user.userId, dto);
@@ -119,6 +127,7 @@ export class DealersController {
 
   /** POST /dealers/:slug/reviews — verified email required */
   @Post(':slug/reviews')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   createReview(
     @Param('slug') slug: string,
@@ -132,6 +141,7 @@ export class DealersController {
 
   /** PATCH /dealers/:id/verify */
   @Patch(':id/verify')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, AdminGuard)
   verify(
     @Param('id') id: string,
@@ -143,6 +153,7 @@ export class DealersController {
 
   /** PATCH /dealers/:id/suspend */
   @Patch(':id/suspend')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, AdminGuard)
   suspend(@Param('id') id: string) {
     return this.service.suspend(id);

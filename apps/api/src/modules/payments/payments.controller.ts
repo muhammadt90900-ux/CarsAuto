@@ -46,12 +46,15 @@ import {
   AsiaHawalaConfirmOtpDto,
 } from './dto/payment.dto';
 import Stripe from 'stripe';
+import { ApiTags, ApiBearerAuth, ApiExcludeEndpoint } from '@nestjs/swagger';
 
+@ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   // ── Stripe webhook — NO JWT ────────────────────────────────────────────────
+  @ApiExcludeEndpoint()
   @Post('webhook')
   @UseGuards(StripeWebhookGuard)
   @HttpCode(HttpStatus.OK)
@@ -62,6 +65,7 @@ export class PaymentsController {
   }
 
   // ── ZainCash webhook — NO JWT ──────────────────────────────────────────────
+  @ApiExcludeEndpoint()
   @Post('zaincash/webhook')
   @HttpCode(HttpStatus.OK)
   async handleZainCashWebhook(
@@ -73,6 +77,7 @@ export class PaymentsController {
   }
 
   // ── FastPay webhook — NO JWT ───────────────────────────────────────────────
+  @ApiExcludeEndpoint()
   @Post('fastpay/webhook')
   @HttpCode(HttpStatus.OK)
   async handleFastPayWebhook(
@@ -84,6 +89,7 @@ export class PaymentsController {
   }
 
   // ── QiCard webhook — NO JWT ────────────────────────────────────────────────
+  @ApiExcludeEndpoint()
   @Post('qicard/webhook')
   @HttpCode(HttpStatus.OK)
   async handleQiCardWebhook(
@@ -95,6 +101,7 @@ export class PaymentsController {
   }
 
   // ── AsiaHawala webhook — NO JWT ────────────────────────────────────────────
+  @ApiExcludeEndpoint()
   @Post('asiahawala/webhook')
   @HttpCode(HttpStatus.OK)
   async handleAsiaHawalaWebhook(
@@ -107,6 +114,7 @@ export class PaymentsController {
 
   // ── AsiaHawala Step 1: Initiate OTP ───────────────────────────────────────
   @Post('asiahawala/initiate')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   initiateAsiaHawala(@Request() req: any, @Body() dto: AsiaHawalaInitiateDto) {
     return this.paymentsService.initiateAsiaHawala(req.user.userId, dto);
@@ -114,6 +122,7 @@ export class PaymentsController {
 
   // ── AsiaHawala Step 2: Confirm OTP ────────────────────────────────────────
   @Post('asiahawala/confirm-otp')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   confirmAsiaHawalaOtp(@Request() req: any, @Body() dto: AsiaHawalaConfirmOtpDto) {
     return this.paymentsService.confirmAsiaHawalaOtp(req.user.userId, dto);
@@ -121,18 +130,21 @@ export class PaymentsController {
 
   // ── Authenticated routes ───────────────────────────────────────────────────
   @Get()
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   getAll(@Request() req: any) {
     return this.paymentsService.getMyPayments(req.user.userId);
   }
 
   @Get('subscription')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   getSubscription(@Request() req: any) {
     return this.paymentsService.getMySubscription(req.user.userId);
   }
 
   @Get(':id')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   getOne(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
     return this.paymentsService.getPaymentById(id, req.user.userId);
@@ -147,6 +159,7 @@ export class PaymentsController {
    * Amount is NEVER accepted from the client — resolved server-side from plan.
    */
   @Post('intent')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   createIntent(@Request() req: any, @Body() dto: CreatePaymentIntentDto) {
     return this.paymentsService.createPaymentIntent(req.user.userId, dto);
@@ -157,6 +170,7 @@ export class PaymentsController {
    * Partial refunds supported via optional `amount` (minor units for Stripe, dinars for IQD gateways).
    */
   @Post(':id/refund')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.ACCEPTED)
   requestRefund(
@@ -176,6 +190,7 @@ export class PaymentsController {
    * ?immediately=true cancels now; default cancels at period end.
    */
   @Delete('subscription')
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @HttpCode(HttpStatus.OK)
   cancelSubscription(@Request() req: any, @Query('immediately') immediately?: string) {

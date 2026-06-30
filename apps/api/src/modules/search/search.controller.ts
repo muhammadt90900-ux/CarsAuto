@@ -11,7 +11,9 @@ import { Request } from 'express';
 import { SearchService } from './search.service';
 import { SearchProtectionService } from '../../common/throttler/search-protection.service';
 import { AdvancedSearchDto } from './dto/advanced-search.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Search')
 @Controller('search')
 export class SearchController {
   constructor(

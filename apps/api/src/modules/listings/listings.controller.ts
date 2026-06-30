@@ -8,6 +8,7 @@ import {
   IsOptional, IsString, IsNumberString,
   IsEnum, MaxLength, IsBooleanString,
 } from 'class-validator';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ListingsService, type ListingQueryParams, type OffsetListingsResponse, type CursorListingsResponse } from './listings.service';
 import { JwtAuthGuard }          from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtGuard }      from '../auth/guards/optional-jwt.guard';
@@ -49,6 +50,7 @@ class ListingQueryDto implements ListingQueryParams {
   @IsOptional() @IsBooleanString()          mobile?:       string;
 }
 
+@ApiTags('Listings')
 @Controller('listings')
 export class ListingsController {
   constructor(
@@ -61,6 +63,11 @@ export class ListingsController {
   // OptionalJwtGuard: never blocks unauthenticated requests — populates
   // req.user only when a valid JWT is present. This lets findAll() attach
   // isFavorited flags for logged-in users without throwing for public callers.
+  @ApiOperation({
+    summary: 'List/search listings — supports offset pagination (page) and cursor pagination (cursor)',
+    description: 'If `cursor` is provided, returns { data, nextCursor, hasMore, total }. Otherwise returns { data, total, page, limit, totalPages }.',
+  })
+  @ApiResponse({ status: 200, description: 'Paginated list of listings (shape depends on page vs cursor mode)' })
   @UseGuards(OptionalJwtGuard)
   @Get()
   findAll(
@@ -73,6 +80,8 @@ export class ListingsController {
   // IMPORTANT: Static-segment routes MUST be declared BEFORE @Get(':id').
   // NestJS matches in declaration order — 'my' would be misrouted as a UUID.
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: "Get the current user's own listings (any status)" })
   @UseGuards(JwtAuthGuard)
   @Get('my')
   myListings(@Request() req: any) {
@@ -85,6 +94,9 @@ export class ListingsController {
   // but never blocks unauthenticated requests. The userId is forwarded to
   // findOne() so owners can see their own non-ACTIVE listings while
   // unauthenticated (and non-owner) callers get a 404.
+  @ApiOperation({ summary: 'Get a single listing by id' })
+  @ApiResponse({ status: 200, description: 'The listing' })
+  @ApiResponse({ status: 404, description: 'Not found (or not visible to the current caller)' })
   @UseGuards(OptionalJwtGuard)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
@@ -93,6 +105,11 @@ export class ListingsController {
 
   // ── Remaining authenticated endpoints ─────────────────────────────────────
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Create a new listing' })
+  @ApiResponse({ status: 201, description: 'The created listing' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Email not verified, or posting limit reached' })
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -101,6 +118,8 @@ export class ListingsController {
     return this.listingsService.create({ ...dto, userId: req.user.userId });
   }
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Update a listing owned by the current user' })
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Patch(':id')
   update(
@@ -111,6 +130,9 @@ export class ListingsController {
     return this.listingsService.update(id, req.user.userId, dto);
   }
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Delete a listing owned by the current user' })
+  @ApiResponse({ status: 204, description: 'Deleted' })
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

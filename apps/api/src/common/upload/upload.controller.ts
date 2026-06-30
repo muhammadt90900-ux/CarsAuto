@@ -50,6 +50,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { imageUploadOptions } from './multer.config';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 
 const ALLOWED_FOLDER_TYPES: UploadFolderType[] = ['listings', 'avatars'];
 
@@ -67,6 +68,8 @@ const DAILY_UPLOAD_CAP_PER_USER    = 200;
 const ONE_MINUTE_MS                = 60_000;
 const ONE_DAY_MS                   = 24 * 60 * 60_000;
 
+@ApiTags('Upload')
+@ApiBearerAuth('bearer')
 @Controller('upload')
 @UseGuards(JwtAuthGuard)   // All upload endpoints require authentication
 export class UploadController {
@@ -84,6 +87,7 @@ export class UploadController {
    * Single image upload — for avatar photos, dealer logos, etc.
    * Returns: { url, filename, width, height, size }
    */
+  @ApiConsumes('multipart/form-data')
   @Post('image')
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
@@ -153,6 +157,7 @@ export class UploadController {
    * Batch image upload — for listing photos (max 20 files).
    * Returns: Array of { url, filename, width, height, size }
    */
+  @ApiConsumes('multipart/form-data')
   @Post('images')
   @UseInterceptors(FilesInterceptor('files', 20, imageUploadOptions))
   async uploadImages(

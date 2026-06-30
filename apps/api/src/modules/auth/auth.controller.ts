@@ -31,6 +31,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -47,6 +48,7 @@ const THROTTLE_REGISTER      = { default: { ttl: 60_000, limit: 5 } };
 const THROTTLE_VERIFY_EMAIL  = { default: { ttl: 60_000, limit: 10 } };
 const THROTTLE_RESEND        = { default: { ttl: 60_000, limit: 3 } };
 
+@ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
 export class AuthController {
@@ -59,6 +61,9 @@ export class AuthController {
 
   // ── Register ──────────────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Register a new user account' })
+  @ApiResponse({ status: 201, description: 'Account created — returns an access token and the new user' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @Throttle(THROTTLE_REGISTER)
@@ -74,6 +79,9 @@ export class AuthController {
 
   // ── Login ─────────────────────────────────────────────────────────────────
 
+  @ApiOperation({ summary: 'Log in with email and password' })
+  @ApiResponse({ status: 200, description: 'Returns an access token and the authenticated user' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle(THROTTLE_LOGIN)
@@ -104,6 +112,10 @@ export class AuthController {
 
   // ── Logout ────────────────────────────────────────────────────────────────
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Log out — revokes the current refresh token (and access token, if provided)' })
+  @ApiResponse({ status: 204, description: 'Logged out' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
@@ -128,6 +140,10 @@ export class AuthController {
 
   // ── Me ────────────────────────────────────────────────────────────────────
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Get the currently authenticated user' })
+  @ApiResponse({ status: 200, description: 'The authenticated user (from the JWT payload)' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@Req() req: Request) {
@@ -169,6 +185,8 @@ export class AuthController {
 
   // ── Resend Verification Email ─────────────────────────────────────────────
 
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Resend the email verification link to the logged-in user' })
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

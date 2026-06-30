@@ -10,6 +10,7 @@ import {
   Matches,
   Length,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -91,23 +92,30 @@ export const ZERO_DECIMAL_CURRENCIES = new Set(['IQD']);
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 export class CreatePaymentIntentDto {
+  @ApiProperty({ description: 'Subscription plan to pay for', enum: PaymentPlan, example: PaymentPlan.PREMIUM })
   @IsEnum(PaymentPlan, {
     message: `plan must be one of: ${Object.values(PaymentPlan).join(', ')}`,
   })
   plan!: PaymentPlan;
 
+  @ApiProperty({ description: 'Currency to pay in', enum: PaymentCurrency, example: PaymentCurrency.USD })
   @IsEnum(PaymentCurrency, {
     message: `currency must be one of: ${Object.values(PaymentCurrency).join(', ')}`,
   })
   currency!: PaymentCurrency;
 
   /** Optional preferred gateway. Server applies defaults based on currency. */
+  @ApiPropertyOptional({
+    description: 'Preferred payment gateway. If omitted, the server picks a sensible default based on currency.',
+    enum: PaymentGateway,
+  })
   @IsOptional()
   @IsEnum(PaymentGateway)
   gateway?: PaymentGateway;
 }
 
 export class RefundPaymentDto {
+  @ApiProperty({ description: 'Payment id to refund', format: 'uuid' })
   @IsUUID('4')
   paymentId!: string;
 
@@ -115,12 +123,17 @@ export class RefundPaymentDto {
    * Optional partial refund amount in minor units (cents for USD, dinars for IQD).
    * Omit for a full refund.
    */
+  @ApiPropertyOptional({
+    description: 'Partial refund amount in minor units (cents for USD, full dinars for IQD). Omit for a full refund.',
+    example: 1000,
+  })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 0 })
   @IsPositive()
   @Max(10_000_000)
   amount?: number;
 
+  @ApiPropertyOptional({ description: 'Reason for the refund', example: 'Customer requested cancellation' })
   @IsOptional()
   @IsString()
   reason?: string;
@@ -133,6 +146,7 @@ export class WebhookDto {
 
 /** POST /payments/asiahawala/initiate */
 export class AsiaHawalaInitiateDto {
+  @ApiProperty({ description: 'Subscription plan to pay for', enum: PaymentPlan })
   @IsEnum(PaymentPlan)
   plan!: PaymentPlan;
 
@@ -140,6 +154,7 @@ export class AsiaHawalaInitiateDto {
    * Iraqi mobile number — must start with +9647 or 07.
    * Example: +9647700000000
    */
+  @ApiProperty({ description: 'Iraqi mobile number (must start with +9647 or 07)', example: '+9647700000000' })
   @IsString()
   @Matches(/^(\+9647|07)\d{9}$/, {
     message: 'phone must be a valid Iraqi mobile number (e.g. +9647700000000)',
@@ -149,9 +164,11 @@ export class AsiaHawalaInitiateDto {
 
 /** POST /payments/asiahawala/confirm-otp */
 export class AsiaHawalaConfirmOtpDto {
+  @ApiProperty({ description: 'Transaction id returned by the initiate step' })
   @IsString()
   transactionId!: string;
 
+  @ApiProperty({ description: 'One-time password sent to the phone number', example: '123456', minLength: 4, maxLength: 8 })
   @IsString()
   @Length(4, 8)
   otp!: string;

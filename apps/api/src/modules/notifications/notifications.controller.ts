@@ -13,7 +13,9 @@ import {
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('Notifications')
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
@@ -35,18 +37,21 @@ export class NotificationsController {
   // Authenticated endpoints
   // ---------------------------------------------------------------------------
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Get()
   getAll(@Request() req: any) {
     return this.notificationsService.getMyNotifications(req.user.userId);
   }
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Get('unread-count')
   unreadCount(@Request() req: any) {
     return this.notificationsService.getUnreadCount(req.user.userId);
   }
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Patch('read-all')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -54,6 +59,7 @@ export class NotificationsController {
     return this.notificationsService.markAllRead(req.user.userId);
   }
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Patch(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -61,6 +67,7 @@ export class NotificationsController {
     return this.notificationsService.markOneRead(id, req.user.userId);
   }
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -73,6 +80,7 @@ export class NotificationsController {
   // ---------------------------------------------------------------------------
 
   /** Register a browser push subscription for the current user */
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Post('push/subscribe')
   subscribePush(@Request() req: any, @Body() body: { subscription: object }) {
@@ -80,6 +88,7 @@ export class NotificationsController {
   }
 
   /** Unregister a browser push subscription */
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Delete('push/subscribe')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -91,6 +100,7 @@ export class NotificationsController {
   // Preferences
   // ---------------------------------------------------------------------------
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Patch('preferences')
   updatePreferences(
@@ -106,6 +116,7 @@ export class NotificationsController {
     return this.notificationsService.updatePreferences(req.user.userId, body);
   }
 
+  @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
   @Get('preferences')
   getPreferences(@Request() req: any) {
