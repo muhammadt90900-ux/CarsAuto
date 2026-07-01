@@ -4,22 +4,17 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { DealerShowroomClient } from "@/components/features/dealers/DealerShowroomClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
+import { serverFetch } from "@/lib/server-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
+// F-PERF fix: was a raw `fetch` hard-coded to NEXT_PUBLIC_API_URL — now
+// routes through serverFetch (prefers INTERNAL_API_URL for server-to-server
+// calls). Same revalidate window, same null-on-failure contract.
 async function getDealer(slug: string) {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dealers/${slug}`, {
-      next: { revalidate: 30 },
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error("Failed");
-    return res.json();
-  } catch {
-    return null;
-  }
+  return serverFetch<any>(`/dealers/${slug}`, { revalidate: 30 });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

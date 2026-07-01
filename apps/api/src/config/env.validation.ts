@@ -7,6 +7,10 @@ export interface EnvConfig {
   PORT: number;
 
   DATABASE_URL: string;
+  // F-ARCH fix: optional read-replica connection string. When unset,
+  // PrismaService falls back to DATABASE_URL for reads too — no behaviour
+  // change for deployments without a replica.
+  DATABASE_READ_URL?: string;
   REDIS_URL: string;
 
   JWT_SECRET: string;
@@ -17,10 +21,6 @@ export interface EnvConfig {
   FRONTEND_URL: string;
 
   EXCHANGE_RATE_API_KEY?: string;
-
-  // Upload
-  UPLOAD_DIR?: string;
-  UPLOAD_BASE_URL?: string;
 
   // Optional services
   SMTP_HOST?: string;
@@ -125,22 +125,31 @@ function validateEnv(): void {
       );
     }
 
+    // F-ARCH fix: DATABASE_READ_URL is optional, so problems with it are
+    // warnings (degrade to using the primary for reads too), not hard errors.
+    const readUrl = process.env.DATABASE_READ_URL ?? '';
+    if (readUrl) {
+      if (readUrl.includes('localhost') || readUrl.includes('127.0.0.1')) {
+        warnings.push(
+          'DATABASE_READ_URL points to localhost in production — reads will hit a local DB, not a real replica',
+        );
+      }
+      if (readUrl.includes('user:password@') || readUrl.includes('CHANGE_ME')) {
+        warnings.push(
+          'DATABASE_READ_URL contains placeholder credentials — set real values in production',
+        );
+      }
+    }
+
     if (!process.env.JWT_REFRESH_EXPIRES_IN) {
       errors.push('JWT_REFRESH_EXPIRES_IN is required in production');
     }
 
-    // ── Upload base URL validation ──────────────────────────────────────────────
-    const uploadBaseUrl = process.env.UPLOAD_BASE_URL ?? '';
-    if (
-      uploadBaseUrl.includes('localhost') ||
-      uploadBaseUrl.includes('127.0.0.1') ||
-      uploadBaseUrl === ''
-    ) {
-      errors.push(
-        'UPLOAD_BASE_URL must be set to a public-facing URL in production (not localhost). ' +
-        'Set it to your CDN or server domain, e.g. https://cdn.carsauto.com/uploads',
-      );
-    }
+    // F-HIGH fix: removed the UPLOAD_BASE_URL production check — images are
+    // served from Cloudinary's CDN now (see upload.service.ts / main.ts),
+    // so there's no local /uploads path left that needs a public base URL.
+    // (Cloudinary credential validation happens below, in the existing
+    // "Cloudinary validation" block.)
 
     // ── Stripe validation ──────────────────────────────────────────────────────
     if (!process.env.STRIPE_SECRET_KEY) {

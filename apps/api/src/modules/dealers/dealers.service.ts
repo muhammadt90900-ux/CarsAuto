@@ -150,14 +150,15 @@ export class DealersService {
                                  { averageRating: 'desc' };
 
       // PERF: parallel count + data; lean select
+      // F-ARCH fix: read replica — this is the canonical "browse dealers" query.
       const [dealers, total] = await Promise.all([
-        this.prisma.dealer.findMany({
+        this.prisma.db('read').dealer.findMany({
           where, orderBy,
           skip:   (page - 1) * safeLimit,
           take:   safeLimit,
           select: LIST_SELECT,
         }),
-        this.prisma.dealer.count({ where }),
+        this.prisma.db('read').dealer.count({ where }),
       ]);
 
       return { dealers, total, page, limit: safeLimit, pages: Math.ceil(total / safeLimit) };
@@ -168,7 +169,9 @@ export class DealersService {
   async findBySlug(slug: string, viewerUserId?: string) {
     const key = `dealers:detail:${slug}`;
     const dealer = await this.cache.getOrSet(key, async () => {
-      const d = await this.prisma.dealer.findUnique({
+      // F-ARCH fix: read replica — "dealer profiles" is one of the 3
+      // explicitly named replica targets for this fix.
+      const d = await this.prisma.db('read').dealer.findUnique({
         where: { slug },
         include: {
           location: true,
@@ -277,7 +280,9 @@ export class DealersService {
   // ── getReviews ─────────────────────────────────────────────────────────────
   async getReviews(dealerSlug: string, page = 1, limit = 20) {
     const safeLimit = Math.min(limit, 50);
-    const dealer = await this.prisma.dealer.findUnique({
+    // F-ARCH fix: read replica — supports a list/browse read (the reviews
+    // list below), not a write path.
+    const dealer = await this.prisma.db('read').dealer.findUnique({
       where: { slug: dealerSlug },
       select: { id: true },
     });
@@ -286,14 +291,14 @@ export class DealersService {
     const cacheKey = `dealers:reviews:${dealer.id}:p${page}`;
     return this.cache.getOrSet(cacheKey, async () => {
       const [reviews, total] = await Promise.all([
-        this.prisma.dealerReview.findMany({
+        this.prisma.db('read').dealerReview.findMany({
           where: { dealerId: dealer.id, flagged: false },
           include: { reviewer: { select: { id: true, name: true, avatar: true, createdAt: true } } },
           orderBy: [{ helpful: 'desc' }, { createdAt: 'desc' }],
           skip:  (page - 1) * safeLimit,
           take:  safeLimit,
         }),
-        this.prisma.dealerReview.count({ where: { dealerId: dealer.id, flagged: false } }),
+        this.prisma.db('read').dealerReview.count({ where: { dealerId: dealer.id, flagged: false } }),
       ]);
       return { reviews, total, page, limit: safeLimit };
     }, 60_000);
@@ -337,7 +342,8 @@ export class DealersService {
   // ── getAnalytics ───────────────────────────────────────────────────────────
   async getAnalytics(userId: string, days = 30) {
     const safeDays = Math.min(Math.max(1, days), 365);
-    const dealer = await this.prisma.dealer.findUnique({
+    // F-ARCH fix: read replica — supporting lookup for a read-only report.
+    const dealer = await this.prisma.db('read').dealer.findUnique({
       where: { userId },
       select: { id: true },
     });
@@ -348,7 +354,7 @@ export class DealersService {
       const since = new Date();
       since.setDate(since.getDate() - safeDays);
 
-      const analytics = await this.prisma.dealerAnalytic.findMany({
+      const analytics = await this.prisma.db('read').dealerAnalytic.findMany({
         where:   { dealerId: dealer.id, date: { gte: since } },
         orderBy: { date: 'asc' },
       });
@@ -463,7 +469,8 @@ export class DealersService {
    * Check if a user is following a specific dealer.
    */
   async isFollowing(userId: string, dealerId: string): Promise<boolean> {
-    const record = await this.prisma.dealerFollower.findUnique({
+    // F-ARCH fix: read replica — pure display read, not a write path.
+    const record = await this.prisma.db('read').dealerFollower.findUnique({
       where: { userId_dealerId: { userId, dealerId } },
       select: { id: true },
     });
@@ -485,7 +492,8 @@ export class DealersService {
     limit:     number;
     pages:     number;
   }> {
-    const dealer = await this.prisma.dealer.findUnique({
+    // F-ARCH fix: read replica — supporting lookup for the follower list below.
+    const dealer = await this.prisma.db('read').dealer.findUnique({
       where:  { id: dealerId },
       select: { id: true, status: true },
     });
@@ -498,14 +506,14 @@ export class DealersService {
 
     return this.cache.getOrSet(cacheKey, async () => {
       const [rows, total] = await Promise.all([
-        this.prisma.dealerFollower.findMany({
+        this.prisma.db('read').dealerFollower.findMany({
           where:   { dealerId },
           include: { user: { select: { id: true, name: true, avatar: true } } },
           orderBy: { createdAt: 'desc' },
           skip:    (page - 1) * safeLimit,
           take:    safeLimit,
         }),
-        this.prisma.dealerFollower.count({ where: { dealerId } }),
+        this.prisma.db('read').dealerFollower.count({ where: { dealerId } }),
       ]);
 
       const followers = rows.map((r: { user: { id: string; name: string; avatar: string | null }; createdAt: Date }) => ({
@@ -533,7 +541,8 @@ export class DealersService {
     followedAt: Date;
     dealer: typeof FOLLOWED_DEALER_SELECT;
   }>> {
-    const rows = await this.prisma.dealerFollower.findMany({
+    // F-ARCH fix: read replica — pure list read.
+    const rows = await this.prisma.db('read').dealerFollower.findMany({
       where:   { userId },
       include: { dealer: { select: FOLLOWED_DEALER_SELECT } },
       orderBy: { createdAt: 'desc' },
@@ -561,12 +570,15 @@ export class DealersService {
     dealerId:    string,
     listingId:   string,
   ): Promise<void> {
+    // F-ARCH fix: read replica — this runs from DealerListeners reacting to
+    // a 'listing.created' event (fire-and-forget, already decoupled from
+    // the original request), so staleness here is a non-issue.
     const [dealer, listing] = await Promise.all([
-      this.prisma.dealer.findUnique({
+      this.prisma.db('read').dealer.findUnique({
         where:  { id: dealerId },
         select: { nameKu: true, nameEn: true, slug: true },
       }),
-      this.prisma.listing.findUnique({
+      this.prisma.db('read').listing.findUnique({
         where:  { id: listingId },
         select: { titleKu: true, titleEn: true },
       }),
@@ -574,7 +586,7 @@ export class DealersService {
     if (!dealer || !listing) return;
     const listingTitle = listing.titleKu ?? listing.titleEn ?? '';
 
-    const followers = await this.prisma.dealerFollower.findMany({
+    const followers = await this.prisma.db('read').dealerFollower.findMany({
       where:  { dealerId },
       select: { userId: true },
     });
@@ -622,6 +634,10 @@ export class DealersService {
   // ── Private helpers ────────────────────────────────────────────────────────
 
   private async recomputeRating(dealerId: string) {
+    // F-ARCH fix: deliberately NOT routed to the read replica. This runs
+    // immediately after creating a review in the same logical operation
+    // (see createReview()) and must see that review — a lagging replica
+    // could compute the average from a count that doesn't yet include it.
     const agg = await this.prisma.dealerReview.aggregate({
       where: { dealerId, flagged: false },
       _avg:   { rating: true },

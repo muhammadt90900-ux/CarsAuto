@@ -5,54 +5,48 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import { CarDetailClient } from "@/components/features/cars/CarDetailClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
+import { serverFetch } from "@/lib/server-api";
 
-const API      = process.env.NEXT_PUBLIC_API_URL ?? "";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
+// F-PERF fix: was a raw `fetch` hard-coded to NEXT_PUBLIC_API_URL (the
+// public domain) — now routes through serverFetch, which prefers
+// INTERNAL_API_URL for server-to-server calls. Same null-on-failure
+// contract these callers already relied on, same revalidate/tags.
 async function getListing(id: string) {
-  try {
-    const res = await fetch(`${API}/listings/${id}`, {
-      next: { revalidate: 60, tags: [`listing-${id}`] },
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch { return null; }
+  return serverFetch<any>(`/listings/${id}`, { revalidate: 60, tags: [`listing-${id}`] });
 }
 
 async function getSimilarCars(listing: any): Promise<any[]> {
-  try {
-    const brandId = listing?.vehicleSpec?.brandId;
-    const type    = listing?.type ?? "CAR";
-    const params  = new URLSearchParams({ type, limit: "6" });
-    if (brandId) params.set("brandId", brandId);
-    const res = await fetch(`${API}/listings?${params}`, {
-      next: { revalidate: 120, tags: ["listings-list"] },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.data ?? data ?? []).filter((c: any) => c.id !== listing.id).slice(0, 6);
-  } catch { return []; }
+  const brandId = listing?.vehicleSpec?.brandId;
+  const type    = listing?.type ?? "CAR";
+  const data = await serverFetch<any>("/listings", {
+    revalidate: 120,
+    tags: ["listings-list"],
+    searchParams: { type, limit: 6, ...(brandId ? { brandId } : {}) },
+  });
+  if (!data) return [];
+  return (data.data ?? data ?? []).filter((c: any) => c.id !== listing.id).slice(0, 6);
 }
 
 export async function generateStaticParams() {
-  try {
-    const res = await fetch(`${API}/listings?featured=true&limit=50&status=ACTIVE`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.data ?? []).flatMap((l: any) =>
-      locales.map((locale) => ({ locale, id: l.id }))
-    );
-  } catch { return []; }
+  const data = await serverFetch<any>("/listings", {
+    revalidate: 3600,
+    searchParams: { featured: true, limit: 50, status: "ACTIVE" },
+  });
+  if (!data) return [];
+  return (data.data ?? []).flatMap((l: any) =>
+    locales.map((locale) => ({ locale, id: l.id }))
+  );
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+ params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
   const { id, locale } = await params;
   const listing = await getListing(id);
@@ -149,7 +143,7 @@ export default async function CarDetailPage({
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
-  const { id, locale } = await params;
+   const { id, locale } = await params;
   const listing = await getListing(id);
   if (!listing) notFound();
   const { vehicleJsonLd, breadcrumbJsonLd } = buildListingJsonLd(listing, locale);
@@ -157,14 +151,16 @@ export default async function CarDetailPage({
 
   return (
     <>
-      <script
+      <Script
         id="jsonld-vehicle"
         type="application/ld+json"
+        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }}
       />
-      <script
+      <Script
         id="jsonld-breadcrumb"
         type="application/ld+json"
+        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <Suspense fallback={null}>

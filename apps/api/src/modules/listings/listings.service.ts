@@ -14,7 +14,7 @@ import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@/common/prisma/enums';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ListingCreatedEvent } from '../../common/events';
+import { ListingCreatedEvent, ListingSoldEvent, ListingDeletedEvent } from '../../common/events';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
@@ -169,7 +169,13 @@ export class ListingsService {
     private readonly ai:           AiService,
     private readonly translation:  TranslationService,
     private readonly auditLog:     AuditLogService,
-    private readonly events:       EventEmitter2,
+    // F-ARCH fix: was `private readonly dealers: DealersService` — that
+    // direct injection is what forced listings.module.ts to import
+    // DealersModule via forwardRef() to break the resulting circular
+    // dependency. Replaced with EventEmitter2: ListingsService now emits
+    // domain events and has no compile-time knowledge of DealersService at
+    // all. See common/events/ and modules/dealers/dealer.listeners.ts.
+    private readonly eventEmitter:  EventEmitter2,
   ) {}
 
   // ── Pagination helpers ──────────────────────────────────────────────────────
@@ -252,7 +258,7 @@ export class ListingsService {
     // First page (no cursor yet) — always a fresh COUNT, then cache it for
     // subsequent pages of this same filter set.
     if (!params.cursor) {
-      const total = await this.prisma.listing.count({ where });
+      const total = await this.prisma.db('read').listing.count({ where });
       await this.cache.set(countKey, total, CACHE_TTL_LIST);
       return total;
     }
@@ -264,7 +270,7 @@ export class ListingsService {
 
     // Cache expired mid-scroll (CACHE_TTL_LIST is short — 30s) — fall back to
     // a real count rather than returning a missing/stale total.
-    const total = await this.prisma.listing.count({ where });
+    const total = await this.prisma.db('read').listing.count({ where });
     await this.cache.set(countKey, total, CACHE_TTL_LIST);
     return total;
   }
@@ -275,15 +281,16 @@ export class ListingsService {
     const skip  = (page - 1) * limit;
     const where = this.buildWhereClause(params);
 
+    // F-ARCH fix: read replica — this is the canonical "browse listings" query.
     const [data, total] = await Promise.all([
-      this.prisma.listing.findMany({
+      this.prisma.db('read').listing.findMany({
         where,
         skip,
         take:    limit,
         orderBy: LIST_ORDER_BY,
         select:  LIST_SELECT,
       }),
-      this.prisma.listing.count({ where }),
+      this.prisma.db('read').listing.count({ where }),
     ]);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -297,7 +304,7 @@ export class ListingsService {
     let finalWhere = where;
     if (params.cursor) {
       const cursorId  = this.decodeCursor(params.cursor);
-      const cursorRow = await this.prisma.listing.findUnique({
+      const cursorRow = await this.prisma.db('read').listing.findUnique({
         where:  { id: cursorId },
         select: { featured: true, createdAt: true },
       });
@@ -311,7 +318,8 @@ export class ListingsService {
 
     // Fetch one extra row to detect whether there's a next page, with no
     // second query and no COUNT needed for this part.
-    const rows = await this.prisma.listing.findMany({
+    // F-ARCH fix: read replica — browse-mode query, same as offset mode above.
+    const rows = await this.prisma.db('read').listing.findMany({
       where:   finalWhere,
       take:    limit + 1,
       orderBy: LIST_ORDER_BY,
@@ -342,11 +350,9 @@ export class ListingsService {
       // Cursor wins if both are somehow present; absence of `cursor` is 100%
       // backward compatible with every existing caller (offset mode, exact
       // same response shape as before this fix).
-      const base = await this.cache.getOrSet<
-        Awaited<ReturnType<typeof this.findAllCursor>> | Awaited<ReturnType<typeof this.findAllOffset>>
-      >(
+      const base = await this.cache.getOrSet(
         cacheKey,
-        async () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
+        () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
       );
 
@@ -355,7 +361,7 @@ export class ListingsService {
       // without polluting the shared public cache.
       if (userId && base.data.length > 0) {
         const listingIds = base.data.map((l: any) => l.id);
-        const favorites  = await this.prisma.favorite.findMany({
+        const favorites  = await this.prisma.db('read').favorite.findMany({
           where:  { userId, listingId: { in: listingIds } },
           select: { listingId: true },
         }).catch(() => [] as { listingId: string }[]);
@@ -386,6 +392,13 @@ export class ListingsService {
     }
     const cacheKey = `listings:detail:${id}`;
     try {
+      // F-ARCH fix: deliberately NOT routed to the read replica, unlike the
+      // browse-mode queries above. This method serves the listing DETAIL
+      // page, which has an ownership-preview path just below (an owner can
+      // view their own DRAFT/PENDING/UNDER_REVIEW listing immediately after
+      // creating it). Reading from a lagging replica here could 404 a
+      // dealer's own just-created listing — a real-after-write consistency
+      // bug, not just a performance tradeoff — so this stays on the primary.
       // F3 FIX: fetch without cache first so we can check ownership/status
       // before deciding whether to return or cache the result.
       const listing = await this.prisma.listing.findFirst({
@@ -598,25 +611,32 @@ export class ListingsService {
       }
 
       // ── FEATURE 9: Notify dealer followers of new listing ─────────────────
-      // Fire-and-forget — never blocks the HTTP response.
-      // Only fires for listings that go live immediately (ACTIVE).
-      // Quarantined listings (UNDER_REVIEW) are silently skipped.
-      // Private sellers (no Dealer row) are also silently skipped.
+      // F-ARCH fix: was a direct `this.dealers.notifyFollowersOfNewListing(...)`
+      // call — now an emitted event. DealerListeners (in the dealers module)
+      // reacts to it the same way (same fire-and-forget semantics), but
+      // ListingsService no longer needs to know DealersService exists.
+      //
+      // The ACTIVE-only / private-seller-skip gating stays HERE (not moved
+      // into the listener) because ListingCreatedEvent's payload has no
+      // status field — keeping the gate at the emit site preserves the
+      // exact original behaviour without the listener needing a second
+      // DB round-trip just to re-derive a status it should never have had
+      // to ask about.
       if (listing.status === 'ACTIVE') {
-        this.prisma.dealer
-          .findUnique({ where: { userId: data.userId }, select: { id: true } })
-          .then((dealer: { id: string } | null) => {
-            this.events.emit(
+        try {
+          const dealer = await this.prisma.dealer.findUnique({
+            where: { userId: data.userId },
+            select: { id: true },
+          });
+          if (dealer) {
+            this.eventEmitter.emit(
               'listing.created',
-              new ListingCreatedEvent(
-                listing.id,
-                data.userId,
-                dealer?.id ?? null,
-                listing.type,
-              ),
+              new ListingCreatedEvent(listing.id, data.userId, dealer.id, listing.type),
             );
-          })
-          .catch(() => {});
+          }
+        } catch {
+          // Dealer lookup is best-effort — never block listing creation on it.
+        }
       }
 
       return listing;
@@ -678,6 +698,7 @@ export class ListingsService {
       if (!listing) throw new NotFoundException('Listing not found');
 
       const { accessorySpec, ...rest } = data as any;
+      const wasAlreadySold = listing.status === 'SOLD';
 
       const updated = await this.prisma.listing.update({
         where: { id },
@@ -700,6 +721,25 @@ export class ListingsService {
 
       this.cache.del(`listings:detail:${id}`);
       this.invalidateListCache();
+
+      // F-ARCH fix: emit listing.sold exactly once, on the transition into
+      // SOLD (not on every update to an already-sold listing). The dealer
+      // lookup mirrors create()'s — best-effort, never blocks the response.
+      if (!wasAlreadySold && updated.status === 'SOLD') {
+        try {
+          const dealer = await this.prisma.dealer.findUnique({
+            where: { userId },
+            select: { id: true },
+          });
+          this.eventEmitter.emit(
+            'listing.sold',
+            new ListingSoldEvent(id, userId, dealer?.id ?? null),
+          );
+        } catch {
+          // Best-effort — never block the update response on this.
+        }
+      }
+
       return updated;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
@@ -724,6 +764,19 @@ export class ListingsService {
       });
       this.cache.del(`listings:detail:${id}`);
       this.invalidateListCache();
+
+      // F-ARCH fix: emit listing.deleted — DealerListeners decrements
+      // dealer.activeListings/totalListings in response (best-effort,
+      // never throws back into this request).
+      try {
+        const dealer = await this.prisma.dealer.findUnique({
+          where: { userId },
+          select: { id: true },
+        });
+        this.eventEmitter.emit('listing.deleted', new ListingDeletedEvent(id, dealer?.id ?? null));
+      } catch {
+        // Best-effort — never block the delete response on this.
+      }
     } catch (err) {
       if (err instanceof NotFoundException || err instanceof ForbiddenException) throw err;
       this.logger.error(`Failed to delete listing ${id}: ${err instanceof Error ? err.message : 'unknown error'}`);

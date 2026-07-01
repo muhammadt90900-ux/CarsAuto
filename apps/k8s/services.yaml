@@ -1,0 +1,34 @@
+# k8s/services.yaml
+#
+# Plain ClusterIP for all three — external access comes through ingress.yaml
+# for api/web. worker has no Service at all: nothing ever needs to reach it
+# over the network (it only consumes BullMQ jobs from Redis), so a Service
+# would just be a DNS name pointing at nothing useful.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: carsauto-api
+  namespace: carsauto
+spec:
+  selector:
+    app: carsauto-api
+  ports:
+    - port: 4000
+      targetPort: 4000
+      name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carsauto-web
+  namespace: carsauto
+spec:
+  selector:
+    app: carsauto-web
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  type: ClusterIP

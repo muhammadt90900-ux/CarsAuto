@@ -1,0 +1,70 @@
+# k8s/ingress.yaml
+#
+# Assumes ingress-nginx as the ingress controller and cert-manager for TLS.
+# If you use a different controller (Traefik, AWS ALB, GKE Ingress, etc.),
+# the annotations below are nginx-specific and won't transfer directly —
+# the path-routing structure (3 path rules: /, /api/, /socket.io/) is the
+# part that matters regardless of controller.
+#
+# TODO: replace carsauto.iq / api.carsauto.iq with your real domain(s), and
+# letsencrypt-prod with your actual ClusterIssuer name if different.
+#
+# F-ARCH fix: the WebSocket path is /socket.io/, NOT /api/socket.io/ as
+# originally assumed. Verified against the actual code:
+#   - apps/web's socket.io-client connects to `${SOCKET_URL}/chat` (a
+#     Socket.IO *namespace*, set via `@WebSocketGateway({ namespace: '/chat' })`
+#     in chat.gateway.ts) — namespaces are a logical channel multiplexed
+#     over one shared HTTP path, not a URL path segment.
+#   - That shared HTTP upgrade path is Socket.IO's default, `/socket.io/`,
+#     since nothing in chat.gateway.ts overrides the `path` option.
+#   - `app.setGlobalPrefix('api')` (main.ts) applies to Nest HTTP controller
+#     routes only — it does not touch the raw Socket.IO server mounted
+#     directly on the HTTP server, so the upgrade path is never under /api/.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: carsauto-ingress
+  namespace: carsauto
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Long-lived WebSocket connections need longer proxy timeouts than
+    # nginx-ingress's defaults (60s) — without this, idle chat connections
+    # get cut and the client has to reconnect every minute.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - carsauto.iq
+        - api.carsauto.iq
+      secretName: carsauto-tls
+  rules:
+    - host: api.carsauto.iq
+      http:
+        paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: carsauto-api
+                port:
+                  number: 4000
+          - path: /socket.io/
+            pathType: Prefix
+            backend:
+              service:
+                name: carsauto-api
+                port:
+                  number: 4000
+    - host: carsauto.iq
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: carsauto-web
+                port:
+                  number: 3000

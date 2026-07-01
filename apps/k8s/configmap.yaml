@@ -1,0 +1,52 @@
+# k8s/configmap.yaml
+#
+# Non-sensitive configuration only. Anything secret (connection strings,
+# API keys, JWT secrets) goes in secrets.yaml instead — see that file's
+# header for why the split matters.
+#
+# This is not an exhaustive list of every env var apps/api/.env.example
+# documents — it covers the ones that matter for this manifest set to be
+# usable out of the box. Add more keys following the same pattern as the
+# project's .env.example files grow.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: carsauto-config
+  namespace: carsauto
+data:
+  NODE_ENV: "production"
+
+  # ── API ──────────────────────────────────────────────────────────────────────
+  PORT: "4000"
+  FRONTEND_URL: "https://carsauto.iq"                 # TODO: replace with your real domain
+  JWT_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "30d"
+  SWAGGER_ENABLED: "false"                              # never "true" in production — see main.ts
+  LOG_LEVEL: "log"
+  SLOW_QUERY_THRESHOLD_MS: "500"
+
+  # ── AI / OpenAI ────────────────────────────────────────────────────────────────
+  OPENAI_ENABLED: "true"
+  OPENAI_MODEL_EMBED: "text-embedding-3-small"
+  OPENAI_MODEL_CHAT: "gpt-4o-mini"
+
+  # ── Meilisearch ────────────────────────────────────────────────────────────────
+  # Internal cluster DNS name — assumes Meilisearch runs as its own
+  # Deployment/Service named "meilisearch" in this namespace (not included
+  # in this manifest set; run it as a StatefulSet with a PVC, same idea as
+  # docker-compose.yml's meilisearch service, or use Meilisearch Cloud).
+  MEILISEARCH_URL: "http://meilisearch.carsauto.svc.cluster.local:7700"
+
+  # ── Email (transactional) ─────────────────────────────────────────────────────
+  SMTP_PORT: "587"
+  SMTP_SECURE: "false"
+  MAIL_FROM: "noreply@carsauto.iq"
+
+  # ── Web (Next.js) ──────────────────────────────────────────────────────────────
+  NEXT_PUBLIC_API_URL: "https://api.carsauto.iq/api"   # TODO: replace with your real domain
+  # F-PERF fix: server-only — used by apps/web/src/lib/server-api.ts for RSC
+  # data fetching (cars/page.tsx, dealers/page.tsx, and the already-RSC
+  # detail pages). Points at the internal Service DNS name so server-to-
+  # server calls never leave the cluster, unlike NEXT_PUBLIC_API_URL above.
+  INTERNAL_API_URL: "http://carsauto-api.carsauto.svc.cluster.local:4000/api"
+  NEXT_TELEMETRY_DISABLED: "1"

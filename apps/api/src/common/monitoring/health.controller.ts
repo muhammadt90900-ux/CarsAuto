@@ -1,7 +1,8 @@
 // apps/api/src/common/monitoring/health.controller.ts
 // Deep health checks: DB, Redis, disk, memory. Used by load-balancers and uptime monitors.
 
-import { Controller, Get, HttpCode, HttpStatus, Request } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Request, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService }  from '../cache/cache.service';
 import * as os from 'os';
@@ -35,10 +36,19 @@ export class HealthController {
   }
 
   // Readiness — full deep checks: DB, Redis, memory
+  //
+  // F-ARCH fix: previously always returned HTTP 200 regardless of the
+  // `status` field in the body — Kubernetes readiness/liveness probes only
+  // look at the HTTP status code, never the response body, so this probe
+  // could never actually fail and would happily route traffic to a pod
+  // whose database connection was down. Now returns 503 when overall
+  // status is 'down' (502 territory is for upstream gateway issues, not
+  // applicable here) so kubelet can correctly pull a bad pod out of rotation.
   @Get('health/ready')
-  @HttpCode(HttpStatus.OK)
-  async readiness(@Request() req: any) {
+  async readiness(@Request() req: any, @Res({ passthrough: true }) res: Response) {
     const result = await this.runChecks();
+    res.status(result.status === 'down' ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK);
+
     // Only return detailed check breakdown to internal callers
     const ip: string =
       (req.headers?.['x-forwarded-for'] as string)?.split(',')[0]!.trim() ??
@@ -59,8 +69,9 @@ export class HealthController {
   }
 
   // Full health — alias with all details (for internal dashboards only)
+  // F-ARCH fix: same 503-on-down fix as readiness() above.
   @Get('health')
-  async health(@Request() req: any) {
+  async health(@Request() req: any, @Res({ passthrough: true }) res: Response) {
     const ip: string =
       (req.headers?.['x-forwarded-for'] as string)?.split(',')[0]!.trim() ??
       req.socket?.remoteAddress ??
@@ -72,11 +83,15 @@ export class HealthController {
       ip.startsWith('10.') ||
       ip.startsWith('172.') ||
       ip.startsWith('192.168.');
+
     if (!isInternal) {
       const result = await this.runChecks();
+      res.status(result.status === 'down' ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK);
       return { status: result.status, timestamp: result.timestamp };
     }
-    return this.runChecks();
+    const result = await this.runChecks();
+    res.status(result.status === 'down' ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK);
+    return result;
   }
 
   private async runChecks(): Promise<HealthCheckResult> {

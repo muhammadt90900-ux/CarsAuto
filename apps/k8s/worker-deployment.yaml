@@ -1,0 +1,47 @@
+# k8s/worker-deployment.yaml
+#
+# No livenessProbe/readinessProbe here, deliberately — apps/worker opens no
+# HTTP port at all (see apps/worker/src/main.ts: createApplicationContext(),
+# not create()+listen()). The simplest correct "process check" for a single-
+# process Node container is exactly what Kubernetes already does for free:
+# if the process crashes, the container exits non-zero, and the default
+# `restartPolicy: Always` (implicit for Deployments) restarts it. Adding a
+# synthetic exec probe on top of that would just be re-implementing what
+# the container runtime already provides.
+#
+# TODO: apps/worker has no CI image build step yet (.github/workflows/ci.yml
+# only builds API_IMAGE and WEB_IMAGE) — add a WORKER_IMAGE build/push step
+# there before this manifest will have an image to actually pull.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carsauto-worker
+  namespace: carsauto
+  labels:
+    app: carsauto-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: carsauto-worker
+  template:
+    metadata:
+      labels:
+        app: carsauto-worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/REPLACE_ORG/REPLACE_REPO/worker:{{IMAGE_TAG}}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: carsauto-config
+            - secretRef:
+                name: carsauto-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

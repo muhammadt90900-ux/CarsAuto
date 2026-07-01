@@ -1,0 +1,72 @@
+# k8s/api-deployment.yaml
+#
+# TODO before applying: replace REPLACE_ORG/REPLACE_REPO and {{IMAGE_TAG}}
+# with your real registry path and a real tag (a git SHA or release version
+# — never ":latest" in production, since that breaks rollback).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carsauto-api
+  namespace: carsauto
+  labels:
+    app: carsauto-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: carsauto-api
+  template:
+    metadata:
+      labels:
+        app: carsauto-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/REPLACE_ORG/REPLACE_REPO/api:{{IMAGE_TAG}}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: carsauto-config
+            - secretRef:
+                name: carsauto-secrets
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          # F-ARCH fix: these probes only became meaningful once
+          # health.controller.ts was fixed to return a real HTTP 503 when
+          # `status: 'down'` — previously it always returned 200 regardless
+          # of the body, so a readinessProbe pointed at it could never
+          # actually fail and would happily route traffic to a pod whose DB
+          # connection was down.
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      # Spreads replicas across nodes where possible — avoids all 3 API
+      # pods landing on the same node and going down together.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: carsauto-api

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { CarsMarketplaceClient } from "@/components/features/cars/CarsMarketplaceClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
+import { serverFetch } from "@/lib/server-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
@@ -50,5 +51,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CarsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   const search = searchParams ? await searchParams : {};
-  return < CarsMarketplaceClient locale={locale} initialSearch={search} />;
+
+  // F-PERF fix: fetches exactly what CarsMarketplaceClient's own useQuery
+  // would fetch on first mount (same filter params, page 1) — so React
+  // Query's `initialData` lines up with the query it actually runs, and
+  // the browser never re-fetches what the server already rendered.
+  const initialData = await serverFetch("/listings", {
+    revalidate: 30,
+    tags: ["listings-list"],
+    searchParams: { type: "CAR", make: search.make, city: search.city, q: search.q, limit: 24, page: 1 },
+  });
+
+  return <CarsMarketplaceClient locale={locale} initialSearch={search} initialData={initialData ?? undefined} />;
 }

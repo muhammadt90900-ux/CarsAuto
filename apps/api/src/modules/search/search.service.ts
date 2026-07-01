@@ -136,15 +136,17 @@ export class SearchService {
 
       if (hasSpecFilter) where.vehicleSpec = { is: specWhere };
 
+      // F-ARCH fix: read replica — search.service.ts is entirely read-only,
+      // this is exactly the kind of heavy browse/search query replicas exist for.
       const [data, total] = await Promise.all([
-        this.prisma.listing.findMany({
+        this.prisma.db('read').listing.findMany({
           where,
           skip,
           take: limit,
           orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
           select: SEARCH_SELECT,
         }),
-        this.prisma.listing.count({ where }),
+        this.prisma.db('read').listing.count({ where }),
       ]);
 
       return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -188,7 +190,8 @@ export class SearchService {
       // for a future edit to accidentally introduce string concatenation.
       // The tagged-template form makes that structurally impossible — every
       // `${...}` interpolation is parameterized by Prisma, never inlined.
-      const vectorRows = await this.prisma.$queryRaw<VectorRow[]>`
+      // F-ARCH fix: read replica — semantic search is read-only.
+      const vectorRows = await this.prisma.db('read').$queryRaw<VectorRow[]>`
         SELECT id, 1 - (embedding <=> ${vectorStr}::vector) AS similarity
         FROM listings
         WHERE status = 'ACTIVE'
@@ -207,7 +210,7 @@ export class SearchService {
       const similarityMap = new Map(vectorRows.map((r: { id: string; similarity: number }) => [r.id, r.similarity] as [string, number]));
 
       // 2. Fetch full listing data for the ranked IDs
-      const candidates = await this.prisma.listing.findMany({
+      const candidates = await this.prisma.db('read').listing.findMany({
         where: { id: { in: rankedIds } },
         select: SEARCH_SELECT,
       });
@@ -264,7 +267,8 @@ export class SearchService {
 
     return this.cache.getOrSet(cacheKey, async () => {
       // Union 3 sources: listing titles + brand names + model names
-      const rows = await this.prisma.$queryRaw<{ suggestion: string; rank: number }[]>`
+      // F-ARCH fix: read replica — autocomplete is read-only.
+      const rows = await this.prisma.db('read').$queryRaw<{ suggestion: string; rank: number }[]>`
         SELECT suggestion, rank FROM (
           -- Source 1: listing titles (highest relevance)
           SELECT DISTINCT

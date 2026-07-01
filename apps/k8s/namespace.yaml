@@ -1,0 +1,10 @@
+# k8s/namespace.yaml
+#
+# All CarsAuto resources live in this namespace. Apply this first:
+#   kubectl apply -f k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carsauto
+  labels:
+    app.kubernetes.io/part-of: carsauto
