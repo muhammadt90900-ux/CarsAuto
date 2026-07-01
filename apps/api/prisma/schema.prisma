@@ -235,7 +235,9 @@ model User {
   lockedUntil         DateTime?
   passwordChangedAt   DateTime?
   banned              Boolean   @default(false)
-
+  suspendedUntil      DateTime?
+  suspendedReason     String?   @db.VarChar(255)
+  
   listings               Listing[]
   chatsAsBuyer           Chat[]                  @relation("BuyerChats")
   chatsAsSeller          Chat[]                  @relation("SellerChats")

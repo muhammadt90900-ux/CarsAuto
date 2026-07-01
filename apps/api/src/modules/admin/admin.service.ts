@@ -37,7 +37,7 @@ export class AdminService {
           this.prisma.user.count(),
           this.prisma.listing.count(),
           this.prisma.listing.count({ where: { status: 'ACTIVE' } }),
-          this.prisma.report.count({ where: { status: 'pending' } }),
+          this.prisma.report.count({ where: { status: 'PENDING' } }),
           this.prisma.listing.count({ where: { status: 'PENDING' } }),
           this.prisma.ad?.count() ?? Promise.resolve(0) as Promise<number>,
           this.prisma.listing.count({ where: { featured: true } }),
@@ -45,7 +45,7 @@ export class AdminService {
           this.prisma.dealer.count({ where: { status: 'PENDING' } }),
           this.prisma.dealerSubscription.count({ where: { status: 'ACTIVE' } }),
           this.prisma.payment.aggregate({
-            where: { status: 'completed' },
+            where: { status: 'COMPLETED' },
             _sum: { amount: true },
           }),
           this.prisma.user.count({ where: { banned: true } }),
@@ -54,7 +54,7 @@ export class AdminService {
       return {
         totalUsers, totalListings, activeListings, totalReports, pendingListings,
         totalAds, featuredListings, totalDealers, pendingDealers, activeSubscriptions,
-        totalRevenue: revenueAgg._sum.amount ?? 0,
+        totalRevenue: revenueAgg._sum?.amount ?? 0,
         bannedUsers, suspendedUsers,
       };
     } catch (err) {
@@ -536,7 +536,7 @@ export class AdminService {
     const skip = (validPage - 1) * validLimit;
 
     const where: any = {};
-    where.status = status && ['pending', 'resolved', 'dismissed'].includes(status) ? status : 'pending';
+    where.status = status && ['PENDING', 'RESOLVED', 'DISMISSED'].includes(status) ? status : 'PENDING';
     if (targetType && ['LISTING', 'USER', 'DEALER', 'MESSAGE'].includes(targetType)) {
       where.targetType = targetType;
     }
@@ -587,9 +587,9 @@ export class AdminService {
   }
 
   // IMPROVE: Added validation for action parameter
-  async resolveReport(id: string, action: 'resolved' | 'dismissed', actorId?: string) {
+  async resolveReport(id: string, action: 'RESOLVED' | 'DISMISSED', actorId?: string) {
     if (!id) throw new BadRequestException('Report ID is required');
-    if (!['resolved', 'dismissed'].includes(action)) {
+    if (!['RESOLVED', 'DISMISSED'].includes(action)) {
       throw new BadRequestException('Invalid action');
     }
 

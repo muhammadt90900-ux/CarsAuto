@@ -183,7 +183,7 @@ export class AdminController {
 
   @Patch('reports/:id/resolve')
   resolveReport(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ResolveReportDto) {
-    return this.adminService.resolveReport(id, dto.action);
+    return this.adminService.resolveReport(id, dto.action === 'resolve' ? 'RESOLVED' : 'DISMISSED');
   }
 
   // ── Categories ─────────────────────────────────────────────────────────
