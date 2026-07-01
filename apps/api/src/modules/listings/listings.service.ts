@@ -13,7 +13,8 @@ import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@/common/prisma/enums';
-import { DealersService } from '../dealers/dealers.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ListingCreatedEvent } from '../../common/events';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
@@ -168,7 +169,7 @@ export class ListingsService {
     private readonly ai:           AiService,
     private readonly translation:  TranslationService,
     private readonly auditLog:     AuditLogService,
-    private readonly dealers:      DealersService,
+    private readonly events:       EventEmitter2,
   ) {}
 
   // ── Pagination helpers ──────────────────────────────────────────────────────
@@ -605,15 +606,15 @@ export class ListingsService {
         this.prisma.dealer
           .findUnique({ where: { userId: data.userId }, select: { id: true } })
           .then((dealer: { id: string } | null) => {
-            if (!dealer) return;
-            const title = listing.titleKu ?? listing.titleEn ?? '';
-            this.dealers
-              .notifyFollowersOfNewListing(dealer.id, listing.id)
-              .catch((err: Error) => {
-                this.logger.warn(
-                  `Failed to notify followers for listing ${listing.id}: ${err.message}`,
-                );
-              });
+            this.events.emit(
+              'listing.created',
+              new ListingCreatedEvent(
+                listing.id,
+                data.userId,
+                dealer?.id ?? null,
+                listing.type,
+              ),
+            );
           })
           .catch(() => {});
       }

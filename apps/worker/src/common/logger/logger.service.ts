@@ -110,8 +110,21 @@ export class StructuredLogger implements LoggerService {
       service:    'carsauto-api',
       version:    process.env.APP_VERSION ?? '1.0.0',
       env:        process.env.NODE_ENV ?? 'development',
-      message:    typeof message === 'string' ? message : JSON.stringify(message),
+      message:
+        typeof message === 'string'
+          ? message
+          : message instanceof Error
+            ? message.message || message.toString()
+            : JSON.stringify(message),
     };
+    // Error objects carry their real diagnostic info on non-enumerable
+    // .message/.stack — JSON.stringify(error) silently drops both, so an
+    // uncaught exception logged this way used to print as "{}". Capture
+    // the stack explicitly (falling back to the passed `trace` arg) so
+    // real bootstrap/runtime errors are never swallowed.
+    if (message instanceof Error && !trace) {
+      trace = message.stack;
+    }
     if (context)            entry.context   = context;
     if (trace)              entry.trace     = trace;
     if (traceCtx?.traceId)  entry.traceId   = traceCtx.traceId;
@@ -140,7 +153,9 @@ export class StructuredLogger implements LoggerService {
       const prefix = `${color}[${level.toUpperCase()}]${reset}${tid} ${context ? `[${context}] ` : ''}`;
       const out    = `${entry.timestamp} ${prefix}${entry.message}`;
       const dest   = level === 'error' || level === 'warn' ? process.stderr : process.stdout;
-      dest.write(out + (trace ? `\n${trace}` : '') + '\n');
+      // Use entry.trace (not the local `trace` param) since buildEntry may
+      // have derived it from an Error's .stack when none was passed in.
+      dest.write(out + (entry.trace ? `\n${entry.trace}` : '') + '\n');
       return;
     }
 
