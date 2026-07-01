@@ -68,7 +68,7 @@ class BanUserDto {
 }
 
 class ResolveReportDto {
-  @IsIn(['resolved', 'dismissed']) action!: 'resolved' | 'dismissed';
+  @IsIn(['RESOLVED', 'DISMISSED']) action!: 'RESOLVED' | 'DISMISSED';
 }
 
 class SetFeaturedDto {
@@ -183,7 +183,7 @@ export class AdminController {
 
   @Patch('reports/:id/resolve')
   resolveReport(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ResolveReportDto) {
-    return this.adminService.resolveReport(id, dto.action === 'resolve' ? 'RESOLVED' : 'DISMISSED');
+    return this.adminService.resolveReport(id, dto.action);
   }
 
   // ── Categories ─────────────────────────────────────────────────────────

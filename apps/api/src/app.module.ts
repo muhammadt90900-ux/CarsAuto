@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService }            from '@nestjs/config';
 import { ThrottlerModule }                        from '@nestjs/throttler';
 import { BullModule }                             from '@nestjs/bullmq';
 import { ScheduleModule }                         from '@nestjs/schedule';
+import { EventEmitterModule }                     from '@nestjs/event-emitter';
 import { SecurityThrottlerModule }  from './common/throttler/throttler.module';
 import { IpThrottleMiddleware }     from './common/throttler/ip-throttle.middleware';
 import { MonitoringModule }         from './common/monitoring/monitoring.module';
@@ -56,6 +57,11 @@ import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.
     AppCacheModule,
     PrismaModule,
     ScheduleModule.forRoot(),
+    // F-ARCH fix: domain events — decouples ListingsService from
+    // DealersService (see common/events/, modules/dealers/dealer.listeners.ts).
+    // global: true means EventEmitter2 is injectable anywhere without each
+    // feature module needing to import EventEmitterModule itself.
+    EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', global: true }),
 
     // ── Monitoring (global — must be before feature modules) ──────────────
     MonitoringModule,

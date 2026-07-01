@@ -14,6 +14,8 @@ import {
 import { PrismaService }       from '@/common/prisma/prisma.service';
 import { CacheService  }       from '@/common/cache/cache.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DealerReviewAddedEvent, DealerFollowedEvent } from '../../common/events';
 import { DealerStatus, DealerTier } from '@/common/prisma/enums';
 import { CreateDealerDto }  from './dto/create-dealer.dto';
 import { UpdateDealerDto }  from './dto/update-dealer.dto';
@@ -86,6 +88,7 @@ export class DealersService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly notifications: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── create ─────────────────────────────────────────────────────────────────
@@ -261,6 +264,13 @@ export class DealersService {
     this.cache.del(`dealers:detail:${dealerSlug}`);
     this.cache.del('dealers:list:');
 
+    // F-ARCH fix: additive signal for other consumers — does not replace
+    // the rating recompute above, which stays a direct, synchronous write.
+    this.eventEmitter.emit(
+      'dealer.review.added',
+      new DealerReviewAddedEvent(dealer.id, reviewerId, dto.rating),
+    );
+
     return review;
   }
 
@@ -417,6 +427,10 @@ export class DealersService {
     this.cache.del(`dealers:detail:${dealer.slug}`);
     this.cache.del(`dealers:followers:${dealerId}:`);
 
+    // F-ARCH fix: additive signal for other consumers — does not replace
+    // the direct notification above, which stays a direct, synchronous call.
+    this.eventEmitter.emit('dealer.followed', new DealerFollowedEvent(dealerId, userId));
+
     const followerCount = dealer._count.followers + 1;
     return { followerCount };
   }
@@ -536,16 +550,29 @@ export class DealersService {
    * Called from listings.service.ts after a listing becomes ACTIVE.
    * Runs fire-and-forget — never blocks the HTTP response.
    */
+  // F-ARCH fix: signature changed from (dealerId, listingId, listingTitle) to
+  // (dealerId, listingId) — the only caller is now DealerListeners reacting
+  // to a 'listing.created' event, whose payload (ListingCreatedEvent) has no
+  // title field. Rather than bloat the event payload with display data,
+  // this method fetches the title itself — it's one cheap indexed lookup,
+  // and it means this method no longer depends on its caller having already
+  // fetched the listing for an unrelated reason.
   async notifyFollowersOfNewListing(
     dealerId:    string,
     listingId:   string,
-    listingTitle: string,
   ): Promise<void> {
-    const dealer = await this.prisma.dealer.findUnique({
-      where:  { id: dealerId },
-      select: { nameKu: true, nameEn: true, slug: true },
-    });
-    if (!dealer) return;
+    const [dealer, listing] = await Promise.all([
+      this.prisma.dealer.findUnique({
+        where:  { id: dealerId },
+        select: { nameKu: true, nameEn: true, slug: true },
+      }),
+      this.prisma.listing.findUnique({
+        where:  { id: listingId },
+        select: { titleKu: true, titleEn: true },
+      }),
+    ]);
+    if (!dealer || !listing) return;
+    const listingTitle = listing.titleKu ?? listing.titleEn ?? '';
 
     const followers = await this.prisma.dealerFollower.findMany({
       where:  { dealerId },

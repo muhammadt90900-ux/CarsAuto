@@ -7,6 +7,7 @@ import { DealersService } from '../../modules/dealers/dealers.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,10 @@ const mockNotifications = {
   create: jest.fn().mockResolvedValue({}),
 };
 
+const mockEventEmitter = {
+  emit: jest.fn(),
+};
+
 const VERIFIED_DEALER = {
   id: 'dealer-1',
   userId: 'dealer-owner-1',
@@ -56,6 +61,7 @@ describe('DealersService — Follower System (Feature 9)', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CacheService, useValue: mockCache },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 

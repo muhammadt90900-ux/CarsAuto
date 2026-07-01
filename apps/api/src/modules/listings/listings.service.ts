@@ -13,7 +13,8 @@ import { AiService } from '../ai/ai.service';
 import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@/common/prisma/enums';
-import { DealersService } from '../dealers/dealers.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ListingCreatedEvent, ListingSoldEvent, ListingDeletedEvent } from '../../common/events';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
@@ -168,7 +169,13 @@ export class ListingsService {
     private readonly ai:           AiService,
     private readonly translation:  TranslationService,
     private readonly auditLog:     AuditLogService,
-    private readonly dealers:      DealersService,
+    // F-ARCH fix: was `private readonly dealers: DealersService` — that
+    // direct injection is what forced listings.module.ts to import
+    // DealersModule via forwardRef() to break the resulting circular
+    // dependency. Replaced with EventEmitter2: ListingsService now emits
+    // domain events and has no compile-time knowledge of DealersService at
+    // all. See common/events/ and modules/dealers/dealer.listeners.ts.
+    private readonly eventEmitter:  EventEmitter2,
   ) {}
 
   // ── Pagination helpers ──────────────────────────────────────────────────────
@@ -343,7 +350,7 @@ export class ListingsService {
       // same response shape as before this fix).
       const base = await this.cache.getOrSet(
         cacheKey,
-        async () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
+        () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
       );
 
@@ -595,25 +602,32 @@ export class ListingsService {
       }
 
       // ── FEATURE 9: Notify dealer followers of new listing ─────────────────
-      // Fire-and-forget — never blocks the HTTP response.
-      // Only fires for listings that go live immediately (ACTIVE).
-      // Quarantined listings (UNDER_REVIEW) are silently skipped.
-      // Private sellers (no Dealer row) are also silently skipped.
+      // F-ARCH fix: was a direct `this.dealers.notifyFollowersOfNewListing(...)`
+      // call — now an emitted event. DealerListeners (in the dealers module)
+      // reacts to it the same way (same fire-and-forget semantics), but
+      // ListingsService no longer needs to know DealersService exists.
+      //
+      // The ACTIVE-only / private-seller-skip gating stays HERE (not moved
+      // into the listener) because ListingCreatedEvent's payload has no
+      // status field — keeping the gate at the emit site preserves the
+      // exact original behaviour without the listener needing a second
+      // DB round-trip just to re-derive a status it should never have had
+      // to ask about.
       if (listing.status === 'ACTIVE') {
-        this.prisma.dealer
-          .findUnique({ where: { userId: data.userId }, select: { id: true } })
-          .then((dealer: { id: string } | null) => {
-            if (!dealer) return;
-            const title = listing.titleKu ?? listing.titleEn ?? '';
-            this.dealers
-              .notifyFollowersOfNewListing(dealer.id, listing.id, title)
-              .catch((err: Error) => {
-                this.logger.warn(
-                  `Failed to notify followers for listing ${listing.id}: ${err.message}`,
-                );
-              });
-          })
-          .catch(() => {});
+        try {
+          const dealer = await this.prisma.dealer.findUnique({
+            where: { userId: data.userId },
+            select: { id: true },
+          });
+          if (dealer) {
+            this.eventEmitter.emit(
+              'listing.created',
+              new ListingCreatedEvent(listing.id, data.userId, dealer.id, listing.type),
+            );
+          }
+        } catch {
+          // Dealer lookup is best-effort — never block listing creation on it.
+        }
       }
 
       return listing;
@@ -675,6 +689,7 @@ export class ListingsService {
       if (!listing) throw new NotFoundException('Listing not found');
 
       const { accessorySpec, ...rest } = data as any;
+      const wasAlreadySold = listing.status === 'SOLD';
 
       const updated = await this.prisma.listing.update({
         where: { id },
@@ -697,6 +712,25 @@ export class ListingsService {
 
       this.cache.del(`listings:detail:${id}`);
       this.invalidateListCache();
+
+      // F-ARCH fix: emit listing.sold exactly once, on the transition into
+      // SOLD (not on every update to an already-sold listing). The dealer
+      // lookup mirrors create()'s — best-effort, never blocks the response.
+      if (!wasAlreadySold && updated.status === 'SOLD') {
+        try {
+          const dealer = await this.prisma.dealer.findUnique({
+            where: { userId },
+            select: { id: true },
+          });
+          this.eventEmitter.emit(
+            'listing.sold',
+            new ListingSoldEvent(id, userId, dealer?.id ?? null),
+          );
+        } catch {
+          // Best-effort — never block the update response on this.
+        }
+      }
+
       return updated;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
@@ -721,6 +755,19 @@ export class ListingsService {
       });
       this.cache.del(`listings:detail:${id}`);
       this.invalidateListCache();
+
+      // F-ARCH fix: emit listing.deleted — DealerListeners decrements
+      // dealer.activeListings/totalListings in response (best-effort,
+      // never throws back into this request).
+      try {
+        const dealer = await this.prisma.dealer.findUnique({
+          where: { userId },
+          select: { id: true },
+        });
+        this.eventEmitter.emit('listing.deleted', new ListingDeletedEvent(id, dealer?.id ?? null));
+      } catch {
+        // Best-effort — never block the delete response on this.
+      }
     } catch (err) {
       if (err instanceof NotFoundException || err instanceof ForbiddenException) throw err;
       this.logger.error(`Failed to delete listing ${id}: ${err instanceof Error ? err.message : 'unknown error'}`);
