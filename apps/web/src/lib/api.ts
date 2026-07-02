@@ -1,5 +1,18 @@
 // apps/web/src/lib/api.ts
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import type {
+  Listing,
+  ListingListResponse,
+  ListingDetailResponse,
+  CarMake,
+  CarModel,
+  SearchResponse,
+  DealerListResponse,
+  DealerProfile,
+  NotificationItem,
+  ChatConversation,
+  Message,
+} from '@cars-auto/types';
 
 // ── In-memory access token (never stored in localStorage) ────────────────────
 let accessToken: string | null = null;
@@ -260,13 +273,13 @@ export const authApi = {
 // ── Listings API ──────────────────────────────────────────────────────────────
 export const listingsApi = {
   getAll: (params?: Record<string, unknown>) =>
-    cachedGet<any>('/listings', params, TTL_DEFAULT),
+    cachedGet<ListingListResponse>('/listings', params, TTL_DEFAULT),
 
   getById: (id: string) =>
-    cachedGet<any>(`/listings/${id}`, undefined, 2 * 60_000),
+    cachedGet<ListingDetailResponse>(`/listings/${id}`, undefined, 2 * 60_000),
 
   myListings: () =>
-    getApi().get<any[]>('/listings/my').then((res) => res.data),
+    getApi().get<ListingDetailResponse[]>('/listings/my').then((res) => res.data),
 
   delete: (id: string) =>
     getApi().delete(`/listings/${id}`).then(() => { invalidateListingsCache(); }),
@@ -275,22 +288,22 @@ export const listingsApi = {
 // ── Vehicles API ──────────────────────────────────────────────────────────────
 export const vehiclesApi = {
   getBrands: () =>
-    cachedGet<any>('/vehicles/brands', undefined, TTL_STATIC),
+    cachedGet<CarMake[]>('/vehicles/brands', undefined, TTL_STATIC),
 
   getModels: (brandId: string) =>
-    cachedGet<any>(`/vehicles/brands/${brandId}/models`, undefined, TTL_STATIC),
+    cachedGet<CarModel[]>(`/vehicles/brands/${brandId}/models`, undefined, TTL_STATIC),
 
   getYears: (modelId: string) =>
-    cachedGet<any>(`/vehicles/models/${modelId}/years`, undefined, TTL_STATIC),
+    cachedGet<number[]>(`/vehicles/models/${modelId}/years`, undefined, TTL_STATIC),
 
   getTrims: (modelId: string, year: string) =>
-    cachedGet<any>(`/vehicles/models/${modelId}/trims`, { year }, TTL_STATIC),
+    cachedGet<string[]>(`/vehicles/models/${modelId}/trims`, { year }, TTL_STATIC),
 };
 
 // ── Search API ────────────────────────────────────────────────────────────────
 export const searchApi = {
   search: (q: string, params?: Record<string, unknown>) =>
-    cachedGet<any>('/search', { q, ...params }, 30_000),
+    cachedGet<SearchResponse>('/search', { q, ...params }, 30_000),
 
   autocomplete: (q: string) =>
     cachedGet<string[]>('/search/autocomplete', { q }, 2 * 60_000),
@@ -320,31 +333,35 @@ export const subscriptionApi = {
 
 // ── Dealers API ───────────────────────────────────────────────────────────────
 export const dealersApi = {
-  getAll: (params: Record<string, unknown> = {}) =>
-    cachedGet<{ data: any[]; total: number }>(
-      '/dealers?' + new URLSearchParams(params as any).toString(),
-    ),
+  getAll: (params: Record<string, unknown> = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString();
+    return cachedGet<DealerListResponse>(`/dealers?${query}`);
+  },
 
   getBySlug: (slug: string) =>
-    cachedGet<any>(`/dealers/${slug}`),
+    cachedGet<DealerProfile>(`/dealers/${slug}`),
 
   getLeads: () =>
-    api.get<{ data: any[] }>('/dealers/me/leads').then((r) => r.data),
+    api.get<{ data: unknown[] }>('/dealers/me/leads').then((r) => r.data),
 
   getAnalytics: () =>
-    api.get<any>('/dealers/me/analytics').then((r) => r.data),
+    api.get<DealerProfile['analytics']>('/dealers/me/analytics').then((r) => r.data),
 
   updateProfile: (data: Record<string, unknown>) =>
-    api.patch<any>('/dealers/me', data).then((r) => r.data),
+    api.patch<DealerProfile>('/dealers/me', data).then((r) => r.data),
 
   register: (data: Record<string, unknown>) =>
-    api.post<any>('/dealers', data).then((r) => r.data),
+    api.post<DealerProfile>('/dealers', data).then((r) => r.data),
 
   follow: (dealerId: string) =>
-    api.post<any>(`/dealers/${dealerId}/follow`).then((r) => r.data),
+    api.post<{ followerCount: number }>(`/dealers/${dealerId}/follow`).then((r) => r.data),
 
   contact: (dealerId: string, data: Record<string, unknown>) =>
-    api.post<any>(`/dealers/${dealerId}/contact`, data).then((r) => r.data),
+    api.post<{ message: string }>(`/dealers/${dealerId}/contact`, data).then((r) => r.data),
 };
 
 // ── Admin API ─────────────────────────────────────────────────────────────────
@@ -372,49 +389,49 @@ export const adminApi = {
 // ── Users API ─────────────────────────────────────────────────────────────────
 export const usersApi = {
   getMe: () =>
-    api.get<any>('/users/me').then((r) => r.data),
+    api.get<AuthUser>('/users/me').then((r) => r.data),
 
   updateMe: (data: Record<string, unknown>) =>
-    api.patch<any>('/users/profile', data).then((r) => r.data),  // FIX: was /users/me (404)
+    api.patch<AuthUser>('/users/profile', data).then((r) => r.data),  // FIX: was /users/me (404)
 
   getFavorites: () =>
-    api.get<{ data: any[] }>('/users/me/favorites').then((r) => r.data),
+    api.get<{ data: Listing[] }>('/users/me/favorites').then((r) => r.data),
 
   addFavorite: (listingId: string) =>
-    api.post<any>(`/users/me/favorites/${listingId}`).then((r) => r.data),
+    api.post<{ favorited: true }>(`/users/me/favorites/${listingId}`).then((r) => r.data),
 
   removeFavorite: (listingId: string) =>
-    api.delete<any>(`/users/me/favorites/${listingId}`).then((r) => r.data),
+    api.delete<{ favorited: false }>(`/users/me/favorites/${listingId}`).then((r) => r.data),
 };
 
 // ── Notifications API ─────────────────────────────────────────────────────────
 export const notificationsApi = {
   getAll: () =>
-    api.get<{ data: any[] }>('/notifications').then((r) => r.data),
+    api.get<{ data: NotificationItem[] }>('/notifications').then((r) => r.data),
 
   markRead: (id: string) =>
-    api.patch<any>(`/notifications/${id}/read`).then((r) => r.data),
+    api.patch<NotificationItem>(`/notifications/${id}/read`).then((r) => r.data),
 
   markAllRead: () =>
-    api.patch<any>('/notifications/read-all').then((r) => r.data),
+    api.patch<{ count: number }>('/notifications/read-all').then((r) => r.data),
 
   delete: (id: string) =>
-    api.delete<any>(`/notifications/${id}`).then((r) => r.data),
+    api.delete<{ id: string }>(`/notifications/${id}`).then((r) => r.data),
 };
 
 // ── Chat API ──────────────────────────────────────────────────────────────────
 export const chatApi = {
   getConversations: () =>
-    api.get<{ data: any[] }>('/chat/conversations').then((r) => r.data),
+    api.get<{ data: ChatConversation[] }>('/chat/conversations').then((r) => r.data),
 
   getMessages: (conversationId: string) =>
     api
-      .get<{ data: any[] }>(`/chat/conversations/${conversationId}/messages`)
+      .get<{ data: Message[] }>(`/chat/conversations/${conversationId}/messages`)
       .then((r) => r.data),
 
   sendMessage: (conversationId: string, content: string) =>
     api
-      .post<any>(`/chat/conversations/${conversationId}/messages`, { content })
+      .post<Message>(`/chat/conversations/${conversationId}/messages`, { content })
       .then((r) => r.data),
 };
 

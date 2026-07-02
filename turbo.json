@@ -1,5 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "remoteCache": {
+    "enabled": true,
+    "signature": true
+  },
   "globalDependencies": [
     "**/.env.*local",
     "**/.env"
@@ -36,6 +40,16 @@
         "NEXT_OUTPUT",
         "OPENAI_API_KEY"
       ],
+      "inputs": [
+        "src/**",
+        "apps/*/src/**",
+        "packages/*/src/**",
+        "prisma/schema.prisma",
+        "apps/api/prisma/schema.prisma",
+        "package.json",
+        "tsconfig*.json",
+        "next.config.*"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -52,8 +66,14 @@
     },
     "test": {
       "dependsOn": [],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "jest.config.*",
+        "tsconfig*.json"
+      ],
       "outputs": ["coverage/**"],
-      "cache": false
+      "cache": true
     },
     "test:ci": {
       "dependsOn": [],

@@ -1,4 +1,4 @@
-import { MultiLangContent } from "./index";
+import { MultiLangContent } from "./listing";
 export interface Location {
   id: string;
   country: string; // 'IQ' | 'KRI' | 'UAE' | 'CN'

@@ -4,3 +4,5 @@ export * from './chat';
 export * from './location';
 export * from './vehicle';
 export * from './subscription';
+export * from './notification';
+export * from './common';

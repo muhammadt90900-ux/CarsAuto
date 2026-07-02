@@ -47,6 +47,27 @@ export interface Chat {
   updatedAt: string;
 }
 
+/**
+ * GET /chat/conversations — a chat enriched with the related listing and
+ * both participants, as returned to the currently-authenticated user
+ * (`buyer`/`seller` are just the "other party"; which one depends on
+ * whether the current user is the buyer or seller of `listing`).
+ */
+export interface ChatConversation {
+  id: string;
+  listing: {
+    id: string;
+    title: string;
+    price: number;
+    image: string | null;
+  };
+  buyer: { id: string; name: string; avatar: string | null };
+  seller: { id: string; name: string; avatar: string | null };
+  lastMessage?: Message;
+  unreadCount: number;
+  updatedAt: string;
+}
+
 // ─── Socket.io event payloads ────────────────────────────────────────────────
 
 /** Server → Client */

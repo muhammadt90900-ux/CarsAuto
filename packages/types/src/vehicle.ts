@@ -1,4 +1,4 @@
-import { MultiLangContent } from "./index";
+import { MultiLangContent } from "./listing";
 export interface CarMake {
   id: string;
   name: MultiLangContent;

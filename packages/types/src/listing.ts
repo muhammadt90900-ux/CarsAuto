@@ -1,4 +1,6 @@
 // packages/types/src/listing.ts
+import { User } from './user';
+
 export enum ListingType {
   CAR = 'CAR',
   MOTORCYCLE = 'MOTORCYCLE',
@@ -89,4 +91,52 @@ export interface SparePartListing extends ListingBase {
   compatibleYears: { from: number; to: number };
   condition: ListingCondition;
   quantity: number;
+}
+
+// ─── API response shapes ───────────────────────────────────────────────────
+
+/** Any concrete listing — cars, motorcycles, and spare parts. */
+export type Listing = CarListing | MotorcycleListing | SparePartListing;
+
+export interface ListingImage {
+  id: string;
+  url: string;
+  order: number;
+}
+
+/** Minimal seller/poster info attached to a single-listing detail response. */
+export type ListingUser = Pick<User, 'id' | 'name' | 'avatar' | 'phone' | 'verified'>;
+
+/** GET /listings/:id — full listing with images and poster details. */
+export type ListingDetailResponse = Listing & {
+  images: ListingImage[];
+  user: ListingUser;
+};
+
+/** GET /listings with `cursor` present — cursor-paginated page. */
+export interface ListingListResponseCursor {
+  data: Listing[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  total: number;
+}
+
+/** GET /listings with `page` (no `cursor`) — offset-paginated page. */
+export interface ListingListResponsePaged {
+  data: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Response shape depends on whether the request used `cursor` or `page`. */
+export type ListingListResponse = ListingListResponseCursor | ListingListResponsePaged;
+
+/** GET /search — a listing plus its relevance score. */
+export type SearchResult = Listing & { score?: number };
+
+export interface SearchResponse {
+  data: SearchResult[];
+  total: number;
 }

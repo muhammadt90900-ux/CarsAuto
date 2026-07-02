@@ -31,6 +31,12 @@ env:
   # Lightweight CI DB — avoids real credentials in test runs
   DATABASE_URL:    postgresql://carsauto:carsauto@localhost:5432/carsauto_test
   REDIS_URL:       redis://localhost:6379
+  # Turborepo Remote Cache — shares build/task artifacts across CI runs & branches.
+  # Requires TURBO_TOKEN and TURBO_TEAM to be set as GitHub repo secrets
+  # (see vercel.com/account/tokens — the free Vercel remote cache works even
+  # without deploying to Vercel).
+  TURBO_TOKEN:     ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM:      ${{ secrets.TURBO_TEAM }}
 
 concurrency:
   group:             ${{ github.workflow }}-${{ github.ref }}
@@ -59,6 +65,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline
+
+      # ── Warm Turborepo remote cache early so downstream jobs (build/e2e)
+      #    can hit cache even on fresh branches. Non-blocking: cache misses
+      #    or missing service env vars here must never fail the lint job.
+      - name: Warm Turbo remote cache
+        run: npx turbo run build --summarize
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL:    ${{ env.REDIS_URL }}
+          JWT_SECRET:   ci-test-secret-do-not-use-in-prod
+          NODE_ENV:     production
 
       # ── Prettier format check (fast, runs before ESLint) ──────────────────
       - name: Format check (Prettier)
@@ -517,7 +535,7 @@ jobs:
         continue-on-error: true
 
       - name: Build apps for E2E
-        run: npm run build
+        run: npx turbo run build --summarize
         env:
           DATABASE_URL:        postgresql://carsauto:carsauto@localhost:5432/carsauto_e2e
           REDIS_URL:           redis://localhost:6379

@@ -276,7 +276,7 @@ export class ListingsService {
   }
 
   // ── findAll (offset mode — unchanged behaviour for existing callers) ───────
-  private async findAllOffset(params: ListingQueryParams) {
+  private async findAllOffset(params: ListingQueryParams): Promise<OffsetListingsResponse> {
     const { page, limit } = this.validatePagination(params.page, params.limit);
     const skip  = (page - 1) * limit;
     const where = this.buildWhereClause(params);
@@ -297,7 +297,7 @@ export class ListingsService {
   }
 
   // ── findAll (cursor mode — O(1) regardless of scroll depth) ─────────────────
-  private async findAllCursor(params: ListingQueryParams) {
+  private async findAllCursor(params: ListingQueryParams): Promise<CursorListingsResponse> {
     const limit = this.validateLimit(params.limit);
     const where = this.buildWhereClause(params);
 
@@ -350,7 +350,7 @@ export class ListingsService {
       // Cursor wins if both are somehow present; absence of `cursor` is 100%
       // backward compatible with every existing caller (offset mode, exact
       // same response shape as before this fix).
-      const base = await this.cache.getOrSet(
+      const base = await this.cache.getOrSet<OffsetListingsResponse | CursorListingsResponse>(
         cacheKey,
         () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
