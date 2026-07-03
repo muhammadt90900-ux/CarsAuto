@@ -113,6 +113,12 @@ export class AuthService {
       throw new BadRequestException('Email, password, and name are required');
     }
 
+    // Defense-in-depth: DTOs already lowercase/trim email (see
+    // RegisterDto), but normalize again here so this method is safe to
+    // call directly (tests, future admin/seed paths) without depending
+    // on the HTTP validation layer having run first.
+    email = email.trim().toLowerCase();
+
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw new ConflictException('Email already registered');
@@ -137,6 +143,9 @@ export class AuthService {
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
+
+    // Defense-in-depth: see the same normalization note in register().
+    email = email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -342,7 +351,9 @@ export class AuthService {
     dto: { email: string },
     ctx?: RequestContext,
   ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    // Defense-in-depth: see the same normalization note in register().
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email } });
 
     // Always return the same response to prevent email enumeration
     if (user) {
@@ -563,7 +574,13 @@ export class AuthService {
           action,
           ip:        ctx?.ipAddress ?? null,
           userAgent: ctx?.userAgent ?? null,
-          meta:      (meta ?? undefined) as any,
+          // NOTE: writes to `metadata` (Text, JSON-stringified), not the
+          // deprecated `meta` Json column — see Prompt 3.2 cleanup.
+          // Kept as a raw prisma.auditLog.create() rather than routed
+          // through AuditLogService to avoid pulling that module into
+          // AuthModule's DI graph; the on-disk shape is now consistent
+          // either way.
+          metadata:  meta ? JSON.stringify(meta) : null,
         },
       });
     } catch (err: any) {

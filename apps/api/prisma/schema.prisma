@@ -237,7 +237,18 @@ enum ContactRequestStatus {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  // NOTE (Prompt 3.3): this @unique is case-sensitive at the Prisma/DB
+  // level and is kept only so `findUnique({ where: { email } })` keeps
+  // type-checking across the codebase. The actual case-insensitive
+  // uniqueness guarantee is a separate functional UNIQUE index on
+  // LOWER(email), added via raw migration
+  // 20260703081800_case_insensitive_user_email (Prisma can't express
+  // functional indexes natively). All write paths also normalize email
+  // to lowercase before it reaches Prisma — see RegisterDto/LoginDto/
+  // ForgotPasswordDto and AuthService — so in practice values stored
+  // here are already lowercase; the DB index is the belt-and-suspenders
+  // backstop for any path that doesn't go through those DTOs.
   email     String   @unique
   // FIX: phone should be unique if stored; use partial unique for non-null
   phone     String?
@@ -305,7 +316,7 @@ model User {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String   @unique // SHA-256(rawToken)
@@ -324,7 +335,7 @@ model RefreshToken {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model EmailVerificationToken {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String   @unique // SHA-256(rawToken)
@@ -343,7 +354,7 @@ model EmailVerificationToken {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model PasswordResetToken {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String   @unique // SHA-256(rawToken) — never store raw
@@ -367,7 +378,7 @@ model AuditLog {
   // RANGE partitions on "createdAt". Do NOT run `prisma db push`
   // destructively against this table; use the manual migration process in
   // apps/api/prisma/migrations-manual/PARTITIONING-RUNBOOK.md.
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   // Who performed the action (null = anonymous/system)
   userId     String?  @db.Uuid
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -386,7 +397,18 @@ model AuditLog {
   before     String?  @db.Text           @map("before_json")
   after      String?  @db.Text           @map("after_json")
   metadata   String?  @db.Text
-  // Legacy field kept for compatibility
+  // DEPRECATED (Prompt 3.2, 2026-07-03): no remaining writers in the
+  // codebase as of this change — auth.service.ts's writeAuditLog() was
+  // the only writer and now writes `metadata` instead. Historical rows
+  // are backfilled into `metadata` via migration
+  // 20260703081500_backfill_auditlog_meta_to_metadata.
+  // Safe to drop this column once BOTH are true:
+  //   1. The backfill migration has been run in every environment
+  //      (dev/staging/prod), and
+  //   2. At least ~30 days have passed with no new `meta` writes
+  //      (grep the codebase for `\.meta\b` under AuditLog context to
+  //      re-confirm before dropping — don't rely on this comment alone).
+  // Do not read from `meta` in new code.
   meta       Json?
   createdAt  DateTime @default(now())
 
@@ -407,7 +429,7 @@ model AuditLog {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CarBrand {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   slug        String  @unique @db.VarChar(100)
   nameEn      String  @db.VarChar(100)
   nameAr      String  @db.VarChar(100)
@@ -430,7 +452,7 @@ model CarBrand {
 }
 
 model CarModel {
-  id       String   @id @default(uuid()) @db.Uuid
+  id       String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   brandId  String   @db.Uuid
   brand    CarBrand @relation(fields: [brandId], references: [id], onDelete: Restrict)
   slug     String   @db.VarChar(100)
@@ -453,7 +475,7 @@ model CarModel {
 }
 
 model CarModelGeneration {
-  id       String   @id @default(uuid()) @db.Uuid
+  id       String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   modelId  String   @db.Uuid
   model    CarModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
   name     String?  @db.VarChar(100)
@@ -471,7 +493,7 @@ model CarModelGeneration {
 }
 
 model CarTrim {
-  id           String             @id @default(uuid()) @db.Uuid
+  id           String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   generationId String             @db.Uuid
   generation   CarModelGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
   name         String             @db.VarChar(100)
@@ -507,7 +529,7 @@ model CarTrim {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ListingVehicleSpec {
-  id        String  @id @default(uuid()) @db.Uuid
+  id        String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   listingId String  @unique @db.Uuid
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
@@ -562,7 +584,7 @@ model ListingVehicleSpec {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model PartCompatibility {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   listingId String    @db.Uuid
   listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
   brandId   String?   @db.Uuid
@@ -591,7 +613,7 @@ model PartCompatibility {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Listing {
-  id     String        @id @default(uuid()) @db.Uuid
+  id     String        @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   type   ListingType
   status ListingStatus @default(ACTIVE)
   userId String        @db.Uuid
@@ -697,7 +719,7 @@ model Listing {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ListingTranslation {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   listingId String   @db.Uuid
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
@@ -720,7 +742,7 @@ model ListingTranslation {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Image {
-  id        String  @id @default(uuid()) @db.Uuid
+  id        String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   url       String
   listingId String  @db.Uuid
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
@@ -737,7 +759,7 @@ model Image {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Category {
-  id       String     @id @default(uuid()) @db.Uuid
+  id       String     @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   parentId String?    @db.Uuid
   parent   Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("SubCategories")
@@ -761,7 +783,7 @@ model Category {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Location {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   country     String  @db.VarChar(100)
   governorate String? @db.VarChar(100)
   city        String  @db.VarChar(100)
@@ -788,7 +810,7 @@ model Location {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Chat {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   listingId String   @db.Uuid
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   buyerId   String   @db.Uuid
@@ -827,7 +849,7 @@ model Message {
   // apps/api/prisma/migrations-manual/PARTITIONING-RUNBOOK.md. Also see
   // that runbook for why message_read_receipts.messageId's FK to this
   // table needed special handling.
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   chatId    String    @db.Uuid
   chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
   senderId  String    @db.Uuid
@@ -866,7 +888,7 @@ model Notification {
   // RANGE partitions on "createdAt". Do NOT run `prisma db push`
   // destructively against this table; use the manual migration process in
   // apps/api/prisma/migrations-manual/PARTITIONING-RUNBOOK.md.
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String   @db.VarChar(50)
@@ -890,7 +912,7 @@ model Notification {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Review {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   reviewerId String   @db.Uuid
   reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
   revieweeId String   @db.Uuid
@@ -913,7 +935,7 @@ model Review {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Payment {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId         String    @db.Uuid
   user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -983,7 +1005,7 @@ model Payment {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Report {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   reporterId String   @db.Uuid
   reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   targetType String   @db.VarChar(50)
@@ -1003,7 +1025,7 @@ model Report {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Favorite {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId String   @db.Uuid
@@ -1021,7 +1043,7 @@ model Favorite {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SavedSearch {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String   @db.VarChar(100)
@@ -1041,7 +1063,7 @@ model SavedSearch {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model PushSubscription {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId       String   @db.Uuid
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   endpoint     String   @unique
@@ -1057,7 +1079,7 @@ model PushSubscription {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model NotificationPreference {
-  id                String  @id @default(uuid()) @db.Uuid
+  id                String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId            String  @unique @db.Uuid
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   emailEnabled      Boolean @default(true)
@@ -1073,7 +1095,7 @@ model NotificationPreference {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model MessageReadReceipt {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   messageId String   @db.Uuid
   message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
   userId    String   @db.Uuid
@@ -1092,7 +1114,7 @@ model MessageReadReceipt {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Dealer {
-  id     String @id @default(uuid()) @db.Uuid
+  id     String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId String @unique @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1174,7 +1196,7 @@ model Dealer {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerFollower {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   dealerId  String   @db.Uuid
@@ -1191,7 +1213,7 @@ model DealerFollower {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ShowroomImage {
-  id       String  @id @default(uuid()) @db.Uuid
+  id       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId String  @db.Uuid
   dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   url      String
@@ -1208,7 +1230,7 @@ model ShowroomImage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerReview {
-  id         String @id @default(uuid()) @db.Uuid
+  id         String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId   String @db.Uuid
   dealer     Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   reviewerId String @db.Uuid
@@ -1239,7 +1261,7 @@ model DealerReview {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerBadge {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId  String    @db.Uuid
   dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   code      String    @db.VarChar(50)
@@ -1261,7 +1283,7 @@ model DealerBadge {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerAnalytic {
-  id       String   @id @default(uuid()) @db.Uuid
+  id       String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId String   @db.Uuid
   dealer   Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   date     DateTime @db.Date
@@ -1286,7 +1308,7 @@ model DealerAnalytic {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerSubscription {
-  id       String @id @default(uuid()) @db.Uuid
+  id       String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId String @unique @db.Uuid
   dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
@@ -1326,7 +1348,7 @@ model DealerSubscription {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DealerContactRequest {
-  id       String  @id @default(uuid()) @db.Uuid
+  id       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   dealerId String  @db.Uuid
   dealer   Dealer  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   senderId String? @db.Uuid
@@ -1353,7 +1375,7 @@ model DealerContactRequest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Ad {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   title     String    @db.VarChar(255)
   imageUrl  String?
   linkUrl   String?
@@ -1370,7 +1392,7 @@ model Ad {
 }
 
 model Setting {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   key       String   @unique @db.VarChar(100)
   value     String   @db.Text
   type      String   @default("string") @db.VarChar(20)
@@ -1381,7 +1403,7 @@ model Setting {
 }
 
 model Translation {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   locale    String   @db.VarChar(5)
   namespace String   @db.VarChar(50)
   key       String   @db.VarChar(200)
@@ -1401,7 +1423,7 @@ model Translation {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Upload {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   filename  String   @unique @db.VarChar(500)
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1421,7 +1443,7 @@ model TransactionLog {
   // monthly RANGE partitions on "createdAt". Do NOT run `prisma db push`
   // destructively against this table; use the manual migration process in
   // apps/api/prisma/migrations-manual/PARTITIONING-RUNBOOK.md.
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   paymentId    String   @db.Uuid
   payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
@@ -1452,7 +1474,7 @@ model TransactionLog {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model WebhookEvent {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   gatewayId   String   @unique @db.VarChar(255)
   type        String   @db.VarChar(100)
   payload     Json
@@ -1481,7 +1503,7 @@ model WebhookEvent {
 // unrelated concepts that happen to share a label. Do not assume a plan or
 // status value read from one model is comparable to a value from the other.
 model Subscription {
-  id                     String    @id @default(uuid()) @db.Uuid
+  id                     String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId                 String    @unique @db.Uuid
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1511,7 +1533,7 @@ model Subscription {
 
 // ── Feature 3: Accessory & Service spec model ────────────────────────────────
 model ListingAccessorySpec {
-  id        String  @id @default(uuid()) @db.Uuid
+  id        String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   listingId String  @unique @db.Uuid
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
@@ -1552,7 +1574,7 @@ model ListingAccessorySpec {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model UploadedFile {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   filename  String   @unique @db.VarChar(512)
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
