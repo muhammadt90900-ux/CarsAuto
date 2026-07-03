@@ -2,7 +2,13 @@ import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nest
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import * as webpush from 'web-push';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+
+// Chunk size for bulk notification fan-out (createMany + queue.addBulk).
+// 1000 keeps a single INSERT / Redis round-trip comfortably sized even for
+// a dealer with a very large follower base.
+const BULK_NOTIFICATION_CHUNK_SIZE = 1000;
 
 export type NotificationType =
   | 'new_message'
@@ -131,6 +137,55 @@ export class NotificationsService {
       .catch((err) => this.logger.error('Failed to enqueue notification delivery', err));
 
     return notification;
+  }
+
+  /**
+   * Bulk fan-out: send the SAME notification to many users at once.
+   *
+   * N+1 FIX (Phase 2 / Prompt 2.4): this replaces call sites that used to
+   * loop over user ids and call `create()` once per user — one
+   * `prisma.notification.create()` INSERT and one `queue.add()` Redis
+   * round-trip per follower. For a dealer with thousands of followers that
+   * was thousands of DB writes and thousands of Redis round-trips per new
+   * listing.
+   *
+   * This method instead, per chunk of `BULK_NOTIFICATION_CHUNK_SIZE` users:
+   *   1. Pre-generates the notification ids in-app (so we know them without
+   *      a round-trip back to the DB — `createMany()` doesn't return rows).
+   *   2. Issues ONE `prisma.notification.createMany()` for the whole chunk.
+   *   3. Issues ONE `queue.addBulk()` for the whole chunk's delivery jobs —
+   *      BullMQ's batched job-add API, a single Redis round-trip instead of
+   *      one `.add()` await per user.
+   */
+  async createManyForUsers(
+    userIds: string[],
+    type: NotificationType,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    for (let i = 0; i < userIds.length; i += BULK_NOTIFICATION_CHUNK_SIZE) {
+      const chunk = userIds.slice(i, i + BULK_NOTIFICATION_CHUNK_SIZE);
+      const rows = chunk.map((userId) => ({ id: randomUUID(), userId, type, title, body, data: data as any }));
+
+      // 1 batched INSERT for the whole chunk instead of N individual creates.
+      await this.prisma.notification.createMany({ data: rows });
+
+      // 1 batched Redis round-trip for the whole chunk's delivery jobs
+      // instead of N individual `queue.add()` awaits.
+      try {
+        await this.notificationsQueue.addBulk(
+          rows.map((r) => ({
+            name: 'deliver',
+            data: { notificationId: r.id, userId: r.userId, type, title, body, data },
+          })),
+        );
+      } catch (err) {
+        this.logger.error('Failed to bulk-enqueue notification delivery', err as Error);
+      }
+    }
   }
 
   /**

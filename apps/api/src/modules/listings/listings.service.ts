@@ -22,6 +22,47 @@ const CACHE_TTL_DETAIL = 2 * 60_000;   // 2 min — detail pages
 const MAX_PAGE_LIMIT     = 100;
 const DEFAULT_PAGE_LIMIT = 20;
 
+// ── Translation dual-write (Phase 2 / Prompt 2.2) ───────────────────────────
+//
+// While the 8 legacy titleKu/titleAr/titleEn/titleZh/descriptionKu/... columns
+// are still in place (kept for one release cycle — see schema.prisma), every
+// write path continues to write them AND now also writes the equivalent
+// ListingTranslation rows, so the new table stays correct for all listings
+// created/edited from this point forward, on top of the one-time backfill
+// script (prisma/migrations-manual/backfill-listing-translations.ts) that
+// covers pre-existing rows.
+const TRANSLATION_LOCALES = [
+  { locale: 'ku', titleField: 'titleKu', descField: 'descriptionKu' },
+  { locale: 'ar', titleField: 'titleAr', descField: 'descriptionAr' },
+  { locale: 'en', titleField: 'titleEn', descField: 'descriptionEn' },
+  { locale: 'zh', titleField: 'titleZh', descField: 'descriptionZh' },
+] as const;
+
+/**
+ * Given an object that may contain titleKu/titleAr/titleEn/titleZh and/or
+ * descriptionKu/descriptionAr/descriptionEn/descriptionZh, returns the
+ * corresponding ListingTranslation rows — one per locale whose title field
+ * is present (so a partial `update()` payload only touches the locales it
+ * actually changed) and non-empty.
+ */
+function buildTranslationRows(
+  fields: Record<string, unknown>,
+): { locale: string; title: string; description: string | null }[] {
+  const rows: { locale: string; title: string; description: string | null }[] = [];
+  for (const { locale, titleField, descField } of TRANSLATION_LOCALES) {
+    const title = fields[titleField];
+    if (typeof title === 'string' && title.trim().length > 0) {
+      const description = fields[descField];
+      rows.push({
+        locale,
+        title,
+        description: typeof description === 'string' ? description : null,
+      });
+    }
+  }
+  return rows;
+}
+
 // ── View counter ──────────────────────────────────────────────────────────────
 //
 // F-CRIT fix: was a module-level `Map<string, number>` + `setTimeout` flush
@@ -553,6 +594,11 @@ export class ListingsService {
                 },
               }
             : {}),
+
+          // ADDED (Phase 2 / Prompt 2.2): dual-write into ListingTranslation
+          // in the same create() call — atomic with the legacy columns above,
+          // so the two can never go out of sync on a partial failure.
+          translations: { create: buildTranslationRows(listingData) },
         },
         include: {
           images:       { orderBy: { order: 'asc' } },
@@ -699,24 +745,41 @@ export class ListingsService {
 
       const { accessorySpec, ...rest } = data as any;
       const wasAlreadySold = listing.status === 'SOLD';
+      const translationRows = buildTranslationRows(rest);
 
-      const updated = await this.prisma.listing.update({
-        where: { id },
-        data: {
-          ...rest,
-          // Feature 3: upsert accessory spec if provided
-          ...(accessorySpec
-            ? {
-                accessorySpec: {
-                  upsert: {
-                    create: accessorySpec,
-                    update: accessorySpec,
+      // ADDED (Phase 2 / Prompt 2.2): wrap the legacy-column update and the
+      // ListingTranslation upserts in one transaction, so a partial update
+      // (e.g. only titleEn was sent) can never leave the two representations
+      // out of sync if one write succeeds and the other fails.
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.listing.update({
+          where: { id },
+          data: {
+            ...rest,
+            // Feature 3: upsert accessory spec if provided
+            ...(accessorySpec
+              ? {
+                  accessorySpec: {
+                    upsert: {
+                      create: accessorySpec,
+                      update: accessorySpec,
+                    },
                   },
-                },
-              }
-            : {}),
-        },
-        include: { accessorySpec: true, vehicleSpec: true },
+                }
+              : {}),
+          },
+          include: { accessorySpec: true, vehicleSpec: true },
+        });
+
+        for (const row of translationRows) {
+          await tx.listingTranslation.upsert({
+            where: { listingId_locale: { listingId: id, locale: row.locale } },
+            create: { listingId: id, locale: row.locale, title: row.title, description: row.description },
+            update: { title: row.title, description: row.description },
+          });
+        }
+
+        return result;
       });
 
       this.cache.del(`listings:detail:${id}`);

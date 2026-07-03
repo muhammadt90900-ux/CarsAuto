@@ -592,24 +592,20 @@ export class DealersService {
     });
     if (followers.length === 0) return;
 
-    // Batch notifications — one per follower
-    const notifications = followers.map((f: { userId: string }) =>
-      this.notifications
-        .create(
-          f.userId,
-          'LISTING_APPROVED', // reuse existing type — shows listing bell icon in UI
-          `${dealer.nameKu ?? dealer.nameEn} - ئۆتۆمبێلی نوێ`,
-          listingTitle,
-          { dealerId, dealerSlug: dealer.slug, listingId },
-        )
-        .catch(() => {}),
+    // N+1 FIX (Phase 2 / Prompt 2.4): this used to call `notifications.create()`
+    // once per follower — one `prisma.notification.create()` INSERT plus one
+    // `queue.add()` Redis round-trip per follower, batched only by how many
+    // in-flight promises were allowed to run concurrently (50 at a time),
+    // not by reducing the actual number of DB/Redis round-trips. Replaced
+    // with a single call that does one `createMany()` + one `queue.addBulk()`
+    // per 1000-follower chunk. See NotificationsService.createManyForUsers().
+    await this.notifications.createManyForUsers(
+      followers.map((f: { userId: string }) => f.userId),
+      'LISTING_APPROVED', // reuse existing type — shows listing bell icon in UI
+      `${dealer.nameKu ?? dealer.nameEn} - ئۆتۆمبێلی نوێ`,
+      listingTitle,
+      { dealerId, dealerSlug: dealer.slug, listingId },
     );
-
-    // Run in batches of 50 to avoid overloading the notifications queue
-    const BATCH_SIZE = 50;
-    for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
-      await Promise.allSettled(notifications.slice(i, i + BATCH_SIZE));
-    }
   }
 
   // ── Admin ──────────────────────────────────────────────────────────────────

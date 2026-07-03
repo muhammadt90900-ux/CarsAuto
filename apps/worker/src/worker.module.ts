@@ -23,6 +23,7 @@ import { EmailService } from './common/email/email.service';
 import { NotificationsService } from './modules/notifications/notifications.service';
 import { TranslationProcessor } from './processors/translation.processor';
 import { EmailNotificationProcessor } from './processors/email-notification.processor';
+import { PartitionMaintenanceProcessor } from './processors/partition-maintenance.processor';
 
 @Module({
   imports: [
@@ -45,6 +46,10 @@ import { EmailNotificationProcessor } from './processors/email-notification.proc
     // what lets the worker pick up jobs the API enqueues, with zero API changes.
     BullModule.registerQueue({ name: 'translations' }),
     BullModule.registerQueue({ name: 'notifications' }),
+    // Phase 2 / Prompt 2.3: repeatable job that keeps the 4 partitioned
+    // tables supplied with future monthly partitions (pg_cron fallback —
+    // this managed Postgres doesn't have pg_cron available).
+    BullModule.registerQueue({ name: 'maintenance' }),
   ],
   providers: [
     PrismaService,
@@ -53,6 +58,7 @@ import { EmailNotificationProcessor } from './processors/email-notification.proc
     NotificationsService,
     TranslationProcessor,
     EmailNotificationProcessor,
+    PartitionMaintenanceProcessor,
   ],
 })
 export class WorkerModule {}
