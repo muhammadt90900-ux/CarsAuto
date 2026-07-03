@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, Logger, Optional } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole, UserSubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
@@ -1089,7 +1089,7 @@ export class AdminService {
     }
   }
 
-  async getUserSubscriptions(page = 1, limit = DEFAULT_PAGE_LIMIT, status?: string) {
+  async getUserSubscriptions(page = 1, limit = DEFAULT_PAGE_LIMIT, status?: UserSubscriptionStatus) {
     const { page: validPage, limit: validLimit } = this.validatePagination(page, limit);
     const skip = (validPage - 1) * validLimit;
 

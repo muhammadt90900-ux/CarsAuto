@@ -11,13 +11,14 @@
 //            capped at BUYER_MONTHLY_LIMIT (2) listings per calendar month
 
 import { Injectable, ForbiddenException } from '@nestjs/common';
+import { UserSubscriptionPlan, UserSubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TRIAL_DAYS         = 30;
 const TRIAL_POST_LIMIT   = 50;
 const BUYER_MONTHLY_LIMIT = 2;
-const BUYER_PLAN_ID      = 'BUYER';
+const BUYER_PLAN_ID      = UserSubscriptionPlan.BUYER;
 
 // Listing statuses that count toward the dealer trial cap
 const ACTIVE_STATUSES = ['ACTIVE', 'DRAFT', 'PENDING', 'SOLD'] as const;
@@ -132,7 +133,7 @@ export class ListingPermissionService {
       where: {
         userId,
         plan:             BUYER_PLAN_ID,
-        status:           'active',
+        status:           UserSubscriptionStatus.ACTIVE,
         currentPeriodEnd: { gt: new Date() },
       },
     });
@@ -247,7 +248,7 @@ export class ListingPermissionService {
       where: {
         userId,
         plan:             BUYER_PLAN_ID,
-        status:           'active',
+        status:           UserSubscriptionStatus.ACTIVE,
         currentPeriodEnd: { gt: new Date() },
       },
     });

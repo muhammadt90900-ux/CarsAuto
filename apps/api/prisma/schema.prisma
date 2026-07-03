@@ -122,7 +122,32 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+// F1.1: plan catalog for the per-USER `Subscription` model (buyers), which is
+// a genuinely different product line from dealer plans above — a buyer's
+// "ENTERPRISE" has no relationship to a dealer's "ENTERPRISE". Mirrors the
+// values that were already being written as raw strings from
+// payments.service.ts (PaymentPlan) and listing-permission.service.ts
+// (BUYER_PLAN_ID). Do NOT merge with SubscriptionPlan.
+enum UserSubscriptionPlan {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+  BUYER
+}
+
 enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+}
+
+// F1.1: status vocabulary for the per-USER `Subscription` model. Separate
+// from SubscriptionStatus (dealers) because it needs an INACTIVE value that
+// SubscriptionStatus does not have — the default state before a user's first
+// successful payment.
+enum UserSubscriptionStatus {
+  INACTIVE
   ACTIVE
   PAST_DUE
   CANCELLED
@@ -849,6 +874,32 @@ model Payment {
 
   metadata       Json?
 
+  // F1.4: FX rate capture — CarsAuto now takes payments in USD/IQD/EUR/GBP/
+  // AED/CNY (see PaymentCurrency in payment.dto.ts) while the business
+  // settles in a single currency. Rate is captured at transaction time (not
+  // looked up later) because rates move and a payment's USD value must
+  // reflect what it was actually worth *when it happened*, not today.
+  //   exchangeRateToUsd — 1 unit of `currency` = this many USD, as of createdAt.
+  //   settlementCurrency — currency actually settled into the business's bank
+  //     account for this payment (may differ from `currency`, the currency
+  //     the customer paid in — e.g. gateway auto-converts to USD on payout).
+  //   amountUsd — amount * exchangeRateToUsd, computed and stored once at
+  //     write time (see PaymentsService.computeAmountUsd) so revenue
+  //     reporting queries never redo this math ad hoc. Not a DB-generated
+  //     column — see the note in migrations-manual/f1_4_*.sql for why.
+  // All three are nullable: historical rows predate this feature, and a
+  // transient FX-provider failure must never block a payment from being
+  // recorded (ExchangeRateService returns null rather than throwing).
+  exchangeRateToUsd  Decimal? @db.Decimal(18, 8)
+  settlementCurrency String?  @db.Char(3)
+  amountUsd          Decimal? @db.Decimal(20, 8)
+
+  // F1.3: optimistic locking — Stripe (and regional gateway) webhook
+  // retries can deliver overlapping events for the same payment; two
+  // concurrent status-transition writes must not silently last-write-wins
+  // each other. See PaymentsService's version-guarded update helper.
+  version        Int       @default(0)
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1309,6 +1360,12 @@ model TransactionLog {
   status       String   @db.VarChar(50)
   amount       Decimal? @db.Decimal(12, 2)
   currency     String?  @db.Char(3)
+  // F1.4: mirrors Payment.exchangeRateToUsd/amountUsd — a TransactionLog row
+  // can represent a partial refund or a different point in time than the
+  // parent Payment's current state, so it needs its own snapshot rather
+  // than joining back to Payment for this.
+  exchangeRateToUsd Decimal? @db.Decimal(18, 8)
+  amountUsd         Decimal? @db.Decimal(20, 8)
   gatewayId    String?  @db.VarChar(255)
   gatewayData  Json?
   errorMessage String?  @db.Text
@@ -1342,21 +1399,25 @@ model WebhookEvent {
 // SUBSCRIPTION (per-user plan tracking)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ADR (F1.1 — Unify subscription vocabularies): `Subscription` (this model,
+// scoped to a User/buyer) and `DealerSubscription` (scoped to a Dealer) are
+// INTENTIONALLY separate models — they represent different product lines
+// with different plan catalogs (buyer plans vs dealer plans) and are never
+// meant to be merged into one table. What changed here is only that `plan`
+// and `status` are now backed by real Prisma enums (UserSubscriptionPlan /
+// UserSubscriptionStatus) instead of unconstrained strings, so typos can no
+// longer be written to the database. These enums intentionally do NOT share
+// values 1:1 with DealerSubscription's SubscriptionPlan/SubscriptionStatus —
+// e.g. a buyer's ENTERPRISE plan and a dealer's ENTERPRISE plan are
+// unrelated concepts that happen to share a label. Do not assume a plan or
+// status value read from one model is comparable to a value from the other.
 model Subscription {
   id                     String    @id @default(uuid()) @db.Uuid
   userId                 String    @unique @db.Uuid
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  plan                   String    @default("FREE") @db.VarChar(50)
-  // NOTE (audit #13): intentionally a plain String, NOT the SubscriptionStatus
-  // enum used by DealerSubscription. Per-user subscription status is written
-  // lowercase ('inactive' | 'active' | 'past_due' | 'cancelled' | 'trialing')
-  // from payments.service.ts, while DealerSubscription.status uses the
-  // uppercase SubscriptionStatus enum. These are two deliberately separate
-  // conventions — do not compare them directly across models. A CHECK
-  // constraint restricting this column to the known lowercase values is
-  // enforced in a raw migration to prevent typos.
-  status                 String    @default("inactive") @db.VarChar(30)
+  plan                   UserSubscriptionPlan   @default(BASIC)
+  status                 UserSubscriptionStatus @default(INACTIVE)
 
   gatewaySubscriptionId  String?   @unique @db.VarChar(255)
   currentPeriodStart     DateTime?
@@ -1364,6 +1425,12 @@ model Subscription {
   cancelAtPeriodEnd      Boolean   @default(false)
   cancelledAt            DateTime?
   metadata               Json?
+
+  // F1.3: optimistic locking — same rationale as Payment.version. Stripe
+  // subscription webhooks (customer.subscription.updated/.deleted,
+  // invoice.payment_failed) and our own upsertSubscription() calls from
+  // payment-completion paths can race on the same row.
+  version                Int       @default(0)
 
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt

@@ -12,9 +12,10 @@ import { ZainCashGateway } from './gateways/zaincash.gateway';
 import { FastPayGateway } from './gateways/fastpay.gateway';
 import { QiCardGateway } from './gateways/qicard.gateway';
 import { AsiaHawalaGateway } from './gateways/asiahawala.gateway';
+import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule],
+  imports: [PrismaModule, ConfigModule, ExchangeRateModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,

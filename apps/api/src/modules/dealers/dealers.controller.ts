@@ -16,11 +16,15 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { DealerTier } from '../../common/prisma/enums';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { DealerReconciliationService } from './tasks/dealer-reconciliation.service';
 
 @ApiTags('Dealers')
 @Controller('dealers')
 export class DealersController {
-  constructor(private readonly service: DealersService) {}
+  constructor(
+    private readonly service: DealersService,
+    private readonly reconciliation: DealerReconciliationService,
+  ) {}
 
   // ── Public endpoints ───────────────────────────────────────────────────
 
@@ -157,5 +161,22 @@ export class DealersController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   suspend(@Param('id') id: string) {
     return this.service.suspend(id);
+  }
+
+  /**
+   * POST /dealers/:id/reconcile
+   * Support-ticket tool: recompute totalListings, activeListings,
+   * averageRating, and totalReviews for one dealer against source-of-truth
+   * tables and correct any drift immediately. Runs synchronously (not via
+   * the nightly BullMQ queue) so the admin gets the corrected values back
+   * in the response right away — see
+   * modules/dealers/tasks/dealer-reconciliation.service.ts for why this
+   * exists.
+   */
+  @Post(':id/reconcile')
+  @ApiBearerAuth('bearer')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  reconcile(@Param('id') id: string) {
+    return this.reconciliation.reconcileDealer(id);
   }
 }

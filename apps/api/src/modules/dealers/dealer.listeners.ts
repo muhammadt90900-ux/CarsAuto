@@ -10,6 +10,13 @@
 //   activeListings — currently-live count (incremented on create, decremented on sold/deleted)
 // Neither counter previously existed anywhere in the codebase before this
 // fix — they were schema fields that nothing wrote to.
+//
+// DRIFT WARNING: every handler below is fire-and-forget — on failure it
+// logs a warning and moves on (see the comment right below this one). That
+// means a failed write here desyncs the counter with no automatic retry.
+// modules/dealers/tasks/dealer-reconciliation.service.ts is the fix: a
+// nightly BullMQ job (plus an admin on-demand endpoint) recomputes these
+// counters from source-of-truth tables and self-heals any drift it finds.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';

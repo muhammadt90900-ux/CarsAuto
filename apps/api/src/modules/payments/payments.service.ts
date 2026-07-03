@@ -21,6 +21,7 @@ import {
 } from '@nestjs/common';
 import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
+import { UserSubscriptionPlan, UserSubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   CreatePaymentIntentDto,
@@ -40,10 +41,19 @@ import { FastPayGateway } from './gateways/fastpay.gateway';
 import { QiCardGateway } from './gateways/qicard.gateway';
 import { AsiaHawalaGateway } from './gateways/asiahawala.gateway';
 import { IGateway, GatewayChargeParams } from './gateways/gateway.interface';
+import { OptimisticLockError } from './errors/optimistic-lock.error';
+import { ExchangeRateService } from './exchange-rate/exchange-rate.service';
 
 // ─── Retry policy ─────────────────────────────────────────────────────────────
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MINUTES = [15, 60, 240];
+
+// F1.4: currency the business settles payouts into. Assumed USD (matches
+// Stripe's default payout currency for this account's region and is the
+// natural reporting currency given the multi-currency expansion) — confirm
+// with finance/ops before relying on this for actual settlement reconciliation,
+// and change this constant (or make it per-gateway) if that assumption is wrong.
+const SETTLEMENT_CURRENCY = 'USD';
 
 @Injectable()
 export class PaymentsService {
@@ -57,6 +67,7 @@ export class PaymentsService {
     private readonly fastPay: FastPayGateway,
     private readonly qiCard: QiCardGateway,
     private readonly asiaHawala: AsiaHawalaGateway,
+    private readonly exchangeRate: ExchangeRateService,
   ) {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -182,6 +193,7 @@ export class PaymentsService {
     };
 
     const result = await gateway.createCharge(chargeParams);
+    const fx = await this.buildFxSnapshot(amount, dto.currency);
 
     // FIX: cast metadata to Prisma-compatible type
     const payment = await (this.prisma.payment as any).create({
@@ -195,6 +207,7 @@ export class PaymentsService {
         gatewayId: result.gatewayId,
         gatewayStatus: result.status,
         metadata: (result.checkoutData ?? {}) as object,
+        ...fx,
       },
     });
 
@@ -257,6 +270,7 @@ export class PaymentsService {
         gatewayId: intent.id,
         gatewayStatus: intent.status,
         metadata: { intentId: intent.id } as object,
+        ...(await this.buildFxSnapshot(this.minorToDecimal(canonicalAmount, dto.currency), dto.currency)),
       },
     });
 
@@ -297,6 +311,7 @@ export class PaymentsService {
         gatewayId: result.transactionId,
         gatewayStatus: 'awaiting_otp',
         metadata: { phone: dto.phone, expiresAt: result.expiresAt.toISOString() } as object,
+        ...(await this.buildFxSnapshot(amount, PaymentCurrency.IQD)),
       },
     });
 
@@ -344,10 +359,18 @@ export class PaymentsService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async handleWebhook(event: Stripe.Event) {
-    const existing = await this.prisma.webhookEvent.findUnique({
-      where: { gatewayId: event.id },
-    });
-    if (existing) {
+    // AUDIT NOTE (F1.3 point 3): the previous version of this method did a
+    // `findUnique` check here, then only wrote the WebhookEvent row at the
+    // very end, after processing completed. That is a TOCTOU race: two
+    // near-simultaneous deliveries of the same event (Stripe does send
+    // overlapping retries) could both pass the findUnique check before
+    // either had inserted its row, and both would then proceed to mutate
+    // the same Payment/Subscription row concurrently — exactly the race
+    // this prompt is about. `claimWebhookEvent` below closes that race by
+    // making the INSERT itself the guard (relying on gatewayId's unique
+    // constraint), not a check that precedes it.
+    const webhookEventId = await this.claimWebhookEvent(event.id, event.type, event as any);
+    if (webhookEventId === null) {
       this.logger.debug(`Webhook ${event.id} already processed — skipping`);
       return { received: true, skipped: true };
     }
@@ -373,15 +396,75 @@ export class PaymentsService {
           this.logger.debug(`Unhandled webhook type: ${event.type}`);
       }
     } catch (err: any) {
+      if (err instanceof OptimisticLockError) {
+        // Do NOT swallow this into processingError-and-200. Record what we
+        // know (so the WebhookEvent row reflects the failed attempt and a
+        // future retry of this same event.id can reclaim it — see
+        // claimWebhookEvent), then rethrow so the controller returns a
+        // non-2xx response and Stripe's own webhook retry mechanism
+        // redelivers this event, instead of us guessing whether it's safe
+        // to retry ourselves.
+        await this.prisma.webhookEvent
+          .update({ where: { id: webhookEventId }, data: { error: err.message } })
+          .catch(() => { /* best-effort — the conflict itself is the priority signal */ });
+        this.logger.error(
+          `Optimistic lock conflict processing webhook ${event.id} (${event.type}): ${err.message}`,
+        );
+        throw err;
+      }
       processingError = err.message;
       this.logger.error(`Webhook handler error for ${event.id}: ${err.message}`, err.stack);
     }
 
-    await this.prisma.webhookEvent.create({
-      data: { gatewayId: event.id, type: event.type, payload: event as any, error: processingError },
+    await this.prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: { error: processingError ?? null },
     });
 
     return { received: true };
+  }
+
+  // ── Idempotency guard for Stripe webhooks (see AUDIT NOTE above) ──────────
+  // Atomically "claims" a gatewayId by inserting the WebhookEvent row before
+  // any processing happens, using the unique constraint on gatewayId as the
+  // race-safe guard. If a row already exists:
+  //   - error IS NULL  → a prior delivery fully processed this event already
+  //                       → return null (caller skips).
+  //   - error IS NOT NULL → a prior delivery's processing failed (including
+  //                       optimistic-lock conflicts) → the stale row is
+  //                       reclaimed (deleted + reinserted) so this delivery
+  //                       gets a genuine retry, matching Stripe's own retry
+  //                       semantics.
+  private async claimWebhookEvent(
+    gatewayId: string,
+    type: string,
+    payload: unknown,
+  ): Promise<string | null> {
+    try {
+      const created = await this.prisma.webhookEvent.create({
+        data: { gatewayId, type, payload: payload as any },
+      });
+      return created.id;
+    } catch (err: any) {
+      if (err.code !== 'P2002') throw err;
+
+      const existing = await this.prisma.webhookEvent.findUnique({ where: { gatewayId } });
+      if (!existing) {
+        // Raced with a concurrent claim that has since been reclaimed/
+        // deleted; treat as already-in-flight and let that delivery own it.
+        return null;
+      }
+      if (existing.error === null) {
+        return null; // genuinely already processed successfully
+      }
+
+      // Prior attempt failed — reclaim so this delivery can retry cleanly.
+      await this.prisma.webhookEvent.delete({ where: { id: existing.id } }).catch(() => {});
+      const reclaimed = await this.prisma.webhookEvent.create({
+        data: { gatewayId, type, payload: payload as any },
+      });
+      return reclaimed.id;
+    }
   }
 
   // ─── WEBHOOK HANDLER — Regional gateways ──────────────────────────────────
@@ -403,8 +486,8 @@ export class PaymentsService {
     if (!gatewayId) return { received: true };
 
     const webhookKey = `${gatewayName}:${gatewayId}`;
-    const existing = await this.prisma.webhookEvent.findUnique({ where: { gatewayId: webhookKey } });
-    if (existing) return { received: true, skipped: true };
+    const webhookEventId = await this.claimWebhookEvent(webhookKey, `${gatewayName}.webhook`, payload);
+    if (webhookEventId === null) return { received: true, skipped: true };
 
     const payment = await (this.prisma.payment as any).findFirst({
       where: { gatewayId, gateway: this.toPaymentGatewayEnum(gatewayName) },
@@ -427,18 +510,23 @@ export class PaymentsService {
           await this.upsertSubscription(payment.userId, payment.plan as PaymentPlan);
         }
       } catch (err: any) {
+        if (err instanceof OptimisticLockError) {
+          await this.prisma.webhookEvent
+            .update({ where: { id: webhookEventId }, data: { error: err.message } })
+            .catch(() => {});
+          this.logger.error(
+            `Optimistic lock conflict processing ${gatewayName} webhook ${webhookKey}: ${err.message}`,
+          );
+          throw err;
+        }
         processingError = err.message;
         this.logger.error(`${gatewayName} webhook processing error: ${err.message}`);
       }
     }
 
-    await this.prisma.webhookEvent.create({
-      data: {
-        gatewayId: webhookKey,
-        type: `${gatewayName}.webhook`,
-        payload: payload as any,
-        error: processingError,
-      },
+    await this.prisma.webhookEvent.update({
+      where: { id: webhookEventId },
+      data: { error: processingError ?? null },
     });
 
     return { received: true };
@@ -497,10 +585,10 @@ export class PaymentsService {
 
     await gateway.refund(payment.gatewayId, dto.amount ?? (payment.amount as unknown as number));
 
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: PaymentStatus.REFUNDED, refundedAt: new Date() },
-    });
+    await this.updatePaymentStatus(payment.id, PaymentStatus.REFUNDED, {
+      event: `${gatewayName}_refund_completed`, status: PaymentStatus.REFUNDED,
+      gatewayId: payment.gatewayId,
+    }, { refundedAt: new Date() });
 
     this.logger.log(`${gatewayName} refund issued for payment ${payment.id}`);
     return { status: 'refunded', gateway: gatewayName };
@@ -513,7 +601,7 @@ export class PaymentsService {
   async cancelSubscription(userId: string, atPeriodEnd = true) {
     const sub = await this.prisma.subscription.findUnique({ where: { userId } });
     if (!sub) throw new NotFoundException('No active subscription');
-    if (sub.status !== 'active') {
+    if (sub.status !== UserSubscriptionStatus.ACTIVE) {
       throw new BadRequestException(`Subscription is not active (status: ${sub.status})`);
     }
     if (!sub.gatewaySubscriptionId) {
@@ -524,15 +612,27 @@ export class PaymentsService {
       cancel_at_period_end: atPeriodEnd,
     });
 
-    await this.prisma.subscription.update({
-      where: { userId },
+    // F1.3: version-guarded — sub was read before the Stripe API round-trip
+    // above, so a webhook (customer.subscription.updated) could have landed
+    // and changed this row while we were waiting on Stripe. Guard on the
+    // version we actually read rather than blindly overwriting.
+    const result = await this.prisma.subscription.updateMany({
+      where: { id: sub.id, version: sub.version },
       data: {
         cancelAtPeriodEnd: atPeriodEnd,
         cancelledAt: atPeriodEnd ? null : new Date(),
-        status: atPeriodEnd ? 'active' : 'cancelled',
+        status: atPeriodEnd ? UserSubscriptionStatus.ACTIVE : UserSubscriptionStatus.CANCELLED,
         metadata: { ...(sub.metadata as object ?? {}), cancelledBy: 'user' },
+        version: { increment: 1 },
       },
     });
+    if (result.count === 0) {
+      this.logger.error(
+        `Optimistic lock conflict cancelling subscription: userId=${userId} ` +
+        `subscriptionId=${sub.id} expectedVersion=${sub.version}`,
+      );
+      throw new OptimisticLockError(sub.id, `cancel(atPeriodEnd=${atPeriodEnd})`);
+    }
 
     this.logger.log(`Subscription ${sub.gatewaySubscriptionId} cancel_at_period_end=${atPeriodEnd} for user ${userId}`);
     return { cancelAtPeriodEnd: atPeriodEnd, currentPeriodEnd: sub.currentPeriodEnd };
@@ -630,28 +730,48 @@ export class PaymentsService {
     const payment = await this.findPaymentByGatewayId(gatewayId);
     if (!payment) return;
     const refundedAmount = charge.amount_refunded;
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentStatus.REFUNDED,
-        refundedAt: new Date(),
-        refundAmount: this.minorToDecimal(refundedAmount, payment.currency as PaymentCurrency),
-        gatewayStatus: 'refunded',
-      },
-    });
-    await this.logTransaction(payment.id, {
+
+    await this.updatePaymentStatus(payment.id, PaymentStatus.REFUNDED, {
       event: 'refund_confirmed', status: PaymentStatus.REFUNDED,
       amount: this.minorToDecimal(refundedAmount, payment.currency as PaymentCurrency),
       currency: payment.currency, gatewayId,
       gatewayData: { isFullRefund: charge.refunded, chargeId: charge.id },
+    }, {
+      refundAmount: this.minorToDecimal(refundedAmount, payment.currency as PaymentCurrency),
     });
+
     if (charge.refunded) {
-      await this.prisma.subscription.updateMany({
-        where: { userId: payment.userId, status: 'active' },
-        data: { status: 'cancelled', cancelledAt: new Date() },
-      });
+      await this.cancelActiveSubscriptionForRefund(payment.userId);
     }
     this.logger.log(`Refund confirmed for payment ${payment.id}`);
+  }
+
+  // Version-guarded equivalent of the old
+  // `updateMany({ where: { userId, status: ACTIVE }, data: { status: CANCELLED } })`.
+  // That form conditions on status matching at write time, which offers some
+  // built-in protection, but doesn't participate in the same version counter
+  // as every other subscription write (e.g. a concurrent onSubscriptionChanged
+  // upsert), so two writers can still interleave without either detecting it.
+  // Reading id+version first and guarding on version puts this write through
+  // the same conflict-detection path as the rest of the subscription writes.
+  private async cancelActiveSubscriptionForRefund(userId: string): Promise<void> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { userId },
+      select: { id: true, version: true, status: true },
+    });
+    if (!sub || sub.status !== UserSubscriptionStatus.ACTIVE) return; // nothing to cancel
+
+    const result = await this.prisma.subscription.updateMany({
+      where: { id: sub.id, version: sub.version },
+      data: { status: UserSubscriptionStatus.CANCELLED, cancelledAt: new Date(), version: { increment: 1 } },
+    });
+    if (result.count === 0) {
+      this.logger.error(
+        `Optimistic lock conflict cancelling subscription after refund: userId=${userId} ` +
+        `subscriptionId=${sub.id} expectedVersion=${sub.version}`,
+      );
+      throw new OptimisticLockError(sub.id, 'subscription-cancel-on-refund');
+    }
   }
 
   private async onSubscriptionChanged(stripeSub: Stripe.Subscription, _eventType: string) {
@@ -661,24 +781,27 @@ export class PaymentsService {
       return;
     }
     const status = this.mapStripeSubscriptionStatus(stripeSub.status);
-    await this.prisma.subscription.upsert({
-      where: { userId },
-      create: {
-        userId, plan: (stripeSub.metadata?.plan ?? 'BASIC') as string, status,
+    const plan = (stripeSub.metadata?.plan as UserSubscriptionPlan | undefined)
+      ?? UserSubscriptionPlan.BASIC;
+
+    await this.upsertSubscriptionWithLock(
+      userId,
+      {
+        plan, status,
         gatewaySubscriptionId: stripeSub.id,
         currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
         currentPeriodEnd:   new Date(stripeSub.current_period_end   * 1000),
         cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
         cancelledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
       },
-      update: {
+      {
         status,
         currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
         currentPeriodEnd:   new Date(stripeSub.current_period_end   * 1000),
         cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
         cancelledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
       },
-    });
+    );
     this.logger.log(`Subscription ${stripeSub.id} updated to status=${status} for user ${userId}`);
   }
 
@@ -686,10 +809,27 @@ export class PaymentsService {
     const subId = typeof invoice.subscription === 'string'
       ? invoice.subscription : invoice.subscription?.id;
     if (!subId) return;
-    await this.prisma.subscription.updateMany({
+
+    const sub = await this.prisma.subscription.findFirst({
       where: { gatewaySubscriptionId: subId },
-      data: { status: 'past_due' },
+      select: { id: true, version: true },
     });
+    if (!sub) {
+      this.logger.warn(`Invoice payment failed for unknown subscription ${subId}`);
+      return;
+    }
+
+    const result = await this.prisma.subscription.updateMany({
+      where: { id: sub.id, version: sub.version },
+      data: { status: UserSubscriptionStatus.PAST_DUE, version: { increment: 1 } },
+    });
+    if (result.count === 0) {
+      this.logger.error(
+        `Optimistic lock conflict marking subscription past_due: gatewaySubscriptionId=${subId} ` +
+        `subscriptionId=${sub.id} expectedVersion=${sub.version}`,
+      );
+      throw new OptimisticLockError(sub.id, 'status→PAST_DUE');
+    }
     this.logger.warn(`Invoice payment failed for subscription ${subId} — status set to past_due`);
   }
 
@@ -697,12 +837,75 @@ export class PaymentsService {
   // PRIVATE HELPERS
   // ─────────────────────────────────────────────────────────────────────────
 
+  // PaymentPlan (billing DTO enum) and UserSubscriptionPlan (Prisma column
+  // enum) intentionally share the same string labels — see the ADR comment
+  // on the Subscription model in schema.prisma. This mapping is written out
+  // explicitly (instead of a blind cast) so that if either enum ever gains a
+  // new member without the other, TypeScript fails to compile here instead
+  // of silently persisting a bad value.
+  private static readonly PAYMENT_PLAN_TO_DB_PLAN: Record<PaymentPlan, UserSubscriptionPlan> = {
+    [PaymentPlan.BASIC]:      UserSubscriptionPlan.BASIC,
+    [PaymentPlan.PREMIUM]:    UserSubscriptionPlan.PREMIUM,
+    [PaymentPlan.ENTERPRISE]: UserSubscriptionPlan.ENTERPRISE,
+    [PaymentPlan.BUYER]:      UserSubscriptionPlan.BUYER,
+  };
+
   private async upsertSubscription(userId: string, plan: PaymentPlan) {
-    await this.prisma.subscription.upsert({
+    const dbPlan = PaymentsService.PAYMENT_PLAN_TO_DB_PLAN[plan];
+    await this.upsertSubscriptionWithLock(
+      userId,
+      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE },
+      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE },
+    );
+  }
+
+  // ── Shared version-guarded upsert for the Subscription model ──────────────
+  // Used everywhere a webhook or payment-completion path needs "create if
+  // missing, otherwise update" semantics on Subscription without falling
+  // back to Prisma's plain `upsert` (which has no concept of version and
+  // will happily last-write-wins the update branch). Per F1.3, a version
+  // conflict on the update branch is surfaced immediately as
+  // OptimisticLockError — it is NOT retried internally, so the caller
+  // (ultimately the webhook handler) can let the gateway's own retry
+  // mechanism redeliver instead of us guessing at a fix.
+  private async upsertSubscriptionWithLock(
+    userId: string,
+    createData: Record<string, unknown>,
+    updateData: Record<string, unknown>,
+  ): Promise<void> {
+    const existing = await this.prisma.subscription.findUnique({
       where: { userId },
-      create: { userId, plan, status: 'active' },
-      update: { plan, status: 'active' },
+      select: { id: true, version: true },
     });
+
+    if (!existing) {
+      try {
+        await this.prisma.subscription.create({ data: { userId, ...createData } });
+        return;
+      } catch (err: any) {
+        if (err.code === 'P2002') {
+          // A concurrent request created this user's subscription first.
+          this.logger.error(
+            `Optimistic lock conflict creating subscription: userId=${userId} ` +
+            `(a concurrent request created it first)`,
+          );
+          throw new OptimisticLockError(userId, 'subscription-create');
+        }
+        throw err;
+      }
+    }
+
+    const result = await this.prisma.subscription.updateMany({
+      where: { id: existing.id, version: existing.version },
+      data: { ...updateData, version: { increment: 1 } },
+    });
+    if (result.count === 0) {
+      this.logger.error(
+        `Optimistic lock conflict updating subscription: userId=${userId} ` +
+        `subscriptionId=${existing.id} expectedVersion=${existing.version}`,
+      );
+      throw new OptimisticLockError(existing.id, 'subscription-update');
+    }
   }
 
   private async cancelStalePending(userId: string, plan: string, gateway: string) {
@@ -749,21 +952,46 @@ export class PaymentsService {
       event: string; status?: PaymentStatus | string; amount?: number;
       currency?: string; gatewayId?: string; gatewayData?: object; errorMessage?: string;
     },
+    extraData: Record<string, unknown> = {},
   ) {
     // BUG #10 FIX: both writes now happen inside a single DB transaction, so a
     // crash/restart between them can never leave a payment status change with
     // no corresponding TransactionLog row.
+    //
+    // F1.3: optimistic locking. Read the row's current version, then write
+    // WHERE id = ... AND version = <version we read>, bumping version by 1.
+    // If 0 rows are affected, someone else (almost always a racing webhook
+    // retry) updated this payment between our read and our write — throw
+    // OptimisticLockError rather than silently overwriting whatever they
+    // wrote, or guessing at a retry ourselves.
     await this.prisma.runInTransaction(async (tx) => {
-      await tx.payment.update({
+      const current = await tx.payment.findUniqueOrThrow({
         where: { id: paymentId },
+        select: { version: true, status: true, gatewayId: true },
+      });
+
+      const result = await tx.payment.updateMany({
+        where: { id: paymentId, version: current.version },
         data: {
           status,
           gatewayStatus: (log.gatewayData as Record<string, any>)?.['stripeStatus'] ?? status,
           failureReason: log.errorMessage ?? null,
           ...(status === PaymentStatus.COMPLETED || status === PaymentStatus.REFUNDED
             ? { nextRetryAt: null } : {}),
+          ...extraData,
+          version: { increment: 1 },
         },
       });
+
+      if (result.count === 0) {
+        this.logger.error(
+          `Optimistic lock conflict: paymentId=${paymentId} attemptedStatus=${status} ` +
+          `fromStatus=${current.status} gatewayId=${current.gatewayId ?? 'n/a'} ` +
+          `expectedVersion=${current.version}`,
+        );
+        throw new OptimisticLockError(paymentId, `status→${status}`, current.gatewayId ?? undefined);
+      }
+
       await this.logTransaction(paymentId, { ...log, status: log.status ?? status }, tx);
     });
   }
@@ -776,6 +1004,17 @@ export class PaymentsService {
     },
     tx: { transactionLog: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> } } = this.prisma as any,
   ) {
+    // F1.4: capture the FX rate at the moment this log entry is written, not
+    // just on the parent Payment — a refund logged days later should record
+    // the rate as of the refund, not silently inherit the original charge's
+    // rate.
+    let exchangeRateToUsd: number | null = null;
+    let amountUsd: number | null = null;
+    if (data.amount !== undefined && data.currency) {
+      exchangeRateToUsd = await this.exchangeRate.getRateToUsd(data.currency);
+      amountUsd = this.computeAmountUsd(data.amount, exchangeRateToUsd);
+    }
+
     await tx.transactionLog.create({
       data: {
         paymentId,
@@ -783,6 +1022,8 @@ export class PaymentsService {
         status: data.status ?? '',
         amount: data.amount !== undefined ? data.amount : undefined,
         currency: data.currency,
+        exchangeRateToUsd,
+        amountUsd,
         gatewayId: data.gatewayId,
         gatewayData: data.gatewayData ?? undefined,
         errorMessage: data.errorMessage,
@@ -815,13 +1056,42 @@ export class PaymentsService {
       ? Math.round(decimalAmount) : Math.round(decimalAmount * 100);
   }
 
-  private mapStripeSubscriptionStatus(stripeStatus: Stripe.Subscription.Status): string {
-    const map: Record<Stripe.Subscription.Status, string> = {
-      active: 'active', canceled: 'cancelled', incomplete: 'inactive',
-      incomplete_expired: 'inactive', past_due: 'past_due',
-      paused: 'inactive', trialing: 'trialing', unpaid: 'past_due',
+  // ── F1.4: FX rate capture ─────────────────────────────────────────────────
+
+  private computeAmountUsd(amount: number, exchangeRateToUsd: number | null): number | null {
+    if (exchangeRateToUsd === null) return null;
+    // 8 dp matches the Decimal(20,8) column — enough headroom for currencies
+    // like IQD where the per-unit USD rate itself has many significant digits.
+    return Math.round(amount * exchangeRateToUsd * 1e8) / 1e8;
+  }
+
+  /**
+   * Fetches the current FX rate for `currency` and returns the trio of
+   * fields every Payment.create() call site needs. Never throws — a failed
+   * FX lookup stores nulls rather than blocking payment creation (see
+   * ExchangeRateService.getRateToUsd).
+   */
+  private async buildFxSnapshot(amount: number, currency: string) {
+    const exchangeRateToUsd = await this.exchangeRate.getRateToUsd(currency);
+    return {
+      exchangeRateToUsd,
+      amountUsd: this.computeAmountUsd(amount, exchangeRateToUsd),
+      settlementCurrency: SETTLEMENT_CURRENCY,
     };
-    return map[stripeStatus] ?? 'inactive';
+  }
+
+  private mapStripeSubscriptionStatus(stripeStatus: Stripe.Subscription.Status): UserSubscriptionStatus {
+    const map: Record<Stripe.Subscription.Status, UserSubscriptionStatus> = {
+      active: UserSubscriptionStatus.ACTIVE,
+      canceled: UserSubscriptionStatus.CANCELLED,
+      incomplete: UserSubscriptionStatus.INACTIVE,
+      incomplete_expired: UserSubscriptionStatus.INACTIVE,
+      past_due: UserSubscriptionStatus.PAST_DUE,
+      paused: UserSubscriptionStatus.INACTIVE,
+      trialing: UserSubscriptionStatus.TRIALING,
+      unpaid: UserSubscriptionStatus.PAST_DUE,
+    };
+    return map[stripeStatus] ?? UserSubscriptionStatus.INACTIVE;
   }
 
   private assertStripeConfigured() {
