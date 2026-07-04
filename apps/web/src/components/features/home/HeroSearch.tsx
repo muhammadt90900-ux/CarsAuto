@@ -1,95 +1,17 @@
 'use client';
 // components/features/home/HeroSearch.tsx
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useReducer, useRef, useEffect, useCallback, useMemo } from 'react';
 import { CarBrandLogo, BrandGrid } from '@/components/shared/CarBrandLogo';
 import {
   Search, ChevronDown, SlidersHorizontal, X,
-  Car, Wrench, Bike, MapPin, Zap, Clock, TrendingUp, Star,
+  MapPin, Zap, Clock, TrendingUp, Star,
 } from 'lucide-react';
-
-/* ── Static data ─────────────────────────────────────────────── */
-const MAKES = [
-  'تۆیۆتا / Toyota','کیا / KIA','هیوندای / Hyundai',
-  'BMW','Mercedes-Benz','Lexus','Honda','Nissan',
-  'Mitsubishi','Ford','BYD','Geely','Chery','Haval',
-];
-
-const MODELS: Record<string, string[]> = {
-  'تۆیۆتا / Toyota': ['Camry','Corolla','Land Cruiser','Prado','Hilux','RAV4','Fortuner','Yaris'],
-  'کیا / KIA':        ['Sportage','Sorento','Cerato','Optima','Carnival','Telluride'],
-  'هیوندای / Hyundai':['Tucson','Santa Fe','Elantra','Sonata','Creta','Palisade'],
-  'BMW':              ['3 Series','5 Series','7 Series','X3','X5','X7','M3','M5'],
-  'Mercedes-Benz':    ['C-Class','E-Class','S-Class','GLE','GLS','G-Class','AMG GT'],
-  'Lexus':            ['LX570','GX460','RX350','ES350','LS500','IS350'],
-  'Honda':            ['Civic','Accord','CR-V','Pilot','HR-V','Odyssey'],
-  'Nissan':           ['Patrol','Altima','Pathfinder','Sentra','Murano','Armada'],
-  'Ford':             ['F-150','Explorer','Edge','Mustang','Bronco','Expedition'],
-  'BYD':              ['Atto 3','Han','Tang','Seal','Dolphin','Song Plus'],
-};
-
-const YEARS  = Array.from({ length: 26 }, (_, i) => String(2025 - i));
-const CITIES = [
-  'سلێمانی / Sulaymaniyah','هەولێر / Erbil','دهۆک / Duhok',
-  'کەرکوک / Kirkuk','بەغدا / Baghdad','بەسرە / Basra',
-  'دبی / Dubai','شارجە / Sharjah',
-];
-const COUNTRIES      = ['Kurdistan', 'Iraq', 'UAE', 'China'];
-const FUEL_TYPES     = ['Petrol','Diesel','Hybrid','Plug-in Hybrid','Electric','LPG','CNG'];
-const TRANSMISSIONS  = ['Automatic','Manual','Semi-Automatic','CVT','Dual-Clutch'];
-const CONDITIONS     = ['نوێ / New','بەکارهاتوو / Used','گووشتی / Salvage'];
-const COLORS         = ['White','Black','Silver','Grey','Red','Blue','Green','Gold','Brown','Orange'];
-const PRICE_RANGES   = [
-  'زیر 5,000$','5,000 – 15,000$','15,000 – 30,000$',
-  '30,000 – 60,000$','60,000 – 100,000$','زیاتر لە 100,000$',
-];
-
-const CATEGORIES = [
-  { id: 'cars',  label: 'ئۆتۆمبێل', labelEn: 'Cars',        icon: Car   },
-  { id: 'parts', label: 'پارچەکان', labelEn: 'Parts',        icon: Wrench},
-  { id: 'bikes', label: 'مۆتۆسیکل', labelEn: 'Motorcycles', icon: Bike  },
-];
-
-const TRENDING_SEARCHES = [
-  'Land Cruiser 2023','BMW 5 Series','Toyota Camry هەولێر',
-  'Kia Sportage','Lexus LX570','BYD Electric',
-];
-const QUICK_SEARCHES = [
-  'Land Cruiser 2023','BMW 5 Series','Toyota Camry هەولێر','Kia Sportage',
-];
-
-const POPULAR_VEHICLES = [
-  { brand:'Toyota',   model:'Land Cruiser', year:2023, price:'$85,000', mileage:'12,000 km', city:'Erbil',         badge:'🔥 Hot'       },
-  { brand:'BMW',      model:'5 Series',     year:2022, price:'$55,000', mileage:'28,000 km', city:'Sulaymaniyah',  badge:'⭐ Featured'  },
-  { brand:'Lexus',    model:'LX570',        year:2021, price:'$92,000', mileage:'35,000 km', city:'Baghdad',       badge:'💎 Premium'   },
-  { brand:'Toyota',   model:'Camry Hybrid', year:2023, price:'$28,000', mileage:'5,000 km',  city:'Dubai',         badge:'⚡ New'        },
-  { brand:'Kia',      model:'Sportage',     year:2022, price:'$22,000', mileage:'18,000 km', city:'Erbil',         badge:'🏷️ Deal'       },
-  { brand:'Mercedes', model:'GLE 450',      year:2022, price:'$78,000', mileage:'22,000 km', city:'Dubai',         badge:'⭐ Featured'  },
-];
-
-const STATS = [
-  { value:'24,000+', label:'ئۆتۆمبێل',     labelEn:'Listings' },
-  { value:'1,200+',  label:'فرۆشەر',        labelEn:'Dealers'  },
-  { value:'8',       label:'شار',            labelEn:'Cities'   },
-  { value:'4.9★',    label:'هەڵسەنگاندن',  labelEn:'Rating'   },
-];
-
-const SUGGESTIONS_MAP: Record<string, string[]> = {
-  'to':     ['Toyota Land Cruiser','Toyota Camry','Toyota Prado'],
-  'toy':    ['Toyota Land Cruiser','Toyota Camry','Toyota Fortuner','Toyota RAV4'],
-  'toyota': ['Toyota Land Cruiser 2023','Toyota Camry Hybrid','Toyota Prado 2022'],
-  'bm':     ['BMW 5 Series','BMW X5','BMW M3'],
-  'bmw':    ['BMW 5 Series 2022','BMW X7','BMW M5'],
-  'land':   ['Land Cruiser 2023','Land Rover Defender'],
-  'cam':    ['Toyota Camry 2023','Toyota Camry Hybrid'],
-  'kia':    ['Kia Sportage 2022','Kia Sorento','Kia Telluride'],
-  'le':     ['Lexus LX570','Lexus GX460','Lexus RX350'],
-  'lex':    ['Lexus LX570','Lexus GX460','Lexus ES350'],
-  'mer':    ['Mercedes GLE','Mercedes C-Class','Mercedes S-Class'],
-  'electric':['BYD Atto 3','BYD Seal','BYD Han EV'],
-  'patrol': ['Nissan Patrol 2023','Nissan Patrol Platinum'],
-  'sport':  ['Kia Sportage 2022','Hyundai Tucson Sport'],
-};
+import {
+  MAKES, MODELS, YEARS, CITIES, COUNTRIES, FUEL_TYPES, TRANSMISSIONS,
+  CONDITIONS, COLORS, PRICE_RANGES, CATEGORIES, TRENDING_SEARCHES,
+  QUICK_SEARCHES, POPULAR_VEHICLES, STATS, SUGGESTIONS_MAP,
+} from '@/data/heroSearchData';
 
 /* ── Local-storage search history ───────────────────────────── */
 const HISTORY_KEY = 'hero_search_history_v1';
@@ -197,76 +119,123 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
   );
 }
 
+/* ── Filters state (useReducer) ───────────────────────────────── */
+interface FiltersState {
+  category: string; make: string; model: string;
+  yearFrom: string; yearTo: string; city: string; country: string;
+  price: string; condition: string; fuelType: string;
+  transmission: string; color: string; minMileage: string; maxMileage: string;
+}
+const initialFilters: FiltersState = {
+  category: 'cars', make: '', model: '', yearFrom: '', yearTo: '',
+  city: '', country: '', price: '', condition: '', fuelType: '',
+  transmission: '', color: '', minMileage: '', maxMileage: '',
+};
+type FiltersAction =
+  | { type: 'SET'; field: keyof FiltersState; value: string }
+  | { type: 'RESET' };
+function filtersReducer(state: FiltersState, action: FiltersAction): FiltersState {
+  switch (action.type) {
+    case 'SET':
+      return { ...state, [action.field]: action.value };
+    case 'RESET':
+      // Mirrors the original resetFilters(): clears filter fields but
+      // preserves `category`, which behaves like a tab, not a filter.
+      return {
+        ...state,
+        make: '', model: '', yearFrom: '', yearTo: '',
+        city: '', country: '', price: '', condition: '',
+        fuelType: '', transmission: '', color: '',
+        minMileage: '', maxMileage: '',
+      };
+    default:
+      return state;
+  }
+}
+
+/* ── UI open/closed state ─────────────────────────────────────── */
+interface UiState {
+  showAdvanced: boolean; showPopular: boolean; focused: boolean; showDropdown: boolean;
+}
+const initialUi: UiState = { showAdvanced: false, showPopular: false, focused: false, showDropdown: false };
+
+/* ── Search / autocomplete state ──────────────────────────────── */
+interface SearchState {
+  query: string; suggestions: string[]; history: string[];
+}
+const initialSearchState: SearchState = { query: '', suggestions: [], history: [] };
+
 /* ── Main HeroSearch ─────────────────────────────────────────── */
 export function HeroSearch() {
-  const [query,        setQuery]        = useState('');
-  const [category,     setCategory]     = useState('cars');
-  const [make,         setMake]         = useState('');
-  const [model,        setModel]        = useState('');
-  const [yearFrom,     setYearFrom]     = useState('');
-  const [yearTo,       setYearTo]       = useState('');
-  const [city,         setCity]         = useState('');
-  const [country,      setCountry]      = useState('');
-  const [price,        setPrice]        = useState('');
-  const [condition,    setCondition]    = useState('');
-  const [fuelType,     setFuelType]     = useState('');
-  const [transmission, setTransmission] = useState('');
-  const [color,        setColor]        = useState('');
-  const [minMileage,   setMinMileage]   = useState('');
-  const [maxMileage,   setMaxMileage]   = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showPopular,  setShowPopular]  = useState(false);
-  const [focused,      setFocused]      = useState(false);
-  const [suggestions,  setSuggestions]  = useState<string[]>([]);
-  const [history,      setHistory]      = useState<string[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [filters, dispatchFilters] = useReducer(filtersReducer, initialFilters);
+  const [ui, setUi] = useState<UiState>(initialUi);
+  const [search, setSearch] = useState<SearchState>(initialSearchState);
 
   const inputRef    = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const activeModels       = make && MODELS[make] ? MODELS[make] : [];
-  const activeFiltersCount = [make, model, yearFrom, yearTo, city, country, price, condition, fuelType, transmission, color, minMileage, maxMileage].filter(Boolean).length;
+  const setFilter = useCallback((field: keyof FiltersState, value: string) => {
+    dispatchFilters({ type: 'SET', field, value });
+  }, []);
 
-  useEffect(() => { setHistory(loadHistory()); }, []);
+  const activeModels = useMemo(
+    () => (filters.make && MODELS[filters.make] ? MODELS[filters.make] : []),
+    [filters.make],
+  );
+
+  const activeFiltersCount = useMemo(
+    () => [
+      filters.make, filters.model, filters.yearFrom, filters.yearTo,
+      filters.city, filters.country, filters.price, filters.condition,
+      filters.fuelType, filters.transmission, filters.color,
+      filters.minMileage, filters.maxMileage,
+    ].filter(Boolean).length,
+    [filters],
+  );
+
+  useEffect(() => { setSearch(s => ({ ...s, history: loadHistory() })); }, []);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (query.length >= 2) {
-      debounceRef.current = setTimeout(() => setSuggestions(getSuggestions(query)), 150);
+    if (search.query.length >= 2) {
+      const q = search.query;
+      debounceRef.current = setTimeout(() => {
+        setSearch(s => ({ ...s, suggestions: getSuggestions(q) }));
+      }, 150);
     } else {
-      setSuggestions([]);
+      setSearch(s => ({ ...s, suggestions: [] }));
     }
-  }, [query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.query]);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-        setFocused(false);
+        setUi(s => ({ ...s, showDropdown: false, focused: false }));
       }
     };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const handleSearch = useCallback((term = query) => {
-    if (term.trim()) { saveHistory(term); setHistory(loadHistory()); }
-    setShowDropdown(false);
-    setFocused(false);
-  }, [query]);
+  const handleSearch = useCallback((term = search.query) => {
+    if (term.trim()) {
+      saveHistory(term);
+      setSearch(s => ({ ...s, history: loadHistory() }));
+    }
+    setUi(s => ({ ...s, showDropdown: false, focused: false }));
+  }, [search.query]);
 
-  const handleSuggestionClick = (s: string) => { setQuery(s); handleSearch(s); };
-
-  const resetFilters = () => {
-    setMake(''); setModel(''); setYearFrom(''); setYearTo('');
-    setCity(''); setCountry(''); setPrice(''); setCondition('');
-    setFuelType(''); setTransmission(''); setColor('');
-    setMinMileage(''); setMaxMileage('');
+  const handleSuggestionClick = (s: string) => {
+    setSearch(prev => ({ ...prev, query: s }));
+    handleSearch(s);
   };
 
-  const showSuggestionPanel = showDropdown && focused &&
-    (suggestions.length > 0 || history.length > 0 || query.length === 0);
+  const resetFilters = () => dispatchFilters({ type: 'RESET' });
+
+  const showSuggestionPanel = ui.showDropdown && ui.focused &&
+    (search.suggestions.length > 0 || search.history.length > 0 || search.query.length === 0);
 
   return (
     <section
@@ -365,14 +334,14 @@ export function HeroSearch() {
           {CATEGORIES.map(({ id, label, labelEn, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setCategory(id)}
+              onClick={() => setFilter('category', id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250
-                ${category === id
+                ${filters.category === id
                   ? 'bg-gradient-to-r from-[#a87828] via-[#c9a84c] to-[#dab445] text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[#c9a84c]/25 scale-[1.03]'
                   : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[#c9a84c]/[0.07] hover:text-white/90 hover:border-[#c9a84c]/28 hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:scale-[1.01]'
                 }`}
             >
-              <Icon className={`w-4 h-4 transition-colors ${category === id ? 'text-[#050b14]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
+              <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[#050b14]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
               <span className="hidden xs:inline">{label}</span>
               <span className="hidden sm:inline text-[10px] opacity-60">/ {labelEn}</span>
             </button>
@@ -397,7 +366,7 @@ export function HeroSearch() {
         {/* ── Search Card ─────────────────────────────────────── */}
         <div
           className={`hero-card rounded-2xl border transition-all duration-350 overflow-visible
-                       ${focused
+                       ${ui.focused
                          ? 'border-[#c9a84c]/55 shadow-[0_0_0_1px_rgba(201,168,76,0.14),0_24px_72px_rgba(0,0,0,0.55),0_0_48px_rgba(201,168,76,0.05)]'
                          : 'border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.40)]'
                        }`}
@@ -406,21 +375,21 @@ export function HeroSearch() {
           {/* Search input + autocomplete */}
           <div ref={dropdownRef} className="relative">
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.07]">
-              <Search className={`w-5 h-5 flex-shrink-0 transition-colors duration-200 ${focused ? 'text-[#c9a84c]' : 'text-white/25'}`} />
+              <Search className={`w-5 h-5 flex-shrink-0 transition-colors duration-200 ${ui.focused ? 'text-[#c9a84c]' : 'text-white/25'}`} />
               <input
                 ref={inputRef}
                 type="text"
-                value={query}
-                onChange={e => { setQuery(e.target.value); setShowDropdown(true); }}
-                onFocus={() => { setFocused(true); setShowDropdown(true); }}
+                value={search.query}
+                onChange={e => { setSearch(s => ({ ...s, query: e.target.value })); setUi(s => ({ ...s, showDropdown: true })); }}
+                onFocus={() => setUi(s => ({ ...s, focused: true, showDropdown: true }))}
                 placeholder="گەڕان بکە... Toyota Land Cruiser، بەغدا، BMW 2023..."
                 className="flex-1 bg-transparent text-white placeholder-white/25
                            outline-none text-base font-medium caret-[#c9a84c] hero-search-input"
                 dir="rtl"
               />
-              {query && (
+              {search.query && (
                 <button
-                  onClick={() => { setQuery(''); setSuggestions([]); inputRef.current?.focus(); }}
+                  onClick={() => { setSearch(s => ({ ...s, query: '', suggestions: [] })); inputRef.current?.focus(); }}
                   className="text-white/25 hover:text-white/60 transition-colors flex-shrink-0"
                   aria-label="Clear"
                 >
@@ -435,13 +404,13 @@ export function HeroSearch() {
                               bg-[#0b1525]/98 backdrop-blur-2xl border border-[#c9a84c]/20
                               rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
 
-                {suggestions.length > 0 && (
+                {search.suggestions.length > 0 && (
                   <div className="border-b border-white/[0.06]">
                     <div className="px-4 pt-2.5 pb-1 text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/60 font-bold">
                       پێشنیار / Suggestions
                     </div>
-                    {suggestions.map(s => {
-                      const parts = s.split(new RegExp(`(${query})`, 'gi'));
+                    {search.suggestions.map(s => {
+                      const parts = s.split(new RegExp(`(${search.query})`, 'gi'));
                       return (
                         <div key={s} onClick={() => handleSuggestionClick(s)}
                           className="flex items-center gap-3 px-4 py-2.5 cursor-pointer text-sm
@@ -449,7 +418,7 @@ export function HeroSearch() {
                           <Search className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" />
                           <span>
                             {parts.map((p, i) =>
-                              p.toLowerCase() === query.toLowerCase()
+                              p.toLowerCase() === search.query.toLowerCase()
                                 ? <strong key={i} className="text-[#c9a84c] font-semibold">{p}</strong>
                                 : p
                             )}
@@ -460,18 +429,18 @@ export function HeroSearch() {
                   </div>
                 )}
 
-                {history.length > 0 && (
+                {search.history.length > 0 && (
                   <div className="border-b border-white/[0.06]">
                     <div className="px-4 pt-2.5 pb-1 flex items-center justify-between">
                       <span className="text-[9px] uppercase tracking-[0.12em] text-white/40 font-bold">
                         دواین گەڕانەکان / Recent
                       </span>
-                      <button onClick={() => { clearHistory(); setHistory([]); }}
+                      <button onClick={() => { clearHistory(); setSearch(s => ({ ...s, history: [] })); }}
                         className="text-[9px] text-white/25 hover:text-red-400 transition-colors">
                         سڕینەوە / Clear
                       </button>
                     </div>
-                    {history.slice(0, 5).map(h => (
+                    {search.history.slice(0, 5).map(h => (
                       <div key={h} onClick={() => handleSuggestionClick(h)}
                         className="flex items-center gap-3 px-4 py-2.5 cursor-pointer text-sm
                                    text-white/50 hover:bg-white/[0.06] hover:text-white transition-colors">
@@ -482,7 +451,7 @@ export function HeroSearch() {
                   </div>
                 )}
 
-                {query.length === 0 && (
+                {search.query.length === 0 && (
                   <div>
                     <div className="px-4 pt-2.5 pb-1 text-[9px] uppercase tracking-[0.12em] text-white/40 font-bold">
                       گەڕانی گەرمەکان / Trending
@@ -505,15 +474,15 @@ export function HeroSearch() {
           <div className="p-3">
             {/* Mobile: 2-col grid; md+: single flex row */}
             <div className="grid grid-cols-2 md:flex md:flex-nowrap gap-2 items-stretch">
-              <Dropdown label="براند" value={make} options={MAKES}
-                onChange={v => { setMake(v); setModel(''); }} placeholder="هەموو براندەکان" />
+              <Dropdown label="براند" value={filters.make} options={MAKES}
+                onChange={v => { setFilter('make', v); setFilter('model', ''); }} placeholder="هەموو براندەکان" />
               {/* Brand logo quick-picks */}
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {MAKES.slice(0, 8).map(m => {
                   const name = m.split(' / ').find((p: string) => /^[A-Za-z]/.test(p.trim())) ?? m;
-                  const active = make === m;
+                  const active = filters.make === m;
                   return (
-                    <button key={m} type="button" onClick={() => setMake(active ? '' : m)}
+                    <button key={m} type="button" onClick={() => setFilter('make', active ? '' : m)}
                       className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium
                         transition-all duration-150
                         ${active
@@ -525,12 +494,12 @@ export function HeroSearch() {
                   );
                 })}
               </div>
-              <Dropdown label="مۆدێل" value={model} options={activeModels}
-                onChange={setModel} placeholder="مۆدێل هەڵبژێرە" disabled={!make} />
-              <Dropdown label="شار" value={city} options={CITIES}
-                onChange={setCity} placeholder="هەموو شارەکان" />
-              <Dropdown label="نرخ" value={price} options={PRICE_RANGES}
-                onChange={setPrice} placeholder="هەموو نرخەکان" />
+              <Dropdown label="مۆدێل" value={filters.model} options={activeModels}
+                onChange={v => setFilter('model', v)} placeholder="مۆدێل هەڵبژێرە" disabled={!filters.make} />
+              <Dropdown label="شار" value={filters.city} options={CITIES}
+                onChange={v => setFilter('city', v)} placeholder="هەموو شارەکان" />
+              <Dropdown label="نرخ" value={filters.price} options={PRICE_RANGES}
+                onChange={v => setFilter('price', v)} placeholder="هەموو نرخەکان" />
               <button
                 type="button"
                 onClick={() => handleSearch()}
@@ -549,7 +518,7 @@ export function HeroSearch() {
             <div className="mt-2.5 flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setShowAdvanced(v => !v)}
+                onClick={() => setUi(s => ({ ...s, showAdvanced: !s.showAdvanced }))}
                 className="flex items-center gap-1.5 text-xs text-white/35 hover:text-[#c9a84c] transition-colors duration-200"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -560,7 +529,7 @@ export function HeroSearch() {
                     {activeFiltersCount}
                   </span>
                 )}
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${ui.showAdvanced ? 'rotate-180' : ''}`} />
               </button>
               {activeFiltersCount > 0 && (
                 <button type="button" onClick={resetFilters}
@@ -575,26 +544,26 @@ export function HeroSearch() {
           {/* Advanced Filters Panel */}
           <div
             className="overflow-hidden transition-all duration-350"
-            style={{ maxHeight: showAdvanced ? '500px' : '0' }}
+            style={{ maxHeight: ui.showAdvanced ? '500px' : '0' }}
           >
             <div className="px-3 pb-4 pt-3 border-t border-white/[0.06]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
                 <div className="flex items-center gap-2">
-                  <Dropdown label="ساڵی دەستپێک" value={yearFrom} options={YEARS} onChange={setYearFrom} placeholder="2000" />
+                  <Dropdown label="ساڵی دەستپێک" value={filters.yearFrom} options={YEARS} onChange={v => setFilter('yearFrom', v)} placeholder="2000" />
                   <span className="text-white/20 text-sm flex-shrink-0 mt-3">—</span>
-                  <Dropdown label="ساڵی کۆتایی"  value={yearTo}   options={YEARS} onChange={setYearTo}   placeholder="2025" />
+                  <Dropdown label="ساڵی کۆتایی"  value={filters.yearTo}   options={YEARS} onChange={v => setFilter('yearTo', v)}   placeholder="2025" />
                 </div>
 
-                <Dropdown label="وڵات / Country"            value={country}      options={COUNTRIES}     onChange={setCountry}      placeholder="هەموو وڵاتەکان" />
-                <Dropdown label="جۆری سووتەمەنی / Fuel"     value={fuelType}     options={FUEL_TYPES}    onChange={setFuelType}     placeholder="هەموو جۆرەکان" />
-                <Dropdown label="گێرکردن / Transmission"    value={transmission} options={TRANSMISSIONS} onChange={setTransmission} placeholder="هەموو جۆرەکان" />
-                <Dropdown label="ڕەنگ / Color"              value={color}        options={COLORS}        onChange={setColor}        placeholder="هەموو ڕەنگەکان" />
+                <Dropdown label="وڵات / Country"            value={filters.country}      options={COUNTRIES}     onChange={v => setFilter('country', v)}      placeholder="هەموو وڵاتەکان" />
+                <Dropdown label="جۆری سووتەمەنی / Fuel"     value={filters.fuelType}     options={FUEL_TYPES}    onChange={v => setFilter('fuelType', v)}     placeholder="هەموو جۆرەکان" />
+                <Dropdown label="گێرکردن / Transmission"    value={filters.transmission} options={TRANSMISSIONS} onChange={v => setFilter('transmission', v)} placeholder="هەموو جۆرەکان" />
+                <Dropdown label="ڕەنگ / Color"              value={filters.color}        options={COLORS}        onChange={v => setFilter('color', v)}        placeholder="هەموو ڕەنگەکان" />
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex flex-col min-w-0 gap-0.5">
                     <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold">کێلۆمەتری کەم / Min KM</span>
-                    <input type="number" value={minMileage} onChange={e => setMinMileage(e.target.value)}
+                    <input type="number" value={filters.minMileage} onChange={e => setFilter('minMileage', e.target.value)}
                       placeholder="0"
                       className="bg-white/[0.05] border border-white/[0.10] rounded-xl
                                  px-3 py-2 text-sm text-white placeholder-white/25
@@ -603,7 +572,7 @@ export function HeroSearch() {
                   <span className="text-white/20 text-sm flex-shrink-0 mt-3">—</span>
                   <div className="flex-1 flex flex-col min-w-0 gap-0.5">
                     <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold">کێلۆمەتری زۆر / Max KM</span>
-                    <input type="number" value={maxMileage} onChange={e => setMaxMileage(e.target.value)}
+                    <input type="number" value={filters.maxMileage} onChange={e => setFilter('maxMileage', e.target.value)}
                       placeholder="300,000"
                       className="bg-white/[0.05] border border-white/[0.10] rounded-xl
                                  px-3 py-2 text-sm text-white placeholder-white/25
@@ -620,9 +589,9 @@ export function HeroSearch() {
                 <div className="flex gap-2 flex-wrap">
                   {CONDITIONS.map(c => (
                     <button key={c} type="button"
-                      onClick={() => setCondition(condition === c ? '' : c)}
+                      onClick={() => setFilter('condition', filters.condition === c ? '' : c)}
                       className={`px-3 py-1.5 rounded-lg text-xs border transition-all duration-200
-                        ${condition === c
+                        ${filters.condition === c
                           ? 'bg-[#c9a84c]/[0.20] border-[#c9a84c]/60 text-[#c9a84c]'
                           : 'border-white/[0.10] text-white/50 bg-white/[0.04] hover:border-[#c9a84c]/40 hover:text-[#c9a84c]'
                         }`}>
@@ -639,7 +608,7 @@ export function HeroSearch() {
         <div className="mt-5 flex items-center gap-2 flex-wrap justify-center">
           <span className="text-white/25 text-xs">گەڕانی خێرا:</span>
           {QUICK_SEARCHES.map(tag => (
-            <button key={tag} onClick={() => { setQuery(tag); handleSearch(tag); }}
+            <button key={tag} onClick={() => { setSearch(s => ({ ...s, query: tag })); handleSearch(tag); }}
               className="px-3 py-1 rounded-full text-xs
                          bg-white/[0.04] border border-white/[0.08] text-white/45
                          hover:border-[#c9a84c]/35 hover:text-[#c9a84c]/90 hover:bg-[#c9a84c]/[0.06]
@@ -651,18 +620,18 @@ export function HeroSearch() {
 
         {/* Popular vehicles toggle */}
         <div className="mt-6 flex justify-center">
-          <button onClick={() => setShowPopular(v => !v)}
+          <button onClick={() => setUi(s => ({ ...s, showPopular: !s.showPopular }))}
             className="flex items-center gap-2 text-xs text-white/30 hover:text-[#c9a84c] transition-colors">
             <Star className="w-3.5 h-3.5" />
             <span>ئۆتۆمبێلی بەناوبانگ / Popular Vehicles</span>
-            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showPopular ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${ui.showPopular ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
         {/* Popular vehicles grid */}
         <div
           className="overflow-hidden transition-all duration-500"
-          style={{ maxHeight: showPopular ? '600px' : '0', opacity: showPopular ? 1 : 0 }}
+          style={{ maxHeight: ui.showPopular ? '600px' : '0', opacity: ui.showPopular ? 1 : 0 }}
         >
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {POPULAR_VEHICLES.map((v, i) => (
