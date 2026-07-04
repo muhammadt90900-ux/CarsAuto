@@ -5,6 +5,8 @@ export enum ListingType {
   CAR = 'CAR',
   MOTORCYCLE = 'MOTORCYCLE',
   SPARE_PART = 'SPARE_PART',
+  ACCESSORY = 'ACCESSORY',
+  SERVICE = 'SERVICE',
 }
 
 export enum ListingCondition {
@@ -93,10 +95,53 @@ export interface SparePartListing extends ListingBase {
   quantity: number;
 }
 
+/**
+ * Feature 3 — matches `ListingAccessorySpec` (prisma/schema.prisma) and the
+ * fields submitted by the sell form (useSellForm.ts: accBrand, accModel,
+ * accCondition, accColor, accMaterial, accWeight, accDimensions —
+ * un-prefixed here to line up with the other Listing variants).
+ */
+export interface AccessoryListing extends ListingBase {
+  type: ListingType.ACCESSORY;
+  categoryId: string;
+  brand?: string;
+  model?: string;
+  condition?: ListingCondition;
+  color?: string;
+  material?: string;
+  weight?: number;
+  dimensions?: string;
+  compatibleBrands: string[];
+  compatibleModels: string[];
+}
+
+/**
+ * Feature 3 — matches `ListingAccessorySpec` (prisma/schema.prisma) and the
+ * fields submitted by the sell form (useSellForm.ts: serviceType, duration,
+ * mobile, warranty, availableDays).
+ */
+export interface ServiceListing extends ListingBase {
+  type: ListingType.SERVICE;
+  categoryId: string;
+  serviceType?: string;
+  duration?: number;
+  mobile: boolean;
+  warranty?: number;
+  certifications: string[];
+  availableDays: string[];
+  compatibleBrands: string[];
+  compatibleModels: string[];
+}
+
 // ─── API response shapes ───────────────────────────────────────────────────
 
-/** Any concrete listing — cars, motorcycles, and spare parts. */
-export type Listing = CarListing | MotorcycleListing | SparePartListing;
+/** Any concrete listing — cars, motorcycles, spare parts, accessories, and services. */
+export type Listing =
+  | CarListing
+  | MotorcycleListing
+  | SparePartListing
+  | AccessoryListing
+  | ServiceListing;
 
 export interface ListingImage {
   id: string;

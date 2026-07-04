@@ -12,6 +12,8 @@ const STATIC_ROUTES = [
   '/cars',
   '/spare-parts',
   '/motorcycles',
+  '/accessories',
+  '/services',
   '/dealers',
   '/dealers/register',
 ];

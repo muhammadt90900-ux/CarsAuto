@@ -9,16 +9,31 @@ const API_URL  = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 interface Listing {
   id: string;
+  type?: string;
   updatedAt?: string;
   createdAt?: string;
   images?: { url: string; isCover?: boolean }[];
   titleEn?: string;
 }
 
+// PROMPT 2 fix: the sitemap previously hardcoded every listing's <loc> to
+// /cars/{id} regardless of its actual type, so spare-parts/motorcycles
+// listings were already generating wrong sitemap URLs. Fixed here while
+// wiring up the two new types (ACCESSORY, SERVICE) since building a correct
+// per-type map was needed anyway. Motorcycles' own marketplace *page* is
+// still out of scope (Prompt 2) — this only affects sitemap URL generation.
+const TYPE_ROUTE_SEGMENT: Record<string, string> = {
+  CAR: 'cars',
+  MOTORCYCLE: 'motorcycles',
+  SPARE_PART: 'spare-parts',
+  ACCESSORY: 'accessories',
+  SERVICE: 'services',
+};
+
 async function fetchListings(): Promise<Listing[]> {
   try {
     const res = await fetch(
-      `${API_URL}/listings?status=ACTIVE&limit=5000&fields=id,updatedAt,createdAt,images,titleEn`,
+      `${API_URL}/listings?status=ACTIVE&limit=5000&fields=id,type,updatedAt,createdAt,images,titleEn`,
       { next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];
@@ -44,12 +59,13 @@ export async function GET() {
   const urlEntries = listings.map((listing) => {
     const lastmod = listing.updatedAt ?? listing.createdAt ?? new Date().toISOString();
     const cover   = listing.images?.find((i) => i.isCover)?.url ?? listing.images?.[0]?.url;
+    const segment = TYPE_ROUTE_SEGMENT[listing.type ?? ''] ?? 'cars';
 
     // Build hreflang alternates
     const alternates = locales
       .map((l) => {
         const hreflang = l === 'ku' ? 'ckb' : l;
-        return `<xhtml:link rel="alternate" hreflang="${hreflang}" href="${BASE_URL}/${l}/cars/${listing.id}"/>`;
+        return `<xhtml:link rel="alternate" hreflang="${hreflang}" href="${BASE_URL}/${l}/${segment}/${listing.id}"/>`;
       })
       .join('\n      ');
 
@@ -64,7 +80,7 @@ export async function GET() {
 
     return `
   <url>
-    <loc>${BASE_URL}/ku/cars/${listing.id}</loc>
+    <loc>${BASE_URL}/ku/${segment}/${listing.id}</loc>
     <lastmod>${new Date(lastmod).toISOString().split('T')[0]}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
