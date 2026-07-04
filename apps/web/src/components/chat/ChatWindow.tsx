@@ -7,6 +7,7 @@ import { io, Socket } from 'socket.io-client';
 import { VoiceRecorderButton } from './VoiceRecorderButton';
 import { VoiceNotePlayer }     from './VoiceNotePlayer';
 import { cn } from '@/lib/utils';
+import { getAccessToken } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,12 +44,16 @@ interface ChatWindowProps {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// NEXT_PUBLIC_API_URL already includes the NestJS '/api' HTTP prefix — correct
+// for REST calls, but wrong for the socket.io connection, which needs the raw
+// WS host (same convention NotificationsPanel uses).
+const WS_URL  = process.env.NEXT_PUBLIC_WS_URL  ?? 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 function getToken(): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(/(?:^|;\s*)accessToken=([^;]+)/);
-  return match ? decodeURIComponent(match[1]!) : null;
+  // NOTE: this app keeps the access token in memory (lib/api.ts), never in a
+  // readable cookie — the previous implementation always returned null here.
+  return getAccessToken();
 }
 
 function formatTime(iso: string): string {
@@ -86,7 +91,7 @@ export function ChatWindow({
   // ── Socket setup ────────────────────────────────────────────────────────
   useEffect(() => {
     const token = getToken();
-    const socket = io(`${SOCKET_URL}/chat`, {
+    const socket = io(`${WS_URL}/chat`, {
       auth:       { token },
       transports: ['websocket', 'polling'],
       withCredentials: true,
@@ -145,7 +150,7 @@ export function ChatWindow({
 
     // Load history via REST
     const token2 = getToken();
-    fetch(`${SOCKET_URL}/chats/${chatId}/messages?limit=50`, {
+    fetch(`${API_URL}/chats/${chatId}/messages?limit=50`, {
       credentials: 'include',
       headers: token2 ? { Authorization: `Bearer ${token2}` } : {},
     })
@@ -281,7 +286,7 @@ export function ChatWindow({
             msg.status === 'sending' || !msg.audioUrl ? (
               <div className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-2xl',
-                isSender ? 'bg-champagne-gold/60 text-midnight-navy' : 'bg-white/10 text-white',
+                isSender ? 'bg-[#c9a84c]/60 text-[#070d18]' : 'bg-white/10 text-white',
               )}>
                 <Loader2 size={14} className="animate-spin" />
                 <span className="text-xs">Sending voice note…</span>
@@ -298,7 +303,7 @@ export function ChatWindow({
             <div className={cn(
               'px-3 py-2 rounded-2xl text-sm leading-relaxed break-words',
               isSender
-                ? 'bg-champagne-gold text-midnight-navy rounded-br-sm'
+                ? 'bg-[#c9a84c] text-[#070d18] rounded-br-sm'
                 : 'bg-white/10 text-white rounded-bl-sm',
               msg.status === 'error' && 'opacity-50 border border-red-500',
             )}>
@@ -308,7 +313,7 @@ export function ChatWindow({
 
           {/* Timestamp + status */}
           <div className={cn('flex items-center gap-1', isSender ? 'justify-end' : 'justify-start')}>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[10px] text-white/40">
               {formatTime(msg.createdAt)}
             </span>
             {isSender && msg.status === 'error' && (
@@ -323,7 +328,7 @@ export function ChatWindow({
   // ── JSX ─────────────────────────────────────────────────────────────────
   return (
     <div className={cn(
-      'flex flex-col h-full bg-midnight-navy text-white rounded-xl overflow-hidden border border-white/10',
+      'flex flex-col h-full bg-[#070d18] text-white rounded-xl overflow-hidden border border-white/10',
       className,
     )}>
       {/* Header */}
@@ -334,13 +339,13 @@ export function ChatWindow({
               {otherUser.name.charAt(0).toUpperCase()}
             </div>
             {isConnected && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-midnight-navy" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#070d18]" />
             )}
           </div>
           <div>
             <p className="font-semibold text-sm leading-tight">{otherUser.name}</p>
             {listingTitle && (
-              <p className="text-xs text-muted-foreground truncate max-w-[160px]">{listingTitle}</p>
+              <p className="text-xs text-white/40 truncate max-w-[160px]">{listingTitle}</p>
             )}
           </div>
         </div>
@@ -355,10 +360,10 @@ export function ChatWindow({
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 size={24} className="animate-spin text-champagne-gold" />
+            <Loader2 size={24} className="animate-spin text-[#c9a84c]" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-8">
+          <p className="text-center text-white/40 text-sm py-8">
             {t('noMessages', { default: 'Start the conversation' })}
           </p>
         ) : (
@@ -406,7 +411,7 @@ export function ChatWindow({
           disabled={sendingVoice}
           className={cn(
             'flex-1 bg-white/10 rounded-full px-4 py-2 text-sm outline-none',
-            'placeholder:text-muted-foreground focus:bg-white/15 transition-colors',
+            'placeholder:text-white/30 focus:bg-white/15 transition-colors',
             'disabled:opacity-50',
           )}
         />
@@ -417,8 +422,8 @@ export function ChatWindow({
           disabled={!inputText.trim() || !isConnected}
           className={cn(
             'w-9 h-9 rounded-full flex items-center justify-center shrink-0',
-            'bg-champagne-gold text-midnight-navy',
-            'hover:bg-champagne-gold/80 transition-colors',
+            'bg-[#c9a84c] text-[#070d18]',
+            'hover:bg-[#c9a84c]/80 transition-colors',
             'disabled:opacity-40 disabled:cursor-not-allowed',
           )}
           aria-label="Send"

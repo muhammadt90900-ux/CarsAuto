@@ -3,14 +3,27 @@
 // Optimised: next/image for main + thumbnails, lazy lightbox, memoised callbacks
 // Feature 7: 360° View tab when images tagged with '360_view'
 
-import { useState, useEffect, useCallback, useRef, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import {
   X, ChevronLeft, ChevronRight, Maximize2,
   Grid3X3,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
-import { Viewer360 } from './Viewer360';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+// Below-the-fold, browser-only (drag/rAF), only mounted when the '360° View'
+// tab is selected — code-split out of the initial ImageGallery/car-detail bundle.
+const Viewer360 = dynamic(
+  () => import('./Viewer360').then((mod) => mod.Viewer360),
+  {
+    ssr: false,
+    loading: () => (
+      <Skeleton height="24rem" className="w-full rounded-3xl" />
+    ),
+  }
+);
 
 interface GalleryImage {
   url: string;

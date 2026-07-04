@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 const RecentParts     = lazy(() => import('@/components/features/home/RecentParts').then(m => ({ default: m.RecentParts })));
 const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDealers').then(m => ({ default: m.FeaturedDealers })));
+const AIRecommendations = lazy(() => import('@/components/features/cars/AIRecommendations').then(m => ({ default: m.AIRecommendations })));
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -219,6 +220,13 @@ export default async function HomePage({ params }: Props) {
           </Link>
         </div>
         {newFunction()}
+      </section>
+
+      {/* 04.5 · AI RECOMMENDATIONS — personalised picks, client-only */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
+        <Suspense fallback={<div className="h-48 skeleton rounded-2xl" />}>
+          <AIRecommendations apiBaseUrl={process.env.NEXT_PUBLIC_API_URL} locale={locale} />
+        </Suspense>
       </section>
 
       {/* 05 · TRENDING BRANDS */}

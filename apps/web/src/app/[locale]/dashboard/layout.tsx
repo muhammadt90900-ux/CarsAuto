@@ -7,12 +7,15 @@
 // redirected to /dashboard (handled below in RoleGuard).
 
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import { Sidebar }      from '@/components/dashboard/Sidebar';
 import { BuyerSidebar } from '@/components/dashboard/BuyerSidebar';
 import { BottomNav }    from '@/components/mobile/BottomNav';
 import { PageTransition } from '@/components/mobile/Loading';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/store/auth.store';
+import { getAccessToken } from '@/lib/api';
 import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
@@ -20,6 +23,16 @@ import {
   Search, History, ShoppingBag, Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+
+// Real-time bell dropdown — only needed after hydration/auth, browser-only
+// (socket.io), so it's split out of the dashboard-layout bundle.
+const NotificationsPanel = dynamic(
+  () => import('@/components/chat/NotificationsPanel'),
+  {
+    ssr: false,
+    loading: () => <Skeleton width="2.25rem" height="2.25rem" rounded="rounded-xl" />,
+  }
+);
 
 // ── Route guard: redirect buyers away from dealer-only routes ──────────────
 function RoleGuard({ children }: { children: React.ReactNode }) {
@@ -279,9 +292,12 @@ function SellerMobileDrawer({ open, onClose, locale }: {
 }
 
 // ── Shared mobile header ───────────────────────────────────────────────────
-function DashboardMobileHeader({ onMenuOpen, title, isBuyer }: {
-  onMenuOpen: () => void; title: string; isBuyer: boolean;
+function DashboardMobileHeader({ onMenuOpen, title, isBuyer, locale }: {
+  onMenuOpen: () => void; title: string; isBuyer: boolean; locale: string;
 }) {
+  const user   = useAuthStore(s => s.user);
+  const router = useRouter();
+
   return (
     <div className={cn(
       'sticky top-0 z-30 flex items-center gap-3 px-4 h-[60px]',
@@ -304,12 +320,21 @@ function DashboardMobileHeader({ onMenuOpen, title, isBuyer }: {
           Buyer
         </span>
       )}
-      <button className="w-9 h-9 rounded-xl flex items-center justify-center
-                          hover:bg-white/[0.08] transition-colors" aria-label="Notifications">
-        <Bell className="w-4 h-4 text-white/50" />
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#e94560]
-                          ring-2 ring-[#070d18]" />
-      </button>
+      {user && (
+        <NotificationsPanel
+          userId={user.id}
+          token={getAccessToken() ?? ''}
+          apiBase={process.env.NEXT_PUBLIC_API_URL}
+          onNavigate={(path) => {
+            // NotificationsPanel emits generic paths — map them onto real routes.
+            const chatMatch    = path.match(/^\/messages\/(.+)$/);
+            const listingMatch = path.match(/^\/listings\/(.+)$/);
+            if (chatMatch)    router.push(`/${locale}/dashboard/messages?chatId=${chatMatch[1]}`);
+            else if (listingMatch) router.push(`/${locale}/cars/${listingMatch[1]}`);
+            else router.push(`/${locale}${path}`);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -365,6 +390,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onMenuOpen={() => setDrawerOpen(true)}
             title={title}
             isBuyer={isBuyer}
+            locale={locale}
           />
 
           {isBuyer ? (

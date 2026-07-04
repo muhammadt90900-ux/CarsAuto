@@ -422,16 +422,16 @@ export const notificationsApi = {
 // ── Chat API ──────────────────────────────────────────────────────────────────
 export const chatApi = {
   getConversations: () =>
-    api.get<{ data: ChatConversation[] }>('/chat/conversations').then((r) => r.data),
+    api.get<ChatConversation[]>('/chats').then((r) => r.data),
 
   getMessages: (conversationId: string) =>
     api
-      .get<{ data: Message[] }>(`/chat/conversations/${conversationId}/messages`)
+      .get<{ data: Message[] }>(`/chats/${conversationId}/messages`)
       .then((r) => r.data),
 
   sendMessage: (conversationId: string, content: string) =>
     api
-      .post<Message>(`/chat/conversations/${conversationId}/messages`, { content })
+      .post<Message>(`/chats/${conversationId}/messages`, { content })
       .then((r) => r.data),
 };
 
