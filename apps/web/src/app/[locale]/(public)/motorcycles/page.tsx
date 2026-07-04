@@ -1,10 +1,15 @@
 // apps/web/src/app/[locale]/(public)/motorcycles/page.tsx
 import type { Metadata } from "next";
+import { MotorcyclesClient } from "@/components/features/motorcycles/MotorcyclesClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
+import { serverFetch } from "@/lib/server-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
-type Props = { params: Promise<{ locale: string }> };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<Record<string, string>>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: localeStr } = await params;
@@ -39,11 +44,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function MotorcyclesPage({ params }: Props) {
+export default async function MotorcyclesPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  return (
-    <div className="min-h-screen bg-[#050b14] flex items-center justify-center" data-locale={locale}>
-      <p className="text-white/50">Motorcycles marketplace — coming soon</p>
-    </div>
-  );
+  const search = searchParams ? await searchParams : {};
+
+  // Mirrors cars/page.tsx's F-PERF pattern: fetch page-1/default-filters
+  // server-side so MotorcyclesClient's own useQuery has matching
+  // placeholderData and doesn't re-fetch what was already rendered.
+  const initialData = await serverFetch("/listings", {
+    revalidate: 30,
+    tags: ["listings-list"],
+    searchParams: {
+      type: "MOTORCYCLE",
+      brandId: search.brandId,
+      search: search.search,
+      limit: 24,
+      page: 1,
+    },
+  });
+
+  return <MotorcyclesClient locale={locale} initialSearch={search} initialData={initialData ?? undefined} />;
 }
