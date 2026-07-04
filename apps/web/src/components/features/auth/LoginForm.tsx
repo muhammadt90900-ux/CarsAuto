@@ -1,33 +1,40 @@
 'use client';
 // components/features/auth/LoginForm.tsx (Accessibility-enhanced)
 
-import { useState, useCallback, useId } from 'react';
+import { useState, useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { loginSchema, type LoginFormValues } from '@/lib/validation/auth.schema';
 
 export function LoginForm({ locale = 'en' }: { locale?: string }) {
   const router = useRouter();
   const { login } = useAuthStore();
   const uid        = useId();
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
   const [success,  setSuccess]  = useState(false);
   const [error,    setError]    = useState('');
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
     setError('');
-    setLoading(true);
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       setSuccess(true);
       setTimeout(() => {
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
         router.push(returnTo || "/");
       }, 600);
     } catch (err: any) {
@@ -36,10 +43,8 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         err?.message ||
         'Invalid email or password. Please try again.';
       setError(Array.isArray(msg) ? msg.join(' ') : msg);
-    } finally {
-      setLoading(false);
     }
-  }, [email, password, login, router, locale]);
+  };
 
   const emailId    = `${uid}-email`;
   const passwordId = `${uid}-password`;
@@ -104,7 +109,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         )}
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="space-y-5"
           noValidate
           aria-describedby={error ? errorId : undefined}
@@ -122,8 +127,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={emailId}
                 type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                {...register('email')}
                 required
                 aria-required="true"
                 autoComplete="email"
@@ -155,8 +159,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={passwordId}
                 type={showPw ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                {...register('password')}
                 required
                 aria-required="true"
                 autoComplete="current-password"
@@ -195,9 +198,9 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || success}
-            aria-disabled={loading || success}
-            aria-busy={loading}
+            disabled={isSubmitting || success}
+            aria-disabled={isSubmitting || success}
+            aria-busy={isSubmitting}
             className="btn-gold w-full h-12 text-sm rounded-xl flex items-center justify-center gap-2
                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2"
@@ -206,7 +209,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
               boxShadow: '0 4px 20px rgba(201,168,76,0.40)',
             }}
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <span className="w-5 h-5 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                 <span>Signing in…</span>

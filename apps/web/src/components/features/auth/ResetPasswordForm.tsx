@@ -4,11 +4,14 @@
 // Reads ?token=<raw> from the URL (set by the email link).
 // On success clears the token from the URL and redirects to /login.
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Lock, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authApi } from '@/lib/api';
+import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/validation/auth.schema';
 
 // Password strength helpers
 type Strength = 'weak' | 'fair' | 'good' | 'strong';
@@ -36,11 +39,8 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
   const searchParams = useSearchParams();
   const rawToken     = searchParams.get('token') ?? '';
 
-  const [password,   setPassword]   = useState('');
-  const [confirm,    setConfirm]    = useState('');
   const [showPw,     setShowPw]     = useState(false);
   const [showCfm,    setShowCfm]    = useState(false);
-  const [loading,    setLoading]    = useState(false);
   const [success,    setSuccess]    = useState(false);
   const [error,      setError]      = useState('');
 
@@ -49,6 +49,19 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
   useEffect(() => {
     if (!rawToken || rawToken.length < 16) setTokenMissing(true);
   }, [rawToken]);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: '', confirmPassword: '' },
+  });
+
+  const password = watch('password');
+  const confirm  = watch('confirmPassword');
 
   const strength = passwordStrength(password);
   const rules = [
@@ -60,29 +73,30 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
   const allRulesMet = rules.every((r) => r.ok);
   const passwordsMatch = password === confirm && confirm.length > 0;
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!allRulesMet)      { setError('Password does not meet requirements.'); return; }
-      if (!passwordsMatch)   { setError('Passwords do not match.'); return; }
-      setError('');
-      setLoading(true);
-      try {
-        await authApi.resetPassword(rawToken, password);
-        setSuccess(true);
-        setTimeout(() => router.push("/login"), 3_000);
-      } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Something went wrong. Please request a new reset link.';
-        setError(Array.isArray(msg) ? msg.join(' ') : msg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [rawToken, password, passwordsMatch, allRulesMet, router, locale],
-  );
+  const onSubmit = async (data: ResetPasswordFormValues) => {
+    setError('');
+    try {
+      await authApi.resetPassword(rawToken, data.password);
+      setSuccess(true);
+      setTimeout(() => router.push("/login"), 3_000);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Something went wrong. Please request a new reset link.';
+      setError(Array.isArray(msg) ? msg.join(' ') : msg);
+    }
+  };
+
+  // Same priority as the original manual checks: the password-rules message
+  // took precedence over the passwords-don't-match message.
+  const onError = (errors: FieldErrors<ResetPasswordFormValues>) => {
+    setError(
+      errors.password?.message ||
+      errors.confirmPassword?.message ||
+      'Please check the form and try again.',
+    );
+  };
 
   // ── Token missing ─────────────────────────────────────────────────────────
   if (tokenMissing) {
@@ -168,7 +182,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
           }}
         />
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onError)} noValidate>
           {/* New password */}
           <div className="mb-4">
             <label
@@ -189,8 +203,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
                 type={showPw ? 'text' : 'password'}
                 autoComplete="new-password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
                 placeholder="Min 8 characters"
                 className="w-full pl-10 pr-10 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
@@ -252,8 +265,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
                 type={showCfm ? 'text' : 'password'}
                 autoComplete="new-password"
                 required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                {...register('confirmPassword')}
                 placeholder="Repeat new password"
                 className="w-full pl-10 pr-10 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
@@ -307,13 +319,13 @@ key={r.label}
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !allRulesMet || !passwordsMatch}
+            disabled={isSubmitting || !allRulesMet || !passwordsMatch}
             className="w-full py-3 rounded-xl font-bold text-sm text-[#0a0f1a]
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all duration-200 flex items-center justify-center gap-2"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
                 Resetting…

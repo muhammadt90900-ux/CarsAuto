@@ -8,6 +8,7 @@ import { locales, dir, hreflangMap, type Locale } from '@/i18n/config';
 import { fontVariables } from '@/lib/fonts';
 import { Providers } from '@/components/Providers';
 import { PWAProvider, InstallPrompt } from '@/components/pwa';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import '@/styles/globals.css';
 
 type Props = {
@@ -180,10 +181,20 @@ export default async function LocaleLayout({ children, params }: Props) {
           }}
         />
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <PWAProvider>
-            <Providers>{children}</Providers>
-            <InstallPrompt />
-          </PWAProvider>
+          {/*
+           * error.tsx boundaries only catch errors thrown by *page* segments
+           * beneath them — never errors thrown by this layout itself (e.g.
+           * PWAProvider, Providers, InstallPrompt). Without this, a crash in
+           * any of those would skip every route-level error.tsx and blow
+           * away the whole shell via global-error.tsx. This ErrorBoundary
+           * is the safety net for exactly that gap.
+           */}
+          <ErrorBoundary context="RootLayoutProviders">
+            <PWAProvider>
+              <Providers>{children}</Providers>
+              <InstallPrompt />
+            </PWAProvider>
+          </ErrorBoundary>
         </NextIntlClientProvider>
       </body>
     </html>

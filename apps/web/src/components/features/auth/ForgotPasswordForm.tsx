@@ -1,44 +1,52 @@
 'use client';
 // components/features/auth/ForgotPasswordForm.tsx
 
-import { useState, useCallback, useId } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Mail, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authApi } from '@/lib/api';
+import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/lib/validation/auth.schema';
 
 export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
-  const uid         = useId();
-  const [email,     setEmail]     = useState('');
-  const [loading,   setLoading]   = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error,     setError]     = useState('');
+  const [submitted,     setSubmitted]     = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [error,         setError]         = useState('');
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!email.trim()) {
-        setError('Please enter your email address.');
-        return;
-      }
-      setError('');
-      setLoading(true);
-      try {
-        await authApi.forgotPassword(email.trim().toLowerCase());
-        setSubmitted(true);
-      } catch (err: any) {
-        // Show a generic error only for network/server failures, never for
-        // "email not found" (server intentionally hides that).
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Something went wrong. Please try again.';
-        setError(Array.isArray(msg) ? msg.join(' ') : msg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [email],
-  );
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
+
+  const emailValue = watch('email');
+
+  const onSubmit = async (data: ForgotPasswordFormValues) => {
+    setError('');
+    try {
+      const normalized = data.email.trim().toLowerCase();
+      await authApi.forgotPassword(normalized);
+      setSubmittedEmail(normalized);
+      setSubmitted(true);
+    } catch (err: any) {
+      // Show a generic error only for network/server failures, never for
+      // "email not found" (server intentionally hides that).
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Something went wrong. Please try again.';
+      setError(Array.isArray(msg) ? msg.join(' ') : msg);
+    }
+  };
+
+  const onError = (errors: FieldErrors<ForgotPasswordFormValues>) => {
+    setError(errors.email?.message ?? 'Please check the form and try again.');
+  };
 
   // ── Success state ─────────────────────────────────────────────────────────
   if (submitted) {
@@ -55,7 +63,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
             Check your inbox
           </h2>
           <p className="text-sm text-[var(--text-muted)] mb-1">
-            If <strong>{email}</strong> is registered, we&apos;ve sent a reset link.
+            If <strong>{submittedEmail}</strong> is registered, we&apos;ve sent a reset link.
           </p>
           <p className="text-sm text-[var(--text-muted)] mb-6">
             The link expires in <strong>30 minutes</strong>. Check your spam folder if you
@@ -117,7 +125,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
           link. The link expires in <strong>30 minutes</strong>.
         </p>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onError)} noValidate>
           {/* Email field */}
           <div className="mb-5">
             <label
@@ -136,8 +144,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
                 type="email"
                 autoComplete="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email')}
                 placeholder="you@example.com"
                 className="w-full pl-10 pr-4 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
@@ -159,13 +166,13 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !email.trim()}
+            disabled={isSubmitting || !emailValue?.trim()}
             className="w-full py-3 rounded-xl font-bold text-sm text-[#0a0f1a]
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all duration-200 flex items-center justify-center gap-2"
             style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
                 Sending…

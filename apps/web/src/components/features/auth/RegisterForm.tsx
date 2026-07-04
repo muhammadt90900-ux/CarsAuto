@@ -1,10 +1,13 @@
 'use client';
 // components/features/auth/RegisterForm.tsx (Accessibility-enhanced)
-import { useState, useCallback, useId } from 'react';
+import { useState, useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useForm, Controller, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { registerSchema, type RegisterFormValues } from '@/lib/validation/auth.schema';
 
 const ROLES = [
   { id: 'BUYER',  label: 'Buyer',          desc: 'Browse & purchase vehicles', icon: '🛒' },
@@ -23,36 +26,36 @@ function getPasswordStrength(pw: string): number {
 }
 
 export function RegisterForm({ locale = 'en' }: { locale?: string }) {
-  const router        = useRouter();
-  const { register }  = useAuthStore();
-  const uid           = useId();
+  const router                = useRouter();
+  const { register: registerUser } = useAuthStore();
+  const uid                   = useId();
 
-  const [name,     setName]     = useState('');
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [phone,    setPhone]    = useState('');
-  const [role,     setRole]     = useState<'BUYER' | 'DEALER'>('BUYER');
   const [showPw,   setShowPw]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-  const [agreed,   setAgreed]   = useState(false);
+
+  const {
+    register: registerField,
+    control,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', email: '', password: '', phone: '', role: 'BUYER', agreed: false },
+  });
+
+  const password = watch('password');
+  const agreed   = watch('agreed');
 
   const pwStrength = getPasswordStrength(password);
   const pwColors   = ['', '#ef4444', '#f59e0b', '#22c55e'];
   const pwLabels   = ['', 'Weak — add uppercase, number', 'Fair', 'Strong ✓'];
   const pwAriaLabels = ['', 'Weak password', 'Fair password', 'Strong password'];
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agreed) { setError('Please accept the terms to continue.'); return; }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      setError('Password must be at least 8 characters with uppercase, lowercase, and a number.');
-      return;
-    }
+  const onSubmit = async (data: RegisterFormValues) => {
     setError('');
-    setLoading(true);
     try {
-      await register(name, email, password, role, phone || undefined);
+      await registerUser(data.name, data.email, data.password, data.role, data.phone || undefined);
       router.push("/dashboard");
     } catch (err: any) {
       const msg =
@@ -60,10 +63,20 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
         err?.message ||
         'Registration failed. Please try again.';
       setError(Array.isArray(msg) ? msg.join(' ') : msg);
-    } finally {
-      setLoading(false);
     }
-  }, [name, email, password, phone, role, agreed, register, router, locale]);
+  };
+
+  // Same priority as the original manual checks: terms-not-accepted took
+  // precedence over the password-strength message.
+  const onError = (errors: FieldErrors<RegisterFormValues>) => {
+    const msg =
+      errors.agreed?.message ||
+      errors.password?.message ||
+      errors.email?.message ||
+      errors.name?.message ||
+      'Please check the form and try again.';
+    setError(msg);
+  };
 
   // IDs for form fields
   const nameId     = `${uid}-name`;
@@ -106,22 +119,28 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
           <legend className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
             I want to
           </legend>
-          <div className="grid grid-cols-2 gap-3">
-            {ROLES.map(r => (
-              <button key={r.id} type="button"
-                onClick={() => setRole(r.id as 'BUYER' | 'DEALER')}
-                aria-pressed={role === r.id}
-                className={`p-4 rounded-xl border-2 text-left transition-all duration-200
-                  ${role === r.id
-                    ? 'border-[var(--gold)] bg-[var(--gold-subtle)]'
-                    : 'border-[var(--border-default)] hover:border-[var(--border-gold)]'}`}
-              >
-                <div className="text-2xl mb-1" aria-hidden="true">{r.icon}</div>
-                <div className="font-bold text-[var(--text-primary)] text-sm">{r.label}</div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{r.desc}</div>
-              </button>
-            ))}
-          </div>
+          <Controller
+            control={control}
+            name="role"
+            render={({ field }) => (
+              <div className="grid grid-cols-2 gap-3">
+                {ROLES.map(r => (
+                  <button key={r.id} type="button"
+                    onClick={() => field.onChange(r.id as 'BUYER' | 'DEALER')}
+                    aria-pressed={field.value === r.id}
+                    className={`p-4 rounded-xl border-2 text-left transition-all duration-200
+                      ${field.value === r.id
+                        ? 'border-[var(--gold)] bg-[var(--gold-subtle)]'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-gold)]'}`}
+                  >
+                    <div className="text-2xl mb-1" aria-hidden="true">{r.icon}</div>
+                    <div className="font-bold text-[var(--text-primary)] text-sm">{r.label}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{r.desc}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          />
         </fieldset>
 
         {error && (
@@ -131,7 +150,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate aria-describedby={error ? errorId : undefined}>
+        <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4" noValidate aria-describedby={error ? errorId : undefined}>
           {/* Name */}
           <div>
             <label htmlFor={nameId} className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
@@ -142,8 +161,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={nameId}
                 type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
+                {...registerField('name')}
                 required
                 aria-required="true"
                 minLength={2} maxLength={80}
@@ -164,8 +182,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={emailId}
                 type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                {...registerField('email')}
                 required
                 aria-required="true"
                 autoComplete="email"
@@ -185,8 +202,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={passwordId}
                 type={showPw ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                {...registerField('password')}
                 required
                 aria-required="true"
                 aria-describedby={password ? strengthId : undefined}
@@ -233,8 +249,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               <input
                 id={phoneId}
                 type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
+                {...registerField('phone')}
                 autoComplete="tel"
                 placeholder="+964 750 000 0000"
                 className="input-base pl-11 h-12"
@@ -243,41 +258,47 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
           </div>
 
           {/* Terms */}
-          <div className="flex items-start gap-2.5">
-            <div
-              id={`${termsId}-box`}
-              role="checkbox"
-              aria-checked={agreed}
-              tabIndex={0}
-              onClick={() => setAgreed(v => !v)}
-              onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAgreed(v => !v); } }}
-              aria-labelledby={termsId}
-              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2
-                ${agreed ? 'bg-[var(--gold)] border-[var(--gold)]' : 'border-[var(--border-strong)] hover:border-[var(--gold)]'}`}
-            >
-              {agreed && <Check className="w-3 h-3 text-[var(--ink-900)]" aria-hidden="true" />}
-            </div>
-            <label id={termsId} className="text-xs text-[var(--text-muted)] leading-relaxed cursor-pointer"
-                   onClick={() => setAgreed(v => !v)}>
-              I agree to the{' '}
-              <Link href="/terms" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Terms of Service</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Privacy Policy</Link>
-            </label>
-          </div>
+          <Controller
+            control={control}
+            name="agreed"
+            render={({ field }) => (
+              <div className="flex items-start gap-2.5">
+                <div
+                  id={`${termsId}-box`}
+                  role="checkbox"
+                  aria-checked={field.value}
+                  tabIndex={0}
+                  onClick={() => field.onChange(!field.value)}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); field.onChange(!field.value); } }}
+                  aria-labelledby={termsId}
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2
+                    ${field.value ? 'bg-[var(--gold)] border-[var(--gold)]' : 'border-[var(--border-strong)] hover:border-[var(--gold)]'}`}
+                >
+                  {field.value && <Check className="w-3 h-3 text-[var(--ink-900)]" aria-hidden="true" />}
+                </div>
+                <label id={termsId} className="text-xs text-[var(--text-muted)] leading-relaxed cursor-pointer"
+                       onClick={() => field.onChange(!field.value)}>
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" className="text-[var(--gold)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded-sm">Privacy Policy</Link>
+                </label>
+              </div>
+            )}
+          />
 
           <button
             type="submit"
-            disabled={loading || !agreed}
-            aria-disabled={loading || !agreed}
-            aria-busy={loading}
+            disabled={isSubmitting || !agreed}
+            aria-disabled={isSubmitting || !agreed}
+            aria-busy={isSubmitting}
             className="btn-gold w-full h-12 text-sm rounded-xl flex items-center justify-center gap-2
                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
                        shadow-[0_4px_20px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_28px_rgba(201,168,76,0.50)]
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2"
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <span className="w-5 h-5 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
                 <span>Creating account…</span>
