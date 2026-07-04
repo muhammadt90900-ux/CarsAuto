@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@cars-auto/types": "*",
-    "@cars-auto/ui": "^0.0.1",
     "@cars-auto/utils": "*",
     "@hookform/resolvers": "^3.9.0",
     "@nestjs/core": "11.1.24",

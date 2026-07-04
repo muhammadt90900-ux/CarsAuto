@@ -6,7 +6,7 @@ const withNextIntl = require('next-intl/plugin')('./src/i18n/request.ts');
 const nextConfig = {
   // ── Output ────────────────────────────────────────────────────────────────
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
-  transpilePackages: ['@cars-auto/ui', '@cars-auto/utils'],
+  transpilePackages: ['@cars-auto/utils'],
 
   // ── Turbopack root  (monorepo Docker fix) ─────────────────────────────────
   // Turbopack needs to know the monorepo root so it can find node_modules
@@ -22,7 +22,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [
       'lucide-react',
-      '@cars-auto/ui',
       'date-fns',
       'lodash',
     ],

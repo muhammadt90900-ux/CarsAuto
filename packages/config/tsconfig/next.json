@@ -9,7 +9,6 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@ui/*": ["../../packages/ui/src/*"],
       "@types/*": ["../../packages/types/src/*"],
       "@utils/*": ["../../packages/utils/src/*"]
     }

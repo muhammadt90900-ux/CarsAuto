@@ -6,17 +6,11 @@
       "@/*": [
         "./src/*"
       ],
-      "@ui/*": [
-        "../../packages/ui/src/*"
-      ],
       "@types/*": [
         "../../packages/types/src/*"
       ],
       "@utils/*": [
         "../../packages/utils/src/*"
-      ],
-      "@cars-auto/ui/*": [
-        "../../packages/ui/src/*"
       ],
       "@cars-auto/utils": [
         "../../packages/utils/src/index.ts"
