@@ -102,6 +102,8 @@ export interface ListingImage {
   id: string;
   url: string;
   order: number;
+  /** Feature: 360° Photo Set — 'standard' | '360_view' */
+  tag?: string;
 }
 
 /** Minimal seller/poster info attached to a single-listing detail response. */

@@ -7,13 +7,14 @@ import {
   IsUUID,
   IsBoolean,
   IsInt,
+  IsIn,
   Min,
   Max,
   MinLength,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ListingType } from '@/common/prisma/enums';
 
@@ -170,6 +171,25 @@ export class SparePartSpecDto {
   compatibleBrand?: string;
 }
 
+// ── Image input DTO (Feature: 360° Photo Set) ─────────────────────────────────
+// Accepts either a plain URL string (legacy, treated as 'standard') or an
+// object with an explicit tag. The @Transform on CreateListingDto.images
+// normalizes plain strings into this shape before validation runs.
+export class ListingImageInputDto {
+  @ApiProperty({ description: 'Image URL (Cloudinary)', example: 'https://res.cloudinary.com/.../photo.jpg' })
+  @IsString()
+  url!: string;
+
+  @ApiPropertyOptional({
+    description: "Image tag — 'standard' (default) or '360_view' for 360° photo sets",
+    enum: ['standard', '360_view'],
+    example: 'standard',
+  })
+  @IsOptional()
+  @IsIn(['standard', '360_view'])
+  tag?: 'standard' | '360_view';
+}
+
 // ── Main create DTO ───────────────────────────────────────────────────────────
 export class CreateListingDto {
   @ApiProperty({ description: 'Listing type', enum: ListingType, example: 'CAR' })
@@ -227,9 +247,25 @@ export class CreateListingDto {
   @IsOptional() @IsUUID()
   locationId?: string;
 
-  @ApiPropertyOptional({ description: 'Image URLs (Cloudinary)', type: [String] })
-  @IsOptional() @IsArray() @IsString({ each: true })
-  images?: string[];
+  // ── Feature: 360° Photo Set ──────────────────────────────────────────────
+  // Accepts string[] (legacy, all tagged 'standard') or
+  // { url, tag? }[] so a subset can be marked '360_view'.
+  @ApiPropertyOptional({
+    description: 'Images — plain URL strings, or objects with url + optional tag',
+    type: () => [ListingImageInputDto],
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((img: any) =>
+          typeof img === 'string' ? { url: img, tag: 'standard' } : img,
+        )
+      : value,
+  )
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ListingImageInputDto)
+  images?: ListingImageInputDto[];
 
   @ApiPropertyOptional({ description: 'Whether the price is negotiable', example: true })
   @IsOptional() @IsBoolean()

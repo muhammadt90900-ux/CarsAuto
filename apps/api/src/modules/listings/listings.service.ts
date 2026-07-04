@@ -526,6 +526,16 @@ export class ListingsService {
         ...listingData
       } = data as any;
 
+      // Feature: 360° Photo Set — images may arrive as plain strings (legacy)
+      // or { url, tag } objects (from the DTO's normalization Transform).
+      const normalizedImages: { url: string; tag: string }[] | undefined = images?.length
+        ? images.map((img: string | { url: string; tag?: string }) =>
+            typeof img === 'string'
+              ? { url: img, tag: 'standard' }
+              : { url: img.url, tag: img.tag ?? 'standard' },
+          )
+        : undefined;
+
       const listingType = listingData.type as ListingType;
       const isVehicle   = VEHICLE_TYPES.has(listingType);
       const isAccessory = ACCESSORY_TYPES.has(listingType);
@@ -583,11 +593,12 @@ export class ListingsService {
               }
             : {}),
 
-          ...(images?.length
+          ...(normalizedImages?.length
             ? {
                 images: {
-                  create: images.map((url: string, index: number) => ({
-                    url,
+                  create: normalizedImages.map((img, index) => ({
+                    url:     img.url,
+                    tag:     img.tag,
                     isCover: index === 0,
                     order:   index,
                   })),

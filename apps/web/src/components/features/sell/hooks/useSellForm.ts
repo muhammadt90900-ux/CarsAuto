@@ -282,7 +282,12 @@ export function useSellForm(user: { id: string } | null | undefined) {
         negotiable:    values.negotiable,
         descriptionEn: values.descriptionEn.trim() || undefined,
         descriptionKu: values.descriptionKu.trim() || undefined,
-        images:        values.images,
+        // Feature: 360° Photo Set — merge values.images360 into the payload,
+        // tagged '360_view', alongside the standard images.
+        images: [
+          ...values.images.map((url) => ({ url, tag: 'standard' as const })),
+          ...values.images360.map((url) => ({ url, tag: '360_view' as const })),
+        ],
         ...(isVehicle ? { condition: values.condition ?? 'USED' } : {}),
         ...((isAccessory || isService)
           ? {

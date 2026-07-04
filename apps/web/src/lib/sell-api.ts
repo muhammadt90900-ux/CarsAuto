@@ -30,6 +30,13 @@ export interface SparePartSpec {
   compatibleBrand?: string;
 }
 
+// Feature: 360° Photo Set — a listing image can be a plain URL (legacy,
+// treated as 'standard') or an object tagging it '360_view'.
+export interface ListingImageInput {
+  url: string;
+  tag?: 'standard' | '360_view';
+}
+
 export interface CreateListingPayload {
   titleEn: string;
   titleKu: string;
@@ -43,7 +50,7 @@ export interface CreateListingPayload {
   descriptionKu?: string;
   descriptionAr?: string;
   negotiable?: boolean;
-  images?: string[]; // CDN URLs returned by the upload endpoint
+  images?: Array<string | ListingImageInput>; // CDN URLs, optionally tagged (e.g. 360° set)
   locationId?: string;
   categoryId?: string;
   vehicleSpec?: VehicleSpec;

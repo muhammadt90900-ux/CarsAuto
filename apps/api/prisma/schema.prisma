@@ -748,6 +748,10 @@ model Image {
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   isCover   Boolean @default(false)
   order     Int     @default(0) @db.SmallInt
+  // Feature: 360° Photo Set — 'standard' | '360_view'. Plain string (not enum)
+  // to avoid the TS2719 class of bugs from hand-mirrored Prisma enums in
+  // common/prisma/enums.ts.
+  tag       String  @default("standard") @db.VarChar(20)
 
   // CHANGE: composite — fetch all images for a listing sorted by order
   @@index([listingId, order])
