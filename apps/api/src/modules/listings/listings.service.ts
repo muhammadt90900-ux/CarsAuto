@@ -608,9 +608,7 @@ export class ListingsService {
         },
       });
 
-      this.invalidateListCache();
-
-      // ── AI content moderation (fire-and-forget) ───────────────────────────
+      await this.invalidateListCache();
       this.ai.checkContent(
         listing.titleKu ?? listing.titleEn,
         listing.descriptionKu ?? listing.descriptionEn ?? '',
@@ -782,10 +780,8 @@ export class ListingsService {
         return result;
       });
 
-      this.cache.del(`listings:detail:${id}`);
-      this.invalidateListCache();
-
-      // F-ARCH fix: emit listing.sold exactly once, on the transition into
+      await this.cache.del(`listings:detail:${id}`);
+      await this.invalidateListCache();
       // SOLD (not on every update to an already-sold listing). The dealer
       // lookup mirrors create()'s — best-effort, never blocks the response.
       if (!wasAlreadySold && updated.status === 'SOLD') {
@@ -825,10 +821,8 @@ export class ListingsService {
         where: { id },
         data:  { deletedAt: new Date(), status: 'EXPIRED' },
       });
-      this.cache.del(`listings:detail:${id}`);
-      this.invalidateListCache();
-
-      // F-ARCH fix: emit listing.deleted — DealerListeners decrements
+      await this.cache.del(`listings:detail:${id}`);
+      await this.invalidateListCache();
       // dealer.activeListings/totalListings in response (best-effort,
       // never throws back into this request).
       try {
@@ -957,12 +951,17 @@ export class ListingsService {
     return where;
   }
 
-  private invalidateListCache(): void {
-    this.cache.del('listings:list:');
+  // PROMPT 5 FIX: was `private invalidateListCache(): void` with two
+  // un-awaited `this.cache.del(...)` fire-and-forget calls inside — every
+  // caller (create/update/delete) also called it without await, so cache
+  // invalidation could still be in flight (or silently fail) after the
+  // response had already returned to the client.
+  private async invalidateListCache(): Promise<void> {
+    await this.cache.del('listings:list:');
     // F-HIGH fix: the cursor-pagination total-count cache (see getTotal())
     // is a separate namespace from the list-page cache — must be cleared
     // here too, or a stale total can outlive a create/update/delete by up
     // to CACHE_TTL_LIST.
-    this.cache.del('listings:count:');
+    await this.cache.del('listings:count:');
   }
 }

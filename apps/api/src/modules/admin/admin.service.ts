@@ -3,6 +3,7 @@ import { UserRole, UserSubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
+import { AuthService } from '../auth/auth.service';
 
 // IMPROVE: Added input validation and error handling constants
 const MAX_PAGE_LIMIT = 100;
@@ -17,6 +18,9 @@ export class AdminService {
     private prisma: PrismaService,
     @Optional() private notifications: NotificationsService,
     private auditLog: AuditLogService,
+    // PROMPT 4 FIX: needed to call revokeTokensIssuedBefore() from
+    // banUser/suspendUser/setUserRole below.
+    private authService: AuthService,
   ) {}
 
   // IMPROVE: Added validation for pagination inputs
@@ -207,6 +211,10 @@ export class AdminService {
       // Revoke any active sessions immediately when banning
       if (banned) {
         await this.prisma.refreshToken.deleteMany({ where: { userId: id } }).catch(() => {});
+        // PROMPT 4 FIX: refresh-token deletion alone doesn't stop a
+        // currently-live access token (up to 15 min old) from still working —
+        // this blocks it too.
+        await this.authService.revokeTokensIssuedBefore(id).catch(() => {});
       }
 
       this.auditLog.log({
@@ -247,6 +255,8 @@ export class AdminService {
 
       if (until) {
         await this.prisma.refreshToken.deleteMany({ where: { userId: id } }).catch(() => {});
+        // PROMPT 4 FIX: same reasoning as banUser above.
+        await this.authService.revokeTokensIssuedBefore(id).catch(() => {});
       }
 
       this.auditLog.log({
@@ -278,6 +288,15 @@ export class AdminService {
         data: { role: role as UserRole },
         select: { id: true, email: true, role: true },
       });
+
+      // PROMPT 4 FIX: setUserRole previously revoked nothing at all — a
+      // currently-live access token kept the OLD role baked into its payload
+      // for up to 15 more minutes (e.g. a demoted admin keeps admin-level
+      // access until natural token expiry). Note refresh tokens are left
+      // alone here (unlike ban/suspend) since refreshToken() always re-reads
+      // the current role from the DB — only the *existing* access token
+      // needs to be invalidated, not the session itself.
+      await this.authService.revokeTokensIssuedBefore(id).catch(() => {});
 
       this.auditLog.log({
         action: AuditAction.ADMIN_ROLE_CHANGED,

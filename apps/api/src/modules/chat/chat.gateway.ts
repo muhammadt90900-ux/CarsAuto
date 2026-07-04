@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CacheService } from '../../common/cache/cache.service';
+import { AuthService } from '../auth/auth.service';
 
 // ─── Presence ────────────────────────────────────────────────────────────────
 //
@@ -86,6 +87,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private notificationsService: NotificationsService,
     private jwtService: JwtService,
     private cache: CacheService,
+    // PROMPT 5 FIX: needed to check the same blocklist/token-floor that
+    // JwtStrategy.validate() checks for REST requests.
+    private authService: AuthService,
   ) {}
 
   // ─── Rate limit helpers ─────────────────────────────────────────────────────
@@ -115,6 +119,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         audience: 'car-platform-client',
       });
       const userId: string = payload.sub ?? payload.userId;
+
+      // PROMPT 5 FIX: jwtService.verify() above only checks the JWT signature
+      // and expiry — it never consulted the Redis blocklist that REST requests
+      // go through in JwtStrategy.validate(). Without this, a logged-out (or
+      // banned/suspended/role-changed — see PROMPT 4) access token could still
+      // open a live chat socket for up to its remaining 15-minute lifetime.
+      if (await this.authService.isAccessTokenBlocked(token)) {
+        throw new WsException('Token has been revoked');
+      }
+      if (await this.authService.isAccessTokenRevokedForUser(userId, payload.iat)) {
+        throw new WsException('Token has been revoked');
+      }
+
       client.data.userId = userId;
 
       await this.cache.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS);

@@ -53,14 +53,41 @@ export class ZainCashGateway implements IGateway {
     };
   }
 
-  async verifyWebhook(payload: unknown, signature: string): Promise<boolean> {
+  /**
+   * F4 FIX: Accept the raw Buffer from the webhook route (registered with
+   * express.raw() in main.ts before json() middleware runs) — matches the
+   * fastpay/asiahawala pattern.
+   *
+   * Previously: expected an already-parsed object and HMAC'd a concatenation
+   * of individual fields (`id`+`status`+`amount`+`orderId`) read off of it.
+   * Since the route delivers a raw Buffer, every field read returned
+   * `undefined`, so the "expected" signature was constant and verification
+   * was effectively broken/bypassable.
+   *
+   * Now: HMAC-SHA256 over the raw request bytes with ZAINCASH_SECRET.
+   * Confirm with ZainCash docs whether they sign the raw body or a specific
+   * field concatenation — if it's the latter, source the field list from
+   * their integration docs and parse the buffer to reconstruct it (see
+   * qicard.gateway.ts for that pattern), but do NOT silently guess.
+   */
+  async verifyWebhook(payload: Buffer | unknown, signature: string): Promise<boolean> {
     const secret = this.config.get<string>('ZAINCASH_SECRET');
     if (!secret) return false;
-    const b = payload as Record<string, unknown>;
+
+    // payload must be a raw Buffer (registered via express.raw() in main.ts)
+    if (!Buffer.isBuffer(payload)) {
+      this.logger.error(
+        'ZainCash verifyWebhook received a non-Buffer payload — ' +
+        'ensure /api/payments/zaincash/webhook is registered with express.raw() before json()',
+      );
+      return false;
+    }
+
     const expected = crypto
       .createHmac('sha256', secret)
-      .update(`${b['id']}${b['status']}${b['amount']}${b['orderId']}`)
+      .update(payload)          // raw bytes — no re-serialisation
       .digest('hex');
+
     try {
       return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
     } catch {

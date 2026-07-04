@@ -33,6 +33,14 @@ import { promisify } from 'util';
 // promisify gives us the same algorithm without blocking.
 const scryptAsync = promisify(crypto.scrypt);
 
+// ── Account lockout config ──────────────────────────────────────────────────
+// PROMPT 3 FIX: failedLoginAttempts existed on the Prisma model but was never
+// read or written anywhere — lockedUntil was checked but nothing ever set it,
+// so lockout was permanently a no-op. These two constants + registerFailedLogin()
+// below are the only pieces that were missing.
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 export interface RequestContext {
   ipAddress?: string;
   userAgent?: string;
@@ -78,6 +86,18 @@ const SCRYPT_KEY_LEN    = 64;
 // Entries are set with a TTL equal to the remaining token lifetime,
 // so the blocklist never grows unboundedly.
 const ACCESS_TOKEN_BLOCKLIST_PREFIX = 'auth:blocklist:';
+
+// PROMPT 4 FIX: per-user "block tokens issued before timestamp X" mechanism.
+// Unlike ACCESS_TOKEN_BLOCKLIST_PREFIX (which blocks one specific token by its
+// hash — used at logout, where we have the raw token string), this blocks
+// *every* token belonging to a user regardless of which one it is — used for
+// ban/suspend/role-change, where the admin only has a userId, not the raw
+// token of whatever session(s) that user currently has live.
+const USER_TOKEN_FLOOR_PREFIX = 'auth:token-floor:';
+// Must be >= the access token's own lifetime (JWT_EXPIRES_IN below), since
+// that's the longest a token issued right before the floor was set could
+// still be valid for. +60s cushion for clock skew between app instances.
+const TOKEN_FLOOR_TTL_MS = 15 * 60_000 + 60_000;
 
 const DURATION_UNITS: Record<string, number> = {
   s: 1000,
@@ -177,12 +197,58 @@ export class AuthService {
     // BUG #1 + #2 + #7 FIX: constant-time async comparison
     const isValid = await this.verifyPassword(password, user.password ?? '');
     if (!isValid) {
+      // PROMPT 3 FIX: increment the counter and lock the account for 15
+      // minutes once it hits 5 failures. This runs AFTER the lockedUntil/
+      // banned/suspended checks above, so it never itself becomes a timing
+      // side-channel for those states.
+      await this.registerFailedLogin(user.id);
       await this.writeAuditLog(user.id, 'USER_LOGIN_FAILED', ctx, { reason: 'wrong_password' });
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // PROMPT 3 FIX: successful login resets the counter/lock. Skip the write
+    // when there's nothing to reset — that's the common case (most logins
+    // succeed on the first try) so this avoids an extra UPDATE per login.
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+    }
+
     await this.writeAuditLog(user.id, AuditAction.USER_LOGIN, ctx);
     return this.issueTokenPair(user);
+  }
+
+  // PROMPT 3 FIX: atomically increments failedLoginAttempts; once it reaches
+  // MAX_FAILED_LOGIN_ATTEMPTS, locks the account for LOCKOUT_DURATION_MS and
+  // resets the counter so the next window after the lock expires starts fresh.
+  //
+  // The increment uses Prisma's atomic `{ increment: 1 }` so concurrent failed
+  // attempts from the same account can't lose updates via a stale read. The
+  // lock-set is a second write; under heavy concurrency two requests could
+  // both cross the threshold and both write the lock — that's harmless
+  // (idempotent) and an acceptable tradeoff vs. wrapping every login attempt
+  // in a transaction.
+  private async registerFailedLogin(userId: string): Promise<void> {
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: { increment: 1 } },
+      select: { failedLoginAttempts: true },
+    });
+
+    if (updated.failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
+          failedLoginAttempts: 0,
+        },
+      });
+      this.logger.warn(
+        `User ${userId} locked for ${LOCKOUT_DURATION_MS / 60000} minutes after ${updated.failedLoginAttempts} failed login attempts`,
+      );
+    }
   }
 
   // ── Refresh Token ────────────────────────────────────────────────────────────
@@ -309,6 +375,40 @@ export class AuthService {
     const key = ACCESS_TOKEN_BLOCKLIST_PREFIX + this.hashToken(rawAccessToken);
     const val = await this.cache.get<string>(key);
     return val !== null && val !== undefined;
+  }
+
+  // ── Check per-user token floor (called from JwtStrategy.validate) ────────────
+
+  // PROMPT 4 FIX: complements isAccessTokenBlocked() above. That check needs
+  // the raw token string (only available at logout); this one needs only the
+  // userId + the token's own `iat` claim, so it can reject every token for a
+  // user at once — used after banUser/suspendUser/setUserRole.
+  //
+  // `iat` is JWT-standard seconds-since-epoch; the floor is stored in ms, so
+  // it's compared as `iat * 1000 < floor`. A token issued in the same second
+  // the floor was written is treated as pre-floor (revoked) rather than
+  // post-floor — erring toward revoking is the safer default here.
+  async isAccessTokenRevokedForUser(userId: string, iat?: number): Promise<boolean> {
+    if (!iat) return false; // no iat claim on the token — nothing to compare against
+    const key = USER_TOKEN_FLOOR_PREFIX + userId;
+    const floor = await this.cache.get<number>(key);
+    if (!floor) return false;
+    return iat * 1000 < floor.value;
+  }
+
+  // ── Set per-user token floor (called from AdminService) ──────────────────────
+
+  // PROMPT 4 FIX: call this from banUser/suspendUser/setUserRole so any
+  // access token already issued to this user is rejected on its next request,
+  // without needing that token's raw string. See TOKEN_FLOOR_TTL_MS above for
+  // why the TTL only needs to cover one access-token lifetime, not forever —
+  // banUser/suspendUser already delete refresh tokens (so no NEW token can be
+  // minted afterward), and login() itself re-checks banned/suspendedUntil on
+  // every attempt, so once the floor entry expires there's nothing left for
+  // it to have been protecting against.
+  async revokeTokensIssuedBefore(userId: string): Promise<void> {
+    const key = USER_TOKEN_FLOOR_PREFIX + userId;
+    await this.cache.set(key, Date.now(), TOKEN_FLOOR_TTL_MS);
   }
 
   // ── Verify Email ─────────────────────────────────────────────────────────────

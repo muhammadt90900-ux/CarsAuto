@@ -471,14 +471,28 @@ export class PaymentsService {
 
   async handleRegionalWebhook(
     gatewayName: string,
-    payload: Record<string, unknown>,
+    rawBody: Buffer,
     signature: string,
   ) {
     const gateway = this.regionalGatewayByName(gatewayName);
     if (!gateway) throw new BadRequestException(`Unknown gateway: ${gatewayName}`);
 
-    const isValid = await gateway.verifyWebhook(payload, signature);
+    // F4 fix: verifyWebhook must receive the RAW Buffer (unmodified bytes) so
+    // gateways that HMAC the raw body (fastpay/asiahawala/qicard) keep working.
+    // Do NOT parse-then-re-serialise before this call — JSON.stringify() is not
+    // guaranteed to reproduce the original bytes (key order, number formatting,
+    // unicode escapes can differ), which breaks signature verification.
+    const isValid = await gateway.verifyWebhook(rawBody, signature);
     if (!isValid) throw new ForbiddenException('Invalid webhook signature');
+
+    // Parse the Buffer to JSON exactly once, after signature verification,
+    // for field extraction / status parsing / storage below.
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(rawBody.toString('utf8')) as Record<string, unknown>;
+    } catch {
+      throw new BadRequestException(`${gatewayName} webhook: payload is not valid JSON`);
+    }
 
     const gatewayId = String(
       payload['transactionId'] ?? payload['id'] ?? payload['transaction_id'] ?? '',

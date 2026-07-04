@@ -64,6 +64,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Token has been revoked');
     }
 
+    // PROMPT 4 FIX: Check the per-user token floor that AdminService populates
+    // via banUser/suspendUser/setUserRole. Without this, banning or role-changing
+    // a user only deleted their refresh tokens — their currently-live access
+    // token (up to 15 min old) kept working with the stale role/ban-state baked
+    // into its payload until it expired naturally.
+    if (await this.authService.isAccessTokenRevokedForUser(payload.sub, payload.iat)) {
+      throw new UnauthorizedException('Token has been revoked');
+    }
+
     return {
       userId: payload.sub,
       email: payload.email,

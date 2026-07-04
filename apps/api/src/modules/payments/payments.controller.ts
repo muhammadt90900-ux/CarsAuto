@@ -69,7 +69,7 @@ export class PaymentsController {
   @Post('zaincash/webhook')
   @HttpCode(HttpStatus.OK)
   async handleZainCashWebhook(
-    @Body() payload: Record<string, unknown>,
+    @Body() payload: Buffer,
     @Headers('x-zaincash-signature') signature: string,
   ) {
     if (!signature) throw new BadRequestException('Missing X-ZainCash-Signature header');
@@ -81,7 +81,7 @@ export class PaymentsController {
   @Post('fastpay/webhook')
   @HttpCode(HttpStatus.OK)
   async handleFastPayWebhook(
-    @Body() payload: Record<string, unknown>,
+    @Body() payload: Buffer,
     @Headers('x-fastpay-signature') signature: string,
   ) {
     if (!signature) throw new BadRequestException('Missing X-FastPay-Signature header');
@@ -93,7 +93,7 @@ export class PaymentsController {
   @Post('qicard/webhook')
   @HttpCode(HttpStatus.OK)
   async handleQiCardWebhook(
-    @Body() payload: Record<string, unknown>,
+    @Body() payload: Buffer,
     @Headers('x-qicard-signature') signature: string,
   ) {
     if (!signature) throw new BadRequestException('Missing X-QiCard-Signature header');
@@ -105,7 +105,7 @@ export class PaymentsController {
   @Post('asiahawala/webhook')
   @HttpCode(HttpStatus.OK)
   async handleAsiaHawalaWebhook(
-    @Body() payload: Record<string, unknown>,
+    @Body() payload: Buffer,
     @Headers('x-asiahawala-signature') signature: string,
   ) {
     if (!signature) throw new BadRequestException('Missing X-AsiaHawala-Signature header');
