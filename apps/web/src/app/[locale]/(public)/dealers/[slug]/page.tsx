@@ -5,6 +5,7 @@ import Script from "next/script";
 import { DealerShowroomClient } from "@/components/features/dealers/DealerShowroomClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 import { serverFetch } from "@/lib/server-api";
+import { safeJsonLd } from "@/lib/json-ld-safe";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
@@ -93,11 +94,12 @@ export default async function DealerShowroomPage({ params }: Props) {
 
   return (
     <>
+      {/* safeJsonLd (not JSON.stringify) — dealerJsonLd embeds dealer.nameEn and other dealer-controlled fields; unescaped "</script>" would break out of this tag and execute attacker HTML (stored XSS) */}
       <Script
         id="jsonld-dealer"
         type="application/ld+json"
         strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(dealerJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(dealerJsonLd) }}
       />
       <DealerShowroomClient dealer={dealer} locale={locale} />
     </>

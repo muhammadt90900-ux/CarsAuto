@@ -128,8 +128,16 @@ export class AsiaHawalaGateway implements IGateway {
       .update(payload)          // raw bytes — no re-serialisation
       .digest('hex');
 
+    // SECURITY FIX: hex-decode BOTH sides before timingSafeEqual (matches
+    // zaincash.gateway.ts). Previously compared raw UTF-8 bytes of the hex
+    // strings instead of the decoded bytes — inconsistent with the other
+    // gateways and fragile if AsiaHawala ever changes signature casing/padding.
+    // Buffer.from(signature, 'hex') does not throw on non-hex input — it
+    // silently truncates at the first invalid character — so the try/catch
+    // (plus timingSafeEqual's own length check) ensures a malformed/non-hex
+    // signature header returns false instead of throwing/crashing.
     try {
-      return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+      return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
     } catch {
       return false;
     }

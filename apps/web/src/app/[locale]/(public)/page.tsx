@@ -5,6 +5,7 @@ import { Suspense, lazy } from 'react';
 import { HeroSearch }   from '@/components/features/home/HeroSearch';
 import { FeaturedCars } from '@/components/features/home/FeaturedCars';
 import Link from 'next/link';
+import { safeJsonLd } from '@/lib/json-ld-safe';
 
 const RecentParts     = lazy(() => import('@/components/features/home/RecentParts').then(m => ({ default: m.RecentParts })));
 const FeaturedDealers = lazy(() => import('@/components/features/home/FeaturedDealers').then(m => ({ default: m.FeaturedDealers })));
@@ -110,10 +111,11 @@ export default async function HomePage({ params }: Props) {
   return (
     <>
       {/* JSON-LD — سەرەوە دانراوە بۆ SSR باش */}
+      {/* safeJsonLd (not JSON.stringify) — prevents </script> breakout XSS if this list ever includes dynamic/user-controlled data */}
       <script
         id="jsonld-itemlist"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }}
       />
 
       {/* 01 · HERO */}

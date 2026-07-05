@@ -94,8 +94,19 @@ export class FastPayGateway implements IGateway {
       .update(payload)          // raw bytes — no re-serialisation
       .digest('hex');
 
+    // SECURITY FIX: hex-decode BOTH sides before timingSafeEqual (matches
+    // zaincash.gateway.ts). Previously compared raw UTF-8 bytes of the hex
+    // strings — not currently exploitable since both sides used the same
+    // encoding consistently, but fragile if FastPay ever changes signature
+    // casing/padding, and inconsistent with the other gateways.
+    // Buffer.from(signature, 'hex') does not throw on non-hex input — it
+    // silently truncates at the first invalid character — so an
+    // attacker-supplied non-hex header must not be allowed to produce a
+    // buffer that accidentally matches; the try/catch plus timingSafeEqual's
+    // own length check guards against that, returning false instead of
+    // throwing/crashing.
     try {
-      return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+      return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'));
     } catch {
       return false;
     }

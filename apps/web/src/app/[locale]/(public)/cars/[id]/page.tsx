@@ -9,6 +9,7 @@ import Script from "next/script";
 import { CarDetailClient } from "@/components/features/cars/CarDetailClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 import { serverFetch } from "@/lib/server-api";
+import { safeJsonLd } from "@/lib/json-ld-safe";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://carsauto.com";
 
@@ -151,17 +152,19 @@ export default async function CarDetailPage({
 
   return (
     <>
+      {/* safeJsonLd (not JSON.stringify) — vehicleJsonLd embeds listing.titleEn/descriptionEn/dealer.nameEn (user-controlled); unescaped "</script>" would break out of this tag and execute attacker HTML (stored XSS) */}
       <Script
         id="jsonld-vehicle"
         type="application/ld+json"
         strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(vehicleJsonLd) }}
       />
+      {/* safeJsonLd (not JSON.stringify) — breadcrumbJsonLd also embeds the user-controlled listing title */}
       <Script
         id="jsonld-breadcrumb"
         type="application/ld+json"
         strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <Suspense fallback={null}>
         <CarDetailWithSimilar

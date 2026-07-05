@@ -6,6 +6,7 @@ import { getMessages, getTranslations } from 'next-intl/server';
 import Script from 'next/script';
 import { locales, dir, hreflangMap, type Locale } from '@/i18n/config';
 import { fontVariables } from '@/lib/fonts';
+import { safeJsonLd } from '@/lib/json-ld-safe';
 import { Providers } from '@/components/Providers';
 import { PWAProvider, InstallPrompt } from '@/components/pwa';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
@@ -145,15 +146,17 @@ export default async function LocaleLayout({ children, params }: Props) {
          * server (SSR/SSG). They are never re-executed on the client, which is
          * exactly what we want for SEO crawlers.
          */}
+        {/* safeJsonLd (not JSON.stringify) — defense-in-depth against </script> injection, even though this object is static today */}
         <script
           id="jsonld-organisation"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organisationJsonLd) }}
         />
+        {/* safeJsonLd (not JSON.stringify) — defense-in-depth against </script> injection, even though this object is static today */}
         <script
           id="jsonld-website"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
         />
       </head>
       <body className={`${bodyFontClass} antialiased`} suppressHydrationWarning>
