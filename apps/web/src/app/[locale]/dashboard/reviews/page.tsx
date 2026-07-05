@@ -70,7 +70,7 @@ export default function ReviewsPage() {
           <div key={review.id} className="rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#0f0f1a]/80 p-5 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   {review.avatar}
                 </div>
                 <div>
@@ -85,7 +85,7 @@ export default function ReviewsPage() {
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{review.comment}</p>
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <button className="inline-flex items-center gap-1 hover:text-[#c9a84c] transition-colors">
+              <button className="inline-flex items-center gap-1 hover:text-[var(--gold)] transition-colors">
                 <ThumbsUp className="w-3.5 h-3.5" aria-hidden />
                 {t('helpful')} ({review.helpful})
               </button>

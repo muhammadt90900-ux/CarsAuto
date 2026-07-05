@@ -12,7 +12,7 @@ export function MobilePublicLayout({ children }: { children: React.ReactNode }) 
   const params = useParams();
   const locale = (params?.locale as string) ?? 'en';
   return (
-    <div className="min-h-screen bg-[#050b14] flex flex-col">
+    <div className="min-h-screen bg-[var(--ink-900)] flex flex-col">
       <Navbar locale={locale} />
       <main
         className="flex-1 pt-[66px]"

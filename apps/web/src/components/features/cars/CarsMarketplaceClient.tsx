@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { listingsApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { formatCurrency } from '@cars-auto/utils';
+import { isRTL } from '@/i18n/config';
 
 /* ── Static filter data ─────────────────────────────────────────── */
 const MAKES = ['Toyota','KIA','Hyundai','BMW','Mercedes-Benz','Lexus','Honda',
@@ -45,11 +47,28 @@ const SORT_OPTIONS = [
   { value: 'popular',   label: 'Most Popular' },
 ];
 
-// PERF: hoisted formatters — created once, not per render/card
-const fmtPrice = new Intl.NumberFormat('en-US', {
-  style: 'currency', currency: 'USD', maximumFractionDigits: 0,
-});
+// PERF: hoisted formatter — created once, not per render/card.
+// NOTE: previously `Intl.NumberFormat('en-US', { currency: 'USD' })` — every
+// IQD/AED/CNY/EUR-priced listing rendered with a "$" prefix regardless of
+// its actual currency. `fmtPrice` below reads car.currency per listing.
+const fmtPrice = (car: any) => formatCurrency(car.price ?? 0, car.currency ?? 'USD');
 const fmtNum = new Intl.NumberFormat('en-US');
+
+// Trust cue: listing freshness ("Posted 2d ago"). Falls back to nothing if
+// createdAt isn't present rather than guessing — a wrong freshness claim
+// undermines trust more than showing none at all.
+function timeAgo(createdAt?: string | Date): string | null {
+  if (!createdAt) return null;
+  const then = new Date(createdAt).getTime();
+  if (Number.isNaN(then)) return null;
+  const diffMs = Date.now() - then;
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days <= 0) return 'Today';
+  if (days === 1) return '1d ago';
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 
 /* ── Skeleton ───────────────────────────────────────────────────── */
@@ -100,7 +119,7 @@ const CarCard = memo(function CarCard({
     return (
       <Link href={`/cars/${car.id}`} prefetch={false} className="block group">
         <article className="card-premium flex gap-3 sm:gap-4 p-3 sm:p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-          <div className="car-list-img relative flex-shrink-0 w-24 h-18 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
+          <div className="car-list-img relative flex-shrink-0 w-24 h-18 sm:w-40 sm:h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-[var(--ink-700)]"
                style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
             {!imgError ? (
               <Image
@@ -117,26 +136,32 @@ const CarCard = memo(function CarCard({
               <div className="w-full h-full flex items-center justify-center text-4xl">🚗</div>
             )}
             {car.condition === 'New' && (
-              <span className="absolute top-2 left-2 badge badge-green">New</span>
+              <span className="absolute top-2 start-2 badge badge-green">New</span>
+            )}
+            {car.featured && (
+              <span className="absolute top-2 end-2 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-gold text-[var(--ink-900)]">
+                Promoted
+              </span>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-[10px] text-[var(--gold)] font-bold tracking-widest uppercase mb-0.5">
-                  {car.badge}
+                  {car.make} · {car.year}
                 </p>
                 <h3 className="font-bold text-base text-[var(--text-primary)] leading-tight line-clamp-1">
                   {car.title}
                 </h3>
               </div>
-              <p className="price-tag text-xl flex-shrink-0">{fmtPrice.format(car.price)}</p>
+              <p className="price-tag text-xl flex-shrink-0">{fmtPrice(car)}</p>
             </div>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-[var(--text-muted)]">
               <span className="flex items-center gap-1"><Gauge className="w-3 h-3"/>{fmtNum.format(car.mileage)} km</span>
               <span className="flex items-center gap-1"><Fuel className="w-3 h-3"/>{car.fuelType}</span>
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/>{car.city}</span>
               {car.verified && <span className="verified-badge"><Shield className="w-2.5 h-2.5"/>Verified</span>}
+              {timeAgo(car.createdAt) && <span className="text-[var(--text-faint)]">{timeAgo(car.createdAt)}</span>}
             </div>
           </div>
           <button
@@ -155,7 +180,7 @@ const CarCard = memo(function CarCard({
   return (
     <Link href={`/cars/${car.id}`} prefetch={false} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col">
-        <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[#0f1c2e]">
+        <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[var(--ink-700)]">
           {!imgError ? (
             <Image
               src={car.images?.[0] || '/placeholder-car.jpg'}
@@ -172,23 +197,34 @@ const CarCard = memo(function CarCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent
                           opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute top-3 left-3 flex gap-1.5">
+          <div className="absolute top-3 start-3 flex gap-1.5">
+            {/* Promoted/organic distinction — was previously only a vague
+                hover-revealed `car.badge` string at the bottom of the image,
+                easy to miss and not clearly labeled either way. */}
+            {car.featured && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide
+                               bg-gold text-[var(--ink-900)] shadow-gold-sm">
+                Promoted
+              </span>
+            )}
             {car.condition === 'New' && <span className="badge badge-green">New</span>}
             {car.verified && <span className="badge badge-blue"><Shield className="w-2.5 h-2.5"/>Verified</span>}
           </div>
           <button
             onClick={toggleLike}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center
+            className="absolute top-3 end-3 w-8 h-8 rounded-full flex items-center justify-center
                        bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors"
             aria-label="Save listing"
           >
             <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
           </button>
-          <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <span className="text-[10px] font-bold text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full">
-              {car.badge}
-            </span>
-          </div>
+          {timeAgo(car.createdAt) && (
+            <div className="absolute bottom-3 start-3">
+              <span className="text-[10px] font-semibold text-white/90 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                {timeAgo(car.createdAt)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="p-4 flex flex-col flex-1">
@@ -212,7 +248,7 @@ const CarCard = memo(function CarCard({
           </div>
 
           <div className="mt-auto pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-            <span className="price-tag text-xl" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice.format(car.price)}</span>
+            <span className="price-tag text-xl" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice(car)}</span>
             <span className="flex items-center gap-1 text-[10px] text-[var(--text-faint)]">
               <Zap className="w-3 h-3 text-[var(--gold)]"/>Quick View
             </span>
@@ -430,7 +466,7 @@ export function CarsMarketplaceClient({
     </div>
   );
 
-  const isRtl = locale === 'ku' || locale === 'ar';
+  const isRtl = isRTL(locale as any);
 
   return (
     <div
@@ -439,7 +475,7 @@ export function CarsMarketplaceClient({
     >
       {/* Page Header */}
       <div className="relative overflow-hidden border-b border-[var(--border-default)]"
-           style={{ background:'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}>
+           style={{ background:'linear-gradient(135deg, var(--ink-900) 0%, var(--ink-750) 60%, var(--ink-900) 100%)' }}>
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
@@ -458,7 +494,7 @@ export function CarsMarketplaceClient({
               <button key={tag}
                 className="px-3 py-1 rounded-full text-xs font-semibold
                            bg-white/[0.06] border border-white/[0.10] text-white/50
-                           hover:bg-[rgba(201,168,76,0.12)] hover:border-[rgba(201,168,76,0.35)] hover:text-[#c9a84c]
+                           hover:bg-[rgba(201,168,76,0.12)] hover:border-[rgba(201,168,76,0.35)] hover:text-[var(--gold)]
                            transition-all duration-200">
                 {tag}
               </button>
@@ -492,7 +528,7 @@ export function CarsMarketplaceClient({
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button onClick={() => setSidebar(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                             bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
+                             bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)]
                              text-[var(--text-secondary)] shadow-[var(--shadow-sm)] hover:border-[var(--border-gold)]">
                   <SlidersHorizontal className="w-4 h-4"/>Filters
                   {activeCount > 0 && <span className="badge badge-gold">{activeCount}</span>}
@@ -510,13 +546,13 @@ export function CarsMarketplaceClient({
                   </select>
                   <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)] pointer-events-none"/>
                 </div>
-                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   <button onClick={() => setView('grid')}
-                    className={`p-2 transition-all duration-200 ${view==='grid' ? 'bg-gradient-to-r from-[#a87828] to-[#c9a84c] text-[#050b14]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                    className={`p-2 transition-all duration-200 ${view==='grid' ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <Grid3X3 className="w-4 h-4"/>
                   </button>
                   <button onClick={() => setView('list')}
-                    className={`p-2 transition-all duration-200 ${view==='list' ? 'bg-gradient-to-r from-[#a87828] to-[#c9a84c] text-[#050b14]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                    className={`p-2 transition-all duration-200 ${view==='list' ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <List className="w-4 h-4"/>
                   </button>
                 </div>
@@ -570,7 +606,7 @@ export function CarsMarketplaceClient({
                     <button key={s}
                       className="px-3 py-1.5 rounded-full text-xs font-semibold
                                  bg-[var(--gold-subtle)] text-[var(--gold)] border border-[var(--border-gold)]
-                                 hover:bg-[#c9a84c]/20 transition-colors">
+                                 hover:bg-[rgba(201,168,76,0.2)] transition-colors">
                       Try: {s}
                     </button>
                   ))}
@@ -578,7 +614,7 @@ export function CarsMarketplaceClient({
                 <button onClick={resetAll}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
                              text-[var(--ink-900)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
-                  style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)', boxShadow: '0 4px 16px rgba(201,168,76,0.35)' }}>
+                  style={{ background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)', boxShadow: '0 4px 16px rgba(201,168,76,0.35)' }}>
                   Clear All Filters
                 </button>
               </div>
@@ -601,8 +637,8 @@ export function CarsMarketplaceClient({
                     className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
                       ${p === page
                         ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]'
-                        : 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
-                    style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' } : undefined}>
+                        : 'bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
+                    style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' } : undefined}>
                     {p}
                   </button>
                 ))}
@@ -617,7 +653,7 @@ export function CarsMarketplaceClient({
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
                onClick={() => setSidebar(false)}/>
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[#0b1525]
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)]
                           shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2">

@@ -101,7 +101,7 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
 
       <div
         className={cn('fixed top-0 left-0 bottom-0 z-50 w-[280px]',
-          'bg-[#06111f] border-r border-[#c9a84c]/15',
+          'bg-[#06111f] border-r border-[rgba(201,168,76,0.15)]',
           'shadow-[8px_0_48px_rgba(0,0,0,0.70)]',
           'flex flex-col md:hidden will-change-transform',
           !dragging && 'transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]')}
@@ -110,18 +110,18 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
       >
         {/* Sky blue accent line */}
         <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b
-                         from-transparent via-[#c9a84c]/20 to-transparent" />
+                         from-transparent via-[rgba(201,168,76,0.2)] to-transparent" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-14 pb-6">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-                 style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)',
+                 style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)',
                           boxShadow: '0 0 14px rgba(201,168,76,0.35)' }}>
               <ShoppingBag className="w-4 h-4 text-white" />
             </div>
             <p className="text-[.85rem] font-display font-bold text-white">
-              CarsAuto<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[var(--gold)]">Pro</span>
             </p>
           </div>
           <button onClick={onClose}
@@ -140,11 +140,11 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
               <Link key={href} href={href} onClick={onClose}
                 className={cn('flex items-center justify-between gap-2.5 px-3 py-3 rounded-xl',
                   'text-sm font-medium transition-all duration-200 active:scale-[0.98]',
-                  active ? 'bg-[#c9a84c]/[0.12] text-[#c9a84c]' : 'text-white/50 hover:bg-white/[0.06] hover:text-white'
+                  active ? 'bg-[rgba(201,168,76,0.12)] text-[var(--gold)]' : 'text-white/50 hover:bg-white/[0.06] hover:text-white'
                 )}>
                 <span className="flex items-center gap-2.5">
                   <Icon className={cn('w-4 h-4 flex-shrink-0',
-                    active ? 'text-[#c9a84c]' : 'text-white/30')} aria-hidden />
+                    active ? 'text-[var(--gold)]' : 'text-white/30')} aria-hidden />
                   {label}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -155,7 +155,7 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
                     </span>
                   )}
                   <ChevronRight className={cn('w-3 h-3',
-                    active ? 'text-[#c9a84c] opacity-100' : 'text-white/20 opacity-0')} />
+                    active ? 'text-[var(--gold)] opacity-100' : 'text-white/20 opacity-0')} />
                 </span>
               </Link>
             );
@@ -221,7 +221,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
 
       <div
         className={cn('fixed top-0 left-0 bottom-0 z-50 w-[280px]',
-          'bg-[#080f1c] border-r border-[#c9a84c]/10',
+          'bg-[var(--ink-800)] border-r border-[var(--gold-subtle)]',
           'shadow-[8px_0_48px_rgba(0,0,0,0.70)]',
           'flex flex-col md:hidden will-change-transform',
           !dragging && 'transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]')}
@@ -229,12 +229,12 @@ function SellerMobileDrawer({ open, onClose, locale }: {
         onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
       >
         <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b
-                         from-transparent via-[#c9a84c]/20 to-transparent" />
+                         from-transparent via-[rgba(201,168,76,0.2)] to-transparent" />
 
         <div className="flex items-center justify-between px-5 pt-14 pb-6">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-                 style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)',
+                 style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)',
                           boxShadow: '0 0 14px rgba(201,168,76,0.35)' }}>
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
                 <path d="M3 13.5L6 6.5H14L17 13.5H3Z" fill="white" opacity=".95" />
@@ -243,7 +243,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
               </svg>
             </div>
             <p className="text-[.85rem] font-display font-bold text-white">
-              CarsAuto<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[var(--gold)]">Pro</span>
             </p>
           </div>
           <button onClick={onClose}
@@ -261,11 +261,11 @@ function SellerMobileDrawer({ open, onClose, locale }: {
               <Link key={href} href={href} onClick={onClose}
                 className={cn('flex items-center justify-between gap-2.5 px-3 py-3 rounded-xl',
                   'text-sm font-medium transition-all duration-200 active:scale-[0.98]',
-                  active ? 'bg-[#c9a84c]/[0.12] text-[#c9a84c]' : 'text-white/50 hover:bg-white/[0.06] hover:text-white'
+                  active ? 'bg-[rgba(201,168,76,0.12)] text-[var(--gold)]' : 'text-white/50 hover:bg-white/[0.06] hover:text-white'
                 )}>
                 <span className="flex items-center gap-2.5">
                   <Icon className={cn('w-4 h-4 flex-shrink-0',
-                    active ? 'text-[#c9a84c]' : 'text-white/30')} aria-hidden />
+                    active ? 'text-[var(--gold)]' : 'text-white/30')} aria-hidden />
                   {label}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -276,7 +276,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
                     </span>
                   )}
                   <ChevronRight className={cn('w-3 h-3',
-                    active ? 'text-[#c9a84c] opacity-100' : 'text-white/20 opacity-0')} />
+                    active ? 'text-[var(--gold)] opacity-100' : 'text-white/20 opacity-0')} />
                 </span>
               </Link>
             );
@@ -303,7 +303,7 @@ function DashboardMobileHeader({ onMenuOpen, title, isBuyer, locale }: {
       'sticky top-0 z-30 flex items-center gap-3 px-4 h-[60px]',
       'backdrop-blur-xl border-b md:hidden',
       isBuyer
-        ? 'bg-[#06111f]/95 border-[#c9a84c]/10'
+        ? 'bg-[#06111f]/95 border-[var(--gold-subtle)]'
         : 'bg-[#070d18]/95 border-white/[0.06]'
     )}>
       <button onClick={onMenuOpen}
@@ -315,8 +315,8 @@ function DashboardMobileHeader({ onMenuOpen, title, isBuyer, locale }: {
       </button>
       <h1 className="flex-1 text-[0.95rem] font-display font-bold text-white truncate">{title}</h1>
       {isBuyer && (
-        <span className="text-[11px] font-bold text-[#c9a84c] bg-[#c9a84c]/10
-                         px-2 py-0.5 rounded-full border border-[#c9a84c]/20">
+        <span className="text-[11px] font-bold text-[var(--gold)] bg-[var(--gold-subtle)]
+                         px-2 py-0.5 rounded-full border border-[rgba(201,168,76,0.2)]">
           Buyer
         </span>
       )}
@@ -369,7 +369,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <RoleGuard>
-      <div className="min-h-screen bg-[#050b14]">
+      <div className="min-h-screen bg-[var(--ink-900)]">
 
         {/* Desktop layout */}
         <div className="hidden md:flex h-screen">

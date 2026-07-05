@@ -146,7 +146,7 @@ function Lightbox({
               'flex-shrink-0 w-12 h-9 rounded-lg overflow-hidden relative',
               'border-2 transition-all duration-200',
               i === currentIndex
-                ? 'border-[#c9a84c] scale-105 shadow-[0_0_8px_rgba(201,168,76,0.5)]'
+                ? 'border-[var(--gold)] scale-105 shadow-[0_0_8px_rgba(201,168,76,0.5)]'
                 : 'border-transparent opacity-50 hover:opacity-80'
             )}
           >
@@ -195,7 +195,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
   }, [nextSlide, prevSlide]);
 
   if (!totalImages) return (
-    <div className="w-full aspect-[16/9] rounded-3xl bg-[#0b1525] flex items-center justify-center">
+    <div className="w-full aspect-[16/9] rounded-3xl bg-[var(--ink-750)] flex items-center justify-center">
       <span className="text-6xl opacity-10" aria-hidden="true">🚗</span>
     </div>
   );
@@ -210,7 +210,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
             className={cn(
               'flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200',
               activeTab === 'gallery'
-                ? 'bg-[#c9a84c] text-[#050b14]'
+                ? 'bg-[var(--gold)] text-[var(--ink-900)]'
                 : 'bg-white/[0.05] text-white/50 hover:text-white/80 border border-white/[0.08]'
             )}
             aria-pressed={activeTab === 'gallery'}
@@ -222,7 +222,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
             className={cn(
               'flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200',
               activeTab === '360'
-                ? 'bg-[#c9a84c] text-[#050b14]'
+                ? 'bg-[var(--gold)] text-[var(--ink-900)]'
                 : 'bg-white/[0.05] text-white/50 hover:text-white/80 border border-white/[0.08]'
             )}
             aria-pressed={activeTab === '360'}
@@ -321,7 +321,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
                   onClick={(e) => { e.stopPropagation(); setActiveIdx(i); }}
                   className={cn(
                     'h-1.5 rounded-full transition-all duration-300',
-                    i === activeIdx ? 'w-6 bg-[#c9a84c]' : 'w-1.5 bg-white/40 hover:bg-white/60'
+                    i === activeIdx ? 'w-6 bg-[var(--gold)]' : 'w-1.5 bg-white/40 hover:bg-white/60'
                   )}
                   aria-label={`Image ${i + 1}`}
                 />
@@ -353,7 +353,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
                     'flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200 relative',
                     showGrid ? 'w-[calc(25%-6px)] sm:w-[calc(20%-6px)] aspect-video' : 'w-20 h-14',
                     i === activeIdx
-                      ? 'ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#050b14] scale-[0.97]'
+                      ? 'ring-2 ring-[var(--gold)] ring-offset-2 ring-offset-[var(--ink-900)] scale-[0.97]'
                       : 'opacity-55 hover:opacity-85'
                   )}
                 >

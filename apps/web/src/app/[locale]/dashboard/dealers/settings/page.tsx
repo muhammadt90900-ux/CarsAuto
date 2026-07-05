@@ -57,7 +57,7 @@ function Input({
         className={cn(
           'w-full py-3 rounded-xl bg-white/[0.05] border border-white/[0.09]',
           'text-white text-sm placeholder:text-white/25',
-          'focus:outline-none focus:border-[#c9a84c]/40 transition-colors',
+          'focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors',
           prefix ? 'pl-16 pr-4' : 'px-4',
         )}
       />
@@ -76,7 +76,7 @@ function Textarea({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 transition-colors resize-none"
+      className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors resize-none"
     />
   );
 }
@@ -87,7 +87,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="p-6 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] space-y-5">
       <h2 className="flex items-center gap-2 font-display font-bold text-white text-base">
-        <span className="w-1 h-4 rounded-full bg-gradient-to-b from-[#c9a84c] to-[#9e6e1e]" />
+        <span className="w-1 h-4 rounded-full bg-gradient-to-b from-[var(--gold)] to-[#9e6e1e]" />
         {title}
       </h2>
       {children}
@@ -180,7 +180,7 @@ export default function DealerSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
       </div>
     );
   }
@@ -197,7 +197,7 @@ export default function DealerSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
@@ -308,7 +308,7 @@ export default function DealerSettingsPage() {
                   value={hours[day] ?? ''}
                   onChange={e => setHours(p => ({ ...p, [day]: e.target.value }))}
                   placeholder="09:00-18:00 or Closed"
-                  className="flex-1 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#c9a84c]/40 transition-colors"
+                  className="flex-1 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
                 />
                 <button
                   onClick={() => setHours(p => ({ ...p, [day]: 'Closed' }))}
@@ -333,7 +333,7 @@ export default function DealerSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>

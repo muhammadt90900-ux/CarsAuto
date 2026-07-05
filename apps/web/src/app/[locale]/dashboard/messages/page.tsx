@@ -122,7 +122,7 @@ function MessagesPageContent() {
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-2xl
                     border border-gray-100 dark:border-white/[0.07]
-                    bg-white dark:bg-[#080f1c]">
+                    bg-white dark:bg-[var(--ink-800)]">
 
       {/* ── Conversations sidebar ────────────────────────────── */}
       <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex flex-col
@@ -166,11 +166,11 @@ function MessagesPageContent() {
                   onClick={() => selectConversation(conv.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-start
                     ${selectedId === conv.id
-                      ? 'bg-[#c9a84c]/[0.08] border-e-2 border-[#c9a84c]'
+                      ? 'bg-[rgba(201,168,76,0.08)] border-e-2 border-[var(--gold)]'
                       : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e]
                                     flex items-center justify-center text-white text-xs font-bold">
                       {initials(name)}
                     </div>

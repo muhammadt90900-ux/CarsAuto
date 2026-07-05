@@ -37,7 +37,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-sm)]">
+    <div className="rounded-2xl overflow-hidden bg-[var(--surface-card)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]">
       <Skeleton height="13rem" rounded="rounded-none" />
       <div className="p-4 space-y-3">
         <Skeleton height="1rem" width="75%" />

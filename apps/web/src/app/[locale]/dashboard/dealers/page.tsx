@@ -15,7 +15,7 @@ import { cn } from '@cars-auto/utils';
 // ── Stat card ─────────────────────────────────────────────────────────────
 
 function StatCard({
-  label, value, delta, icon: Icon, color = 'text-[#e8cc7a]',
+  label, value, delta, icon: Icon, color = 'text-[var(--gold-light)]',
 }: {
   label: string; value: string | number; delta?: number; icon: any; color?: string;
 }) {
@@ -48,7 +48,7 @@ function MiniBarChart({ data, label }: { data: number[]; label: string }) {
         {data.map((v, i) => (
           <div
             key={i}
-            className="flex-1 rounded-t bg-gradient-to-t from-[#c9a84c]/60 to-[#e8cc7a]/40 hover:from-[#c9a84c] hover:to-[#e8cc7a] transition-colors cursor-default"
+            className="flex-1 rounded-t bg-gradient-to-t from-[rgba(201,168,76,0.6)] to-[var(--gold-light)]/40 hover:from-[var(--gold)] hover:to-[var(--gold-light)] transition-colors cursor-default"
             style={{ height: `${(v / max) * 100}%`, minHeight: 2 }}
             title={String(v)}
           />
@@ -112,7 +112,7 @@ export default function DealerDashboardPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border',
                 period === d
-                  ? 'bg-[#c9a84c]/20 border-[#c9a84c]/40 text-[#e8cc7a]'
+                  ? 'bg-[rgba(201,168,76,0.2)] border-[rgba(201,168,76,0.4)] text-[var(--gold-light)]'
                   : 'bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20',
               )}
             >
@@ -132,7 +132,7 @@ export default function DealerDashboardPage() {
         <>
           {/* ── KPI grid ── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Profile Views"    value={totals.profileViews ?? 0}   icon={Eye}            color="text-[#e8cc7a]" />
+            <StatCard label="Profile Views"    value={totals.profileViews ?? 0}   icon={Eye}            color="text-[var(--gold-light)]" />
             <StatCard label="Listing Views"    value={totals.listingViews ?? 0}   icon={BarChart2}      color="text-blue-400" />
             <StatCard label="Leads (Contact)"  value={totals.newLeads ?? 0}       icon={Users}          color="text-emerald-400" />
             <StatCard label="WhatsApp Clicks"  value={totals.whatsappClicks ?? 0} icon={MessageCircle}  color="text-[#25D366]" />
@@ -160,8 +160,8 @@ export default function DealerDashboardPage() {
             label: 'Edit Showroom',
             desc: 'Update profile, photos, hours',
             href: `/${locale}/dashboard/dealer/settings`,
-            color: 'text-[#c9a84c]',
-            bg: 'bg-[#c9a84c]/10',
+            color: 'text-[var(--gold)]',
+            bg: 'bg-[var(--gold-subtle)]',
           },
           {
             icon: Plus,
@@ -198,10 +198,10 @@ export default function DealerDashboardPage() {
       </div>
 
       {/* ── Subscription status ── */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-[#c9a84c]/10 to-transparent border border-[#c9a84c]/20">
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-[var(--gold-subtle)] to-transparent border border-[rgba(201,168,76,0.2)]">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#c9a84c]/15 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-[#c9a84c]" />
+          <div className="w-12 h-12 rounded-2xl bg-[rgba(201,168,76,0.15)] flex items-center justify-center">
+            <Zap className="w-6 h-6 text-[var(--gold)]" />
           </div>
           <div className="flex-1">
             <div className="font-display font-bold text-white">Unlock Premium Analytics</div>
@@ -209,7 +209,7 @@ export default function DealerDashboardPage() {
           </div>
           <Link
             href="/dashboard/subscription"
-            className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
+            className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Upgrade
           </Link>

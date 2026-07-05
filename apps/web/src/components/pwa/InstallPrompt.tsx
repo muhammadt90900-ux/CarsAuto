@@ -111,7 +111,7 @@ export function InstallPrompt() {
           left: 0,
           right: 0,
           // Layout
-          background: 'linear-gradient(145deg, #0d1b2e 0%, #050b14 100%)',
+          background: 'linear-gradient(145deg, #0d1b2e 0%, var(--ink-900) 100%)',
           border: '1px solid rgba(212,175,55,0.25)',
           borderBottom: 'none',
           borderRadius: '20px 20px 0 0',
@@ -134,7 +134,7 @@ export function InstallPrompt() {
             position: 'absolute', top: '16px', right: '16px',
             background: 'rgba(255,255,255,0.08)', border: 'none',
             borderRadius: '50%', width: '32px', height: '32px',
-            color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+            color: 'var(--text-faint)', cursor: 'pointer', fontSize: '14px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -152,7 +152,7 @@ export function InstallPrompt() {
             style={{ borderRadius: '14px', flexShrink: 0 }}
           />
           <div>
-            <div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.3 }}>
+            <div style={{ color: 'var(--surface-200)', fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.3 }}>
               CarsAuto
             </div>
             <div style={{ color: '#D4AF37', fontSize: '0.75rem', fontWeight: 500, marginTop: '2px' }}>
@@ -173,7 +173,7 @@ export function InstallPrompt() {
           ].map(([icon, text]) => (
             <li key={text as string} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0 }}>{icon}</span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.875rem' }}>{text}</span>
+              <span style={{ color: 'var(--surface-300)', fontSize: '0.875rem' }}>{text}</span>
             </li>
           ))}
         </ul>
@@ -187,7 +187,7 @@ export function InstallPrompt() {
             padding: '14px',
             marginBottom: '16px',
           }}>
-            <p style={{ color: '#e2e8f0', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: 'var(--surface-200)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>
               Tap the <strong style={{ color: '#D4AF37' }}>Share</strong> button (
               <span style={{ fontSize: '16px' }}>⬆</span>) at the bottom of Safari,
               then select <strong style={{ color: '#D4AF37' }}>"Add to Home Screen"</strong>.
@@ -200,7 +200,7 @@ export function InstallPrompt() {
             style={{
               width: '100%',
               background: installing ? 'rgba(212,175,55,0.5)' : '#D4AF37',
-              color: '#050b14',
+              color: 'var(--ink-900)',
               border: 'none',
               borderRadius: '12px',
               padding: '14px',

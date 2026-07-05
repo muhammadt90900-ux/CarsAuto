@@ -144,14 +144,14 @@ function UpdateBanner({
       }}
     >
       <span style={{ fontSize: '18px' }}>🔄</span>
-      <span style={{ color: '#e2e8f0', fontSize: '0.875rem', fontWeight: 500 }}>
+      <span style={{ color: 'var(--surface-200)', fontSize: '0.875rem', fontWeight: 500 }}>
         نوێکردنەوەی نوێ بەردەستە
       </span>
       <button
         onClick={onApply}
         style={{
           background: '#D4AF37',
-          color: '#050b14',
+          color: 'var(--ink-900)',
           border: 'none',
           borderRadius: '8px',
           padding: '6px 14px',

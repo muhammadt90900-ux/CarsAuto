@@ -286,7 +286,7 @@ export function ChatWindow({
             msg.status === 'sending' || !msg.audioUrl ? (
               <div className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-2xl',
-                isSender ? 'bg-[#c9a84c]/60 text-[#070d18]' : 'bg-white/10 text-white',
+                isSender ? 'bg-[rgba(201,168,76,0.6)] text-[#070d18]' : 'bg-white/10 text-white',
               )}>
                 <Loader2 size={14} className="animate-spin" />
                 <span className="text-xs">Sending voice note…</span>
@@ -303,7 +303,7 @@ export function ChatWindow({
             <div className={cn(
               'px-3 py-2 rounded-2xl text-sm leading-relaxed break-words',
               isSender
-                ? 'bg-[#c9a84c] text-[#070d18] rounded-br-sm'
+                ? 'bg-[var(--gold)] text-[#070d18] rounded-br-sm'
                 : 'bg-white/10 text-white rounded-bl-sm',
               msg.status === 'error' && 'opacity-50 border border-red-500',
             )}>
@@ -360,7 +360,7 @@ export function ChatWindow({
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 size={24} className="animate-spin text-[#c9a84c]" />
+            <Loader2 size={24} className="animate-spin text-[var(--gold)]" />
           </div>
         ) : messages.length === 0 ? (
           <p className="text-center text-white/40 text-sm py-8">
@@ -422,8 +422,8 @@ export function ChatWindow({
           disabled={!inputText.trim() || !isConnected}
           className={cn(
             'w-9 h-9 rounded-full flex items-center justify-center shrink-0',
-            'bg-[#c9a84c] text-[#070d18]',
-            'hover:bg-[#c9a84c]/80 transition-colors',
+            'bg-[var(--gold)] text-[#070d18]',
+            'hover:bg-[rgba(201,168,76,0.8)] transition-colors',
             'disabled:opacity-40 disabled:cursor-not-allowed',
           )}
           aria-label="Send"

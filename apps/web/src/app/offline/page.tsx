@@ -13,10 +13,10 @@ export default function OfflinePage() {
         :root {
           --gold: #D4AF37;
           --gold-dim: rgba(212,175,55,0.15);
-          --dark: #050b14;
+          --dark: var(--ink-900);
           --dark2: #0a1222;
           --dark3: #0f1a2e;
-          --text: #e2e8f0;
+          --text: var(--surface-200);
           --muted: #64748b;
         }
         .orb {
@@ -110,7 +110,7 @@ export default function OfflinePage() {
         }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#050b14', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center', overflow: 'hidden' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--ink-900)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center', overflow: 'hidden' }}>
         <div className="orb orb-1" />
         <div className="orb orb-2" />
 

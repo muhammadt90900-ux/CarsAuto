@@ -49,7 +49,7 @@ const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: str
     <tr className="border-b border-white/[0.05] last:border-0">
       <th scope="row" className="py-3 pr-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35 whitespace-nowrap w-1/2">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" aria-hidden="true" />}
+          {Icon && <Icon className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)] flex-shrink-0" aria-hidden="true" />}
           {label}
         </div>
       </th>
@@ -61,7 +61,7 @@ const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: str
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-3">
-      <span className="w-1 h-5 rounded-full bg-gradient-to-b from-[#c9a84c] to-[#9e6e1e]" />
+      <span className="w-1 h-5 rounded-full bg-gradient-to-b from-[var(--gold)] to-[#9e6e1e]" />
       {children}
     </h2>
   );
@@ -80,11 +80,11 @@ const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: stri
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
+      <div className="relative w-full max-w-sm rounded-3xl bg-[var(--ink-750)] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
         <h3 className="font-display font-bold text-white text-lg">Share this listing</h3>
         <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.05] border border-white/[0.07]">
           <span className="flex-1 text-xs text-white/50 truncate">{url}</span>
-          <button onClick={copy} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200', copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#c9a84c]/20 text-[#c9a84c] hover:bg-[#c9a84c]/30')}>
+          <button onClick={copy} className={cn('flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200', copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[rgba(201,168,76,0.2)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.3)]')}>
             <Copy className="w-3 h-3" />{copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
@@ -113,7 +113,7 @@ function ReportModalInline({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-3xl bg-[#0b1525] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
+      <div className="relative w-full max-w-sm rounded-3xl bg-[var(--ink-750)] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
             <Flag className="w-5 h-5 text-red-400" />
@@ -144,16 +144,16 @@ const LocationMap = memo(function LocationMap({ location }: { location: any }) {
   const query = encodeURIComponent(location.nameEn ?? location.city ?? 'Iraq');
   return (
     <div className="rounded-3xl overflow-hidden border border-white/[0.07] relative">
-      <div className="h-52 bg-[#0b1525] relative overflow-hidden">
+      <div className="h-52 bg-[var(--ink-750)] relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(201,168,76,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.3) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b1525]/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(11,21,37,0.8)] to-transparent" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#c9a84c] flex items-center justify-center shadow-[0_0_24px_rgba(201,168,76,0.5)] animate-pulse">
-            <MapPin className="w-5 h-5 text-[#050b14]" />
+          <div className="w-10 h-10 rounded-full bg-[var(--gold)] flex items-center justify-center shadow-[0_0_24px_rgba(201,168,76,0.5)] animate-pulse">
+            <MapPin className="w-5 h-5 text-[var(--ink-900)]" />
           </div>
           <p className="text-white font-semibold text-sm">{location.nameEn ?? location.city}</p>
           <a href={`https://maps.google.com?q=${query}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#c9a84c]/15 border border-[#c9a84c]/30 text-[#c9a84c] text-xs font-semibold hover:bg-[#c9a84c]/25 transition-all duration-200">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.3)] text-[var(--gold)] text-xs font-semibold hover:bg-[rgba(201,168,76,0.25)] transition-all duration-200">
             <ExternalLink className="w-3.5 h-3.5" />Open in Google Maps
           </a>
         </div>
@@ -169,22 +169,22 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
   if (!user) return null;
 
   return (
-    <div className="rounded-3xl bg-[#0b1525] border border-white/[0.07] overflow-hidden">
+    <div className="rounded-3xl bg-[var(--ink-750)] border border-white/[0.07] overflow-hidden">
       <div className="relative p-5 pb-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#c9a84c]/[0.04] to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[rgba(201,168,76,0.04)] to-transparent pointer-events-none" />
         <div className="flex items-center gap-4 relative">
           <div className="relative flex-shrink-0">
             {user.avatar ? (
-              <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-[#c9a84c]/30">
+              <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-[rgba(201,168,76,0.3)]">
                 <Image src={user.avatar} alt={user.name} fill sizes="56px" className="object-cover" />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border-2 border-[#c9a84c]/20 flex items-center justify-center">
-                <span className="text-[#c9a84c] text-xl font-bold">{user.name?.[0]}</span>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[rgba(201,168,76,0.2)] to-[rgba(201,168,76,0.05)] border-2 border-[rgba(201,168,76,0.2)] flex items-center justify-center">
+                <span className="text-[var(--gold)] text-xl font-bold">{user.name?.[0]}</span>
               </div>
             )}
             {user.verified && (
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#0b1525] flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[var(--ink-750)] flex items-center justify-center">
                 <CheckCircle2 className="w-2.5 h-2.5 text-white fill-current" />
               </div>
             )}
@@ -200,7 +200,7 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
             <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-0.5">
                 {[1,2,3,4,5].map(s => (
-                  <Star key={s} className={cn('w-2.5 h-2.5', s <= 4 ? 'text-[#c9a84c] fill-[#c9a84c]' : 'text-white/20')} />
+                  <Star key={s} className={cn('w-2.5 h-2.5', s <= 4 ? 'text-[var(--gold)] fill-[var(--gold)]' : 'text-white/20')} />
                 ))}
               </div>
               <span className="text-[10px] text-white/30">(4.8) · 38 listings</span>
@@ -240,7 +240,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
             // PERF: data-prefetch-listing triggers Providers prefetch on hover
             <Link key={car.id} href={`/cars/${car.id}`} prefetch={false}
               data-prefetch-listing={car.id}
-              className="group rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
+              className="group rounded-2xl overflow-hidden bg-[var(--ink-750)] border border-white/[0.06] hover:border-[rgba(201,168,76,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
               <div className="relative h-40 overflow-hidden bg-[#060f1a]">
                 {cover ? (
                   <Image src={cover} alt={title} fill
@@ -254,7 +254,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 left-3">
-                  <span className="text-base font-display font-black text-[#c9a84c]">
+                  <span className="text-base font-display font-black text-[var(--gold)]">
                     <CurrencyDisplay amount={car.price} currency={car.currency} locale={locale} showConverted />
                     {fmtPrice(car.price, car.currency)}
                   </span>
@@ -265,7 +265,7 @@ const SimilarCars = memo(function SimilarCars({ cars, locale }: { cars: any[]; l
                   {car.vehicleSpec?.brand?.nameEn && (
                     <CarBrandLogo brand={car.vehicleSpec.brand.nameEn} size="xs" />
                   )}
-                  <p className="text-sm font-semibold text-white truncate group-hover:text-[#c9a84c] transition-colors">{title}</p>
+                  <p className="text-sm font-semibold text-white truncate group-hover:text-[var(--gold)] transition-colors">{title}</p>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   {car.vehicleSpec?.year && <span className="text-xs text-white/35">{car.vehicleSpec.year}</span>}
@@ -355,14 +355,14 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
       {/* Sticky bar — improved visibility & CTA */}
       <div className={cn('fixed top-0 inset-x-0 z-40 transition-all duration-300',
         stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
-        <div className="bg-[#070d18]/98 backdrop-blur-2xl border-b border-[#c9a84c]/20 shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
+        <div className="bg-[#070d18]/98 backdrop-blur-2xl border-b border-[rgba(201,168,76,0.2)] shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <p className="text-xs text-white/40 font-semibold uppercase tracking-wider">Viewing</p>
               <p className="text-sm font-bold text-white truncate">{title}</p>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="hidden sm:block text-[#c9a84c] font-display font-black text-xl tabular-nums">
+              <span className="hidden sm:block text-[var(--gold)] font-display font-black text-xl tabular-nums">
                 <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                 {fmtPrice(listing.price, listing.currency)}
               </span>
@@ -381,9 +381,9 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
         </div>
       </div>
 
-      <div className="min-h-screen bg-[#050b14] pt-[66px]">
+      <div className="min-h-screen bg-[var(--ink-900)] pt-[66px]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-          <Link href="/cars" className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-[#c9a84c] transition-colors duration-200 group">
+          <Link href="/cars" className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-[var(--gold)] transition-colors duration-200 group">
             <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Back to listings
           </Link>
@@ -401,7 +401,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                   <div className="flex flex-wrap gap-2">
                     {listing.featured && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14] text-xs font-black">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[var(--ink-900)] text-xs font-black">
                         <Star className="w-3 h-3 fill-current" /> Featured
                       </span>
                     )}
@@ -423,11 +423,11 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                       <Heart className={cn('w-4 h-4 transition-all', isFavorite && 'fill-current scale-110')} />
                     </button>
                     <button onClick={openShare} aria-label="Share"
-                      className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
+                      className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[var(--gold)] transition-all duration-200">
                       <Share2 className="w-4 h-4" />
                     </button>
                     <Link href={`/compare?add=${listing.id}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[#c9a84c] transition-all duration-200">
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-[var(--gold)] transition-all duration-200">
                       <GitCompare className="w-3.5 h-3.5" /> Compare
                     </Link>
                   </div>
@@ -443,7 +443,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/35 mb-4">
                   {listing.location && (
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[#c9a84c]/50" />
+                      <MapPin className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)]" />
                       {listing.location.nameEn ?? listing.location.city}
                     </span>
                   )}
@@ -455,12 +455,12 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
 
                 <div className="flex flex-wrap items-end gap-3">
-                  <span className="text-4xl font-display font-black text-[#c9a84c] tabular-nums">
+                  <span className="text-4xl font-display font-black text-[var(--gold)] tabular-nums">
                     <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                     {fmtPrice(listing.price, listing.currency)}
                   </span>
                   {listing.negotiable && (
-                    <span className="flex items-center gap-1 px-3 py-1 rounded-full mb-1 bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c]/80 text-xs font-semibold">
+                    <span className="flex items-center gap-1 px-3 py-1 rounded-full mb-1 bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.2)] text-[rgba(201,168,76,0.8)] text-xs font-semibold">
                       <TrendingDown className="w-3 h-3" /> Negotiable
                     </span>
                   )}
@@ -475,8 +475,8 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                   { label: 'Fuel',         value: trim.fuelType ?? spec.fuelType,               icon: Fuel     },
                   { label: 'Transmission', value: trim.transmission ?? spec.transmission,       icon: Settings },
                 ].filter(s => s.value).map(s => (
-                  <div key={s.label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-3 rounded-2xl bg-[#0b1525] border border-white/[0.06] text-center">
-                    <s.icon className="w-4 h-4 text-[#c9a84c]/60" />
+                  <div key={s.label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-3 rounded-2xl bg-[var(--ink-750)] border border-white/[0.06] text-center">
+                    <s.icon className="w-4 h-4 text-[rgba(201,168,76,0.6)]" />
                     <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">{s.label}</span>
                     <span className="text-sm font-bold text-white">{s.value}</span>
                   </div>
@@ -485,14 +485,14 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
               {/* Description */}
               {desc && (
-                <div className="rounded-3xl bg-[#0b1525] border border-white/[0.06] p-6">
+                <div className="rounded-3xl bg-[var(--ink-750)] border border-white/[0.06] p-6">
                   <SectionHeading>Description</SectionHeading>
                   <div className={cn('relative overflow-hidden transition-all duration-500', !descExpanded && 'max-h-32')}>
                     <p className="text-sm text-white/60 leading-relaxed whitespace-pre-line">{desc}</p>
-                    {!descExpanded && <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[#0b1525] to-transparent pointer-events-none" />}
+                    {!descExpanded && <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[var(--ink-750)] to-transparent pointer-events-none" />}
                   </div>
                   {desc.length > 200 && (
-                    <button onClick={toggleDesc} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors">
+                    <button onClick={toggleDesc} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors">
                       {descExpanded ? <><ChevronUp className="w-3.5 h-3.5" /> Show less</> : <><ChevronDown className="w-3.5 h-3.5" /> Read more</>}
                     </button>
                   )}
@@ -500,7 +500,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
               )}
 
               {/* Specs table */}
-              <div className="rounded-3xl bg-[#0b1525] border border-white/[0.06] overflow-hidden">
+              <div className="rounded-3xl bg-[var(--ink-750)] border border-white/[0.06] overflow-hidden">
                 <div className="px-6 py-5">
                   <SectionHeading>Full Specifications</SectionHeading>
                   <div className="overflow-x-auto">
@@ -538,11 +538,11 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
             {/* RIGHT SIDEBAR */}
             <div className="space-y-5 xl:sticky xl:top-[86px] xl:self-start">
-              <div className="rounded-3xl bg-gradient-to-br from-[#0b1525] to-[#0f1c2e] border border-[#c9a84c]/20 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+              <div className="rounded-3xl bg-gradient-to-br from-[var(--ink-750)] to-[var(--ink-700)] border border-[rgba(201,168,76,0.2)] p-6 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
                 {/* Price + negotiable */}
                 <div className="mb-5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">Asking Price</p>
-                  <div className="text-3xl font-display font-black text-[#c9a84c] tabular-nums">
+                  <div className="text-3xl font-display font-black text-[var(--gold)] tabular-nums">
                     <CurrencyDisplay amount={listing.price} currency={listing.currency} locale={locale} showConverted />
                     {fmtPrice(listing.price, listing.currency)}
                   </div>

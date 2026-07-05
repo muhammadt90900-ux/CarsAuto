@@ -59,7 +59,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
                       shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
           style={{
-            background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+            background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)',
             boxShadow: '0 8px 40px rgba(201,168,76,0.45), 0 2px 12px rgba(201,168,76,0.25)',
           }}
           aria-hidden="true"
@@ -72,7 +72,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         </div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Welcome back</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Sign in to <span style={{ background: 'linear-gradient(135deg, #e8cc7a, #c9a84c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CarsAuto</span>
+          Sign in to <span style={{ background: 'linear-gradient(135deg, var(--gold-light), var(--gold))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CarsAuto</span>
         </p>
       </div>
 
@@ -187,7 +187,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
             <input
               id={rememberId}
               type="checkbox"
-              className="w-4 h-4 rounded border-[var(--border-default)] accent-[#c9a84c]
+              className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--gold)]
                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]"
             />
             <label htmlFor={rememberId} className="text-xs text-[var(--text-muted)] cursor-pointer">
@@ -205,7 +205,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2"
             style={{
-              background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+              background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)',
               boxShadow: '0 4px 20px rgba(201,168,76,0.40)',
             }}
           >
@@ -238,7 +238,7 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
         <div className="relative my-6" aria-hidden="true">
           <div className="h-px bg-[var(--border-subtle)]" />
           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                           px-3 bg-white dark:bg-[#0b1525] text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                           px-3 bg-white dark:bg-[var(--ink-750)] text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
             or continue with
           </span>
         </div>

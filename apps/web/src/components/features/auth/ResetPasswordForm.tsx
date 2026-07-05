@@ -114,7 +114,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
             href="/forgot-password"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a]
                        transition-all"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             Request new link
           </Link>
@@ -146,7 +146,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
           <Link
             href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a]"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             Sign in now
           </Link>
@@ -163,7 +163,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
                      shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
-          style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+          style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
         >
           <Lock size={26} className="text-[#0a0f1a]" />
         </div>
@@ -323,7 +323,7 @@ key={r.label}
             className="w-full py-3 rounded-xl font-bold text-sm text-[#0a0f1a]
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all duration-200 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             {isSubmitting ? (
               <>

@@ -92,7 +92,7 @@ const MotoCard = memo(function MotoCard({
     return (
       <Link href={`/motorcycles/${listing.id}`} prefetch={false} className="block group">
         <article className="card-premium flex gap-3 sm:gap-4 p-3 sm:p-4 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-          <div className="relative flex-shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e]"
+          <div className="relative flex-shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-[var(--ink-700)]"
                style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
             {!imgError && cover ? (
               <Image src={cover} alt={title} fill sizes="160px" priority={priority}
@@ -127,7 +127,7 @@ const MotoCard = memo(function MotoCard({
   return (
     <Link href={`/motorcycles/${listing.id}`} prefetch={false} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col">
-        <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[#0f1c2e]">
+        <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[var(--ink-700)]">
           {!imgError && cover ? (
             <Image src={cover} alt={title} fill sizes="(max-width:768px) 50vw, 25vw" priority={priority}
                    className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -356,7 +356,7 @@ export function MotorcyclesClient({
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
-      <div className="relative overflow-hidden border-b border-[var(--border-default)]" style={{ background: 'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}>
+      <div className="relative overflow-hidden border-b border-[var(--border-default)]" style={{ background: 'linear-gradient(135deg, var(--ink-900) 0%, var(--ink-750) 60%, var(--ink-900) 100%)' }}>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
             <Link href="/" className="hover:text-[var(--gold)] transition-colors">Home</Link>
@@ -372,7 +372,7 @@ export function MotorcyclesClient({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-8">
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-[calc(var(--navbar-h)+1.5rem)] rounded-2xl bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-sm)] p-5 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar">
+            <div className="sticky top-[calc(var(--navbar-h)+1.5rem)] rounded-2xl bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] shadow-[var(--shadow-sm)] p-5 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar">
               <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2 mb-5">
                 <Filter className="w-4 h-4 text-[var(--gold)]" />Filters
                 {activeCount > 0 && <span className="badge badge-gold">{activeCount}</span>}
@@ -385,7 +385,7 @@ export function MotorcyclesClient({
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-sm)] text-[var(--text-secondary)] hover:border-[var(--border-gold)]">
+                        className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] shadow-[var(--shadow-sm)] text-[var(--text-secondary)] hover:border-[var(--border-gold)]">
                   <SlidersHorizontal className="w-4 h-4" />Filters
                   {activeCount > 0 && <span className="badge badge-gold">{activeCount}</span>}
                 </button>
@@ -395,7 +395,7 @@ export function MotorcyclesClient({
                 <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="input-base h-9 text-xs w-44">
                   {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   {(['grid', 'list'] as const).map((v) => (
                     <button key={v} onClick={() => setView(v)} className={`p-2 transition-colors ${view === v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                       {v === 'grid' ? <Grid3X3 className="w-4 h-4" /> : <List className="w-4 h-4" />}
@@ -427,8 +427,8 @@ export function MotorcyclesClient({
                 {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
                   <button key={p} onClick={() => setPage(p)}
                           className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
-                            ${p === page ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]' : 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
-                          style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' } : undefined}>
+                            ${p === page ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]' : 'bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
+                          style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' } : undefined}>
                     {p}
                   </button>
                 ))}
@@ -441,7 +441,7 @@ export function MotorcyclesClient({
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[#0b1525] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden">
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
               <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]"><X className="w-4 h-4" /></button>

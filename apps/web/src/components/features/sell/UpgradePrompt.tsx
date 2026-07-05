@@ -165,8 +165,8 @@ export function UpgradePrompt({ reason }: UpgradePromptProps) {
             {/* Popular badge */}
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full
-                              bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e]
-                              text-[#050b14] text-[10px] font-black tracking-wider uppercase whitespace-nowrap">
+                              bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e]
+                              text-[var(--ink-900)] text-[10px] font-black tracking-wider uppercase whitespace-nowrap">
                 ⭐ پێشنیارکراو / Recommended
               </div>
             )}
@@ -202,7 +202,7 @@ export function UpgradePrompt({ reason }: UpgradePromptProps) {
                 transition-all duration-200 cursor-pointer
                 disabled:opacity-50 disabled:pointer-events-none
                 ${plan.popular
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14] hover:from-[#e8cc7a] hover:to-[#c9a84c]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)] hover:from-[var(--gold-light)] hover:to-[var(--gold)]'
                   : 'bg-[rgba(255,255,255,0.07)] text-white border border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.12)]'}
               `}
             >

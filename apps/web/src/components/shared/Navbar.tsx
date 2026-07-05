@@ -31,7 +31,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
     >
       {label}
       <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full
-                       bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a]
+                       bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)]
                        transition-all duration-300
                        ${active ? 'w-4/5' : 'w-0 group-hover:w-4/5'}`} />
     </Link>
@@ -94,7 +94,7 @@ function AuthSection() {
                    text-xs font-semibold text-white/70 hover:text-white
                    hover:bg-white/[0.08] transition-all duration-200"
       >
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e]
                         flex items-center justify-center text-[10px] font-black text-[#030710]">
           {user.name?.[0]?.toUpperCase() ?? 'U'}
         </div>
@@ -103,7 +103,7 @@ function AuthSection() {
 
       {userMenuOpen && (
         <div className="absolute top-full right-0 mt-2 w-52 rounded-2xl
-                        bg-[#0b1525] border border-white/[0.08]
+                        bg-[var(--ink-750)] border border-white/[0.08]
                         shadow-[0_16px_48px_rgba(0,0,0,0.7)]
                         overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-white/[0.06]">
@@ -240,8 +240,8 @@ function CountrySwitcher() {
         className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg
                    text-xs font-semibold
                    border border-white/[0.10] text-white/55
-                   hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
-                   hover:bg-[#c9a84c]/[0.06] transition-all duration-200"
+                   hover:border-[rgba(201,168,76,0.4)] hover:text-[var(--gold)]
+                   hover:bg-[rgba(201,168,76,0.06)] transition-all duration-200"
         aria-label="Select country"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -257,7 +257,7 @@ function CountrySwitcher() {
           aria-label="Select region"
           className="absolute top-full right-0 mt-2 w-52 rounded-xl overflow-hidden z-50
                      bg-[#060d1a]/99 backdrop-blur-2xl
-                     border border-[#c9a84c]/15
+                     border border-[rgba(201,168,76,0.15)]
                      shadow-[0_20px_56px_rgba(0,0,0,0.80),0_0_0_1px_rgba(201,168,76,0.06)]"
         >
           <div className="px-3 py-2.5 border-b border-white/[0.06]">
@@ -275,7 +275,7 @@ function CountrySwitcher() {
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left
                             transition-all duration-150
                             ${selected.code === country.code
-                              ? 'bg-[#c9a84c]/10 text-[#c9a84c]'
+                              ? 'bg-[var(--gold-subtle)] text-[var(--gold)]'
                               : 'text-white/60 hover:bg-white/[0.05] hover:text-white'
                             }`}
               >
@@ -285,7 +285,7 @@ function CountrySwitcher() {
                   <div className="text-[10px] opacity-40 truncate">{country.cities}</div>
                 </div>
                 {selected.code === country.code && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] flex-shrink-0" />
                 )}
               </button>
             ))}
@@ -358,8 +358,8 @@ export function Navbar({ locale }: NavbarProps) {
   ];
 
   const navBg = scrolled
-    ? 'bg-[#060c18]/98 backdrop-blur-[28px] saturate-150 shadow-[0_1px_0_rgba(201,168,76,0.18),0_4px_20px_rgba(0,0,0,0.35)]'
-    : 'bg-[#050b14]/85 backdrop-blur-md';
+    ? 'bg-[rgba(6,12,24,0.98)] backdrop-blur-[28px] saturate-150 shadow-[0_1px_0_rgba(201,168,76,0.18),0_4px_20px_rgba(0,0,0,0.35)]'
+    : 'bg-[rgba(5,11,20,0.85)] backdrop-blur-md';
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
@@ -369,7 +369,7 @@ export function Navbar({ locale }: NavbarProps) {
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999]
-                   focus:px-4 focus:py-2 focus:rounded-xl focus:bg-gold focus:text-[#050b14]
+                   focus:px-4 focus:py-2 focus:rounded-xl focus:bg-gold focus:text-[var(--ink-900)]
                    focus:font-bold focus:text-sm focus:shadow-lg"
       >
         Skip to main content

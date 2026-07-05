@@ -122,7 +122,7 @@ export default function AuditLogsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-black text-white text-2xl flex items-center gap-2">
-            <Shield className="w-6 h-6 text-[#c9a84c]" />
+            <Shield className="w-6 h-6 text-[var(--gold)]" />
             Audit Logs
           </h1>
           <p className="text-white/40 text-sm mt-0.5">
@@ -151,7 +151,7 @@ export default function AuditLogsPage() {
             placeholder="Search action, actor, target…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
                        text-white text-sm placeholder:text-white/25 focus:outline-none
-                       focus:border-[#c9a84c]/40 transition-colors"
+                       focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function AuditLogsPage() {
           value={severity}
           onChange={e => { setSeverity(e.target.value as any); setPage(1); }}
           className="h-10 px-3 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
-                     text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+                     text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
         >
           <option value="ALL">All Severities</option>
           {(Object.keys(SEVERITY_CONFIG) as Severity[]).map(s => (
@@ -180,7 +180,7 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-white/[0.07] bg-[#080f1c] overflow-hidden">
+      <div className="rounded-2xl border border-white/[0.07] bg-[var(--ink-800)] overflow-hidden">
         {isLoading ? (
           <div className="p-5 space-y-2">
             {Array.from({length: 8}).map((_,i) => (

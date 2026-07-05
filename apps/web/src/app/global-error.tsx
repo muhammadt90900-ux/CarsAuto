@@ -31,7 +31,7 @@ export default function GlobalError({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#050b14',
+          background: 'var(--ink-900)',
           color: '#fff',
           fontFamily: 'system-ui, sans-serif',
         }}
@@ -55,8 +55,8 @@ export default function GlobalError({
               borderRadius: '0.75rem',
               fontWeight: 600,
               fontSize: '0.875rem',
-              background: '#c9a84c',
-              color: '#050b14',
+              background: 'var(--gold)',
+              color: 'var(--ink-900)',
               border: 'none',
               cursor: 'pointer',
             }}

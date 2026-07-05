@@ -252,10 +252,10 @@ export const Viewer360 = memo(function Viewer360({
       {/* Loading overlay */}
       {!isReady && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-[#060f1a]">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
           <div className="w-48 h-1 rounded-full bg-white/10 overflow-hidden">
             <div
-              className="h-full bg-[#c9a84c] rounded-full transition-all duration-300"
+              className="h-full bg-[var(--gold)] rounded-full transition-all duration-300"
               style={{ width: `${loadProgress}%` }}
             />
           </div>
@@ -302,8 +302,8 @@ export const Viewer360 = memo(function Viewer360({
 
       {/* 360° badge */}
       <div className="absolute top-4 start-4 z-10 flex items-center gap-1.5 px-2.5 py-1
-                      rounded-lg bg-[#c9a84c]/20 border border-[#c9a84c]/30 pointer-events-none">
-        <span className="text-[#c9a84c] text-xs font-black tracking-wider">360°</span>
+                      rounded-lg bg-[rgba(201,168,76,0.2)] border border-[rgba(201,168,76,0.3)] pointer-events-none">
+        <span className="text-[var(--gold)] text-xs font-black tracking-wider">360°</span>
       </div>
 
       {/* Controls */}
@@ -346,7 +346,7 @@ export const Viewer360 = memo(function Viewer360({
               'flex items-center justify-center w-9 h-9 rounded-xl',
               'backdrop-blur-md border transition-all duration-200',
               autoRotate
-                ? 'bg-[#c9a84c]/20 border-[#c9a84c]/40 text-[#c9a84c]'
+                ? 'bg-[rgba(201,168,76,0.2)] border-[rgba(201,168,76,0.4)] text-[var(--gold)]'
                 : 'bg-black/60 border-white/10 text-white/70 hover:text-white',
             )}
             aria-label={autoRotate ? 'Stop auto-rotate' : 'Start auto-rotate'}
@@ -378,7 +378,7 @@ export const Viewer360 = memo(function Viewer360({
         <div className="absolute bottom-4 start-4 end-24 z-10 flex items-center pointer-events-none">
           <div className="h-0.5 w-full max-w-[160px] rounded-full bg-white/10 overflow-hidden">
             <div
-              className="h-full bg-[#c9a84c]/60 rounded-full transition-all duration-75"
+              className="h-full bg-[rgba(201,168,76,0.6)] rounded-full transition-all duration-75"
               style={{ width: `${((frameIdx + 1) / total) * 100}%` }}
             />
           </div>

@@ -48,7 +48,7 @@ const PLAN_STYLES: Record<DealerPlan, { bg: string; text: string }> = {
   FREE:       { bg: 'bg-white/[0.06]',       text: 'text-white/40' },
   STARTER:    { bg: 'bg-blue-400/15',        text: 'text-blue-300' },
   BUSINESS:   { bg: 'bg-purple-400/15',       text: 'text-purple-300' },
-  ENTERPRISE: { bg: 'bg-[#c9a84c]/15',       text: 'text-[#c9a84c]' },
+  ENTERPRISE: { bg: 'bg-[rgba(201,168,76,0.15)]',       text: 'text-[var(--gold)]' },
 };
 
 const DEALER_STATUS_STYLES: Record<DealerStatus, { label: string; text: string; bg: string; dot: string }> = {
@@ -81,7 +81,7 @@ export default function AdminSubscriptionsPage() {
             onClick={() => setTab(val)}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all',
-              tab === val ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70',
+              tab === val ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70',
             )}
           >
             <Icon className="w-4 h-4" />
@@ -130,7 +130,7 @@ function DealerSubsPanel() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total Plans',  value: total,                                          color: '#3b82f6', icon: Users },
-          { label: 'Enterprise',   value: subs.filter(s => s.plan === 'ENTERPRISE').length, color: '#c9a84c', icon: Crown },
+          { label: 'Enterprise',   value: subs.filter(s => s.plan === 'ENTERPRISE').length, color: 'var(--gold)', icon: Crown },
           { label: 'Past Due',     value: subs.filter(s => s.status === 'PAST_DUE').length, color: '#ef4444', icon: AlertTriangle },
           { label: 'Trialing',     value: subs.filter(s => s.status === 'TRIALING').length, color: '#3b82f6', icon: Zap },
         ].map(s => {
@@ -155,7 +155,7 @@ function DealerSubsPanel() {
           {(['ALL', 'FREE', 'STARTER', 'BUSINESS', 'ENTERPRISE'] as const).map(p => (
             <button key={p} onClick={() => setPlan(p)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                      planFilter === p ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                      planFilter === p ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
               {p === 'ALL' ? 'All plans' : p}
             </button>
           ))}
@@ -164,7 +164,7 @@ function DealerSubsPanel() {
           {(['ALL', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'TRIALING'] as const).map(s => (
             <button key={s} onClick={() => setStatus(s)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                      statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                      statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
               {s === 'ALL' ? 'All statuses' : DEALER_STATUS_STYLES[s as DealerStatus].label}
             </button>
           ))}
@@ -172,7 +172,7 @@ function DealerSubsPanel() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" /></div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <AlertTriangle className="w-10 h-10 text-red-400" />
@@ -221,7 +221,7 @@ function DealerSubsPanel() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 text-[0.68rem] text-white/40">
                         <span className="flex items-center gap-1"><Car className="w-3 h-3" />{sub.maxListings}</span>
-                        {sub.featuredSlots > 0 && <span className="flex items-center gap-1 text-[#c9a84c]"><Star className="w-3 h-3" />{sub.featuredSlots}</span>}
+                        {sub.featuredSlots > 0 && <span className="flex items-center gap-1 text-[var(--gold)]"><Star className="w-3 h-3" />{sub.featuredSlots}</span>}
                         {sub.analyticsEnabled && <span className="flex items-center gap-1 text-blue-300"><Zap className="w-3 h-3" />Analytics</span>}
                         {sub.prioritySupport && <span className="flex items-center gap-1 text-purple-300"><ShieldCheck className="w-3 h-3" />Priority</span>}
                       </div>
@@ -297,14 +297,14 @@ function UserSubsPanel() {
         {(['ALL', 'active', 'past_due', 'trialing', 'cancelled', 'inactive'] as const).map(s => (
           <button key={s} onClick={() => setStatus(s)}
                   className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize',
-                    statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                    statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
             {s === 'ALL' ? 'All' : s.replace('_', ' ')}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" /></div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <AlertTriangle className="w-10 h-10 text-red-400" />

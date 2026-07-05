@@ -40,8 +40,8 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
   if (view === 'list') {
     return (
       <Link href={`/spare-parts/${part.id}`} className="block group">
-        <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[#c9a84c]/28">
-          <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e] flex items-center justify-center text-4xl">
+        <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[rgba(201,168,76,0.28)]">
+          <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[var(--ink-700)] flex items-center justify-center text-4xl">
             {PART_CATEGORIES.find(c => c.id === part.category)?.emoji || '⚙️'}
           </div>
           <div className="flex-1 min-w-0">
@@ -51,7 +51,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
                 <h3 className="font-bold text-[var(--text-primary)] leading-tight">{part.title}</h3>
                 <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-mono">#{part.partNumber}</p>
               </div>
-              <span className="price-tag text-xl flex-shrink-0" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice(part.price)}</span>
+              <span className="price-tag text-xl flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice(part.price)}</span>
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-[var(--text-muted)]">
               <span className="badge badge-gold">{part.condition}</span>
@@ -67,7 +67,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
   return (
     <Link href={`/spare-parts/${part.id}`} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]">
-        <div className="aspect-square bg-slate-50 dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
+        <div className="aspect-square bg-slate-50 dark:bg-[var(--ink-700)] flex items-center justify-center text-6xl
                         group-hover:scale-105 transition-transform duration-500 overflow-hidden">
           <span className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 inline-block">
             {PART_CATEGORIES.find(c => c.id === part.category)?.emoji || '⚙️'}
@@ -82,7 +82,7 @@ function PartCard({ part, locale, view }: { part: any; locale: string; view: 'gr
             {part.stock <= 2 && <span className="badge badge-red">Low Stock</span>}
           </div>
           <div className="pt-3 mt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-            <span className="price-tag text-lg" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice(part.price)}</span>
+            <span className="price-tag text-lg" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtPrice(part.price)}</span>
             {part.verified && <span className="verified-badge"><Shield className="w-2.5 h-2.5" />OEM</span>}
           </div>
         </div>
@@ -181,7 +181,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
   return (
     <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
       <div className="relative overflow-hidden border-b border-[var(--border-default)]"
-        style={{ background: 'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, var(--ink-900) 0%, var(--ink-750) 60%, var(--ink-900) 100%)' }}>
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
@@ -200,14 +200,14 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max">
             <button onClick={() => setCategory('')}
-              className={`filter-chip flex-shrink-0 ${!category ? 'active' : 'hover:border-[#c9a84c]/30 hover:text-[#c9a84c] hover:bg-[#c9a84c]/[0.06]'}`}
-              style={!category ? { background: 'linear-gradient(135deg, #a87828, #c9a84c)', color: '#050b14', boxShadow: '0 3px 12px rgba(201,168,76,0.35)', border: 'none' } : undefined}>
+              className={`filter-chip flex-shrink-0 ${!category ? 'active' : 'hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)] hover:bg-[rgba(201,168,76,0.06)]'}`}
+              style={!category ? { background: 'linear-gradient(135deg, #a87828, var(--gold))', color: 'var(--ink-900)', boxShadow: '0 3px 12px rgba(201,168,76,0.35)', border: 'none' } : undefined}>
               🏪 All Parts
             </button>
             {PART_CATEGORIES.map(c => (
               <button key={c.id} onClick={() => setCategory(category === c.id ? '' : c.id)}
-                className={`filter-chip flex-shrink-0 ${category === c.id ? 'active' : 'hover:border-[#c9a84c]/30 hover:text-[#c9a84c] hover:bg-[#c9a84c]/[0.06]'}`}
-                style={category === c.id ? { background: 'linear-gradient(135deg, #a87828, #c9a84c)', color: '#050b14', boxShadow: '0 3px 12px rgba(201,168,76,0.35)', border: 'none' } : undefined}>
+                className={`filter-chip flex-shrink-0 ${category === c.id ? 'active' : 'hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)] hover:bg-[rgba(201,168,76,0.06)]'}`}
+                style={category === c.id ? { background: 'linear-gradient(135deg, #a87828, var(--gold))', color: 'var(--ink-900)', boxShadow: '0 3px 12px rgba(201,168,76,0.35)', border: 'none' } : undefined}>
                 {c.emoji} {c.labelEn}
               </button>
             ))}
@@ -219,7 +219,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
         <div className="flex gap-8">
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-[calc(var(--navbar-h)+1.5rem)] rounded-2xl
-                            bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
+                            bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)]
                             shadow-[var(--shadow-sm)] p-5 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar">
               <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2 mb-5">
                 <Filter className="w-4 h-4 text-[var(--gold)]" />Filters
@@ -234,7 +234,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebar(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                             bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-sm)]
+                             bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]
                              text-[var(--text-secondary)] hover:border-[var(--border-gold)]">
                   <SlidersHorizontal className="w-4 h-4" />Filters
                   {activeCount > 0 && <span className="badge badge-gold">{activeCount}</span>}
@@ -247,7 +247,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
                 <select value={sort} onChange={e => setSort(e.target.value)} className="input-base h-9 text-xs w-44">
                   {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   {(['grid', 'list'] as const).map(v => (
                     <button key={v} onClick={() => setView(v)}
                       className={`p-2 transition-colors ${view === v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
@@ -276,7 +276,7 @@ export function SparePartsClient({ locale, initialSearch }: { locale: string; in
       {sidebar && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebar(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[#0b1525] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
               <button onClick={() => setSidebar(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]">

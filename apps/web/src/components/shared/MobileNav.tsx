@@ -27,7 +27,7 @@ export function MobileNav() {
     <nav
       aria-label="Mobile navigation"
       className="md:hidden fixed bottom-0 inset-x-0 z-50
-                 bg-white/90 dark:bg-[#050b14]/95
+                 bg-white/90 dark:bg-[rgba(5,11,20,0.95)]
                  backdrop-blur-xl
                  border-t border-gray-200 dark:border-white/[0.08]
                  safe-area-inset-bottom"
@@ -45,7 +45,7 @@ export function MobileNav() {
                 'flex flex-col items-center justify-center flex-1 py-1 gap-0.5',
                 'transition-colors duration-200',
                 active
-                  ? 'text-[#c9a84c]'
+                  ? 'text-[var(--gold)]'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
               )}
             >

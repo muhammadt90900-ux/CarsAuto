@@ -93,7 +93,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
       <div className="text-center mb-8">
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[var(--ink-900)] text-xl mx-auto mb-4"
-          style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)', boxShadow: '0 8px 32px rgba(201,168,76,0.30)' }}
+          style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)', boxShadow: '0 8px 32px rgba(201,168,76,0.30)' }}
           aria-hidden="true"
         >A</div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Create Account</h1>

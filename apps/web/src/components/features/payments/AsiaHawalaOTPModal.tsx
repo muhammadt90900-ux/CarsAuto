@@ -114,7 +114,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
       role="dialog" aria-modal="true"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div dir={isRtl ? 'rtl' : 'ltr'} className="w-full max-w-sm bg-white dark:bg-[#0b1525] rounded-2xl shadow-2xl overflow-hidden">
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="w-full max-w-sm bg-white dark:bg-[var(--ink-750)] rounded-2xl shadow-2xl overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/10">
@@ -140,7 +140,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
               {(['phone', 'otp'] as const).map((s, i) => (
                 <div key={s} className="flex items-center gap-2">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    step === s ? 'bg-[#c9a84c] text-white' :
+                    step === s ? 'bg-[var(--gold)] text-white' :
                     step === 'otp' && s === 'phone' ? 'bg-emerald-500 text-white' :
                     'bg-gray-200 dark:bg-white/10 text-gray-400'
                   }`}>
@@ -164,7 +164,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
                   type="tel" value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  className="w-full ps-9 pe-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#c9a84c] transition-colors"
+                  className="w-full ps-9 pe-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[var(--gold)] transition-colors"
                   placeholder="+9647700000000" dir="ltr" autoFocus
                 />
               </div>
@@ -174,7 +174,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
                 </div>
               )}
               <button onClick={handleSend} disabled={loading}
-                className="w-full py-3 rounded-xl bg-[#c9a84c] text-white text-sm font-bold hover:bg-[#b8943c] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors">
+                className="w-full py-3 rounded-xl bg-[var(--gold)] text-white text-sm font-bold hover:bg-[#b8943c] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
                 {ku ? 'کۆد بنێرە' : 'Send OTP'}
               </button>
@@ -198,7 +198,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
                     onKeyDown={(e) => handleOtpKey(i, e)}
                     autoFocus={i === 0}
                     className={`w-10 h-12 text-center text-lg font-bold rounded-xl border-2 transition-all bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:outline-none ${
-                      d ? 'border-[#c9a84c]' : 'border-gray-200 dark:border-white/10 focus:border-[#c9a84c]'
+                      d ? 'border-[var(--gold)]' : 'border-gray-200 dark:border-white/10 focus:border-[var(--gold)]'
                     }`}
                   />
                 ))}
@@ -217,7 +217,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
                   </span>
                 ) : (
                   <button onClick={() => { setStep('phone'); setOtp(Array(OTP_LEN).fill('')); setError(''); }}
-                    className="flex items-center gap-1 text-[#c9a84c] hover:underline">
+                    className="flex items-center gap-1 text-[var(--gold)] hover:underline">
                     <RefreshCw className="w-3 h-3" aria-hidden />
                     {ku ? 'دووبارە بنێرە' : 'Resend code'}
                   </button>
@@ -225,7 +225,7 @@ export function AsiaHawalaOTPModal({ plan, onClose, onSuccess }: Props) {
               </div>
 
               <button onClick={handleConfirm} disabled={loading || otp.join('').length < OTP_LEN}
-                className="w-full py-3 rounded-xl bg-[#c9a84c] text-white text-sm font-bold hover:bg-[#b8943c] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors">
+                className="w-full py-3 rounded-xl bg-[var(--gold)] text-white text-sm font-bold hover:bg-[#b8943c] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
                 {ku ? 'دڵنیاکردنەوە' : 'Confirm Payment'}
               </button>

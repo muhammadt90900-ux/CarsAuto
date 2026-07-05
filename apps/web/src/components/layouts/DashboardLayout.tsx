@@ -31,7 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           aria-hidden="true"
         />
       )}
-      <div id="dashboard-sidebar" className={`sidebar-mobile-drawer lg:hidden bg-white dark:bg-[#080f1c] border-e border-slate-100 dark:border-white/[0.07] pt-[68px] ${drawerOpen ? 'open' : ''}`}>
+      <div id="dashboard-sidebar" className={`sidebar-mobile-drawer lg:hidden bg-white dark:bg-[var(--ink-800)] border-e border-slate-100 dark:border-white/[0.07] pt-[68px] ${drawerOpen ? 'open' : ''}`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.07]">
           <span className="text-sm font-bold text-[var(--text-primary)]">Menu</span>
           <button
@@ -49,7 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto page-content">
         {/* Mobile top bar */}
         <div className="lg:hidden sticky top-0 z-20 flex items-center gap-3 px-4 py-3
-                        bg-white/95 dark:bg-[#080f1c]/95 backdrop-blur-md
+                        bg-white/95 dark:bg-[rgba(8,15,28,0.95)] backdrop-blur-md
                         border-b border-slate-100 dark:border-white/[0.07]">
           <button
             onClick={() => setDrawerOpen(true)}

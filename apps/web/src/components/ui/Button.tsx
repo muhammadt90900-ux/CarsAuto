@@ -17,31 +17,31 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS: Record<Variant, string> = {
   gold: `
-    bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e]
-    text-[#050b14] font-bold border border-[rgba(201,168,76,0.4)]
-    shadow-[0_3px_14px_rgba(201,168,76,0.22)]
-    hover:from-[#e8cc7a] hover:to-[#c9a84c]
-    hover:shadow-[0_6px_28px_rgba(201,168,76,0.28)]
+    bg-gradient-to-r from-gold to-gold-dim
+    text-[var(--ink-900)] font-bold border border-gold/40
+    shadow-gold-sm
+    hover:from-gold-light hover:to-gold
+    hover:shadow-gold
     hover:-translate-y-[1px] active:translate-y-0
   `,
   ghost: `
     bg-transparent text-[var(--text-muted)] font-semibold
     border border-[var(--border-default)]
-    hover:text-[var(--gold)] hover:border-[rgba(201,168,76,0.35)] hover:bg-[rgba(201,168,76,0.08)]
+    hover:text-gold hover:border-gold/35 hover:bg-gold/10
   `,
   outline: `
     bg-transparent text-[var(--text-secondary)] font-semibold
     border border-[var(--border-strong)]
-    hover:text-[var(--text-primary)] hover:border-[var(--gold)] hover:bg-[rgba(201,168,76,0.06)]
+    hover:text-[var(--text-primary)] hover:border-gold hover:bg-gold/5
   `,
   danger: `
-    bg-[rgba(220,38,38,0.08)] text-[#ef4444] font-semibold
-    border border-[rgba(220,38,38,0.22)]
-    hover:bg-[rgba(220,38,38,0.14)] hover:border-[rgba(220,38,38,0.40)]
+    bg-status-error/10 text-status-error font-semibold
+    border border-status-error/25
+    hover:bg-status-error/15 hover:border-status-error/40
   `,
   link: `
-    bg-transparent text-[var(--gold)] font-semibold p-0 h-auto border-0
-    hover:text-[var(--gold-light)] underline-offset-4 hover:underline
+    bg-transparent text-gold font-semibold p-0 h-auto border-0
+    hover:text-gold-light underline-offset-4 hover:underline
   `,
 };
 
@@ -63,8 +63,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap cursor-pointer',
-        'transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2',
+        'transition-all duration-base',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
         'disabled:opacity-50 disabled:pointer-events-none',
         VARIANTS[variant],
         SIZES[size],

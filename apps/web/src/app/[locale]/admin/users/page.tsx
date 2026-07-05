@@ -44,8 +44,8 @@ function statusOf(user: User): Status {
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
 const ROLE_STYLES: Record<Role, { label: string; color: string; bg: string }> = {
-  USER:   { label: 'User',   color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' },
-  DEALER: { label: 'Dealer', color: '#c9a84c', bg: 'rgba(201,168,76,0.12)'  },
+  USER:   { label: 'User',   color: 'var(--text-faint)', bg: 'rgba(148,163,184,0.10)' },
+  DEALER: { label: 'Dealer', color: 'var(--gold)', bg: 'rgba(201,168,76,0.12)'  },
   ADMIN:  { label: 'Admin',  color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
 };
 
@@ -59,7 +59,7 @@ const STATUS_STYLES: Record<Status, { label: string; dot: string; text: string; 
 function LoadingState() {
   return (
     <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+      <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
     </div>
   );
 }
@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
           { label: 'Total Users',   value: total,        icon: Users,         color: '#3b82f6' },
           { label: 'Active',        value: activeCount,  icon: UserCheck,     color: '#22c55e' },
           { label: 'Reported',      value: flaggedCount, icon: AlertTriangle, color: '#f59e0b' },
-          { label: 'This Page',     value: users.length, icon: UserPlus,      color: '#c9a84c' },
+          { label: 'This Page',     value: users.length, icon: UserPlus,      color: 'var(--gold)' },
         ].map(s => {
           const Icon = s.icon;
           return (
@@ -244,7 +244,7 @@ export default function AdminUsersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />
         </div>
 
@@ -257,7 +257,7 @@ export default function AdminUsersPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all',
                 roleFilter === r
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as any)}
-          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white/70 text-sm focus:outline-none focus:border-[#c9a84c]/40 transition-colors"
+          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white/70 text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
         >
           <option value="ALL">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{STATUS_STYLES[s].label}</option>)}
@@ -279,9 +279,9 @@ export default function AdminUsersPage() {
 
       {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#c9a84c]/10 border border-[#c9a84c]/25">
-          <span className="text-sm font-semibold text-[#c9a84c]">{selected.size} selected</span>
-          <div className="h-4 w-px bg-[#c9a84c]/30" />
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)]">
+          <span className="text-sm font-semibold text-[var(--gold)]">{selected.size} selected</span>
+          <div className="h-4 w-px bg-[rgba(201,168,76,0.3)]" />
           <button
             onClick={() => Promise.all(Array.from(selected).map(id => adminApi.banUser(id, true))).then(() => { setSelected(new Set()); fetchUsers(); })}
             className="text-xs font-semibold text-white/60 hover:text-red-400 transition-colors"
@@ -314,7 +314,7 @@ export default function AdminUsersPage() {
                     type="checkbox"
                     checked={selected.size === users.length && users.length > 0}
                     onChange={toggleAll}
-                    className="rounded border-white/20 bg-transparent accent-[#c9a84c]"
+                    className="rounded border-white/20 bg-transparent accent-[var(--gold)]"
                   />
                 </th>
                 {['User', 'Role', 'Status', 'Joined', 'Listings', 'Reports', 'Actions'].map(h => (
@@ -336,8 +336,8 @@ export default function AdminUsersPage() {
                     key={user.id}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
-                      isSelected ? 'bg-[#c9a84c]/[0.06]' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
-                      'hover:bg-[#c9a84c]/[0.03]',
+                      isSelected ? 'bg-[rgba(201,168,76,0.06)]' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      'hover:bg-[rgba(201,168,76,0.03)]',
                     )}
                   >
                     <td className="px-4 py-3">
@@ -345,7 +345,7 @@ export default function AdminUsersPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(user.id)}
-                        className="rounded border-white/20 bg-transparent accent-[#c9a84c]"
+                        className="rounded border-white/20 bg-transparent accent-[var(--gold)]"
                       />
                     </td>
 
@@ -474,7 +474,7 @@ export default function AdminUsersPage() {
                     className={cn(
                       'w-7 h-7 rounded-lg text-xs font-semibold transition-all',
                       page === pg
-                        ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                        ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]',
                     )}
                   >
@@ -535,7 +535,7 @@ export default function AdminUsersPage() {
                     min={1}
                     value={suspendDays}
                     onChange={e => setSuspendDays(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
                   />
                 </div>
                 <div>
@@ -545,7 +545,7 @@ export default function AdminUsersPage() {
                     value={suspendReason}
                     onChange={e => setSuspendReason(e.target.value)}
                     placeholder="Why is this account being suspended?"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 resize-none"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] resize-none"
                   />
                 </div>
               </div>
@@ -565,7 +565,7 @@ export default function AdminUsersPage() {
                       className={cn(
                         'w-full py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50',
                         modal.user.role === r
-                          ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
+                          ? 'border-[var(--gold)] bg-[var(--gold-subtle)] text-[var(--gold)]'
                           : 'border-white/[0.09] bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white'
                       )}
                     >

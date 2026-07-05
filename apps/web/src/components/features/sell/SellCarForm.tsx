@@ -67,7 +67,7 @@ export function SellCarForm() {
     return (
       <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-[var(--gold)] border-t-transparent rounded-full animate-spin" />
           <p className="text-[var(--text-faint)] text-sm">Loading…</p>
         </div>
       </div>
@@ -84,8 +84,8 @@ export function SellCarForm() {
           <p className="text-[var(--text-faint)] text-sm mb-6">This feature is for dealers only</p>
           <button onClick={() => router.push('/register')}
             className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
-                       bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14]
-                       hover:from-[#e8cc7a] hover:to-[#c9a84c] transition-all duration-200">
+                       bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
+                       hover:from-[var(--gold-light)] hover:to-[var(--gold)] transition-all duration-200">
             بچۆ بۆ تۆمارکردن وەک فرۆشیار / Register as Dealer
           </button>
         </div>
@@ -190,7 +190,7 @@ export function SellCarForm() {
                 <button onClick={handleSubmit} disabled={submitting} className={`${goldBtn} min-w-[160px]`}>
                   {submitting ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-[#050b14] border-t-transparent rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" />
                       Publishing…
                     </span>
                   ) : '🚀 Publish Listing'}

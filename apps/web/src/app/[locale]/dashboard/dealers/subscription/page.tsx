@@ -65,8 +65,8 @@ const PLANS = [
     price: 79,
     interval: '/mo',
     icon: BarChart2,
-    iconColor: 'text-[#c9a84c]',
-    iconBg: 'bg-[#c9a84c]/10',
+    iconColor: 'text-[var(--gold)]',
+    iconBg: 'bg-[var(--gold-subtle)]',
     description: 'Most popular for serious dealers',
     features: [
       '100 active listings',
@@ -140,7 +140,7 @@ export default function DealerSubscriptionPage() {
 
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#c9a84c] text-xs font-semibold uppercase tracking-widest">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.2)] text-[var(--gold)] text-xs font-semibold uppercase tracking-widest">
           <Zap className="w-3 h-3" /> Dealer Plans
         </div>
         <h1 className="font-display font-black text-white text-3xl">Grow Your Dealership</h1>
@@ -157,7 +157,7 @@ export default function DealerSubscriptionPage() {
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-semibold transition-all capitalize',
                 billing === b
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                   : 'text-white/50 hover:text-white/70',
               )}
             >
@@ -185,16 +185,16 @@ export default function DealerSubscriptionPage() {
               className={cn(
                 'relative flex flex-col rounded-2xl border overflow-hidden transition-all',
                 plan.highlight
-                  ? 'bg-gradient-to-b from-[#c9a84c]/[0.07] to-[#0d1b2e] border-[#c9a84c]/40 shadow-[0_0_40px_rgba(201,168,76,0.1)]'
+                  ? 'bg-gradient-to-b from-[rgba(201,168,76,0.07)] to-[#0d1b2e] border-[rgba(201,168,76,0.4)] shadow-[0_0_40px_rgba(201,168,76,0.1)]'
                   : 'bg-[#0d1b2e] border-white/[0.08]',
               )}
             >
               {plan.highlight && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--gold)] to-transparent" />
               )}
 
               {plan.highlight && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] rounded-b-lg text-[0.62rem] font-black text-[#0d1b2e] uppercase tracking-wider">
+                <div className="absolute -top-px left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] rounded-b-lg text-[0.62rem] font-black text-[#0d1b2e] uppercase tracking-wider">
                   Most Popular
                 </div>
               )}
@@ -245,7 +245,7 @@ export default function DealerSubscriptionPage() {
                     plan.ctaDisabled
                       ? 'bg-white/[0.05] text-white/30 cursor-default border border-white/[0.06]'
                       : plan.highlight
-                      ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] hover:opacity-90'
+                      ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] hover:opacity-90'
                       : 'bg-white/[0.07] text-white border border-white/[0.1] hover:bg-white/[0.12]',
                     loading === plan.id && 'opacity-60',
                   )}

@@ -36,7 +36,7 @@ export default function DashboardError({
       <button
         onClick={reset}
         className="inline-flex items-center justify-center h-10 px-5 rounded-xl font-semibold text-sm
-                   bg-[#c9a84c] text-[#050b14] hover:bg-[#dab85f] transition-colors duration-150"
+                   bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#dab85f] transition-colors duration-150"
       >
         {t('common.retry')}
       </button>

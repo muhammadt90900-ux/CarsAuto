@@ -102,7 +102,7 @@ export default function AdminModerationPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-black text-white text-2xl tracking-tight flex items-center gap-3">
-            <ShieldCheck className="w-6 h-6 text-[#c9a84c]" />
+            <ShieldCheck className="w-6 h-6 text-[var(--gold)]" />
             Moderation
           </h1>
           <p className="text-white/40 text-sm mt-0.5">Review pending and auto-flagged listings before they go live</p>
@@ -132,7 +132,7 @@ export default function AdminModerationPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search listings…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
@@ -141,7 +141,7 @@ export default function AdminModerationPage() {
               key={s}
               onClick={() => setStatus(s)}
               className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                    : 'text-white/40 hover:text-white/70')}
             >
               {s === 'ALL' ? 'All' : STATUS_STYLES[s as ListingStatus].label}
@@ -153,7 +153,7 @@ export default function AdminModerationPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -196,7 +196,7 @@ export default function AdminModerationPage() {
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
                       isFlagged ? 'bg-red-950/10' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
-                      'hover:bg-[#c9a84c]/[0.03] cursor-pointer',
+                      'hover:bg-[rgba(201,168,76,0.03)] cursor-pointer',
                     )}
                     onClick={() => setPreview(item)}
                   >
@@ -210,7 +210,7 @@ export default function AdminModerationPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-white/40">{item.user?.name ?? item.user?.email ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-[#c9a84c]">{fmtPrice(item.price, item.currency)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-[var(--gold)]">{fmtPrice(item.price, item.currency)}</td>
                     <td className="px-4 py-3">
                       <span className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full w-fit', statusStyle.bg, statusStyle.text)}>
                         <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
@@ -260,7 +260,7 @@ export default function AdminModerationPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>

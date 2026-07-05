@@ -24,7 +24,7 @@ export function SellProgress({ step }: SellProgressProps) {
                 w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold
                 transition-all duration-300 border-2
                 ${step > s.n
-                  ? 'bg-[var(--gold)] border-[var(--gold)] text-[#050b14]'
+                  ? 'bg-[var(--gold)] border-[var(--gold)] text-[var(--ink-900)]'
                   : step === s.n
                     ? 'bg-transparent border-[var(--gold)] text-[var(--gold)] shadow-[0_0_12px_rgba(201,168,76,0.3)]'
                     : 'bg-transparent border-[rgba(255,255,255,0.12)] text-[var(--text-faint)]'}
@@ -47,7 +47,7 @@ export function SellProgress({ step }: SellProgressProps) {
               <div
                 className="absolute inset-0 rounded transition-all duration-500"
                 style={{
-                  background: 'linear-gradient(90deg, #c9a84c, #9e6e1e)',
+                  background: 'linear-gradient(90deg, var(--gold), #9e6e1e)',
                   transformOrigin: 'left',
                   transform: `scaleX(${step > s.n ? 1 : 0})`,
                   transition: 'transform 0.4s ease',

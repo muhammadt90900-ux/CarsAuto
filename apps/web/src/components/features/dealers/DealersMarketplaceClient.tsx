@@ -13,7 +13,7 @@ const TIERS = ['Platinum','Gold','Verified'];
 
 const TIER_COLORS: Record<string, string> = {
   Platinum: '#a855f7',
-  Gold:     '#c9a84c',
+  Gold:     'var(--gold)',
   Verified: '#22c55e',
 };
 const TIER_LABELS: Record<string, string> = {
@@ -132,7 +132,7 @@ export function DealersMarketplaceClient({
     <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
       {/* Header */}
       <div className="relative overflow-hidden border-b border-[var(--border-default)]"
-           style={{ background:'linear-gradient(135deg,#050b14 0%,#0b1525 60%,#050b14 100%)' }}>
+           style={{ background:'linear-gradient(135deg,var(--ink-900) 0%,var(--ink-750) 60%,var(--ink-900) 100%)' }}>
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid"/>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4">
@@ -150,7 +150,7 @@ export function DealersMarketplaceClient({
               placeholder="Search dealers by name, city, specialty…"
               className="w-full h-12 bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] rounded-2xl
                          pl-11 pr-4 text-white placeholder-white/30 text-sm outline-none
-                         focus:border-[var(--gold)]/50 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)] transition-all"/>
+                         focus:border-[rgba(201,168,76,0.5)] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)] transition-all"/>
           </div>
         </div>
       </div>
@@ -186,7 +186,7 @@ export function DealersMarketplaceClient({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-[var(--text-muted)] hidden sm:block"><strong className="text-[var(--text-primary)]">{dealers.length}</strong> dealers</span>
-            <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+            <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
               {(['grid','list'] as const).map(v => (
                 <button key={v} onClick={() => setView(v)}
                   className={`p-2 transition-colors ${view===v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
@@ -222,7 +222,7 @@ export function DealersMarketplaceClient({
 
         {/* Become a dealer CTA */}
         <div className="mt-16 relative rounded-3xl overflow-hidden p-10 text-center"
-             style={{ background:'linear-gradient(135deg,#070e1b 0%,#0f1c2e 50%,#070e1b 100%)' }}>
+             style={{ background:'linear-gradient(135deg,#070e1b 0%,var(--ink-700) 50%,#070e1b 100%)' }}>
           <div className="absolute inset-0 opacity-[0.03] bg-dot-grid"/>
           <div className="absolute top-0 inset-x-0 h-0.5 divider-gold"/>
           <div className="relative">

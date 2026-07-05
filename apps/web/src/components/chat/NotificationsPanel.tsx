@@ -258,8 +258,8 @@ export default function NotificationsPanel({
                 onClick={() => setFilter(tab)}
                 style={{
                   ...styles.tab,
-                  borderBottom: filter === tab ? '2px solid var(--color-accent, #2563eb)' : '2px solid transparent',
-                  color: filter === tab ? 'var(--color-accent, #2563eb)' : 'var(--color-muted, #64748b)',
+                  borderBottom: filter === tab ? '2px solid var(--color-accent, var(--status-info))' : '2px solid transparent',
+                  color: filter === tab ? 'var(--color-accent, var(--status-info))' : 'var(--color-muted, #64748b)',
                   fontWeight: filter === tab ? 700 : 400,
                 }}
               >
@@ -357,7 +357,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--color-surface, #fff)',
     borderRadius: 14,
     boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
-    border: '1px solid var(--color-border, #e2e8f0)',
+    border: '1px solid var(--color-border, var(--surface-200))',
     display: 'flex',
     flexDirection: 'column',
     zIndex: 1000,
@@ -368,14 +368,14 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 16px 10px',
-    borderBottom: '1px solid var(--color-border, #e2e8f0)',
+    borderBottom: '1px solid var(--color-border, var(--surface-200))',
   },
   panelTitle: { fontWeight: 800, fontSize: 16 },
   textBtn: {
     background: 'none',
     border: 'none',
     fontSize: 12,
-    color: 'var(--color-accent, #2563eb)',
+    color: 'var(--color-accent, var(--status-info))',
     cursor: 'pointer',
     padding: '2px 6px',
     borderRadius: 4,
@@ -392,7 +392,7 @@ const styles: Record<string, React.CSSProperties> = {
   tabs: {
     display: 'flex',
     padding: '0 16px',
-    borderBottom: '1px solid var(--color-border, #e2e8f0)',
+    borderBottom: '1px solid var(--color-border, var(--surface-200))',
   },
   tab: {
     background: 'none',
@@ -406,7 +406,7 @@ const styles: Record<string, React.CSSProperties> = {
   empty: {
     padding: '32px 16px',
     textAlign: 'center',
-    color: 'var(--color-muted, #94a3b8)',
+    color: 'var(--color-muted, var(--text-faint))',
     fontSize: 14,
   },
   item: {
@@ -414,7 +414,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'flex-start',
     gap: 12,
     padding: '12px 14px',
-    borderBottom: '1px solid var(--color-border, #f1f5f9)',
+    borderBottom: '1px solid var(--color-border, var(--surface-100))',
     transition: 'background 0.1s',
   },
   itemIcon: { fontSize: 20, flexShrink: 0, marginTop: 2 },
@@ -432,12 +432,12 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  itemTime: { fontSize: 11, color: 'var(--color-muted, #94a3b8)', marginTop: 4 },
+  itemTime: { fontSize: 11, color: 'var(--color-muted, var(--text-faint))', marginTop: 4 },
   dismissBtn: {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: 'var(--color-muted, #cbd5e1)',
+    color: 'var(--color-muted, var(--surface-300))',
     fontSize: 12,
     padding: 4,
     flexShrink: 0,
@@ -453,11 +453,11 @@ const panelCSS = `
     opacity: 1 !important;
   }
   .notifications-panel div[role="listitem"]:hover {
-    background: var(--color-surface-2, #f8fafc) !important;
+    background: var(--color-surface-2, var(--surface-50)) !important;
   }
   .notifications-panel div[style*="overflow-y"]::-webkit-scrollbar { width: 4px; }
   .notifications-panel div[style*="overflow-y"]::-webkit-scrollbar-thumb {
-    background: var(--color-border, #e2e8f0); border-radius: 4px;
+    background: var(--color-border, var(--surface-200)); border-radius: 4px;
   }
   @keyframes slideDown {
     from { opacity: 0; transform: translateY(-8px); }

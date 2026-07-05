@@ -113,9 +113,9 @@ export default function AdminTransactionsPage() {
           <h1 className="font-display font-black text-white text-2xl tracking-tight">Transactions</h1>
           <p className="text-white/40 text-sm mt-0.5">All payments across listing plans and dealer subscriptions</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-[#c9a84c]/15 to-transparent border border-[#c9a84c]/20 px-5 py-3">
+        <div className="rounded-2xl bg-gradient-to-br from-[rgba(201,168,76,0.15)] to-transparent border border-[rgba(201,168,76,0.2)] px-5 py-3">
           <p className="text-[0.68rem] text-white/40 uppercase tracking-wider">Total Revenue (completed)</p>
-          <p className="text-xl font-black text-[#c9a84c]">{fmt(totalRevenue, 'USD')}</p>
+          <p className="text-xl font-black text-[var(--gold)]">{fmt(totalRevenue, 'USD')}</p>
         </div>
       </div>
 
@@ -127,7 +127,7 @@ export default function AdminTransactionsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by customer name or email…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] overflow-x-auto">
@@ -136,7 +136,7 @@ export default function AdminTransactionsPage() {
               key={s}
               onClick={() => setStatus(s)}
               className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
-                statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                    : 'text-white/40 hover:text-white/70')}
             >
               {s === 'ALL' ? 'All' : STATUS_STYLES[s as PaymentStatus].label}
@@ -146,7 +146,7 @@ export default function AdminTransactionsPage() {
         <select
           value={gatewayFilter}
           onChange={e => setGateway(e.target.value as any)}
-          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
         >
           <option value="ALL">All gateways</option>
           {Object.entries(GATEWAY_LABELS).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
@@ -156,7 +156,7 @@ export default function AdminTransactionsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -191,7 +191,7 @@ export default function AdminTransactionsPage() {
                     key={txn.id}
                     onClick={() => openDetail(txn)}
                     className={cn(
-                      'border-b border-white/[0.05] last:border-0 cursor-pointer transition-colors hover:bg-[#c9a84c]/[0.03]',
+                      'border-b border-white/[0.05] last:border-0 cursor-pointer transition-colors hover:bg-[rgba(201,168,76,0.03)]',
                       i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
                     )}
                   >
@@ -200,7 +200,7 @@ export default function AdminTransactionsPage() {
                       <p className="text-[0.68rem] text-white/30">{txn.user?.email}</p>
                     </td>
                     <td className="px-4 py-3 text-xs text-white/50 capitalize">{txn.plan}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-[#c9a84c] whitespace-nowrap">{fmt(txn.amount, txn.currency)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-[var(--gold)] whitespace-nowrap">{fmt(txn.amount, txn.currency)}</td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1.5 text-xs text-white/50">
                         <CreditCard className="w-3 h-3" />
@@ -236,7 +236,7 @@ export default function AdminTransactionsPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>
@@ -286,7 +286,7 @@ export default function AdminTransactionsPage() {
               <div>
                 <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Event timeline</p>
                 {logsLoading ? (
-                  <div className="flex justify-center py-6"><Loader2 className="w-4 h-4 text-[#c9a84c] animate-spin" /></div>
+                  <div className="flex justify-center py-6"><Loader2 className="w-4 h-4 text-[var(--gold)] animate-spin" /></div>
                 ) : logs.length === 0 ? (
                   <p className="text-xs text-white/25">No log entries</p>
                 ) : (

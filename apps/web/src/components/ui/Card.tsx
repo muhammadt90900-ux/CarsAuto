@@ -9,8 +9,8 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const VARIANTS = {
-  default: 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-md)]',
-  glass:   'bg-gradient-to-br from-[rgba(11,21,37,0.85)] to-[rgba(8,15,28,0.92)] border border-white/[0.07] backdrop-blur-xl',
+  default: 'bg-[var(--surface-card)] border border-[var(--border-default)] shadow-[var(--shadow-md)]',
+  glass:   'bg-gradient-to-br from-ink-750/85 to-ink-800/90 border border-white/[0.07] backdrop-blur-xl',
   flat:    'bg-[var(--surface-50)] border border-[var(--border-subtle)]',
 };
 
@@ -25,10 +25,10 @@ export function Card({ variant = 'default', padding = 'md', hover, className, ch
   return (
     <div
       className={cn(
-        'rounded-2xl overflow-hidden transition-all duration-300',
+        'rounded-2xl overflow-hidden transition-all duration-expo',
         VARIANTS[variant],
         PADDING[padding],
-        hover && 'hover:-translate-y-1 hover:border-[rgba(201,168,76,0.28)] hover:shadow-[var(--shadow-lg)]',
+        hover && 'hover:-translate-y-1 hover:border-gold/28 hover:shadow-[var(--shadow-lg)]',
         className
       )}
       {...props}

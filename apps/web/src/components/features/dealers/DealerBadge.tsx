@@ -9,8 +9,8 @@ import { CheckCircle2, Shield, Zap, Award, Star, Crown } from 'lucide-react';
 const TIER_CONFIG = {
   PLATINUM: {
     label: 'Platinum',
-    gradient: 'from-[#e8e0c8] to-[#c9a84c]',
-    text: 'text-[#7a5c1e]',
+    gradient: 'from-[#e8e0c8] to-[var(--gold)]',
+    text: 'text-[var(--gold-dark)]',
     icon: '💎',
   },
   GOLD: {
@@ -62,12 +62,12 @@ export function DealerTierBadge({
 // ── Achievement badge ─────────────────────────────────────────────────────
 
 const BADGE_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string }> = {
-  TOP_RATED:       { label: 'Top Rated',       icon: '⭐', color: 'text-[#e8cc7a]', bg: 'bg-[#c9a84c]/10', border: 'border-[#c9a84c]/20' },
+  TOP_RATED:       { label: 'Top Rated',       icon: '⭐', color: 'text-[var(--gold-light)]', bg: 'bg-[var(--gold-subtle)]', border: 'border-[rgba(201,168,76,0.2)]' },
   FAST_RESPONDER:  { label: 'Fast Responder',  icon: '⚡', color: 'text-sky-300',   bg: 'bg-sky-400/10',   border: 'border-sky-400/20'   },
   TRUSTED_SELLER:  { label: 'Trusted Seller',  icon: '🛡️', color: 'text-emerald-300', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
   MOST_REVIEWED:   { label: 'Most Reviewed',   icon: '💬', color: 'text-purple-300', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
   NEW_DEALER:      { label: 'New Dealer',      icon: '🌟', color: 'text-blue-300',   bg: 'bg-blue-400/10',   border: 'border-blue-400/20'   },
-  PREMIUM_STOCK:   { label: 'Premium Stock',   icon: '💎', color: 'text-[#e8cc7a]', bg: 'bg-[#c9a84c]/10', border: 'border-[#c9a84c]/20' },
+  PREMIUM_STOCK:   { label: 'Premium Stock',   icon: '💎', color: 'text-[var(--gold-light)]', bg: 'bg-[var(--gold-subtle)]', border: 'border-[rgba(201,168,76,0.2)]' },
 };
 
 export function DealerAchievementBadge({
@@ -112,7 +112,7 @@ export function VerifiedDealerBadge({ size = 'sm' }: { size?: 'xs' | 'sm' | 'md'
     <span
       className={cn(
         'inline-flex items-center gap-1 rounded-full font-semibold',
-        'bg-[#c9a84c]/15 border border-[#c9a84c]/30 text-[#e8cc7a]',
+        'bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.3)] text-[var(--gold-light)]',
         size === 'xs' && 'px-2 py-0.5 text-[0.6rem]',
         size === 'sm' && 'px-2.5 py-1 text-[0.68rem]',
         size === 'md' && 'px-3 py-1.5 text-xs',

@@ -72,7 +72,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
     <div className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
       {/* Hero banner */}
       <div className="relative overflow-hidden h-52 sm:h-64"
-           style={{ background:'linear-gradient(135deg,#050b14 0%,#0f1c2e 60%,#050b14 100%)' }}>
+           style={{ background:'linear-gradient(135deg,var(--ink-900) 0%,var(--ink-700) 60%,var(--ink-900) 100%)' }}>
         <div className="absolute inset-0 opacity-[0.03] bg-dot-grid"/>
         <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-[var(--surface-0)] dark:from-[var(--ink-900)] to-transparent"/>
       </div>
@@ -179,7 +179,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
                 ${activeTab === tab.id
-                  ? 'bg-white dark:bg-[#0b1525] text-[var(--gold)] shadow-[var(--shadow-sm)]'
+                  ? 'bg-white dark:bg-[var(--ink-750)] text-[var(--gold)] shadow-[var(--shadow-sm)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
               {tab.label}
               {tab.count !== null && (
@@ -206,7 +206,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
           ) : dealerListings.map((car: any) => (
               <Link key={car.id} href={`/cars/${car.id}`}
                 className="card-premium overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-                <div className="aspect-[16/10] bg-[var(--surface-100)] dark:bg-[#0f1c2e] flex items-center justify-center text-6xl
+                <div className="aspect-[16/10] bg-[var(--surface-100)] dark:bg-[var(--ink-700)] flex items-center justify-center text-6xl
                                 group-hover:scale-105 transition-transform duration-500 overflow-hidden">🚗</div>
                 <div className="p-4">
                   <h3 className="font-bold text-[var(--text-primary)] mb-1">{car.titleEn ?? car.titleKu ?? "Listing"}</h3>

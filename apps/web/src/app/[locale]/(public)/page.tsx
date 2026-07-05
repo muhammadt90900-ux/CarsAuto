@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /* ── Static data ── */
 const PREMIUM_CATEGORIES = [
   { id: 'sedan',    icon: '🚗', label: 'سیدان',       labelEn: 'Sedan',       count: '4,200+', color: '#3b82f6' },
-  { id: 'suv',      icon: '🚙', label: 'SUV',          labelEn: 'SUV / 4×4',   count: '6,800+', color: '#c9a84c' },
+  { id: 'suv',      icon: '🚙', label: 'SUV',          labelEn: 'SUV / 4×4',   count: '6,800+', color: 'var(--gold)' },
   { id: 'luxury',   icon: '💎', label: 'لوکس',         labelEn: 'Luxury',      count: '1,500+', color: '#a855f7' },
   { id: 'electric', icon: '⚡', label: 'کارەبایی',     labelEn: 'Electric',    count: '820+',   color: '#10b981' },
   { id: 'pickup',   icon: '🛻', label: 'پیکەپ',        labelEn: 'Pickup',      count: '2,100+', color: '#ef4444' },
@@ -120,8 +120,8 @@ export default async function HomePage({ params }: Props) {
       <HeroSearch />
 
       {/* 02 · STATS BANNER */}
-      <div className="relative overflow-hidden border-y border-[#c9a84c]/15 shadow-[inset_0_1px_0_rgba(201,168,76,0.06),inset_0_-1px_0_rgba(201,168,76,0.06)]"
-           style={{ background: 'linear-gradient(90deg, #050b14 0%, #080f1c 50%, #050b14 100%)' }}>
+      <div className="relative overflow-hidden border-y border-[rgba(201,168,76,0.15)] shadow-[inset_0_1px_0_rgba(201,168,76,0.06),inset_0_-1px_0_rgba(201,168,76,0.06)]"
+           style={{ background: 'linear-gradient(90deg, var(--ink-900) 0%, var(--ink-800) 50%, var(--ink-900) 100%)' }}>
         <div className="absolute inset-0 opacity-[0.03]"
              style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -130,7 +130,7 @@ export default async function HomePage({ params }: Props) {
               <div key={labelEn} className="text-center stat-animate" style={{ animationDelay: `${i * 0.1}s` }}>
                 <div className="text-2xl mb-1">{icon}</div>
                 <div className="text-2xl sm:text-3xl font-black tabular-nums leading-none"
-                  style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   {value}<span className="text-lg">{suffix}</span>
                 </div>
                 <div className="text-white/50 text-xs mt-1 leading-tight">
@@ -161,13 +161,13 @@ export default async function HomePage({ params }: Props) {
               <div key={name}
                 className="flex items-center gap-3 px-4 py-2.5 rounded-xl
                            border border-white/[0.06] bg-white/[0.02]
-                           hover:border-[#c9a84c]/20 hover:bg-[#c9a84c]/[0.03]
+                           hover:border-[rgba(201,168,76,0.2)] hover:bg-[rgba(201,168,76,0.03)]
                            transition-all duration-200 cursor-default">
                 <span className="text-2xl">{flag}</span>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white/70">{name}</span>
-                    <span className="text-[10px] font-black text-[#c9a84c] bg-[#c9a84c]/10 px-1.5 py-0.5 rounded-full">{count}</span>
+                    <span className="text-[10px] font-black text-[var(--gold)] bg-[var(--gold-subtle)] px-1.5 py-0.5 rounded-full">{count}</span>
                   </div>
                   <div className="text-[9px] text-white/25 mt-0.5 hidden sm:block">{detail}</div>
                 </div>
@@ -180,9 +180,9 @@ export default async function HomePage({ params }: Props) {
       {/* 03 · PREMIUM CATEGORIES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="text-center mb-12">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">● Browse by Category</span>
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)] mb-5">● Browse by Category</span>
           <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] leading-tight">
-            دۆزینەوە بە{' '}<span className="text-[#c9a84c]">جۆر</span>
+            دۆزینەوە بە{' '}<span className="text-[var(--gold)]">جۆر</span>
           </h2>
           <p className="text-[var(--text-muted)] mt-3 max-w-lg mx-auto">Explore thousands of listings across every vehicle category</p>
         </div>
@@ -190,7 +190,7 @@ export default async function HomePage({ params }: Props) {
           {PREMIUM_CATEGORIES.map(({ id, icon, label, labelEn, count, color }) => (
             <Link key={id}
               href="/${id === 'parts' ? 'spare-parts' : 'cars'}?category=${id}"
-              className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+              className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
               style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                    style={{ background: `radial-gradient(circle at 50% 0%, ${color}18 0%, transparent 70%)` }} />
@@ -210,12 +210,12 @@ export default async function HomePage({ params }: Props) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
-              <span className="w-6 h-px bg-[#c9a84c]" />{t('featuredEyebrow')}
+            <span className="inline-flex items-center gap-2 text-[var(--gold)] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+              <span className="w-6 h-px bg-[var(--gold)]" />{t('featuredEyebrow')}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">{t('featuredCars')}</h2>
           </div>
-          <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors duration-200 whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+          <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors duration-200 whitespace-nowrap px-4 py-2 rounded-xl border border-[rgba(201,168,76,0.25)] hover:border-[rgba(201,168,76,0.5)] hover:bg-[rgba(201,168,76,0.06)]">
             {t('viewAll')} →
           </Link>
         </div>
@@ -235,21 +235,21 @@ export default async function HomePage({ params }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
-                <span className="w-6 h-px bg-[#c9a84c]" />Trending Brands
+              <span className="inline-flex items-center gap-2 text-[var(--gold)] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+                <span className="w-6 h-px bg-[var(--gold)]" />Trending Brands
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
-                براندی{' '}<span className="text-[#c9a84c]">گەرم</span>
+                براندی{' '}<span className="text-[var(--gold)]">گەرم</span>
               </h2>
             </div>
-            <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+            <Link href="/cars" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[rgba(201,168,76,0.25)] hover:border-[rgba(201,168,76,0.5)] hover:bg-[rgba(201,168,76,0.06)]">
               All Brands →
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {TRENDING_BRANDS.map(({ name, logoText, color, listings }) => (
               <Link key={name} href="/cars?make=${name}"
-                className="group relative rounded-xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1"
+                className="group relative rounded-xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] transition-all duration-300 hover:-translate-y-1"
                 style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
                 <div className="relative p-4 text-center">
                   <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-xs font-black border-2 transition-all duration-300 group-hover:scale-110"
@@ -269,12 +269,12 @@ export default async function HomePage({ params }: Props) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 text-[#c9a84c] text-xs font-bold tracking-[0.14em] uppercase mb-2">
-              <span className="w-6 h-px bg-[#c9a84c]" />{t('partsEyebrow')}
+            <span className="inline-flex items-center gap-2 text-[var(--gold)] text-xs font-bold tracking-[0.14em] uppercase mb-2">
+              <span className="w-6 h-px bg-[var(--gold)]" />{t('partsEyebrow')}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">{t('recentParts')}</h2>
           </div>
-          <Link href="/spare-parts" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[#c9a84c] hover:text-[#e8cc7a] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[#c9a84c]/25 hover:border-[#c9a84c]/50 hover:bg-[#c9a84c]/[0.06]">
+          <Link href="/spare-parts" className="hidden sm:inline-flex items-center gap-2 text-sm font-bold text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors whitespace-nowrap px-4 py-2 rounded-xl border border-[rgba(201,168,76,0.25)] hover:border-[rgba(201,168,76,0.5)] hover:bg-[rgba(201,168,76,0.06)]">
             {t('viewAll')} →
           </Link>
         </div>
@@ -289,25 +289,25 @@ export default async function HomePage({ params }: Props) {
              style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.6) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">● Featured Dealers</span>
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)] mb-5">● Featured Dealers</span>
             <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
-              دیلەری{' '}<span className="text-[#c9a84c]">پشتیوانیکراو</span>
+              دیلەری{' '}<span className="text-[var(--gold)]">پشتیوانیکراو</span>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {FEATURED_DEALERS.map((dealer) => (
               <div key={dealer.id}
-                   className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[#c9a84c]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+                   className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
                    style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
-                <div className="absolute top-0 inset-x-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-350" style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, #f0d87a, #c9a84c, transparent)' }} />
+                <div className="absolute top-0 inset-x-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-350" style={{ background: 'linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent)' }} />
                 <div className="p-6">
-                  <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border border-[#c9a84c]/20">🏪</div>
-                  <div className="text-[10px] font-bold text-[#c9a84c]/80 mb-2">{dealer.badge}</div>
+                  <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-2xl bg-gradient-to-br from-[rgba(201,168,76,0.2)] to-[rgba(201,168,76,0.05)] border border-[rgba(201,168,76,0.2)]">🏪</div>
+                  <div className="text-[10px] font-bold text-[rgba(201,168,76,0.8)] mb-2">{dealer.badge}</div>
                   <h3 className="font-bold text-white text-sm mb-0.5">{dealer.name}</h3>
                   <p className="text-white/40 text-xs mb-4">{dealer.city} · {dealer.specialty}</p>
                   <div className="flex gap-3 mb-4">
                     <div className="flex-1 text-center rounded-xl py-2 bg-white/[0.04] border border-white/[0.06]">
-                      <div className="font-black text-[#c9a84c] text-base">{dealer.rating}★</div>
+                      <div className="font-black text-[var(--gold)] text-base">{dealer.rating}★</div>
                       <div className="text-white/30 text-[9px]">{dealer.reviews} reviews</div>
                     </div>
                     <div className="flex-1 text-center rounded-xl py-2 bg-white/[0.04] border border-white/[0.06]">
@@ -316,7 +316,7 @@ export default async function HomePage({ params }: Props) {
                     </div>
                   </div>
                   <Link href={`/dealers/${dealer.id}`}
-                    className="block text-center text-xs font-bold py-2.5 rounded-xl border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/60 transition-all duration-200">
+                    className="block text-center text-xs font-bold py-2.5 rounded-xl border border-[rgba(201,168,76,0.3)] text-[var(--gold)] hover:bg-[var(--gold-subtle)] hover:border-[rgba(201,168,76,0.6)] transition-all duration-200">
                     View Dealer →
                   </Link>
                 </div>
@@ -334,26 +334,26 @@ export default async function HomePage({ params }: Props) {
       {/* 08 · TESTIMONIALS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="text-center mb-12">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c] mb-5">● Customer Reviews</span>
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)] mb-5">● Customer Reviews</span>
           <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)]">
-            دەستەوێژی{' '}<span className="text-[#c9a84c]">کڕیارەکانمان</span>
+            دەستەوێژی{' '}<span className="text-[var(--gold)]">کڕیارەکانمان</span>
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {TESTIMONIALS.map((testimonial) => (
             <div key={testimonial.id}
-                 className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[#c9a84c]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.45),0_0_0_1px_rgba(201,168,76,0.06)]"
+                 className="group relative rounded-2xl p-6 overflow-hidden border border-white/[0.07] hover:border-[rgba(201,168,76,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.45),0_0_0_1px_rgba(201,168,76,0.06)]"
                  style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.85), rgba(8,15,28,0.9))' }}>
-              <div className="absolute top-4 end-4 text-5xl text-[#c9a84c]/10 font-serif leading-none select-none">"</div>
+              <div className="absolute top-4 end-4 text-5xl text-[var(--gold-subtle)] font-serif leading-none select-none">"</div>
               <div className="flex gap-0.5 mb-4">
                 {Array.from({ length: testimonial.rating }).map((_, si) => (
-                  <span key={si} className="text-[#c9a84c] text-sm">★</span>
+                  <span key={si} className="text-[var(--gold)] text-sm">★</span>
                 ))}
               </div>
               <p className="text-white/70 text-sm leading-relaxed mb-4" dir="ltr">{testimonial.text}</p>
               <div className="h-px bg-white/[0.06] mb-4" />
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a84c]/20 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center text-xl">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[rgba(201,168,76,0.2)] to-[rgba(201,168,76,0.05)] border border-[rgba(201,168,76,0.2)] flex items-center justify-center text-xl">
                   {testimonial.avatar}
                 </div>
                 <div>
@@ -369,19 +369,19 @@ export default async function HomePage({ params }: Props) {
       {/* 09 · SELL CTA */}
       <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">
         <div className="relative rounded-3xl overflow-hidden py-14 sm:py-20 text-center"
-             style={{ background: 'linear-gradient(135deg, #050d1a 0%, #0b1929 40%, #0f1c2e 50%, #0b1929 60%, #050d1a 100%)' }}>
+             style={{ background: 'linear-gradient(135deg, #050d1a 0%, #0b1929 40%, var(--ink-700) 50%, #0b1929 60%, #050d1a 100%)' }}>
           <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
                style={{ backgroundImage: 'radial-gradient(circle,rgba(201,168,76,1) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
           <div className="absolute top-0 inset-x-0 h-0.5"
-               style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, transparent)' }} />
+               style={{ background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
           <div className="relative px-8 space-y-5">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[#c9a84c]/10 border border-[#c9a84c]/25 text-[#c9a84c]">● Sell Your Car</span>
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)]">● Sell Your Car</span>
             <h2 className="text-3xl sm:text-4xl font-black text-white">{t('sellCTATitle')}</h2>
             <p className="text-white/50 max-w-md mx-auto text-sm">{t('sellCTASubtitle')}</p>
             <div className="flex flex-wrap gap-3 justify-center pt-2">
               <Link href="/dashboard/listings/new"
-                className="px-8 py-3.5 rounded-xl text-sm font-black text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_48px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
-                style={{ background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' }}>
+                className="px-8 py-3.5 rounded-xl text-sm font-black text-[var(--ink-900)] shadow-[0_6px_28px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_48px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' }}>
                 {t('sellCTAButton')} →
               </Link>
               <Link href="/cars"

@@ -31,7 +31,7 @@ export default function FavoritesPage() {
           onClick={() => setActiveTab('listings')}
           className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
             ${activeTab === 'listings'
-              ? 'bg-white dark:bg-[#0b1525] text-amber-600 dark:text-amber-400 shadow-sm'
+              ? 'bg-white dark:bg-[var(--ink-750)] text-amber-600 dark:text-amber-400 shadow-sm'
               : 'text-gray-500 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/80'}`}
         >
           <Heart className="w-3.5 h-3.5" />
@@ -41,7 +41,7 @@ export default function FavoritesPage() {
           onClick={() => setActiveTab('dealers')}
           className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
             ${activeTab === 'dealers'
-              ? 'bg-white dark:bg-[#0b1525] text-amber-600 dark:text-amber-400 shadow-sm'
+              ? 'bg-white dark:bg-[var(--ink-750)] text-amber-600 dark:text-amber-400 shadow-sm'
               : 'text-gray-500 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/80'}`}
         >
           <Store className="w-3.5 h-3.5" />
@@ -98,7 +98,7 @@ export default function FavoritesPage() {
                 <Link
                   key={dealer.id}
                   href="/dealers/${dealer.slug}"
-                  className="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0b1525]
+                  className="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[var(--ink-750)]
                              p-4 hover:shadow-lg transition-shadow group"
                 >
                   <div className="flex items-center gap-3 mb-3">

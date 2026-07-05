@@ -17,7 +17,9 @@ const config: Config = {
         gold: {
           DEFAULT: '#c9a84c',
           light:   '#e8cc7a',
+          bright:  '#f0d87a',
           dim:     '#9e7c2e',
+          dark:    '#7a5c1e',
           50:      'rgba(201,168,76,0.05)',
           100:     'rgba(201,168,76,0.10)',
           200:     'rgba(201,168,76,0.20)',
@@ -34,17 +36,24 @@ const config: Config = {
           300: '#3a5470',
         },
         status: {
-          success: '#22c55e',
-          warning: '#f59e0b',
-          error:   '#ef4444',
-          info:    '#3b82f6',
+          success: '#16a34a',
+          warning: '#d97706',
+          error:   '#dc2626',
+          info:    '#2563eb',
         },
+        whatsapp: '#25D366',
       },
 
-      /* ── Typography ── */
+      /* ── Typography ──
+         NOTE: previously 'display' pointed to 'Syne', a font that is never
+         loaded anywhere in globals.css and is NOT the brand display font.
+         Any component using font-display via this Tailwind utility was
+         silently falling back to a system sans-serif instead of Space
+         Grotesk. Corrected to match globals.css --font-display exactly. */
       fontFamily: {
-        display: ['Syne',        'Noto Sans Arabic', 'sans-serif'],
-        sans:    ['DM Sans',     'Noto Sans Arabic', 'sans-serif'],
+        display: ['Space Grotesk', 'Noto Sans Arabic', 'sans-serif'],
+        hero:    ['Bebas Neue',    'Space Grotesk',    'sans-serif'],
+        sans:    ['DM Sans',       'Noto Sans Arabic', 'sans-serif'],
         arabic:  ['Noto Sans Arabic', 'sans-serif'],
         mono:    ['JetBrains Mono',   'monospace'],
       },
@@ -65,10 +74,11 @@ const config: Config = {
         '5xl': '2.5rem',
       },
 
-      /* ── Shadows ── */
+      /* ── Shadows ── aligned to globals.css --shadow-gold* exactly ── */
       boxShadow: {
-        'gold':    '0 8px 32px rgba(201,168,76,0.25), 0 2px 8px rgba(201,168,76,0.15)',
-        'gold-sm': '0 4px 16px rgba(201,168,76,0.20)',
+        'gold':    '0 6px 28px rgba(201,168,76,0.28), 0 2px 8px rgba(201,168,76,0.16)',
+        'gold-sm': '0 3px 14px rgba(201,168,76,0.22)',
+        'gold-xl': '0 12px 48px rgba(201,168,76,0.38), 0 4px 16px rgba(201,168,76,0.22)',
         'dark-md': '0 4px 20px rgba(0,0,0,0.50)',
         'dark-lg': '0 12px 48px rgba(0,0,0,0.60)',
         'glass':   'inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -125,10 +135,19 @@ const config: Config = {
         },
       },
 
-      /* ── Transition timing ── */
+      /* ── Transition timing ──
+         Named to mirror globals.css --t-fast/--t-base/--t-slow/--t-spring/
+         --t-expo/--t-bounce exactly, so components can write `duration-fast`
+         `duration-base` etc. instead of ad-hoc `duration-300`. ── */
       transitionDuration: {
-        '350': '350ms',
-        '400': '400ms',
+        '350':  '350ms',
+        '400':  '400ms',
+        'fast': '120ms',
+        'base': '200ms',
+        'slow': '360ms',
+        'spring-d': '280ms',
+        'expo': '340ms',
+        'bounce': '500ms',
       },
       transitionTimingFunction: {
         'spring':   'cubic-bezier(0.34,1.56,0.64,1)',

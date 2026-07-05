@@ -44,7 +44,7 @@ const TOP_REGIONS = [
 const TRAFFIC_SOURCES = [
   { source: 'Organic Search', sessions: 32400, pct: 44, color: '#22c55e' },
   { source: 'Direct',         sessions: 18200, pct: 25, color: '#3b82f6' },
-  { source: 'Social Media',   sessions: 12100, pct: 16, color: '#c9a84c' },
+  { source: 'Social Media',   sessions: 12100, pct: 16, color: 'var(--gold)' },
   { source: 'Referral',       sessions: 6800,  pct: 9,  color: '#8b5cf6' },
   { source: 'Email',          sessions: 4400,  pct: 6,  color: '#f43f5e' },
 ];
@@ -53,7 +53,7 @@ const FUNNEL = [
   { step: 'Visited',       value: 73400, color: '#3b82f6' },
   { step: 'Searched',      value: 51800, color: '#6366f1' },
   { step: 'Viewed Listing',value: 28400, color: '#8b5cf6' },
-  { step: 'Contacted',     value: 8200,  color: '#c9a84c' },
+  { step: 'Contacted',     value: 8200,  color: 'var(--gold)' },
   { step: 'Converted',     value: 2100,  color: '#22c55e' },
 ];
 
@@ -103,7 +103,7 @@ export default function AdminAnalyticsPage() {
   const [chartTab, setChartTab] = useState<'revenue' | 'users' | 'listings' | 'views'>('revenue');
 
   const KPIs = [
-    { label: 'Total Revenue',    value: '$142,800', change: +8.4,  sparkData: [100, 115, 108, 132, 148, 163], color: '#c9a84c', icon: DollarSign },
+    { label: 'Total Revenue',    value: '$142,800', change: +8.4,  sparkData: [100, 115, 108, 132, 148, 163], color: 'var(--gold)', icon: DollarSign },
     { label: 'Active Users',     value: '50,432',   change: +12.1, sparkData: [310, 360, 340, 420, 490, 540], color: '#22c55e', icon: Users },
     { label: 'Total Listings',   value: '24,187',   change: +5.6,  sparkData: [182, 210, 196, 245, 281, 310], color: '#3b82f6', icon: Car },
     { label: 'Avg Session',      value: '4m 32s',   change: -2.1,  sparkData: [310, 295, 320, 300, 280, 272], color: '#8b5cf6', icon: Clock },
@@ -111,7 +111,7 @@ export default function AdminAnalyticsPage() {
     { label: 'Conversion Rate',  value: '2.86%',    change: +0.4,  sparkData: [2.1, 2.3, 2.2, 2.5, 2.7, 2.9], color: '#f59e0b', icon: Activity },
   ];
 
-  const chartColors = { revenue: '#c9a84c', users: '#22c55e', listings: '#3b82f6', views: '#8b5cf6' };
+  const chartColors = { revenue: 'var(--gold)', users: '#22c55e', listings: '#3b82f6', views: '#8b5cf6' };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -130,7 +130,7 @@ export default function AdminAnalyticsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                 period === p
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -176,7 +176,7 @@ export default function AdminAnalyticsPage() {
         <div className="lg:col-span-2 rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-bold text-white flex items-center gap-2">
-              <BarChart2 className="w-4.5 h-4.5 text-[#c9a84c]" />
+              <BarChart2 className="w-4.5 h-4.5 text-[var(--gold)]" />
               Growth Overview
             </h2>
             <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.05]">
@@ -208,7 +208,7 @@ export default function AdminAnalyticsPage() {
         {/* Traffic sources */}
         <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Globe className="w-4.5 h-4.5 text-[#c9a84c]" />
+            <Globe className="w-4.5 h-4.5 text-[var(--gold)]" />
             Traffic Sources
           </h2>
           <div className="space-y-3">
@@ -245,7 +245,7 @@ export default function AdminAnalyticsPage() {
         {/* Funnel */}
         <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Activity className="w-4.5 h-4.5 text-[#c9a84c]" />
+            <Activity className="w-4.5 h-4.5 text-[var(--gold)]" />
             Conversion Funnel
           </h2>
           <div className="space-y-2">
@@ -283,7 +283,7 @@ export default function AdminAnalyticsPage() {
         {/* Top Makes */}
         <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Car className="w-4.5 h-4.5 text-[#c9a84c]" />
+            <Car className="w-4.5 h-4.5 text-[var(--gold)]" />
             Top Car Makes
           </h2>
           <div className="space-y-3">
@@ -296,7 +296,7 @@ export default function AdminAnalyticsPage() {
                     <span className="text-xs font-bold text-white">{item.count.toLocaleString()}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: 'linear-gradient(90deg,#c9a84c,#e8cc7a)' }} />
+                    <div className="h-full rounded-full" style={{ width: `${item.pct}%`, background: 'linear-gradient(90deg,var(--gold),var(--gold-light))' }} />
                   </div>
                 </div>
               </div>
@@ -307,7 +307,7 @@ export default function AdminAnalyticsPage() {
         {/* Top Regions */}
         <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Globe className="w-4.5 h-4.5 text-[#c9a84c]" />
+            <Globe className="w-4.5 h-4.5 text-[var(--gold)]" />
             Top Regions
           </h2>
           <div className="space-y-3">
@@ -328,7 +328,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="mt-4 pt-4 border-t border-white/[0.07] flex items-center justify-between">
             <span className="text-xs text-white/30">5 regions shown</span>
-            <button className="flex items-center gap-1 text-xs text-[#c9a84c] hover:underline">
+            <button className="flex items-center gap-1 text-xs text-[var(--gold)] hover:underline">
               View all <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>

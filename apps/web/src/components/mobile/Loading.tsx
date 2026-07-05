@@ -76,7 +76,7 @@ export function CarCardSkeleton() {
   return (
     <>
       <InjectShimmerStyles />
-      <div className="rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06]">
+      <div className="rounded-2xl overflow-hidden bg-[var(--ink-750)] border border-white/[0.06]">
         <SkeletonBox h={192} className="rounded-none" />
         <div className="p-4 space-y-3">
           <SkeletonLine w="70%" h={16} />
@@ -100,7 +100,7 @@ export function StatCardSkeleton() {
   return (
     <>
       <InjectShimmerStyles />
-      <div className="rounded-2xl bg-[#0b1525] border border-white/[0.06] p-4 space-y-3">
+      <div className="rounded-2xl bg-[var(--ink-750)] border border-white/[0.06] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="w-9 h-9 m-shimmer rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
           <SkeletonLine w={48} h={12} />
@@ -120,7 +120,7 @@ export function ListRowSkeleton({ count = 4 }: { count?: number }) {
       <InjectShimmerStyles />
       <div className="space-y-px">
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3.5 bg-[#080f1c]">
+          <div key={i} className="flex items-center gap-3 px-4 py-3.5 bg-[var(--ink-800)]">
             <div className="w-11 h-11 m-shimmer rounded-xl flex-shrink-0"
                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
             <div className="flex-1 space-y-2">
@@ -147,7 +147,7 @@ export function GoldSpinner({ size = 32 }: { size?: number }) {
         aria-label="Loading…"
       >
         <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(201,168,76,0.15)" strokeWidth="3" />
-        <path d="M16 4 A12 12 0 0 1 28 16" fill="none" stroke="#c9a84c" strokeWidth="3" strokeLinecap="round" />
+        <path d="M16 4 A12 12 0 0 1 28 16" fill="none" stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" />
       </svg>
     </>
   );
@@ -171,10 +171,10 @@ export function AppSplash({ onComplete }: { onComplete?: () => void }) {
   return (
     <>
       <InjectShimmerStyles />
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050b14]">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--ink-900)]">
         {/* Outer pulse ring */}
         <div
-          className="absolute w-32 h-32 rounded-full border border-[#c9a84c]/20"
+          className="absolute w-32 h-32 rounded-full border border-[rgba(201,168,76,0.2)]"
           style={{
             animation: phase === 'ring' ? 'mobileSplashRing 0.6s ease-out forwards' : undefined,
             opacity: phase === 'logo' ? 0 : undefined
@@ -186,7 +186,7 @@ export function AppSplash({ onComplete }: { onComplete?: () => void }) {
           style={{ animation: 'mobileFadeUp 0.4s ease-out forwards' }}
         >
           <div className="w-20 h-20 rounded-[22px] flex items-center justify-center"
-               style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)',
+               style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)',
                         boxShadow: '0 0 40px rgba(201,168,76,0.50)' }}>
             <svg width="36" height="36" viewBox="0 0 20 20" fill="none" aria-hidden>
               <path d="M3 13.5L6 6.5H14L17 13.5H3Z" fill="white" opacity=".95" />
@@ -196,9 +196,9 @@ export function AppSplash({ onComplete }: { onComplete?: () => void }) {
           </div>
           <div className="text-center">
             <p className="text-[1.4rem] font-display font-extrabold tracking-tight">
-              <span style={{ color: '#c9a84c' }}>Auto</span>
+              <span style={{ color: 'var(--gold)' }}>Auto</span>
               <span className="text-white">Bazaar</span>
-              <span style={{ background: 'linear-gradient(135deg,#c9a84c,#f0d278)',
+              <span style={{ background: 'linear-gradient(135deg,var(--gold),#f0d278)',
                              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Pro</span>
             </p>
             <div className="mt-3 flex items-center justify-center">

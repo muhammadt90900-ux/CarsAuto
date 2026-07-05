@@ -42,7 +42,7 @@ const baseInput = `
   focus:bg-[rgba(255,255,255,0.07)]
 `;
 export const inputCls    = (e: boolean) => `${baseInput} ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
-export const selectCls   = (e: boolean) => `${baseInput} cursor-pointer appearance-none [&>option]:bg-[#0b1525] [&>option]:text-white [&>optgroup]:bg-[#0b1525] [&>optgroup]:text-[#c9a84c] ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
+export const selectCls   = (e: boolean) => `${baseInput} cursor-pointer appearance-none [&>option]:bg-[var(--ink-750)] [&>option]:text-white [&>optgroup]:bg-[var(--ink-750)] [&>optgroup]:text-[var(--gold)] ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
 export const textareaCls = (e: boolean) =>
   `w-full px-4 py-3 rounded-xl text-sm text-white placeholder-[var(--text-faint)]
    bg-[rgba(255,255,255,0.05)] border transition-all duration-150 resize-none
@@ -50,9 +50,9 @@ export const textareaCls = (e: boolean) =>
    ${e ? 'border-[rgba(220,38,38,0.5)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'}`;
 export const goldBtn = `
   inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl font-bold text-sm
-  bg-gradient-to-r from-[#c9a84c] to-[#9e6e1e] text-[#050b14]
+  bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
   border border-[rgba(201,168,76,0.4)] shadow-[0_3px_14px_rgba(201,168,76,0.22)]
-  hover:from-[#e8cc7a] hover:to-[#c9a84c] hover:shadow-[0_6px_28px_rgba(201,168,76,0.28)]
+  hover:from-[var(--gold-light)] hover:to-[var(--gold)] hover:shadow-[0_6px_28px_rgba(201,168,76,0.28)]
   hover:-translate-y-px active:translate-y-0 transition-all duration-200 cursor-pointer
   disabled:opacity-50 disabled:pointer-events-none
 `;
@@ -63,7 +63,7 @@ export const ghostBtn = `
 `;
 export const draftBtn = `
   inline-flex items-center gap-2 h-11 px-5 rounded-xl font-semibold text-sm
-  bg-transparent text-[var(--gold)] border border-[#c9a84c]
+  bg-transparent text-[var(--gold)] border border-[var(--gold)]
   hover:bg-[rgba(201,168,76,0.08)] transition-all duration-200 cursor-pointer
 `;
 
@@ -71,8 +71,8 @@ export const draftBtn = `
 // preview) — also used by Step2VehicleDetails' color picker, hence living here
 // rather than in either file alone.
 export const COLOR_SWATCH: Record<string, string> = {
-  White: '#f5f5f5', Black: '#1a1a1a', Silver: '#c0c0c0', Red: '#dc2626',
-  Blue: '#2563eb', Grey: '#6b7280', Brown: '#78350f', Green: '#16a34a',
+  White: '#f5f5f5', Black: '#1a1a1a', Silver: '#c0c0c0', Red: 'var(--status-error)',
+  Blue: 'var(--status-info)', Grey: '#6b7280', Brown: '#78350f', Green: 'var(--status-success)',
   Yellow: '#eab308', Orange: '#ea580c', Other: '#888888',
 };
 
@@ -135,7 +135,7 @@ export function Upload360Section({
             <p className="text-white font-semibold text-sm">
               360° Photo Set
               <span className="ms-2 text-[10px] font-bold uppercase tracking-wider
-                               px-2 py-0.5 rounded-md bg-[#c9a84c]/15 text-[#c9a84c]">
+                               px-2 py-0.5 rounded-md bg-[rgba(201,168,76,0.15)] text-[var(--gold)]">
                 Optional
               </span>
             </p>
@@ -170,7 +170,7 @@ export function Upload360Section({
                       <img
                         src={url}
                         alt={`Frame ${i + 1} (${angle}°)`}
-                        className="w-full h-full object-cover rounded-lg border border-[#c9a84c]/30"
+                        className="w-full h-full object-cover rounded-lg border border-[rgba(201,168,76,0.3)]"
                       />
                       <button
                         type="button"
@@ -192,13 +192,13 @@ export function Upload360Section({
                       className="w-full h-full flex flex-col items-center justify-center gap-0.5
                                  rounded-lg border border-dashed border-[rgba(255,255,255,0.08)]
                                  bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.05)]
-                                 hover:border-[#c9a84c]/30 transition-all duration-150 group/slot"
+                                 hover:border-[rgba(201,168,76,0.3)] transition-all duration-150 group/slot"
                       aria-label={`Upload frame ${i + 1} (${angle}°)`}
                     >
-                      <span className="text-[8px] text-[var(--text-faint)] group-hover/slot:text-[#c9a84c]/60 font-bold tabular-nums">
+                      <span className="text-[8px] text-[var(--text-faint)] group-hover/slot:text-[rgba(201,168,76,0.6)] font-bold tabular-nums">
                         {i + 1}
                       </span>
-                      <span className="text-[7px] text-[var(--text-faint)]/50 tabular-nums">
+                      <span className="text-[7px] text-[rgba(148,163,184,0.50)] tabular-nums">
                         {angle}°
                       </span>
                     </button>
@@ -213,7 +213,7 @@ export function Upload360Section({
               onClick={() => openFilePicker()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
                          bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.25)]
-                         text-[#c9a84c] hover:bg-[rgba(201,168,76,0.18)] transition-all duration-200"
+                         text-[var(--gold)] hover:bg-[rgba(201,168,76,0.18)] transition-all duration-200"
             >
               <span>📁</span> Upload multiple frames
             </button>

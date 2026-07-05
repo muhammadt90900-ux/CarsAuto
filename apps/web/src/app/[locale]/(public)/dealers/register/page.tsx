@@ -24,20 +24,20 @@ function StepIndicator({ current }: { current: number }) {
             <div className="flex flex-col items-center gap-1.5">
               <div className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all',
-                done   ? 'bg-[#c9a84c] text-[#0d1b2e]' :
-                active ? 'bg-[#c9a84c]/20 border-2 border-[#c9a84c] text-[#e8cc7a]' :
+                done   ? 'bg-[var(--gold)] text-[#0d1b2e]' :
+                active ? 'bg-[rgba(201,168,76,0.2)] border-2 border-[var(--gold)] text-[var(--gold-light)]' :
                          'bg-white/[0.06] border border-white/[0.1] text-white/30',
               )}>
                 {done ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
               </div>
               <span className={cn('text-[0.6rem] uppercase tracking-wider font-semibold whitespace-nowrap hidden sm:block',
-                active ? 'text-[#e8cc7a]' : done ? 'text-white/50' : 'text-white/25'
+                active ? 'text-[var(--gold-light)]' : done ? 'text-white/50' : 'text-white/25'
               )}>
                 {label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={cn('flex-1 h-px mt-0 sm:-mt-4 transition-all', done ? 'bg-[#c9a84c]/50' : 'bg-white/[0.07]')} />
+              <div className={cn('flex-1 h-px mt-0 sm:-mt-4 transition-all', done ? 'bg-[rgba(201,168,76,0.5)]' : 'bg-white/[0.07]')} />
             )}
           </div>
         );
@@ -80,7 +80,7 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
       type={type} value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 transition-colors"
+      className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
     />
   );
 }
@@ -145,7 +145,7 @@ export default function DealerRegisterPage() {
           </p>
           <button
             onClick={() => router.push('/')}
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
+            className="px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Back to Home
           </button>
@@ -161,7 +161,7 @@ export default function DealerRegisterPage() {
       <div className="relative overflow-hidden bg-gradient-to-br from-[#0b1a2e] to-[#060e1a] border-b border-white/[0.06] py-12 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,rgba(201,168,76,0.07),transparent_70%)]" />
         <div className="max-w-xl mx-auto relative text-center">
-          <div className="flex items-center justify-center gap-2 text-[#c9a84c] text-xs font-semibold uppercase tracking-widest mb-3">
+          <div className="flex items-center justify-center gap-2 text-[var(--gold)] text-xs font-semibold uppercase tracking-widest mb-3">
             <Building2 className="w-4 h-4" />
             Become a Dealer
           </div>
@@ -176,7 +176,7 @@ export default function DealerRegisterPage() {
               { icon: Star,   label: 'Reviews & Ratings' },
             ].map(p => (
               <div key={p.label} className="flex items-center gap-2 text-xs text-white/50">
-                <p.icon className="w-4 h-4 text-[#c9a84c]" />
+                <p.icon className="w-4 h-4 text-[var(--gold)]" />
                 {p.label}
               </div>
             ))}
@@ -250,7 +250,7 @@ export default function DealerRegisterPage() {
                   onChange={e => setAddress(e.target.value)}
                   placeholder="Street, district, city"
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 transition-colors resize-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors resize-none"
                 />
               </Field>
               <Field label="Specialties" hint="e.g. Toyota, Lexus, Import Specialist (comma-separated)">
@@ -262,7 +262,7 @@ export default function DealerRegisterPage() {
                   onChange={e => setDescEn(e.target.value)}
                   placeholder="Brief description of your business, experience, brands you carry…"
                   rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40 transition-colors resize-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors resize-none"
                 />
               </Field>
             </>
@@ -308,7 +308,7 @@ export default function DealerRegisterPage() {
           <button
             onClick={step === 3 ? submit : () => setStep(p => p + 1)}
             disabled={!canNext || loading}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-40"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-40"
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>

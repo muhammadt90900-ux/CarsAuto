@@ -108,7 +108,7 @@ function LogoBadge({
         rounded-md font-black leading-none select-none
         ${sz.text}
       `}
-      style={{ background: `#${color}`, color: '#ffffff' }}
+      style={{ background: `#${color}`, color: 'var(--surface-0)' }}
       aria-hidden
     >
       {initials}
@@ -186,7 +186,7 @@ export function BrandGrid({
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]
               ${active
                 ? 'border-[var(--gold)] bg-[var(--gold-subtle)] shadow-[0_0_0_1px_var(--gold)]'
-                : 'border-[var(--border-default)] hover:border-[var(--gold)]/50 hover:bg-[var(--surface-elevated)]'
+                : 'border-[var(--border-default)] hover:border-[rgba(201,168,76,0.5)] hover:bg-[var(--surface-elevated)]'
               }
             `}
           >
@@ -219,7 +219,7 @@ export function BrandPill({
     <span className={`
       inline-flex items-center ${sz.gap}
       px-2.5 py-1 rounded-full
-      bg-[var(--gold-subtle)] border border-[var(--gold)]/30
+      bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.3)]
       text-[var(--gold)] text-xs font-semibold
     `}>
       <LogoBadge brand={brand} sizeKey={size} />
@@ -229,7 +229,7 @@ export function BrandPill({
           type="button"
           onClick={onRemove}
           className="w-3.5 h-3.5 rounded-full flex items-center justify-center
-                     hover:bg-[var(--gold)]/20 transition-colors ml-0.5"
+                     hover:bg-[rgba(201,168,76,0.2)] transition-colors ml-0.5"
           aria-label={`Remove ${name}`}
         >
           ×

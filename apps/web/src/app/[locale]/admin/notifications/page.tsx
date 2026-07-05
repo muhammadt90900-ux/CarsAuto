@@ -28,14 +28,14 @@ interface NotifForm {
 const TYPE_STYLES: Record<NotifType, { label: string; icon: React.ElementType; color: string; bg: string }> = {
   ANNOUNCEMENT: { label: 'Announcement', icon: Megaphone,   color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
   ALERT:        { label: 'Alert',        icon: AlertCircle, color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
-  PROMOTION:    { label: 'Promotion',    icon: Bell,        color: '#c9a84c', bg: 'rgba(201,168,76,0.12)' },
+  PROMOTION:    { label: 'Promotion',    icon: Bell,        color: 'var(--gold)', bg: 'rgba(201,168,76,0.12)' },
   MAINTENANCE:  { label: 'Maintenance',  icon: Clock,       color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
 };
 
 const AUDIENCE_STYLES: Record<NotifAudience, { label: string; icon: React.ElementType; color: string }> = {
   ALL:     { label: 'Everyone',     icon: Globe,  color: '#22c55e' },
   USERS:   { label: 'Users Only',   icon: Users,  color: '#3b82f6' },
-  DEALERS: { label: 'Dealers Only', icon: Store,  color: '#c9a84c' },
+  DEALERS: { label: 'Dealers Only', icon: Store,  color: 'var(--gold)' },
   PREMIUM: { label: 'Premium',      icon: Bell,   color: '#8b5cf6' },
 };
 
@@ -97,7 +97,7 @@ export default function AdminNotificationsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-black text-white text-2xl flex items-center gap-2">
-            <Bell className="w-6 h-6 text-[#c9a84c]" />
+            <Bell className="w-6 h-6 text-[var(--gold)]" />
             Notifications
           </h1>
           <p className="text-white/40 text-sm mt-0.5">Send platform-wide announcements and alerts</p>
@@ -105,8 +105,8 @@ export default function AdminNotificationsPage() {
         <button
           onClick={() => { setCompose(true); setSendResult(null); }}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl
-                     bg-[#c9a84c] text-[#050b14] text-sm font-bold
-                     hover:bg-[#e8cc7a] transition-colors"
+                     bg-[var(--gold)] text-[var(--ink-900)] text-sm font-bold
+                     hover:bg-[var(--gold-light)] transition-colors"
         >
           <Plus className="w-4 h-4" /> Compose
         </button>
@@ -114,7 +114,7 @@ export default function AdminNotificationsPage() {
 
       {/* Compose panel */}
       {compose && (
-        <div className="rounded-2xl border border-[#c9a84c]/20 bg-[#0d1b2e] p-5 space-y-4">
+        <div className="rounded-2xl border border-[rgba(201,168,76,0.2)] bg-[#0d1b2e] p-5 space-y-4">
           <h2 className="font-bold text-white text-sm">New Notification</h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -123,8 +123,8 @@ export default function AdminNotificationsPage() {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value as NotifType }))}
-                className="w-full h-10 px-3 rounded-xl bg-[#080f1c] border border-white/[0.07]
-                           text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+                className="w-full h-10 px-3 rounded-xl bg-[var(--ink-800)] border border-white/[0.07]
+                           text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
               >
                 {(Object.keys(TYPE_STYLES) as NotifType[]).map(t => (
                   <option key={t} value={t}>{TYPE_STYLES[t].label}</option>
@@ -136,8 +136,8 @@ export default function AdminNotificationsPage() {
               <select
                 value={form.audience}
                 onChange={e => setForm(f => ({ ...f, audience: e.target.value as NotifAudience }))}
-                className="w-full h-10 px-3 rounded-xl bg-[#080f1c] border border-white/[0.07]
-                           text-white text-sm focus:outline-none focus:border-[#c9a84c]/40"
+                className="w-full h-10 px-3 rounded-xl bg-[var(--ink-800)] border border-white/[0.07]
+                           text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
               >
                 {(Object.keys(AUDIENCE_STYLES) as NotifAudience[]).map(a => (
                   <option key={a} value={a}>{AUDIENCE_STYLES[a].label}</option>
@@ -153,9 +153,9 @@ export default function AdminNotificationsPage() {
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Notification title…"
               maxLength={120}
-              className="w-full h-10 px-4 rounded-xl bg-[#080f1c] border border-white/[0.07]
+              className="w-full h-10 px-4 rounded-xl bg-[var(--ink-800)] border border-white/[0.07]
                          text-white text-sm placeholder:text-white/25 focus:outline-none
-                         focus:border-[#c9a84c]/40 transition-colors"
+                         focus:border-[rgba(201,168,76,0.4)] transition-colors"
             />
           </div>
 
@@ -167,9 +167,9 @@ export default function AdminNotificationsPage() {
               placeholder="Notification body…"
               rows={3}
               maxLength={500}
-              className="w-full px-4 py-3 rounded-xl bg-[#080f1c] border border-white/[0.07]
+              className="w-full px-4 py-3 rounded-xl bg-[var(--ink-800)] border border-white/[0.07]
                          text-white text-sm placeholder:text-white/25 focus:outline-none
-                         focus:border-[#c9a84c]/40 resize-none transition-colors"
+                         focus:border-[rgba(201,168,76,0.4)] resize-none transition-colors"
             />
           </div>
 
@@ -185,7 +185,7 @@ export default function AdminNotificationsPage() {
               onClick={() => sendMutation.mutate(form)}
               disabled={!form.title.trim() || !form.body.trim() || sendMutation.isPending}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold
-                         bg-[#c9a84c] text-[#050b14] hover:bg-[#e8cc7a] disabled:opacity-40
+                         bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[var(--gold-light)] disabled:opacity-40
                          transition-colors"
             >
               {sendMutation.isPending
@@ -211,7 +211,7 @@ export default function AdminNotificationsPage() {
             placeholder="Search notifications…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
                        text-white text-sm placeholder:text-white/25 focus:outline-none
-                       focus:border-[#c9a84c]/40"
+                       focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
         {(['ALL','DRAFT','SCHEDULED','SENT','FAILED'] as const).map(s => (
@@ -219,7 +219,7 @@ export default function AdminNotificationsPage() {
             className={cn(
               'px-3 py-2 rounded-xl text-xs font-semibold border transition-all',
               statusFilter === s
-                ? 'border-[#c9a84c]/40 text-[#c9a84c] bg-[#c9a84c]/10'
+                ? 'border-[rgba(201,168,76,0.4)] text-[var(--gold)] bg-[var(--gold-subtle)]'
                 : 'border-white/[0.07] text-white/40 hover:text-white hover:border-white/20',
             )}>
             {s === 'ALL' ? 'All' : STATUS_STYLES[s].label}
@@ -245,7 +245,7 @@ export default function AdminNotificationsPage() {
             <button onClick={() => refetch()} className="underline">Retry</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.07] bg-[#080f1c] py-16 text-center">
+          <div className="rounded-2xl border border-white/[0.07] bg-[var(--ink-800)] py-16 text-center">
             <Bell className="w-10 h-10 text-white/10 mx-auto mb-3" />
             <p className="text-sm font-semibold text-white/30">No notifications yet</p>
             <p className="text-xs text-white/20 mt-1">
@@ -261,7 +261,7 @@ export default function AdminNotificationsPage() {
             const AudIcon  = aud.icon;
             return (
               <div key={n.id}
-                   className="rounded-2xl border border-white/[0.07] bg-[#080f1c] p-4
+                   className="rounded-2xl border border-white/[0.07] bg-[var(--ink-800)] p-4
                               flex items-start gap-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                      style={{ background: type.bg }}>

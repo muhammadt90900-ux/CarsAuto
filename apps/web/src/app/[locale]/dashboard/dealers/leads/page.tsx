@@ -22,7 +22,7 @@ interface Lead {
 }
 
 const STATUS_STYLES = {
-  new:     { label: 'New',     dot: 'bg-[#c9a84c]',   text: 'text-[#e8cc7a]',   bg: 'bg-[#c9a84c]/10'   },
+  new:     { label: 'New',     dot: 'bg-[var(--gold)]',   text: 'text-[var(--gold-light)]',   bg: 'bg-[var(--gold-subtle)]'   },
   read:    { label: 'Read',    dot: 'bg-blue-400',     text: 'text-blue-300',    bg: 'bg-blue-400/10'    },
   replied: { label: 'Replied', dot: 'bg-emerald-400',  text: 'text-emerald-300', bg: 'bg-emerald-400/10' },
 };
@@ -79,7 +79,7 @@ export default function DealerLeadsPage() {
         <h1 className="font-display font-black text-white text-2xl">Leads & Enquiries</h1>
         <p className="text-white/40 text-sm mt-0.5">
           {counts.new > 0
-            ? <span className="text-[#e8cc7a] font-semibold">{counts.new} new lead{counts.new > 1 ? 's' : ''}</span>
+            ? <span className="text-[var(--gold-light)] font-semibold">{counts.new} new lead{counts.new > 1 ? 's' : ''}</span>
             : 'All caught up'
           }
           {counts.new > 0 ? ' waiting for response' : ''}
@@ -96,7 +96,7 @@ export default function DealerLeadsPage() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all',
                 filter === tab
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -117,7 +117,7 @@ export default function DealerLeadsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search leads…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function DealerLeadsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -151,8 +151,8 @@ export default function DealerLeadsPage() {
                   className={cn(
                     'w-full text-left p-4 rounded-2xl border transition-all',
                     isSelected
-                      ? 'bg-[#0d1b2e] border-[#c9a84c]/30'
-                      : 'bg-[#0b1525] border-white/[0.06] hover:border-white/[0.12]',
+                      ? 'bg-[#0d1b2e] border-[rgba(201,168,76,0.3)]'
+                      : 'bg-[var(--ink-750)] border-white/[0.06] hover:border-white/[0.12]',
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -175,7 +175,7 @@ export default function DealerLeadsPage() {
                         <span className="text-[0.65rem] text-white/25 capitalize">{lead.channel}</span>
                       </div>
                     </div>
-                    <ChevronRight className={cn('w-4 h-4 flex-shrink-0 mt-1 transition-colors', isSelected ? 'text-[#c9a84c]' : 'text-white/20')} />
+                    <ChevronRight className={cn('w-4 h-4 flex-shrink-0 mt-1 transition-colors', isSelected ? 'text-[var(--gold)]' : 'text-white/20')} />
                   </div>
                 </button>
               );
@@ -205,13 +205,13 @@ export default function DealerLeadsPage() {
               <div className="space-y-2">
                 {selected.phone && (
                   <a href={`tel:${selected.phone}`} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07] group hover:border-white/[0.14] transition-all">
-                    <Phone className="w-4 h-4 text-[#c9a84c]/70 flex-shrink-0" />
+                    <Phone className="w-4 h-4 text-[rgba(201,168,76,0.7)] flex-shrink-0" />
                     <span className="text-sm text-white/70 group-hover:text-white transition-colors">{selected.phone}</span>
                   </a>
                 )}
                 {selected.email && (
                   <a href={`mailto:${selected.email}`} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.07] group hover:border-white/[0.14] transition-all">
-                    <Mail className="w-4 h-4 text-[#c9a84c]/70 flex-shrink-0" />
+                    <Mail className="w-4 h-4 text-[rgba(201,168,76,0.7)] flex-shrink-0" />
                     <span className="text-sm text-white/70 group-hover:text-white transition-colors">{selected.email}</span>
                   </a>
                 )}

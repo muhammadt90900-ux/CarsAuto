@@ -25,9 +25,9 @@ const fetchListings = () => api.get('/admin/listings?limit=8&sort=newest').then(
 
 // ── Status config (lookup, not mock data) ─────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  ACTIVE:   { label: 'Active',   color: '#16a34a', bg: 'rgba(22,163,74,0.12)'   },
-  PENDING:  { label: 'Pending',  color: '#d97706', bg: 'rgba(217,119,6,0.12)'   },
-  REJECTED: { label: 'Rejected', color: '#dc2626', bg: 'rgba(220,38,38,0.12)'   },
+  ACTIVE:   { label: 'Active',   color: 'var(--status-success)', bg: 'rgba(22,163,74,0.12)'   },
+  PENDING:  { label: 'Pending',  color: 'var(--status-warning)', bg: 'rgba(217,119,6,0.12)'   },
+  REJECTED: { label: 'Rejected', color: 'var(--status-error)', bg: 'rgba(220,38,38,0.12)'   },
   SOLD:     { label: 'Sold',     color: '#6366f1', bg: 'rgba(99,102,241,0.12)'  },
   EXPIRED:  { label: 'Expired',  color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
 };
@@ -71,7 +71,7 @@ function MiniBarChart({ data }: { data: { label: string; listings: number; users
         <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
           <div className="w-full flex gap-0.5 items-end" style={{ height: 80 }}>
             <div
-              className="flex-1 rounded-t-sm bg-[var(--gold)]/70 transition-all duration-500"
+              className="flex-1 rounded-t-sm bg-[rgba(201,168,76,0.7)] transition-all duration-500"
               style={{ height: `${(d.listings / maxVal) * 80}px` }}
               title={`${d.listings} listings`}
             />
@@ -122,21 +122,21 @@ export function AdminDashboardClient() {
   const kpis = [
     { key: 'totalUsers',     label: 'Total Users',       value: stats?.totalUsers,     icon: Users,      color: '#22c55e' },
     { key: 'totalListings',  label: 'Total Listings',    value: stats?.totalListings,  icon: Car,        color: '#3b82f6' },
-    { key: 'activeListings', label: 'Active Listings',   value: stats?.activeListings, icon: Eye,        color: '#c9a84c' },
+    { key: 'activeListings', label: 'Active Listings',   value: stats?.activeListings, icon: Eye,        color: 'var(--gold)' },
     { key: 'totalReports',   label: 'Open Reports',      value: stats?.totalReports,   icon: FileWarning,color: '#ef4444' },
     { key: 'totalDealers',   label: 'Total Dealers',     value: stats?.totalDealers,   icon: Store,      color: '#8b5cf6' },
-    { key: 'activeSubscriptions', label: 'Premium Dealers', value: stats?.activeSubscriptions, icon: Crown, color: '#c9a84c' },
-    { key: 'totalRevenue',  label: 'Total Revenue',     value: stats?.totalRevenue,   icon: DollarSign, color: '#16a34a', isCurrency: true },
-    { key: 'bannedUsers',   label: 'Banned / Suspended', value: (stats?.bannedUsers ?? 0) + (stats?.suspendedUsers ?? 0), icon: Shield, color: '#dc2626' },
+    { key: 'activeSubscriptions', label: 'Premium Dealers', value: stats?.activeSubscriptions, icon: Crown, color: 'var(--gold)' },
+    { key: 'totalRevenue',  label: 'Total Revenue',     value: stats?.totalRevenue,   icon: DollarSign, color: 'var(--status-success)', isCurrency: true },
+    { key: 'bannedUsers',   label: 'Banned / Suspended', value: (stats?.bannedUsers ?? 0) + (stats?.suspendedUsers ?? 0), icon: Shield, color: 'var(--status-error)' },
   ];
 
   // ── Quick actions using real pending counts ──────────────────────────────
   const quickActions = [
-    { label: 'Review Pending Listings', count: stats?.pendingListings, color: '#d97706', icon: Clock,        href: `/${locale}/admin/moderation`     },
-    { label: 'Open User Reports',       count: stats?.totalReports,    color: '#dc2626', icon: FileWarning,  href: `/${locale}/admin/reports`        },
+    { label: 'Review Pending Listings', count: stats?.pendingListings, color: 'var(--status-warning)', icon: Clock,        href: `/${locale}/admin/moderation`     },
+    { label: 'Open User Reports',       count: stats?.totalReports,    color: 'var(--status-error)', icon: FileWarning,  href: `/${locale}/admin/reports`        },
     { label: 'Manage Users',            count: stats?.totalUsers,      color: '#22c55e', icon: Users,        href: `/${locale}/admin/users`          },
     { label: 'Pending Dealers',         count: stats?.pendingDealers,  color: '#8b5cf6', icon: Store,        href: `/${locale}/admin/dealers`        },
-    { label: 'Featured Listings',       count: stats?.featuredListings,color: '#c9a84c', icon: Shield,       href: `/${locale}/admin/featured`       },
+    { label: 'Featured Listings',       count: stats?.featuredListings,color: 'var(--gold)', icon: Shield,       href: `/${locale}/admin/featured`       },
     { label: 'Transactions',            count: null,                   color: '#3b82f6', icon: DollarSign,   href: `/${locale}/admin/transactions`   },
   ];
 
@@ -146,8 +146,8 @@ export function AdminDashboardClient() {
     { label: 'Dealers',           desc: stats?.totalDealers  ? `${fmtNum(stats.totalDealers)} registered`  : 'Manage dealers',  icon: Store,        color: '#8b5cf6', href: `/${locale}/admin/dealers`       },
     { label: 'Listings',          desc: stats?.totalListings ? `${fmtNum(stats.totalListings)} total`      : 'Manage listings', icon: Car,          color: '#3b82f6', href: `/${locale}/admin/listings`      },
     { label: 'Reports',           desc: stats?.totalReports  ? `${fmtNum(stats.totalReports)} open`        : 'No open reports', icon: FileWarning,  color: '#ef4444', href: `/${locale}/admin/reports`       },
-    { label: 'Transactions',      desc: 'Payments across all gateways',                                   icon: DollarSign,  color: '#16a34a', href: `/${locale}/admin/transactions`  },
-    { label: 'Subscriptions',     desc: stats?.activeSubscriptions ? `${fmtNum(stats.activeSubscriptions)} active` : 'Premium dealer plans', icon: Crown, color: '#c9a84c', href: `/${locale}/admin/subscriptions` },
+    { label: 'Transactions',      desc: 'Payments across all gateways',                                   icon: DollarSign,  color: 'var(--status-success)', href: `/${locale}/admin/transactions`  },
+    { label: 'Subscriptions',     desc: stats?.activeSubscriptions ? `${fmtNum(stats.activeSubscriptions)} active` : 'Premium dealer plans', icon: Crown, color: 'var(--gold)', href: `/${locale}/admin/subscriptions` },
     { label: 'Analytics',         desc: 'Listings & users over time',                                     icon: BarChart3,    color: '#3b82f6', href: `/${locale}/admin/analytics`     },
     { label: 'Audit Logs',        desc: 'Full action history',                                            icon: ClipboardList,color: '#8b5cf6', href: `/${locale}/admin/audit-logs`    },
     { label: 'Moderation',        desc: stats?.pendingListings ? `${fmtNum(stats.pendingListings)} pending` : 'Nothing pending', icon: ShieldCheck,  color: '#f59e0b', href: `/${locale}/admin/moderation`    },
@@ -166,7 +166,7 @@ export function AdminDashboardClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+          <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
             {(['7d','30d','90d'] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`px-3 sm:px-4 py-2 text-xs font-semibold transition-colors
@@ -180,7 +180,7 @@ export function AdminDashboardClient() {
           <button
             onClick={() => refetchStats()}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold
-                       bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
+                       bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)]
                        text-[var(--text-muted)] hover:text-[var(--gold)] hover:border-[var(--border-gold)] transition-all">
             <RefreshCw className="w-3.5 h-3.5"/><span className="hidden sm:inline">Refresh</span>
           </button>
@@ -244,7 +244,7 @@ export function AdminDashboardClient() {
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-bold text-[var(--text-primary)]">Platform Growth</h2>
             <div className="flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[var(--gold)]/70 inline-block"/>Listings</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[rgba(201,168,76,0.7)] inline-block"/>Listings</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500/50 inline-block"/>Users</span>
             </div>
           </div>

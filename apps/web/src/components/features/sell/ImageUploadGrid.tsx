@@ -101,7 +101,7 @@ export function ImageUploadGrid({
               className="w-full h-full object-cover"
             />
             {idx === 0 && (
-              <span className="absolute bottom-1 left-1 text-[9px] font-bold uppercase tracking-wider bg-[var(--gold)] text-[#050b14] px-1.5 py-0.5 rounded-md">
+              <span className="absolute bottom-1 left-1 text-[9px] font-bold uppercase tracking-wider bg-[var(--gold)] text-[var(--ink-900)] px-1.5 py-0.5 rounded-md">
                 Cover
               </span>
             )}

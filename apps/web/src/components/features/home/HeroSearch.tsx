@@ -71,24 +71,24 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
           ${disabled
             ? 'opacity-40 cursor-not-allowed bg-white/[0.03] border-white/[0.06]'
             : open
-              ? 'bg-[#c9a84c]/[0.10] border-[#c9a84c]/60 shadow-[0_0_0_3px_rgba(201,168,76,0.12)]'
-              : 'bg-white/[0.05] border-white/[0.10] hover:bg-white/[0.08] hover:border-[#c9a84c]/30 cursor-pointer'
+              ? 'bg-[rgba(201,168,76,0.1)] border-[rgba(201,168,76,0.6)] shadow-[0_0_0_3px_rgba(201,168,76,0.12)]'
+              : 'bg-white/[0.05] border-white/[0.10] hover:bg-white/[0.08] hover:border-[rgba(201,168,76,0.3)] cursor-pointer'
           }
         `}
       >
         <div className="flex flex-col min-w-0 gap-0.5">
-          <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold">{label}</span>
+          <span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.7)] font-bold">{label}</span>
           <span className={`truncate text-sm font-medium ${value ? 'text-white' : 'text-white/30'}`}>
             {value || placeholder || '---'}
           </span>
         </div>
-        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${open ? 'rotate-180 text-[#c9a84c]' : 'text-white/30'}`} />
+        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${open ? 'rotate-180 text-[var(--gold)]' : 'text-white/30'}`} />
       </button>
 
       {open && (
         <div className="absolute top-full mt-2 left-0 right-0 z-50
-                        bg-[#0b1525]/98 backdrop-blur-2xl
-                        border border-[#c9a84c]/20 rounded-xl
+                        bg-[rgba(11,21,37,0.98)] backdrop-blur-2xl
+                        border border-[rgba(201,168,76,0.2)] rounded-xl
                         shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
           <div className="max-h-52 overflow-y-auto no-scrollbar">
             <div
@@ -105,7 +105,7 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
                 onClick={() => { onChange(opt); setOpen(false); }}
                 className={`px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150
                   ${value === opt
-                    ? 'bg-[#c9a84c]/[0.15] text-[#c9a84c] font-semibold'
+                    ? 'bg-[rgba(201,168,76,0.15)] text-[var(--gold)] font-semibold'
                     : 'text-white/75 hover:bg-white/[0.06] hover:text-white'
                   }`}
               >
@@ -242,7 +242,7 @@ export function HeroSearch() {
       dir="rtl"
       className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(175deg, #050b14 0%, #080f1c 35%, #0b1525 65%, #050b14 100%)',
+        background: 'linear-gradient(175deg, var(--ink-900) 0%, var(--ink-800) 35%, var(--ink-750) 65%, var(--ink-900) 100%)',
         minHeight: 'calc(100vh * 0.82)',
       }}
     >
@@ -264,7 +264,7 @@ export function HeroSearch() {
         <div className="absolute inset-0 opacity-[0.015]"
           style={{ background:'linear-gradient(45deg, transparent 40%, rgba(201,168,76,1) 50%, transparent 60%)', backgroundSize:'200% 200%', animation:'sweep 8s ease-in-out infinite' }} />
         {/* Top fade (navbar bleed) */}
-        <div className="absolute top-0 inset-x-0 h-[68px] bg-gradient-to-b from-[#050b14] to-transparent" />
+        <div className="absolute top-0 inset-x-0 h-[68px] bg-gradient-to-b from-[var(--ink-900)] to-transparent" />
         {/* Enterprise grid overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.022]"
           style={{
@@ -298,15 +298,15 @@ export function HeroSearch() {
 
         {/* Live badge */}
         <div className="flex justify-center mb-6 hero-line-1">
-          <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[#c9a84c]/[0.09] border border-[#c9a84c]/22 text-[#c9a84c] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse pulse-gold" />
-            <span className="text-[#c9a84c]/65">🇮🇶</span>
+          <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse pulse-gold" />
+            <span className="text-[rgba(201,168,76,0.65)]">🇮🇶</span>
             <span className="text-white/50">Iraq</span>
             <span className="text-white/15">·</span>
-            <span className="text-[#c9a84c]/65">🇦🇪</span>
+            <span className="text-[rgba(201,168,76,0.65)]">🇦🇪</span>
             <span className="text-white/50">UAE</span>
             <span className="text-white/15">·</span>
-            <span className="text-[#c9a84c]/65">🇨🇳</span>
+            <span className="text-[rgba(201,168,76,0.65)]">🇨🇳</span>
             <span className="text-white/50">China</span>
           </span>
         </div>
@@ -316,10 +316,10 @@ export function HeroSearch() {
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl
                          font-extrabold text-white leading-[1.08] tracking-tight mb-4">
             دۆزینەوەی{' '}
-            <span className="relative" style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <span className="relative" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               ئۆتۆمبێلی
               <svg className="absolute -bottom-1 left-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
-                <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="#c9a84c" strokeWidth="2" fill="none" opacity="0.5"/>
+                <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.5"/>
               </svg>
             </span>
             {' '}تەواوت
@@ -337,11 +337,11 @@ export function HeroSearch() {
               onClick={() => setFilter('category', id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250
                 ${filters.category === id
-                  ? 'bg-gradient-to-r from-[#a87828] via-[#c9a84c] to-[#dab445] text-[#050b14] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[#c9a84c]/25 scale-[1.03]'
-                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[#c9a84c]/[0.07] hover:text-white/90 hover:border-[#c9a84c]/28 hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:scale-[1.01]'
+                  ? 'bg-gradient-to-r from-[#a87828] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[rgba(201,168,76,0.25)] scale-[1.03]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[rgba(201,168,76,0.07)] hover:text-white/90 hover:border-[rgba(201,168,76,0.28)] hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:scale-[1.01]'
                 }`}
             >
-              <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[#050b14]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
+              <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[var(--ink-900)]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
               <span className="hidden xs:inline">{label}</span>
               <span className="hidden sm:inline text-[10px] opacity-60">/ {labelEn}</span>
             </button>
@@ -355,7 +355,7 @@ export function HeroSearch() {
               key={tag}
               className="px-3 py-1 rounded-full text-[11px] font-semibold
                          bg-white/[0.05] border border-white/[0.10] text-white/45
-                         hover:bg-[#c9a84c]/10 hover:border-[#c9a84c]/30 hover:text-[#c9a84c]
+                         hover:bg-[var(--gold-subtle)] hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)]
                          transition-all duration-200"
             >
               {tag}
@@ -367,7 +367,7 @@ export function HeroSearch() {
         <div
           className={`hero-card rounded-2xl border transition-all duration-350 overflow-visible
                        ${ui.focused
-                         ? 'border-[#c9a84c]/55 shadow-[0_0_0_1px_rgba(201,168,76,0.14),0_24px_72px_rgba(0,0,0,0.55),0_0_48px_rgba(201,168,76,0.05)]'
+                         ? 'border-[rgba(201,168,76,0.55)] shadow-[0_0_0_1px_rgba(201,168,76,0.14),0_24px_72px_rgba(0,0,0,0.55),0_0_48px_rgba(201,168,76,0.05)]'
                          : 'border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.40)]'
                        }`}
           style={{ background:'linear-gradient(135deg, rgba(11,21,37,0.85) 0%, rgba(8,15,28,0.90) 100%)', backdropFilter:'blur(24px)' }}
@@ -375,7 +375,7 @@ export function HeroSearch() {
           {/* Search input + autocomplete */}
           <div ref={dropdownRef} className="relative">
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.07]">
-              <Search className={`w-5 h-5 flex-shrink-0 transition-colors duration-200 ${ui.focused ? 'text-[#c9a84c]' : 'text-white/25'}`} />
+              <Search className={`w-5 h-5 flex-shrink-0 transition-colors duration-200 ${ui.focused ? 'text-[var(--gold)]' : 'text-white/25'}`} />
               <input
                 ref={inputRef}
                 type="text"
@@ -384,7 +384,7 @@ export function HeroSearch() {
                 onFocus={() => setUi(s => ({ ...s, focused: true, showDropdown: true }))}
                 placeholder="گەڕان بکە... Toyota Land Cruiser، بەغدا، BMW 2023..."
                 className="flex-1 bg-transparent text-white placeholder-white/25
-                           outline-none text-base font-medium caret-[#c9a84c] hero-search-input"
+                           outline-none text-base font-medium caret-[var(--gold)] hero-search-input"
                 dir="rtl"
               />
               {search.query && (
@@ -401,12 +401,12 @@ export function HeroSearch() {
             {/* Suggestion / History / Trending panel */}
             {showSuggestionPanel && (
               <div className="dropdown-anim absolute top-full left-0 right-0 z-50 mt-1
-                              bg-[#0b1525]/98 backdrop-blur-2xl border border-[#c9a84c]/20
+                              bg-[rgba(11,21,37,0.98)] backdrop-blur-2xl border border-[rgba(201,168,76,0.2)]
                               rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
 
                 {search.suggestions.length > 0 && (
                   <div className="border-b border-white/[0.06]">
-                    <div className="px-4 pt-2.5 pb-1 text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/60 font-bold">
+                    <div className="px-4 pt-2.5 pb-1 text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.6)] font-bold">
                       پێشنیار / Suggestions
                     </div>
                     {search.suggestions.map(s => {
@@ -415,11 +415,11 @@ export function HeroSearch() {
                         <div key={s} onClick={() => handleSuggestionClick(s)}
                           className="flex items-center gap-3 px-4 py-2.5 cursor-pointer text-sm
                                      text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors">
-                          <Search className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" />
+                          <Search className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)] flex-shrink-0" />
                           <span>
                             {parts.map((p, i) =>
                               p.toLowerCase() === search.query.toLowerCase()
-                                ? <strong key={i} className="text-[#c9a84c] font-semibold">{p}</strong>
+                                ? <strong key={i} className="text-[var(--gold)] font-semibold">{p}</strong>
                                 : p
                             )}
                           </span>
@@ -460,7 +460,7 @@ export function HeroSearch() {
                       <div key={t} onClick={() => handleSuggestionClick(t)}
                         className="flex items-center gap-3 px-4 py-2.5 cursor-pointer text-sm
                                    text-white/50 hover:bg-white/[0.06] hover:text-white transition-colors">
-                        <TrendingUp className="w-3.5 h-3.5 text-[#c9a84c]/50 flex-shrink-0" />
+                        <TrendingUp className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)] flex-shrink-0" />
                         {t}
                       </div>
                     ))}
@@ -486,7 +486,7 @@ export function HeroSearch() {
                       className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium
                         transition-all duration-150
                         ${active
-                          ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
+                          ? 'border-[var(--gold)] bg-[var(--gold-subtle)] text-[var(--gold)]'
                           : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white/80'}`}>
                       <CarBrandLogo brand={m} size="xs" />
                       {name}
@@ -504,8 +504,8 @@ export function HeroSearch() {
                 type="button"
                 onClick={() => handleSearch()}
                 className="col-span-2 md:col-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap flex-shrink-0
-                           bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14]
-                           hover:from-[#c9a84c] hover:to-[#e6c258]
+                           bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[var(--ink-900)]
+                           hover:from-[var(--gold)] hover:to-[#e6c258]
                            shadow-[0_4px_20px_rgba(201,168,76,0.30)]
                            transition-all duration-200 active:scale-[0.98]"
               >
@@ -519,12 +519,12 @@ export function HeroSearch() {
               <button
                 type="button"
                 onClick={() => setUi(s => ({ ...s, showAdvanced: !s.showAdvanced }))}
-                className="flex items-center gap-1.5 text-xs text-white/35 hover:text-[#c9a84c] transition-colors duration-200"
+                className="flex items-center gap-1.5 text-xs text-white/35 hover:text-[var(--gold)] transition-colors duration-200"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>فلتەری پیشکەوتوو / Advanced Filters</span>
                 {activeFiltersCount > 0 && (
-                  <span className="bg-[#c9a84c] text-[#050b14] text-[9px] font-black
+                  <span className="bg-[var(--gold)] text-[var(--ink-900)] text-[9px] font-black
                                    rounded-full w-4 h-4 flex items-center justify-center">
                     {activeFiltersCount}
                   </span>
@@ -562,28 +562,28 @@ export function HeroSearch() {
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex flex-col min-w-0 gap-0.5">
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold">کێلۆمەتری کەم / Min KM</span>
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.7)] font-bold">کێلۆمەتری کەم / Min KM</span>
                     <input type="number" value={filters.minMileage} onChange={e => setFilter('minMileage', e.target.value)}
                       placeholder="0"
                       className="bg-white/[0.05] border border-white/[0.10] rounded-xl
                                  px-3 py-2 text-sm text-white placeholder-white/25
-                                 outline-none focus:border-[#c9a84c]/60 transition-colors" />
+                                 outline-none focus:border-[rgba(201,168,76,0.6)] transition-colors" />
                   </div>
                   <span className="text-white/20 text-sm flex-shrink-0 mt-3">—</span>
                   <div className="flex-1 flex flex-col min-w-0 gap-0.5">
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold">کێلۆمەتری زۆر / Max KM</span>
+                    <span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.7)] font-bold">کێلۆمەتری زۆر / Max KM</span>
                     <input type="number" value={filters.maxMileage} onChange={e => setFilter('maxMileage', e.target.value)}
                       placeholder="300,000"
                       className="bg-white/[0.05] border border-white/[0.10] rounded-xl
                                  px-3 py-2 text-sm text-white placeholder-white/25
-                                 outline-none focus:border-[#c9a84c]/60 transition-colors" />
+                                 outline-none focus:border-[rgba(201,168,76,0.6)] transition-colors" />
                   </div>
                 </div>
               </div>
 
               {/* Condition chips */}
               <div className="mt-4">
-                <span className="text-[9px] uppercase tracking-[0.12em] text-[#c9a84c]/70 font-bold block mb-2">
+                <span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.7)] font-bold block mb-2">
                   حاڵەت / Condition
                 </span>
                 <div className="flex gap-2 flex-wrap">
@@ -592,8 +592,8 @@ export function HeroSearch() {
                       onClick={() => setFilter('condition', filters.condition === c ? '' : c)}
                       className={`px-3 py-1.5 rounded-lg text-xs border transition-all duration-200
                         ${filters.condition === c
-                          ? 'bg-[#c9a84c]/[0.20] border-[#c9a84c]/60 text-[#c9a84c]'
-                          : 'border-white/[0.10] text-white/50 bg-white/[0.04] hover:border-[#c9a84c]/40 hover:text-[#c9a84c]'
+                          ? 'bg-[rgba(201,168,76,0.2)] border-[rgba(201,168,76,0.6)] text-[var(--gold)]'
+                          : 'border-white/[0.10] text-white/50 bg-white/[0.04] hover:border-[rgba(201,168,76,0.4)] hover:text-[var(--gold)]'
                         }`}>
                       {c}
                     </button>
@@ -611,7 +611,7 @@ export function HeroSearch() {
             <button key={tag} onClick={() => { setSearch(s => ({ ...s, query: tag })); handleSearch(tag); }}
               className="px-3 py-1 rounded-full text-xs
                          bg-white/[0.04] border border-white/[0.08] text-white/45
-                         hover:border-[#c9a84c]/35 hover:text-[#c9a84c]/90 hover:bg-[#c9a84c]/[0.06]
+                         hover:border-[var(--gold-glow-lg)] hover:text-[rgba(201,168,76,0.9)] hover:bg-[rgba(201,168,76,0.06)]
                          transition-all duration-200">
               {tag}
             </button>
@@ -621,7 +621,7 @@ export function HeroSearch() {
         {/* Popular vehicles toggle */}
         <div className="mt-6 flex justify-center">
           <button onClick={() => setUi(s => ({ ...s, showPopular: !s.showPopular }))}
-            className="flex items-center gap-2 text-xs text-white/30 hover:text-[#c9a84c] transition-colors">
+            className="flex items-center gap-2 text-xs text-white/30 hover:text-[var(--gold)] transition-colors">
             <Star className="w-3.5 h-3.5" />
             <span>ئۆتۆمبێلی بەناوبانگ / Popular Vehicles</span>
             <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${ui.showPopular ? 'rotate-180' : ''}`} />
@@ -637,16 +637,16 @@ export function HeroSearch() {
             {POPULAR_VEHICLES.map((v, i) => (
               <div key={i}
                 className="rounded-xl border border-white/[0.08] bg-white/[0.03]
-                           hover:border-[#c9a84c]/30 hover:bg-white/[0.05]
+                           hover:border-[rgba(201,168,76,0.3)] hover:bg-white/[0.05]
                            transition-all duration-200 cursor-pointer p-3">
-                <div className="text-[10px] text-[#c9a84c]/70 mb-1">{v.badge}</div>
+                <div className="text-[10px] text-[rgba(201,168,76,0.7)] mb-1">{v.badge}</div>
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-white">
                     <CarBrandLogo brand={v.brand} size="xs" />
                     {v.brand} {v.model}
                   </div>
                 <div className="text-xs text-white/40 mt-0.5">{v.year} · {v.mileage}</div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[#c9a84c] font-bold text-sm">{v.price}</span>
+                  <span className="text-[var(--gold)] font-bold text-sm">{v.price}</span>
                   <span className="text-white/30 text-[10px] flex items-center gap-0.5">
                     <MapPin className="w-2.5 h-2.5" />{v.city}
                   </span>
@@ -665,7 +665,7 @@ export function HeroSearch() {
                 className={`stat-item text-center py-2 relative ${i < STATS.length - 1 ? 'sm:border-e sm:border-white/[0.08]' : ''}`}
                 style={{ animationDelay:`${0.35 + i * 0.07}s` }}>
                 <div className="text-2xl sm:text-3xl font-display font-extrabold mb-0.5 tabular-nums"
-                  style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{value}</div>
+                  style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{value}</div>
                 <div className="text-white/40 text-xs font-medium">
                   {label}<span className="text-white/20 mx-1">/</span>{labelEn}
                 </div>
@@ -679,7 +679,7 @@ export function HeroSearch() {
       <div className="relative z-10 h-12 overflow-hidden">
         <svg viewBox="0 0 1440 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full">
           <path d="M0,48 L0,24 Q180,0 360,24 Q540,48 720,24 Q900,0 1080,24 Q1260,48 1440,24 L1440,48 Z"
-            fill="currentColor" className="text-[#f8fafc] dark:text-[#050b14]" />
+            fill="currentColor" className="text-[var(--surface-50)] dark:text-[var(--ink-900)]" />
         </svg>
       </div>
     </section>

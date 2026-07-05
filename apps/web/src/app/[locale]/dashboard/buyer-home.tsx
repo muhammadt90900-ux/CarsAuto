@@ -53,9 +53,9 @@ function StatChip({
       className={cn(
         'flex flex-col items-center gap-1.5 px-5 py-4 rounded-2xl',
         'border transition-all duration-200 hover:scale-[1.02]',
-        'bg-white dark:bg-[#0b1525]',
+        'bg-white dark:bg-[var(--ink-750)]',
         'border-gray-100 dark:border-white/[0.07]',
-        'hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/20',
+        'hover:border-[rgba(201,168,76,0.3)] dark:hover:border-[rgba(201,168,76,0.2)]',
       )}
     >
       <Icon className={cn('w-5 h-5', color)} aria-hidden />
@@ -81,12 +81,12 @@ function QuotaCard({
 
   if (!subscribed) {
     return (
-      <div className="rounded-2xl border border-[#c9a84c]/30 dark:border-[#c9a84c]/20
-                      bg-gradient-to-br from-[#c9a84c]/10 to-[#9e6e1e]/5
-                      dark:from-[#c9a84c]/10 dark:to-[#9e6e1e]/10 p-5">
+      <div className="rounded-2xl border border-[rgba(201,168,76,0.3)] dark:border-[rgba(201,168,76,0.2)]
+                      bg-gradient-to-br from-[var(--gold-subtle)] to-[#9e6e1e]/5
+                      dark:from-[var(--gold-subtle)] dark:to-[#9e6e1e]/10 p-5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#c9a84c]/15 flex items-center justify-center flex-shrink-0">
-            <CreditCard className="w-6 h-6 text-[#c9a84c]" aria-hidden />
+          <div className="w-12 h-12 rounded-2xl bg-[rgba(201,168,76,0.15)] flex items-center justify-center flex-shrink-0">
+            <CreditCard className="w-6 h-6 text-[var(--gold)]" aria-hidden />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-gray-900 dark:text-white">Activate Buyer Plan</h3>
@@ -96,7 +96,7 @@ function QuotaCard({
             <div className="mt-3 flex flex-wrap gap-2">
               {['Post up to 2 cars/month', 'Direct seller messages', 'Featured placement'].map(f => (
                 <span key={f} className="inline-flex items-center gap-1 text-[11px] font-medium
-                                         text-[#9e6e1e] dark:text-[#d4b45a] bg-[#c9a84c]/15 dark:bg-[#c9a84c]/15
+                                         text-[#9e6e1e] dark:text-[#d4b45a] bg-[rgba(201,168,76,0.15)] dark:bg-[rgba(201,168,76,0.15)]
                                          px-2 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3" /> {f}
                 </span>
@@ -106,7 +106,7 @@ function QuotaCard({
           <Link
             href={`/${locale}/dashboard/subscription`}
             className="flex-shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-xl
-                       text-sm font-bold bg-[#c9a84c] text-white
+                       text-sm font-bold bg-[var(--gold)] text-white
                        hover:bg-[#b8943c] transition-colors shadow-[0_4px_14px_rgba(201,168,76,0.35)]"
           >
             Activate <ArrowUpRight className="w-3.5 h-3.5" />
@@ -197,7 +197,7 @@ function ListingCard({ listing, locale }: { listing: any; locale: string }) {
     <div className="flex items-center gap-3 p-3 rounded-xl
                     bg-slate-50 dark:bg-white/[0.03]
                     border border-slate-100 dark:border-white/[0.05]
-                    hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/20
+                    hover:border-[rgba(201,168,76,0.3)] dark:hover:border-[rgba(201,168,76,0.2)]
                     transition-all duration-200">
       <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 flex-shrink-0
                       flex items-center justify-center">
@@ -294,7 +294,7 @@ export default function BuyerDashboardHome() {
             </h1>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
                              text-[11px] font-bold
-                             bg-[#c9a84c]/15 text-[#9e6e1e] dark:bg-[#c9a84c]/15 dark:text-[#d4b45a]">
+                             bg-[rgba(201,168,76,0.15)] text-[#9e6e1e] dark:bg-[rgba(201,168,76,0.15)] dark:text-[#d4b45a]">
               <ShoppingBag className="w-3 h-3" /> Buyer
             </span>
           </div>
@@ -306,7 +306,7 @@ export default function BuyerDashboardHome() {
         <Link
           href={`/${locale}/cars`}
           className="flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl
-                     text-sm font-bold bg-[#c9a84c] text-white
+                     text-sm font-bold bg-[var(--gold)] text-white
                      hover:bg-[#b8943c] transition-all duration-200
                      shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
         >
@@ -336,7 +336,7 @@ export default function BuyerDashboardHome() {
           icon={Car}
           label="Listed this month"
           value={listingsLoading ? '—' : `${listingsCount}/2`}
-          color="text-[#c9a84c]"
+          color="text-[var(--gold)]"
           href={`/${locale}/dashboard/listings`}
           locale={locale}
         />
@@ -355,7 +355,7 @@ export default function BuyerDashboardHome() {
 
         {/* My Listed Cars — 2/3 width */}
         <div className="lg:col-span-2 rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-[#0b1525] overflow-hidden">
+                        bg-white dark:bg-[var(--ink-750)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b
                           border-gray-100 dark:border-white/[0.07]">
             <div>
@@ -366,7 +366,7 @@ export default function BuyerDashboardHome() {
             </div>
             <Link
               href={`/${locale}/dashboard/listings`}
-              className="text-xs text-[#c9a84c] font-semibold hover:text-[#9e6e1e] transition-colors
+              className="text-xs text-[var(--gold)] font-semibold hover:text-[#9e6e1e] transition-colors
                          flex items-center gap-1"
             >
               View all <ChevronRight className="w-3 h-3" />
@@ -384,7 +384,7 @@ export default function BuyerDashboardHome() {
               ))
             ) : (
               <div className="py-8 flex flex-col items-center justify-center text-center">
-                <div className="w-14 h-14 rounded-2xl bg-[#c9a84c]/10 dark:bg-[#c9a84c]/10
+                <div className="w-14 h-14 rounded-2xl bg-[var(--gold-subtle)] dark:bg-[var(--gold-subtle)]
                                 flex items-center justify-center mb-3">
                   <Car className="w-7 h-7 text-[#d4b45a]" aria-hidden />
                 </div>
@@ -398,7 +398,7 @@ export default function BuyerDashboardHome() {
                   <Link
                     href={`/${locale}/dashboard/listings/new`}
                     className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg
-                               text-xs font-bold bg-[#c9a84c] text-white hover:bg-[#b8943c] transition-colors"
+                               text-xs font-bold bg-[var(--gold)] text-white hover:bg-[#b8943c] transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" /> Post Your Car
                   </Link>
@@ -406,7 +406,7 @@ export default function BuyerDashboardHome() {
                   <Link
                     href={`/${locale}/dashboard/subscription`}
                     className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg
-                               text-xs font-bold bg-[#c9a84c] text-white hover:bg-[#b8943c] transition-colors"
+                               text-xs font-bold bg-[var(--gold)] text-white hover:bg-[#b8943c] transition-colors"
                   >
                     <CreditCard className="w-3.5 h-3.5" /> Activate Buyer Plan
                   </Link>
@@ -424,7 +424,7 @@ export default function BuyerDashboardHome() {
                            text-sm font-semibold border border-dashed
                            border-gray-200 dark:border-white/[0.10]
                            text-gray-400 dark:text-white/30
-                           hover:border-[#c9a84c]/50 hover:text-[#c9a84c]
+                           hover:border-[rgba(201,168,76,0.5)] hover:text-[var(--gold)]
                            transition-all duration-200"
               >
                 <Plus className="w-4 h-4" /> Add another listing ({2 - monthlyUsed} remaining)
@@ -438,12 +438,12 @@ export default function BuyerDashboardHome() {
 
           {/* Saved Cars */}
           <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                          bg-white dark:bg-[#0b1525] overflow-hidden">
+                          bg-white dark:bg-[var(--ink-750)] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b
                             border-gray-100 dark:border-white/[0.07]">
               <h2 className="font-bold text-gray-900 dark:text-white text-sm">Saved Cars</h2>
               <Link href={`/${locale}/dashboard/favorites`}
-                    className="text-xs text-[#c9a84c] hover:text-[#9e6e1e] font-semibold
+                    className="text-xs text-[var(--gold)] hover:text-[#9e6e1e] font-semibold
                                transition-colors flex items-center gap-0.5">
                 All <ChevronRight className="w-3 h-3" />
               </Link>
@@ -489,7 +489,7 @@ export default function BuyerDashboardHome() {
                   <Heart className="w-8 h-8 text-gray-200 dark:text-white/10 mx-auto mb-2" />
                   <p className="text-xs text-gray-400">No saved cars yet</p>
                   <Link href={`/${locale}/cars`}
-                        className="text-[11px] text-[#c9a84c] font-semibold mt-1 inline-block">
+                        className="text-[11px] text-[var(--gold)] font-semibold mt-1 inline-block">
                     Browse listings →
                   </Link>
                 </div>
@@ -499,7 +499,7 @@ export default function BuyerDashboardHome() {
 
           {/* Browsing History */}
           <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                          bg-white dark:bg-[#0b1525] overflow-hidden">
+                          bg-white dark:bg-[var(--ink-750)] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b
                             border-gray-100 dark:border-white/[0.07]">
               <h2 className="font-bold text-gray-900 dark:text-white text-sm">Recently Viewed</h2>
@@ -531,7 +531,7 @@ export default function BuyerDashboardHome() {
                   <History className="w-8 h-8 text-gray-200 dark:text-white/10 mx-auto mb-2" />
                   <p className="text-xs text-gray-400">No recent browsing</p>
                   <Link href={`/${locale}/cars`}
-                        className="text-[11px] text-[#c9a84c] font-semibold mt-1 inline-block">
+                        className="text-[11px] text-[var(--gold)] font-semibold mt-1 inline-block">
                     Start browsing →
                   </Link>
                 </div>

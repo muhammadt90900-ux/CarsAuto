@@ -12,10 +12,10 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const VARIANTS: Record<Variant, string> = {
-  gold:    'bg-[rgba(201,168,76,0.14)] text-[#c9a84c] border-[rgba(201,168,76,0.25)]',
-  green:   'bg-[rgba(22,163,74,0.12)] text-[#16a34a] border-[rgba(22,163,74,0.22)]',
-  blue:    'bg-[rgba(37,99,235,0.12)] text-[#3b82f6] border-[rgba(37,99,235,0.22)]',
-  red:     'bg-[rgba(220,38,38,0.12)] text-[#ef4444] border-[rgba(220,38,38,0.22)]',
+  gold:    'bg-gold/10 text-gold border-gold/25',
+  green:   'bg-status-success/10 text-status-success border-status-success/25',
+  blue:    'bg-status-info/10 text-status-info border-status-info/25',
+  red:     'bg-status-error/10 text-status-error border-status-error/25',
   purple:  'bg-[rgba(168,85,247,0.12)] text-[#a855f7] border-[rgba(168,85,247,0.22)]',
   grey:    'bg-[rgba(100,116,139,0.12)] text-[#64748b] border-[rgba(100,116,139,0.22)]',
   outline: 'bg-transparent text-[var(--text-muted)] border-[var(--border-default)]',
@@ -27,10 +27,10 @@ const SIZES: Record<Size, string> = {
 };
 
 const DOT_COLORS: Record<Variant, string> = {
-  gold:    'bg-[#c9a84c]',
-  green:   'bg-[#16a34a]',
-  blue:    'bg-[#3b82f6]',
-  red:     'bg-[#ef4444]',
+  gold:    'bg-gold',
+  green:   'bg-status-success',
+  blue:    'bg-status-info',
+  red:     'bg-status-error',
   purple:  'bg-[#a855f7]',
   grey:    'bg-[#64748b]',
   outline: 'bg-[#64748b]',

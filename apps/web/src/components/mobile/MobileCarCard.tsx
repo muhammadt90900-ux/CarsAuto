@@ -109,7 +109,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
           className={cn(
             'relative card-interactive',
             'rounded-2xl overflow-hidden',
-            'bg-[#0b1525] border border-white/[0.06]',
+            'bg-[var(--ink-750)] border border-white/[0.06]',
             pressing && 'scale-[0.98]'
           )}
           style={{
@@ -156,7 +156,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
             <div className="absolute top-2.5 left-2.5 flex gap-1.5">
               {car.featured && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full
-                                  bg-[#c9a84c] text-[#1a0e00] text-[9px] font-bold uppercase tracking-wide">
+                                  bg-[var(--gold)] text-[#1a0e00] text-[9px] font-bold uppercase tracking-wide">
                   <Star className="w-2.5 h-2.5 fill-current" />
                   Featured
                 </span>
@@ -207,7 +207,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
             <div className="flex items-center gap-3 text-[0.72rem] text-white/40">
               {car.city && (
                 <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#c9a84c]/60" />
+                  <MapPin className="w-3 h-3 text-[rgba(201,168,76,0.6)]" />
                   {car.city}
                 </span>
               )}
@@ -228,7 +228,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
             {/* Price row */}
             <div className="flex items-center justify-between pt-1
                              border-t border-white/[0.05]">
-              <p className="text-[1.05rem] font-display font-extrabold text-[#c9a84c]">
+              <p className="text-[1.05rem] font-display font-extrabold text-[var(--gold)]">
                 {car.price}
               </p>
               <button

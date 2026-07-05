@@ -267,7 +267,7 @@ export function PaymentMethodSelector({ country, selected, onSelect }: Props) {
               opt.comingSoon
                 ? 'border-gray-200 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.01] opacity-60 cursor-not-allowed'
                 : isSelected
-                ? 'border-[#c9a84c] bg-[#c9a84c]/5 dark:bg-[#c9a84c]/10'
+                ? 'border-[var(--gold)] bg-[rgba(201,168,76,0.05)] dark:bg-[var(--gold-subtle)]'
                 : 'border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/20',
             ].join(' ')}
           >
@@ -319,7 +319,7 @@ export function PaymentMethodSelector({ country, selected, onSelect }: Props) {
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                   isSelected
-                    ? 'border-[#c9a84c] bg-[#c9a84c]'
+                    ? 'border-[var(--gold)] bg-[var(--gold)]'
                     : 'border-gray-300 dark:border-white/20'
                 }`}
               >

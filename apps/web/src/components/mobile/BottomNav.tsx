@@ -40,9 +40,9 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
       <Link
         href="/dashboard/listings/new"
         className="fixed z-40 flex items-center gap-1.5 rounded-full shadow-[0_8px_32px_rgba(201,168,76,0.50)]
-                   md:hidden px-4 h-12 text-sm font-bold text-[#050b14]"
+                   md:hidden px-4 h-12 text-sm font-bold text-[var(--ink-900)]"
         style={{
-          background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)',
+          background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)',
           boxShadow: '0 8px 32px rgba(201,168,76,0.55), 0 2px 8px rgba(201,168,76,0.30)',
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
           right: '1rem',
@@ -79,12 +79,12 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
                 aria-current={active ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center gap-0.5 pt-2 pb-1
                             min-w-[52px] flex-1 transition-all duration-200 select-none
-                            ${active ? 'text-[#c9a84c]' : 'text-white/30 hover:text-white/55'}`}
+                            ${active ? 'text-[var(--gold)]' : 'text-white/30 hover:text-white/55'}`}
               >
                 {/* Active bar */}
                 {active && (
                   <span aria-hidden="true" className="absolute top-0 inset-x-2 h-[2px] rounded-full"
-                    style={{ background: 'linear-gradient(90deg, transparent, #c9a84c, #f0d87a, #c9a84c, transparent)' }} />
+                    style={{ background: 'linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent)' }} />
                 )}
 
                 <div className={`p-1.5 rounded-xl transition-all duration-200
@@ -92,7 +92,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
                   <Icon className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <span className={`text-[9px] font-bold tracking-wide leading-none
-                                  ${active ? 'text-[#c9a84c] font-black' : 'text-white/25'}`}>
+                                  ${active ? 'text-[var(--gold)] font-black' : 'text-white/25'}`}>
                   {label}
                 </span>
               </Link>

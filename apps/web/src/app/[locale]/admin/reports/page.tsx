@@ -30,7 +30,7 @@ interface Report {
 
 const TYPE_STYLES: Record<ReportType, { label: string; icon: any; color: string }> = {
   LISTING: { label: 'Listing',  icon: Car,           color: '#3b82f6' },
-  DEALER:  { label: 'Dealer',   icon: Store,         color: '#c9a84c' },
+  DEALER:  { label: 'Dealer',   icon: Store,         color: 'var(--gold)' },
   USER:    { label: 'User',     icon: AlertTriangle, color: '#f59e0b' },
   MESSAGE: { label: 'Message',  icon: MessageSquare, color: '#8b5cf6' },
 };
@@ -150,7 +150,7 @@ export default function AdminReportsPage() {
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border',
               statusFilter === val
-                ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] border-transparent'
+                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] border-transparent'
                 : 'bg-[#0d1b2e] border-white/[0.07] text-white/50 hover:text-white/80',
             )}
           >
@@ -158,7 +158,7 @@ export default function AdminReportsPage() {
             {count != null && count > 0 && (
               <span className={cn(
                 'w-5 h-5 rounded-full text-[0.62rem] font-black flex items-center justify-center',
-                statusFilter === val ? 'bg-[#0d1b2e] text-[#c9a84c]' : 'bg-white/[0.08] text-white/60',
+                statusFilter === val ? 'bg-[#0d1b2e] text-[var(--gold)]' : 'bg-white/[0.08] text-white/60',
               )}>{count}</span>
             )}
           </button>
@@ -173,7 +173,7 @@ export default function AdminReportsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Filter this page by reason, reporter, target…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
@@ -184,7 +184,7 @@ export default function AdminReportsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                 typeFilter === t
-                  ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -197,7 +197,7 @@ export default function AdminReportsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -241,7 +241,7 @@ export default function AdminReportsPage() {
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors cursor-pointer',
                       i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
-                      'hover:bg-[#c9a84c]/[0.03]',
+                      'hover:bg-[rgba(201,168,76,0.03)]',
                     )}
                     onClick={() => setDetail(report)}
                   >
@@ -313,7 +313,7 @@ export default function AdminReportsPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>

@@ -26,7 +26,7 @@ function MiniSparkline({ values, color }: { values?: number[]; color: string }) 
   const colorMap: Record<string, string> = {
     blue: '#3b82f6', emerald: '#10b981', violet: '#8b5cf6', amber: '#f59e0b',
   };
-  const c = colorMap[color] ?? '#c9a84c';
+  const c = colorMap[color] ?? 'var(--gold)';
   // Fill area
   const fillPts = `0,${h} ${pts} ${w},${h}`;
   return (
@@ -47,8 +47,8 @@ function MiniSparkline({ values, color }: { values?: number[]; color: string }) 
 function StatCard({ labelKey, value, change, trend, icon: Icon, color, iconBg, sparkline, t }: any) {
   return (
     <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                    bg-white dark:bg-[#0b1525] p-5 space-y-4
-                    hover:border-[#c9a84c]/25 dark:hover:border-[#c9a84c]/20
+                    bg-white dark:bg-[var(--ink-750)] p-5 space-y-4
+                    hover:border-[rgba(201,168,76,0.25)] dark:hover:border-[rgba(201,168,76,0.2)]
                     transition-all duration-200 group">
       <div className="flex items-start justify-between">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
@@ -156,7 +156,7 @@ export default function SellerDashboardHome() {
     : [];
 
   const quickActions = [
-    { label: 'Post a Listing', icon: Plus,         href: `/${locale}/dashboard/listings`, color: 'text-[#c9a84c] bg-[#c9a84c]/10 hover:bg-[#c9a84c]/20', primary: true },
+    { label: 'Post a Listing', icon: Plus,         href: `/${locale}/dashboard/listings`, color: 'text-[var(--gold)] bg-[var(--gold-subtle)] hover:bg-[rgba(201,168,76,0.2)]', primary: true },
     { label: 'View Messages',  icon: MessageSquare, href: `/${locale}/dashboard/messages`, color: 'text-violet-400 bg-violet-500/10 hover:bg-violet-500/15', badge: unreadMessages > 0 ? String(unreadMessages) : undefined },
     { label: 'Notifications',  icon: Bell,          href: `/${locale}/dashboard/notifications`, color: 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/15', badge: unreadNotifs > 0 ? String(unreadNotifs) : undefined },
     { label: 'My Favorites',   icon: Star,          href: `/${locale}/dashboard/favorites`, color: 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/15' },
@@ -183,7 +183,7 @@ export default function SellerDashboardHome() {
         <Link
           href="/dashboard/listings"
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm font-bold
-                     bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a]
+                     bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a]
                      transition-all duration-200 shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
         >
           <Plus className="w-4 h-4" />
@@ -199,7 +199,7 @@ export default function SellerDashboardHome() {
                             border transition-all duration-200 font-semibold text-xs text-center
                             ${color}
                             ${primary
-                              ? 'border-[#c9a84c]/30 hover:border-[#c9a84c]/50'
+                              ? 'border-[rgba(201,168,76,0.3)] hover:border-[rgba(201,168,76,0.5)]'
                               : 'border-gray-100 dark:border-white/[0.06] hover:border-transparent'}`}>
             <Icon className="w-5 h-5" aria-hidden />
             {label}
@@ -218,7 +218,7 @@ export default function SellerDashboardHome() {
         {listingsLoading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                                      bg-white dark:bg-[#0b1525] p-5 space-y-4 animate-pulse">
+                                      bg-white dark:bg-[var(--ink-750)] p-5 space-y-4 animate-pulse">
                 <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5" />
                 <div className="space-y-2">
                   <div className="h-6 w-1/2 bg-gray-100 dark:bg-white/5 rounded" />
@@ -235,12 +235,12 @@ export default function SellerDashboardHome() {
 
         {/* Recent listings — 2/3 */}
         <div className="lg:col-span-2 rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-[#0b1525] overflow-hidden">
+                        bg-white dark:bg-[var(--ink-750)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b
                           border-gray-100 dark:border-white/[0.07]">
             <h2 className="font-bold text-gray-900 dark:text-white">Recent Listings</h2>
             <Link href="/dashboard/listings"
-                  className="text-xs text-[#c9a84c] font-semibold hover:text-[#d4b45a] transition-colors
+                  className="text-xs text-[var(--gold)] font-semibold hover:text-[#d4b45a] transition-colors
                              flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
             </Link>
@@ -274,7 +274,7 @@ export default function SellerDashboardHome() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <p className="text-sm font-bold text-[#c9a84c]">{listing.price}</p>
+                    <p className="text-sm font-bold text-[var(--gold)]">{listing.price}</p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.cls}`}>
                       {s.label}
                     </span>
@@ -288,7 +288,7 @@ export default function SellerDashboardHome() {
               href="/dashboard/listings"
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold
                          border border-dashed border-gray-200 dark:border-white/[0.10]
-                         text-gray-400 dark:text-white/30 hover:border-[#c9a84c]/40 hover:text-[#c9a84c]
+                         text-gray-400 dark:text-white/30 hover:border-[rgba(201,168,76,0.4)] hover:text-[var(--gold)]
                          transition-all duration-200"
             >
               <Plus className="w-4 h-4" /> Add new listing
@@ -298,12 +298,12 @@ export default function SellerDashboardHome() {
 
         {/* Activity feed — real notifications ─────────────── */}
         <div className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-[#0b1525] overflow-hidden">
+                        bg-white dark:bg-[var(--ink-750)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b
                           border-gray-100 dark:border-white/[0.07]">
             <h2 className="font-bold text-gray-900 dark:text-white">Activity</h2>
             <Link href={`/${locale}/dashboard/notifications`}
-                  className="text-xs text-[#c9a84c] hover:text-[#d4b45a] transition-colors">
+                  className="text-xs text-[var(--gold)] hover:text-[#d4b45a] transition-colors">
               View all
             </Link>
           </div>
@@ -312,7 +312,7 @@ export default function SellerDashboardHome() {
               activityItems.map((item: any, i: number) => (
                 <div key={item.id ?? i} className="flex items-start gap-3 px-5 py-3.5">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
-                                   bg-gray-100 dark:bg-white/5 text-[#c9a84c] mt-0.5">
+                                   bg-gray-100 dark:bg-white/5 text-[var(--gold)] mt-0.5">
                     <Bell className="w-3.5 h-3.5" aria-hidden />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -341,11 +341,11 @@ export default function SellerDashboardHome() {
 
       {/* ── Upsell / tip banner ──────────────────────────────── */}
       <div className="rounded-2xl p-5 flex items-center justify-between gap-4
-                      bg-gradient-to-r from-[#c9a84c]/10 to-[#9e6e1e]/5
-                      border border-[#c9a84c]/20">
+                      bg-gradient-to-r from-[var(--gold-subtle)] to-[#9e6e1e]/5
+                      border border-[rgba(201,168,76,0.2)]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#c9a84c]/20 flex items-center justify-center flex-shrink-0">
-            <TrendingUp className="w-5 h-5 text-[#c9a84c]" aria-hidden />
+          <div className="w-10 h-10 rounded-xl bg-[rgba(201,168,76,0.2)] flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-5 h-5 text-[var(--gold)]" aria-hidden />
           </div>
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-white">Boost your listings</p>
@@ -357,7 +357,7 @@ export default function SellerDashboardHome() {
         <Link
           href="/dashboard/subscription"
           className="flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold
-                     bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a] transition-all duration-200
+                     bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a] transition-all duration-200
                      shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
         >
           Upgrade <ChevronRight className="w-3.5 h-3.5" />

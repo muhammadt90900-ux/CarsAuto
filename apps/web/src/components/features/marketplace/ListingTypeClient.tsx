@@ -118,8 +118,8 @@ function ListingCard({
   if (view === 'list') {
     return (
       <Link href={`/${config.routeSegment}/${listing.id}`} className="block group">
-        <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[#c9a84c]/28">
-          <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[#0f1c2e] flex items-center justify-center text-4xl">
+        <article className="card-premium flex gap-4 p-4 dark:bg-gradient-to-r dark:from-[#0d1e35] dark:to-[#0a1528] dark:hover:border-[rgba(201,168,76,0.28)]">
+          <div className="flex-shrink-0 w-28 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-[var(--ink-700)] flex items-center justify-center text-4xl">
             {config.cardIcon}
           </div>
           <div className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ function ListingCard({
               </div>
               <span
                 className="price-tag text-xl flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
               >
                 {fmtPrice.format(listing.price ?? 0)}
               </span>
@@ -151,7 +151,7 @@ function ListingCard({
   return (
     <Link href={`/${config.routeSegment}/${listing.id}`} className="block group">
       <article className="card-premium overflow-hidden h-full flex flex-col dark:bg-gradient-to-b dark:from-[#0d1e35] dark:to-[#0a1528]">
-        <div className="aspect-square bg-slate-50 dark:bg-[#0f1c2e] flex items-center justify-center text-6xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+        <div className="aspect-square bg-slate-50 dark:bg-[var(--ink-700)] flex items-center justify-center text-6xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
           {config.cardIcon}
         </div>
         <div className="p-4 flex flex-col flex-1">
@@ -164,7 +164,7 @@ function ListingCard({
           <div className="pt-3 mt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
             <span
               className="price-tag text-lg"
-              style={{ background: 'linear-gradient(135deg, #f0d87a 0%, #c9a84c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+              style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
             >
               {fmtPrice.format(listing.price ?? 0)}
             </span>
@@ -304,7 +304,7 @@ export function ListingTypeClient({
     <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-[var(--surface-0)] dark:bg-[var(--ink-900)]">
       <div
         className="relative overflow-hidden border-b border-[var(--border-default)]"
-        style={{ background: 'linear-gradient(135deg, #050b14 0%, #0b1525 60%, #050b14 100%)' }}
+        style={{ background: 'linear-gradient(135deg, var(--ink-900) 0%, var(--ink-750) 60%, var(--ink-900) 100%)' }}
       >
         <div className="absolute inset-0 opacity-[0.025] bg-dot-grid" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -324,7 +324,7 @@ export function ListingTypeClient({
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div
               className="sticky top-[calc(var(--navbar-h)+1.5rem)] rounded-2xl
-                         bg-white dark:bg-[#0b1525] border border-[var(--border-default)]
+                         bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)]
                          shadow-[var(--shadow-sm)] p-5 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar"
             >
               <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2 mb-5">
@@ -341,7 +341,7 @@ export function ListingTypeClient({
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                             bg-white dark:bg-[#0b1525] border border-[var(--border-default)] shadow-[var(--shadow-sm)]
+                             bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]
                              text-[var(--text-secondary)] hover:border-[var(--border-gold)]"
                 >
                   <SlidersHorizontal className="w-4 h-4" />Filters
@@ -355,7 +355,7 @@ export function ListingTypeClient({
                 <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="input-base h-9 text-xs w-44">
                   {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[#0b1525]">
+                <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   {(['grid', 'list'] as const).map((v) => (
                     <button
                       key={v}
@@ -399,8 +399,8 @@ export function ListingTypeClient({
                     className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
                       ${p === page
                         ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]'
-                        : 'bg-white dark:bg-[#0b1525] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
-                    style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, #c9a84c 50%, #dab445 100%)' } : undefined}
+                        : 'bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
+                    style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' } : undefined}
                   >
                     {p}
                   </button>
@@ -414,7 +414,7 @@ export function ListingTypeClient({
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[#0b1525] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
               <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]">

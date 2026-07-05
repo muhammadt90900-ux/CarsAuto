@@ -30,10 +30,10 @@ interface FeaturedDealer {
 }
 
 const TIER_ACCENT: Record<string, string> = {
-  PLATINUM: '#c9a84c',
+  PLATINUM: 'var(--gold)',
   GOLD:     '#f59e0b',
   STANDARD: '#3b82f6',
-  BASIC:    '#ffffff33',
+  BASIC:    'var(--surface-0)33',
 };
 
 // PERF: memoised card — only re-renders when dealer prop changes identity
@@ -52,7 +52,7 @@ const DealerCard = memo(function DealerCard({
       href="/dealers/${dealer.slug}"
       className="group flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
                  bg-[#0d1b2e] border border-white/[0.07]
-                 hover:border-[#c9a84c]/32 transition-all duration-350
+                 hover:border-[rgba(201,168,76,0.32)] transition-all duration-350
                  hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(0,0,0,0.60),0_0_0_1px_rgba(201,168,76,0.05)] relative"
       style={{ '--accent': accent } as React.CSSProperties}
       prefetch={false}
@@ -100,7 +100,7 @@ const DealerCard = memo(function DealerCard({
         <div className="flex items-start gap-1">
           <div className="flex-1 min-w-0">
             <p className="font-display font-bold text-white text-sm leading-snug line-clamp-1
-                          group-hover:text-[#e8cc7a] transition-colors">
+                          group-hover:text-[var(--gold-light)] transition-colors">
               {name}
             </p>
             {dealer.taglineEn && (
@@ -109,20 +109,20 @@ const DealerCard = memo(function DealerCard({
               </p>
             )}
           </div>
-          <CheckCircle2 className="w-3.5 h-3.5 text-[#c9a84c] flex-shrink-0 mt-0.5" />
+          <CheckCircle2 className="w-3.5 h-3.5 text-[var(--gold)] flex-shrink-0 mt-0.5" />
         </div>
 
         {dealer.location && (
           <div className="flex items-center gap-1 text-[0.65rem] text-white/35">
-            <MapPin className="w-2.5 h-2.5 text-[#c9a84c]/50" />
+            <MapPin className="w-2.5 h-2.5 text-[rgba(201,168,76,0.5)]" />
             {dealer.location.city}
           </div>
         )}
 
         <div className="flex items-center justify-between pt-1 border-t border-white/[0.05]">
           <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-[#c9a84c] fill-[#c9a84c]" />
-            <span className="text-xs font-bold text-[#e8cc7a]">
+            <Star className="w-3 h-3 text-[var(--gold)] fill-[var(--gold)]" />
+            <span className="text-xs font-bold text-[var(--gold-light)]">
               {dealer.averageRating.toFixed(1)}
             </span>
             <span className="text-[0.65rem] text-white/25">({dealer.totalReviews})</span>
@@ -178,24 +178,24 @@ export function FeaturedDealers({ locale = 'en' }: { locale?: string }) {
         {/* Section header */}
         <div className="flex items-end justify-between mb-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.16em] bg-[#c9a84c]/10 border border-[#c9a84c]/22 text-[#c9a84c] mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.16em] bg-[var(--gold-subtle)] border border-[var(--gold-glow)] text-[var(--gold)] mb-3">
               ● Verified Dealers
             </div>
             <h2 className="font-display font-black text-white text-2xl">
-              Top <span style={{ background: 'linear-gradient(135deg, #e8cc7a, #c9a84c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dealerships</span>
+              Top <span style={{ background: 'linear-gradient(135deg, var(--gold-light), var(--gold))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dealerships</span>
             </h2>
           </div>
           <Link
             href="/dealers"
-            className="flex items-center gap-1.5 text-sm font-semibold text-white/40 hover:text-[#c9a84c] transition-colors duration-200 px-3 py-1.5 rounded-lg hover:bg-[#c9a84c]/[0.06] border border-transparent hover:border-[#c9a84c]/20"
+            className="flex items-center gap-1.5 text-sm font-semibold text-white/40 hover:text-[var(--gold)] transition-colors duration-200 px-3 py-1.5 rounded-lg hover:bg-[rgba(201,168,76,0.06)] border border-transparent hover:border-[rgba(201,168,76,0.2)]"
           >
             View all <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="relative">
-          <div className="absolute left-0 top-0 bottom-3 w-8 z-10 pointer-events-none bg-gradient-to-r from-[#050b14] to-transparent hidden lg:block" />
-          <div className="absolute right-0 top-0 bottom-3 w-16 z-10 pointer-events-none bg-gradient-to-l from-[#050b14] to-transparent" />
+          <div className="absolute left-0 top-0 bottom-3 w-8 z-10 pointer-events-none bg-gradient-to-r from-[var(--ink-900)] to-transparent hidden lg:block" />
+          <div className="absolute right-0 top-0 bottom-3 w-16 z-10 pointer-events-none bg-gradient-to-l from-[var(--ink-900)] to-transparent" />
           <div
             ref={scrollRef}
             className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"

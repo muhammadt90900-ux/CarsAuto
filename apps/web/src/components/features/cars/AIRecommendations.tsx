@@ -93,7 +93,7 @@ const ScoreRing = memo(function ScoreRing({ score }: { score: number }) {
   const r = 14;
   const circ = 2 * Math.PI * r;
   const filled = (score / 100) * circ;
-  const color = score >= 70 ? '#10b981' : score >= 45 ? '#c9a84c' : '#6b7280';
+  const color = score >= 70 ? '#10b981' : score >= 45 ? 'var(--gold)' : '#6b7280';
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" className="flex-shrink-0">
       <circle cx="18" cy="18" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="3" />
@@ -142,14 +142,14 @@ const AICarCard = memo(function AICarCard({
       <article
         className={cn(
           'relative flex flex-col rounded-2xl overflow-hidden h-full',
-          'bg-[#0b1525] border border-white/[0.06]',
+          'bg-[var(--ink-750)] border border-white/[0.06]',
           'transition-all duration-300 ease-out',
-          'hover:border-[#c9a84c]/40 hover:shadow-[0_20px_60px_rgba(201,168,76,0.12)]',
+          'hover:border-[rgba(201,168,76,0.4)] hover:shadow-[0_20px_60px_rgba(201,168,76,0.12)]',
           'hover:-translate-y-0.5',
         )}
       >
         {/* Image */}
-        <div className="relative h-44 overflow-hidden bg-[#080f1c]">
+        <div className="relative h-44 overflow-hidden bg-[var(--ink-800)]">
           {image && !imgError ? (
             <Image
               src={image}
@@ -167,7 +167,7 @@ const AICarCard = memo(function AICarCard({
             </div>
           )}
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1525] via-transparent to-transparent opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink-750)] via-transparent to-transparent opacity-80" />
 
           {/* Like button */}
           <button
@@ -208,7 +208,7 @@ const AICarCard = memo(function AICarCard({
           </div>
 
           {/* Title */}
-          <h3 className="text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-[#c9a84c] transition-colors duration-200">
+          <h3 className="text-sm font-bold text-white leading-snug line-clamp-2 group-hover:text-[var(--gold)] transition-colors duration-200">
             {title}
           </h3>
 
@@ -246,14 +246,14 @@ const AICarCard = memo(function AICarCard({
 
           {/* Price + Arrow */}
           <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/[0.05]">
-            <span className="text-base font-black text-[#c9a84c] tracking-tight">
+            <span className="text-base font-black text-[var(--gold)] tracking-tight">
               {fmtPrice(listing.price, listing.currency ?? 'USD')}
             </span>
             <div
               className={cn(
                 'w-8 h-8 rounded-xl flex items-center justify-center',
-                'bg-[#c9a84c]/10 text-[#c9a84c]',
-                'group-hover:bg-[#c9a84c]/25 transition-colors duration-200',
+                'bg-[var(--gold-subtle)] text-[var(--gold)]',
+                'group-hover:bg-[rgba(201,168,76,0.25)] transition-colors duration-200',
               )}
             >
               <ArrowRight className="w-4 h-4" />
@@ -290,7 +290,7 @@ function BudgetInput({
           className={cn(
             'w-full pl-8 pr-4 py-3 rounded-xl text-sm font-semibold text-white',
             'bg-white/[0.05] border border-white/[0.08] outline-none',
-            'focus:border-[#c9a84c]/50 focus:bg-white/[0.07]',
+            'focus:border-[rgba(201,168,76,0.5)] focus:bg-white/[0.07]',
             'placeholder:text-white/25 transition-all duration-200',
           )}
         />
@@ -329,12 +329,12 @@ function SearchTagsInput({
           className={cn(
             'flex-1 px-4 py-3 rounded-xl text-sm font-medium text-white',
             'bg-white/[0.05] border border-white/[0.08] outline-none',
-            'focus:border-[#c9a84c]/50 placeholder:text-white/25 transition-all',
+            'focus:border-[rgba(201,168,76,0.5)] placeholder:text-white/25 transition-all',
           )}
         />
         <button
           onClick={submit}
-          className="px-4 py-3 rounded-xl bg-[#c9a84c]/15 text-[#c9a84c] hover:bg-[#c9a84c]/25 transition-colors font-semibold text-sm"
+          className="px-4 py-3 rounded-xl bg-[rgba(201,168,76,0.15)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.25)] transition-colors font-semibold text-sm"
         >
           +
         </button>
@@ -365,7 +365,7 @@ function SearchTagsInput({
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden bg-[#0b1525] border border-white/[0.06] animate-pulse">
+    <div className="rounded-2xl overflow-hidden bg-[var(--ink-750)] border border-white/[0.06] animate-pulse">
       <div className="h-44 bg-white/[0.04]" />
       <div className="p-4 space-y-3">
         <div className="h-3 bg-white/[0.05] rounded-full w-1/3" />
@@ -514,8 +514,8 @@ export function AIRecommendations({
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#c9a84c]/30 to-[#7c4dff]/30 flex items-center justify-center border border-white/[0.08]">
-            <Sparkles className="w-4.5 h-4.5 text-[#c9a84c]" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[rgba(201,168,76,0.3)] to-[#7c4dff]/30 flex items-center justify-center border border-white/[0.08]">
+            <Sparkles className="w-4.5 h-4.5 text-[var(--gold)]" />
           </div>
           <div>
             <h2 className="text-base font-bold text-white leading-tight">
@@ -542,7 +542,7 @@ export function AIRecommendations({
             className={cn(
               'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200',
               activeTab === key
-                ? 'bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/30 shadow-[0_0_12px_rgba(201,168,76,0.15)]'
+                ? 'bg-[rgba(201,168,76,0.2)] text-[var(--gold)] border border-[rgba(201,168,76,0.3)] shadow-[0_0_12px_rgba(201,168,76,0.15)]'
                 : 'bg-white/[0.04] text-white/45 hover:bg-white/[0.07] hover:text-white/65 border border-transparent',
             )}
           >
@@ -591,12 +591,12 @@ export function AIRecommendations({
       {results.length > 0 && (
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-white/[0.05]">
           <div className="flex items-center gap-2 text-xs text-white/25">
-            <Sparkles className="w-3.5 h-3.5 text-[#c9a84c]/50" />
+            <Sparkles className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)]" />
             {t('powered_by', locale)}
           </div>
           <Link
             href="/cars"
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c]/70 hover:text-[#c9a84c] transition-colors duration-200"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[rgba(201,168,76,0.7)] hover:text-[var(--gold)] transition-colors duration-200"
           >
             {t('view_all', locale)}
             <ChevronRight className="w-3.5 h-3.5" />

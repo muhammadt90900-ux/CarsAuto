@@ -57,7 +57,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#c9a84c] hover:text-[#d4b45a] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--gold)] hover:text-[#d4b45a] transition-colors"
             >
               <Check className="w-3.5 h-3.5" aria-hidden />
               {t('markAllRead')}
@@ -112,7 +112,7 @@ export default function NotificationsPage() {
                             transition-all duration-200 group
                             ${n.read
                               ? 'border-gray-100 dark:border-white/[0.05] bg-white dark:bg-transparent'
-                              : 'border-[#c9a84c]/20 bg-[#c9a84c]/[0.03] dark:border-white/[0.08] dark:bg-white/[0.03]'
+                              : 'border-[rgba(201,168,76,0.2)] bg-[rgba(201,168,76,0.03)] dark:border-white/[0.08] dark:bg-white/[0.03]'
                             }
                             hover:border-gray-200 dark:hover:border-white/10`}
               >
@@ -126,7 +126,7 @@ export default function NotificationsPage() {
                     </p>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {!n.read && (
-                        <span className="w-2 h-2 rounded-full bg-[#c9a84c] flex-shrink-0" aria-label="Unread" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--gold)] flex-shrink-0" aria-label="Unread" />
                       )}
                       <span className="text-xs text-gray-400">{n.time}</span>
                     </div>

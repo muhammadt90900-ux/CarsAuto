@@ -61,7 +61,7 @@ export default function AdminFeaturedPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all',
               tab === val
-                ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                 : 'text-white/40 hover:text-white/70',
             )}
           >
@@ -111,7 +111,7 @@ function FeaturedListingsPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
       </div>
     );
   }
@@ -157,7 +157,7 @@ function FeaturedListingsPanel() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{listing.titleEn || listing.titleKu || 'Untitled'}</p>
-                <p className="text-xs text-[#c9a84c] font-bold">{fmtPrice(listing.price, listing.currency)}</p>
+                <p className="text-xs text-[var(--gold)] font-bold">{fmtPrice(listing.price, listing.currency)}</p>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs text-white/30">
@@ -229,7 +229,7 @@ function AdsPanel() {
       <div className="flex justify-end">
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[#c9a84c]/20 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all"
         >
           <Plus className="w-4 h-4" />
           New Ad
@@ -238,7 +238,7 @@ function AdsPanel() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -283,7 +283,7 @@ function AdsPanel() {
                           <p className="text-sm font-semibold text-white truncate max-w-[180px]">{ad.title}</p>
                           {ad.linkUrl && (
                             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer"
-                               className="text-[0.68rem] text-white/30 hover:text-[#c9a84c] flex items-center gap-1 truncate max-w-[180px]">
+                               className="text-[0.68rem] text-white/30 hover:text-[var(--gold)] flex items-center gap-1 truncate max-w-[180px]">
                               <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
                               {ad.linkUrl}
                             </a>
@@ -381,22 +381,22 @@ function CreateAdModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           <div>
             <label className="text-xs text-white/40 mb-1 block">Title</label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Summer sale promo"
-                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40" />
+                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]" />
           </div>
           <div>
             <label className="text-xs text-white/40 mb-1 block">Image URL (https)</label>
             <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://res.cloudinary.com/…"
-                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40" />
+                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]" />
           </div>
           <div>
             <label className="text-xs text-white/40 mb-1 block">Link URL</label>
             <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://…"
-                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40" />
+                   className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]" />
           </div>
           <div>
             <label className="text-xs text-white/40 mb-1 block">Placement</label>
             <select value={placement} onChange={e => setPlacement(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[#c9a84c]/40">
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]">
               {PLACEMENTS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
@@ -407,7 +407,7 @@ function CreateAdModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         <button
           onClick={submit}
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[#c9a84c]/20 transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all disabled:opacity-50"
         >
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Create Ad

@@ -34,7 +34,7 @@ export function AdminLayout({ children, locale }: AdminLayoutProps) {
           aria-hidden="true"
         />
       )}
-      <div id="admin-sidebar" className={`sidebar-mobile-drawer lg:hidden bg-white dark:bg-[#080f1c] border-e border-slate-100 dark:border-white/[0.07] pt-[68px] ${drawerOpen ? 'open' : ''}`}>
+      <div id="admin-sidebar" className={`sidebar-mobile-drawer lg:hidden bg-white dark:bg-[var(--ink-800)] border-e border-slate-100 dark:border-white/[0.07] pt-[68px] ${drawerOpen ? 'open' : ''}`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.07]">
           <span className="text-sm font-bold text-[var(--text-primary)]">Admin Panel</span>
           <button

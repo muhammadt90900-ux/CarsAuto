@@ -135,7 +135,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />
         <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
-        <meta name="msapplication-TileColor" content="#050b14" />
+        <meta name="msapplication-TileColor" content="var(--ink-900)" />
         <meta name="msapplication-config" content="none" />
         <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />

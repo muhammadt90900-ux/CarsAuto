@@ -141,8 +141,8 @@ export function Drawer({
         aria-labelledby={title ? titleId : undefined}
         className={cn(
           'fixed inset-x-0 bottom-0 z-50',
-          'bg-[#080f1c] rounded-t-3xl',
-          'border-t border-[#c9a84c]/10',
+          'bg-[var(--ink-800)] rounded-t-3xl',
+          'border-t border-[var(--gold-subtle)]',
           'shadow-[0_-20px_80px_rgba(0,0,0,0.80)]',
           'will-change-transform',
           !dragging && 'transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]',

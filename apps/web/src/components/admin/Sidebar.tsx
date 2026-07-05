@@ -69,7 +69,7 @@ export function AdminSidebar({ className }: { className?: string }) {
 
   return (
     <aside className={cn(
-      'relative flex flex-col min-h-full bg-white dark:bg-[#080f1c] border-e border-slate-100 dark:border-white/[0.07] p-3 w-56',
+      'relative flex flex-col min-h-full bg-white dark:bg-[var(--ink-800)] border-e border-slate-100 dark:border-white/[0.07] p-3 w-56',
       className,
     )}>
       <div className="absolute inset-x-0 top-0 h-[2px] gold-line" />
@@ -79,13 +79,13 @@ export function AdminSidebar({ className }: { className?: string }) {
         <Link href="/admin" className="flex items-center gap-2.5 group">
           <div
             className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             <Shield className="w-4 h-4 text-white" aria-hidden />
           </div>
           <div>
             <p className="text-[.82rem] font-bold text-slate-900 dark:text-white tracking-tight">
-              CarsAuto<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[var(--gold)]">Pro</span>
             </p>
             <p className="text-[10px] text-slate-400 dark:text-white/30">Admin Panel</p>
           </div>
@@ -112,13 +112,13 @@ export function AdminSidebar({ className }: { className?: string }) {
                     className={cn(
                       'group flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                       active
-                        ? 'bg-[#c9a84c]/[0.12] text-[#c9a84c]'
+                        ? 'bg-[rgba(201,168,76,0.12)] text-[var(--gold)]'
                         : 'text-slate-600 dark:text-white/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white',
                     )}
                   >
                     <span className="flex items-center gap-2.5">
                       <Icon
-                        className={cn('w-4 h-4', active ? 'text-[#c9a84c]' : 'text-slate-400 dark:text-white/30')}
+                        className={cn('w-4 h-4', active ? 'text-[var(--gold)]' : 'text-slate-400 dark:text-white/30')}
                         aria-hidden
                       />
                       {label}
@@ -128,7 +128,7 @@ export function AdminSidebar({ className }: { className?: string }) {
                         <span className={cn(
                           'min-w-[18px] h-[18px] px-1 rounded-full text-[0.6rem] font-black flex items-center justify-center',
                           active
-                            ? 'bg-[#c9a84c] text-[#0d1b2e]'
+                            ? 'bg-[var(--gold)] text-[#0d1b2e]'
                             : 'bg-red-500 text-white',
                         )}>
                           {badge > 99 ? '99+' : badge}
@@ -137,7 +137,7 @@ export function AdminSidebar({ className }: { className?: string }) {
                         <ChevronRight
                           className={cn(
                             'w-3 h-3 transition-all',
-                            active ? 'text-[#c9a84c] opacity-100' : 'opacity-0 group-hover:opacity-60',
+                            active ? 'text-[var(--gold)] opacity-100' : 'opacity-0 group-hover:opacity-60',
                           )}
                           aria-hidden
                         />

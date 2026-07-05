@@ -78,9 +78,9 @@ export default function ProfilePage() {
 
       {/* ── ئاڤاتار ────────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-[#c9a84c]/20 border-2 border-[#c9a84c]/40
+        <div className="w-16 h-16 rounded-full bg-[rgba(201,168,76,0.2)] border-2 border-[rgba(201,168,76,0.4)]
                         flex items-center justify-center flex-shrink-0">
-          <span className="text-2xl font-bold text-[#c9a84c]">
+          <span className="text-2xl font-bold text-[var(--gold)]">
             {form.name?.charAt(0)?.toUpperCase() ?? '?'}
           </span>
         </div>
@@ -89,7 +89,7 @@ export default function ProfilePage() {
           <p className="text-white/40 text-xs truncate">{user?.email ?? ''}</p>
           {user?.role && (
             <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[10px]
-                             font-bold bg-[#c9a84c]/15 text-[#c9a84c] border border-[#c9a84c]/25">
+                             font-bold bg-[rgba(201,168,76,0.15)] text-[var(--gold)] border border-[rgba(201,168,76,0.25)]">
               {user.role}
             </span>
           )}
@@ -111,8 +111,8 @@ export default function ProfilePage() {
                 placeholder={placeholder}
                 className="w-full bg-white/5 border border-white/10 rounded-xl
                            px-4 pr-10 py-2.5 text-white placeholder:text-white/25
-                           text-sm focus:outline-none focus:border-[#c9a84c]/40
-                           focus:ring-1 focus:ring-[#c9a84c]/20 transition-all duration-200"
+                           text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]
+                           focus:ring-1 focus:ring-[rgba(201,168,76,0.2)] transition-all duration-200"
               />
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function ProfilePage() {
         onClick={handleSave}
         disabled={loading}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                   bg-[#c9a84c] text-[#050b14] font-bold text-sm
+                   bg-[var(--gold)] text-[var(--ink-900)] font-bold text-sm
                    disabled:opacity-60 disabled:cursor-not-allowed
                    hover:bg-[#d4b45a] active:scale-[0.98]
                    shadow-[0_4px_16px_rgba(201,168,76,0.35)]

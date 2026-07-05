@@ -64,7 +64,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
           <Link
             href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             {/* ku: بڕۆ بۆ چوونەژوورەوە */}
             Back to login
@@ -112,7 +112,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
             <Link
               href="/login"
               className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
-              style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+              style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
             >
               {/* ku: چوونەژوورەوە */}
               Sign in
@@ -135,7 +135,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
                      shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
-          style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+          style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
         >
           <Mail size={26} className="text-[#0a0f1a]" />
         </div>
@@ -184,7 +184,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
           <Link
             href="/login"
             className="inline-block py-2.5 px-6 rounded-xl font-bold text-sm text-[#0a0f1a] transition-all"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             {/* ku: چوونەژوورەوە */}
             Sign in now

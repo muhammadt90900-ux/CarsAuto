@@ -109,6 +109,11 @@
     --font-arabic:  'Noto Sans Arabic', sans-serif;
     --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
 
+    /* WhatsApp (contact CTA) — was hardcoded ad hoc in DealerCard; formalized here */
+    --whatsapp:        #25D366;
+    --whatsapp-subtle: rgba(37,211,102,0.10);
+    --whatsapp-glow:   rgba(37,211,102,0.20);
+
     /* Layout */
     --navbar-h:   68px;
     --sidebar-w:  280px;

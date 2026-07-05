@@ -21,7 +21,7 @@ const PART_CATEGORIES = [
 
 function PartCardSkeleton() {
   return (
-    <div className="rounded-xl overflow-hidden bg-white dark:bg-[#0b1525] border border-slate-100 dark:border-white/[0.06]" aria-hidden="true">
+    <div className="rounded-xl overflow-hidden bg-white dark:bg-[var(--ink-750)] border border-slate-100 dark:border-white/[0.06]" aria-hidden="true">
       <div className="h-32 skeleton" />
       <div className="p-3 space-y-2">
         <div className="h-3 skeleton rounded w-3/4" />
@@ -43,9 +43,9 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
   return (
     <Link href={`/parts/${part.id}`} className="block group" prefetch={false}>
       <article className="rounded-xl overflow-hidden h-full flex flex-col
-                          bg-white dark:bg-[#0b1525]
+                          bg-white dark:bg-[var(--ink-750)]
                           border border-slate-100 dark:border-white/[0.06]
-                          hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/30
+                          hover:border-[rgba(201,168,76,0.3)] dark:hover:border-[rgba(201,168,76,0.3)]
                           hover:shadow-[var(--shadow-md)]
                           transition-all duration-250 hover:-translate-y-1">
         <div className="h-32 overflow-hidden flex-shrink-0 bg-slate-50 dark:bg-[#060f1a] relative">
@@ -60,7 +60,7 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-[#0b1525] dark:to-[#0f1c2e]">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-[var(--ink-750)] dark:to-[var(--ink-700)]">
               <Package className="w-8 h-8 text-slate-200 dark:text-white/10" />
             </div>
           )}
@@ -74,7 +74,7 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
           )}
         </div>
         <div className="p-3 flex flex-col flex-1" dir="rtl">
-          <h4 className="text-xs font-semibold text-[var(--text-primary)] truncate mb-1 leading-snug group-hover:text-[#c9a84c] transition-colors duration-200 line-clamp-2">
+          <h4 className="text-xs font-semibold text-[var(--text-primary)] truncate mb-1 leading-snug group-hover:text-[var(--gold)] transition-colors duration-200 line-clamp-2">
             {part.titleEn || part.titleKu}
           </h4>
           {part.make && (
@@ -84,7 +84,7 @@ const PartCard = memo(function PartCard({ part }: { part: any }) {
             <span className="text-sm font-extrabold text-gold tabular-nums font-display">
               ${part.price?.toLocaleString() || '---'}
             </span>
-            <Tag className="w-3 h-3 text-[var(--text-faint)] group-hover:text-[#c9a84c]/70 transition-colors duration-200" />
+            <Tag className="w-3 h-3 text-[var(--text-faint)] group-hover:text-[rgba(201,168,76,0.7)] transition-colors duration-200" />
           </div>
         </div>
       </article>
@@ -110,8 +110,8 @@ export function RecentParts() {
           onClick={() => setActiveCategory('')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 whitespace-nowrap
             ${activeCategory === ''
-              ? 'bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14] shadow-[var(--shadow-gold-sm)]'
-              : 'bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[var(--text-muted)] hover:border-[#c9a84c]/30 hover:text-[#c9a84c]'
+              ? 'bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[var(--ink-900)] shadow-[var(--shadow-gold-sm)]'
+              : 'bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[var(--text-muted)] hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)]'
             }`}
         >
           هەموو / All
@@ -122,8 +122,8 @@ export function RecentParts() {
             onClick={() => setActiveCategory(prev => prev === cat.id ? '' : cat.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 whitespace-nowrap
               ${activeCategory === cat.id
-                ? 'bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[#050b14] shadow-[var(--shadow-gold-sm)]'
-                : 'bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[var(--text-muted)] hover:border-[#c9a84c]/30 hover:text-[#c9a84c]'
+                ? 'bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[var(--ink-900)] shadow-[var(--shadow-gold-sm)]'
+                : 'bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[var(--text-muted)] hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)]'
               }`}
           >
             <span role="img" aria-label={cat.labelEn}>{cat.emoji}</span>

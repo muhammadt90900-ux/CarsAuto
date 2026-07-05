@@ -17,8 +17,8 @@ type PlanId = 'BASIC' | 'PREMIUM' | 'ENTERPRISE' | 'BUYER';
 const BUYER_PLAN = {
   id: 'BUYER' as PlanId,
   icon: Car,
-  accent: 'text-[#c9a84c]',
-  border: 'border-[#c9a84c]/40',
+  accent: 'text-[var(--gold)]',
+  border: 'border-[rgba(201,168,76,0.4)]',
   badge: null as string | null,
   label:    { ku: 'پلانی کڕیار', ar: 'خطة المشتري', en: 'Buyer Plan', zh: '买家计划' },
   priceUSD: 2.99,
@@ -51,8 +51,8 @@ const PLANS = [
   {
     id: 'PREMIUM' as PlanId,
     icon: Zap,
-    accent: 'text-[#c9a84c]',
-    border: 'border-[#c9a84c]/40',
+    accent: 'text-[var(--gold)]',
+    border: 'border-[rgba(201,168,76,0.4)]',
     badge: 'mostPopular',
     label:    { ku: 'پریمیەم',   ar: 'مميز',     en: 'Premium',    zh: '高级版' },
     priceUSD: 49.99,
@@ -170,7 +170,7 @@ export default function SubscriptionPage() {
         {currentPlan && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {t('currentPlan')}:{' '}
-            <span className="font-semibold text-[#c9a84c]">{currentPlan}</span>
+            <span className="font-semibold text-[var(--gold)]">{currentPlan}</span>
           </p>
         )}
         {subscription?.currentPeriodEnd && (
@@ -209,8 +209,8 @@ export default function SubscriptionPage() {
               key={id}
               onClick={() => !isCurrent && handleSelectPlan(id)}
               className={`relative rounded-2xl border-2 p-5 flex flex-col transition-all duration-200 ${
-                isSelected ? 'border-[#c9a84c] bg-[#c9a84c]/5 dark:bg-[#c9a84c]/10 cursor-pointer' :
-                isCurrent  ? `${border} bg-white dark:bg-[#0b1525] cursor-default` :
+                isSelected ? 'border-[var(--gold)] bg-[rgba(201,168,76,0.05)] dark:bg-[var(--gold-subtle)] cursor-pointer' :
+                isCurrent  ? `${border} bg-white dark:bg-[var(--ink-750)] cursor-default` :
                              `${border} bg-white/60 dark:bg-white/[0.02] hover:border-gray-300 cursor-pointer`
               }`}
             >
@@ -239,7 +239,7 @@ export default function SubscriptionPage() {
               </ul>
               <div className={`w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 ${
                 isCurrent   ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-default' :
-                isSelected  ? 'bg-[#c9a84c] text-white shadow-[0_4px_16px_rgba(201,168,76,0.25)]' :
+                isSelected  ? 'bg-[var(--gold)] text-white shadow-[0_4px_16px_rgba(201,168,76,0.25)]' :
                               'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300'
               }`}>
                 {isCurrent ? t('currentPlanBadge') : isSelected ? (locale === 'ku' ? '✓ هەڵبژێردراو' : '✓ Selected') : t('getStarted')}
@@ -268,7 +268,7 @@ export default function SubscriptionPage() {
           <button
             onClick={handlePayNow}
             disabled={payMutation.isPending}
-            className="w-full py-3.5 rounded-xl bg-[#c9a84c] text-white text-sm font-bold hover:bg-[#b8943c] transition-colors disabled:opacity-60 shadow-[0_4px_20px_rgba(201,168,76,0.3)] flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-[var(--gold)] text-white text-sm font-bold hover:bg-[#b8943c] transition-colors disabled:opacity-60 shadow-[0_4px_20px_rgba(201,168,76,0.3)] flex items-center justify-center gap-2"
           >
             {payMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
             {locale === 'ku' ? 'ئێستا پارەدە' : locale === 'ar' ? 'ادفع الآن' : 'Pay Now'}

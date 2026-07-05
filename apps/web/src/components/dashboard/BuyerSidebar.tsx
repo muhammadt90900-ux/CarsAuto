@@ -35,7 +35,7 @@ function NavItem({ href, label, icon: Icon, badge, active, accent }: NavItemProp
         'group flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl',
         'text-sm font-medium transition-all duration-150',
         active
-          ? 'bg-[#c9a84c]/[0.12] text-[#c9a84c] dark:text-[#d4b45a] shadow-sm'
+          ? 'bg-[rgba(201,168,76,0.12)] text-[var(--gold)] dark:text-[#d4b45a] shadow-sm'
           : accent
             ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'
             : 'text-slate-600 dark:text-white/50 hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white',
@@ -46,7 +46,7 @@ function NavItem({ href, label, icon: Icon, badge, active, accent }: NavItemProp
           className={cn(
             'w-4 h-4 flex-shrink-0 transition-colors',
             active
-              ? 'text-[#c9a84c] dark:text-[#d4b45a]'
+              ? 'text-[var(--gold)] dark:text-[#d4b45a]'
               : accent
                 ? 'text-amber-500'
                 : 'text-slate-400 dark:text-white/30 group-hover:text-slate-600 dark:group-hover:text-white/60',
@@ -66,7 +66,7 @@ function NavItem({ href, label, icon: Icon, badge, active, accent }: NavItemProp
           className={cn(
             'w-3 h-3 transition-all duration-200',
             active
-              ? 'text-[#c9a84c] opacity-100'
+              ? 'text-[var(--gold)] opacity-100'
               : 'text-slate-300 dark:text-white/20 opacity-0 group-hover:opacity-100',
           )}
           aria-hidden
@@ -80,7 +80,7 @@ function NavItem({ href, label, icon: Icon, badge, active, accent }: NavItemProp
 function QuotaPill({ used, limit }: { used: number; limit: number }) {
   const pct      = Math.min((used / limit) * 100, 100);
   const isFull   = used >= limit;
-  const barColor = isFull ? 'bg-red-500' : used >= limit - 1 ? 'bg-amber-500' : 'bg-[#c9a84c]';
+  const barColor = isFull ? 'bg-red-500' : used >= limit - 1 ? 'bg-amber-500' : 'bg-[var(--gold)]';
 
   return (
     <div className="mx-3 mb-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.04]">
@@ -160,7 +160,7 @@ export function BuyerSidebar({ className }: { className?: string }) {
     <aside
       className={cn(
         'relative flex flex-col min-h-full',
-        'bg-white dark:bg-[#080f1c]',
+        'bg-white dark:bg-[var(--ink-800)]',
         'border-e border-slate-100 dark:border-white/[0.07]',
         'p-3',
         className,
@@ -168,7 +168,7 @@ export function BuyerSidebar({ className }: { className?: string }) {
     >
       {/* Gold buyer accent top line (matches brand) */}
       <div className="absolute inset-x-0 top-0 h-[2px]"
-           style={{ background: 'linear-gradient(90deg,#c9a84c,#d4b45a,#c9a84c)' }} />
+           style={{ background: 'linear-gradient(90deg,var(--gold),#d4b45a,var(--gold))' }} />
 
       {/* Logo + "Buyer Dashboard" label */}
       <div className="px-3 pt-6 pb-4">
@@ -177,15 +177,15 @@ export function BuyerSidebar({ className }: { className?: string }) {
             className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0
                        shadow-[0_0_14px_rgba(201,168,76,0.30)]
                        transition-shadow duration-300 group-hover:shadow-[0_0_22px_rgba(201,168,76,0.50)]"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             <ShoppingBag className="w-4.5 h-4.5 text-white" aria-hidden />
           </div>
           <div>
             <p className="text-[.82rem] font-display font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-              CarsAuto<span className="text-[#c9a84c]">Pro</span>
+              CarsAuto<span className="text-[var(--gold)]">Pro</span>
             </p>
-            <p className="text-[10px] text-[#c9a84c]/80 dark:text-[#d4b45a]/70 font-semibold">Buyer Dashboard</p>
+            <p className="text-[10px] text-[rgba(201,168,76,0.8)] dark:text-[#d4b45a]/70 font-semibold">Buyer Dashboard</p>
           </div>
         </Link>
       </div>
@@ -195,8 +195,8 @@ export function BuyerSidebar({ className }: { className?: string }) {
         <Link
           href={`/${locale}/cars`}
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold
-                     bg-[#c9a84c]/10 text-[#9e6e1e] dark:text-[#d4b45a] hover:bg-[#c9a84c]/20
-                     border border-[#c9a84c]/30 dark:border-[#c9a84c]/20
+                     bg-[var(--gold-subtle)] text-[#9e6e1e] dark:text-[#d4b45a] hover:bg-[rgba(201,168,76,0.2)]
+                     border border-[rgba(201,168,76,0.3)] dark:border-[rgba(201,168,76,0.2)]
                      transition-all duration-200"
         >
           <Search className="w-3.5 h-3.5" />
@@ -262,13 +262,13 @@ export function BuyerSidebar({ className }: { className?: string }) {
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/[0.07]">
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                           bg-slate-50 dark:bg-white/[0.04]">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e]
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e]
                             flex items-center justify-center text-xs font-black text-white flex-shrink-0">
               {user.name?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[.78rem] font-semibold text-slate-800 dark:text-white truncate">{user.name}</p>
-              <p className="text-[10px] text-[#c9a84c] dark:text-[#d4b45a]/70 truncate font-medium">Buyer Account</p>
+              <p className="text-[10px] text-[var(--gold)] dark:text-[#d4b45a]/70 truncate font-medium">Buyer Account</p>
             </div>
             <button
               onClick={logout}

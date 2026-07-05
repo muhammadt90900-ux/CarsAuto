@@ -55,7 +55,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
         <div className="card-premium p-8 text-center">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             <CheckCircle2 size={30} className="text-white" />
           </div>
@@ -96,7 +96,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
                      shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
-          style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+          style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
         >
           <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path d="M3 13.5L6 6.5H14L17 13.5H3Z" fill="white" opacity=".92" />
@@ -170,7 +170,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
             className="w-full py-3 rounded-xl font-bold text-sm text-[#0a0f1a]
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all duration-200 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg,#c9a84c,#9e6e1e)' }}
+            style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
           >
             {isSubmitting ? (
               <>

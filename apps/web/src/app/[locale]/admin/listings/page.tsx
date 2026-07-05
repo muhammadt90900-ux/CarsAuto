@@ -160,7 +160,7 @@ export default function AdminListingsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by title…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#c9a84c]/40"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] overflow-x-auto">
@@ -169,7 +169,7 @@ export default function AdminListingsPage() {
               key={s}
               onClick={() => setStatus(s)}
               className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
-                statusFilter === s ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                    : 'text-white/40 hover:text-white/70')}
             >
               {s === 'ALL' ? 'All' : STATUS_STYLES[s as ListingStatus].label}
@@ -181,7 +181,7 @@ export default function AdminListingsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#c9a84c] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--gold)] animate-spin" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -224,7 +224,7 @@ export default function AdminListingsPage() {
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
                       i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
-                      'hover:bg-[#c9a84c]/[0.03]',
+                      'hover:bg-[rgba(201,168,76,0.03)]',
                     )}
                   >
                     {/* Listing */}
@@ -249,7 +249,7 @@ export default function AdminListingsPage() {
                     </td>
 
                     {/* Price */}
-                    <td className="px-4 py-3 text-sm font-bold text-[#c9a84c] whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm font-bold text-[var(--gold)] whitespace-nowrap">
                       {fmtPrice(listing.price, listing.currency)}
                     </td>
 
@@ -269,12 +269,12 @@ export default function AdminListingsPage() {
                         className={cn(
                           'p-1.5 rounded-lg border transition-all disabled:opacity-40',
                           listing.featured
-                            ? 'bg-[#c9a84c]/15 border-[#c9a84c]/30 text-[#c9a84c]'
+                            ? 'bg-[rgba(201,168,76,0.15)] border-[rgba(201,168,76,0.3)] text-[var(--gold)]'
                             : 'bg-white/[0.04] border-white/[0.08] text-white/30 hover:text-white/60',
                         )}
                         title={listing.featured ? 'Remove from featured' : 'Mark as featured'}
                       >
-                        <Star className={cn('w-3.5 h-3.5', listing.featured && 'fill-[#c9a84c]')} />
+                        <Star className={cn('w-3.5 h-3.5', listing.featured && 'fill-[var(--gold)]')} />
                       </button>
                     </td>
 
@@ -336,7 +336,7 @@ export default function AdminListingsPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[#c9a84c] to-[#e8cc7a] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>

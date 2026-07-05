@@ -34,14 +34,14 @@ function PressButton({
         'active:scale-95',
         pressed ? 'scale-95' : 'scale-100',
         variant === 'gold' && [
-          'bg-gradient-to-br from-[#c9a84c] to-[#9e6e1e] text-[#1a0e00]',
+          'bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] text-[#1a0e00]',
           'shadow-[0_4px_20px_rgba(201,168,76,0.40)]',
           'rounded-2xl h-14 px-6 text-[0.92rem]',
         ],
         variant === 'outline' && [
-          'border border-[#c9a84c]/40 text-[#c9a84c]',
+          'border border-[rgba(201,168,76,0.4)] text-[var(--gold)]',
           'rounded-2xl h-14 px-5 text-[0.92rem]',
-          'hover:bg-[#c9a84c]/10',
+          'hover:bg-[var(--gold-subtle)]',
         ],
         variant === 'ghost' && [
           'text-white/60 hover:text-white',
@@ -88,12 +88,12 @@ export function CarStickyActions({
       className
     )}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r
-                       from-transparent via-[#c9a84c]/15 to-transparent" />
+                       from-transparent via-[rgba(201,168,76,0.15)] to-transparent" />
       <div className="flex items-center gap-3 px-4 pt-3 pb-4">
         {/* Price */}
         <div className="flex-1 min-w-0">
           <p className="text-[0.7rem] text-white/40 font-medium uppercase tracking-widest">Price</p>
-          <p className="text-xl font-display font-extrabold text-[#c9a84c] leading-tight">{price}</p>
+          <p className="text-xl font-display font-extrabold text-[var(--gold)] leading-tight">{price}</p>
         </div>
 
         {/* Save */}
@@ -177,19 +177,19 @@ export function StickyFilterTrigger({
       <button
         onClick={() => { haptic(); onOpen?.(); }}
         className="flex items-center gap-2 px-4 py-2
-                   bg-[#080f1c]/90 backdrop-blur-xl
-                   border border-[#c9a84c]/20
+                   bg-[rgba(8,15,28,0.9)] backdrop-blur-xl
+                   border border-[rgba(201,168,76,0.2)]
                    rounded-full text-sm text-white/80
                    shadow-[0_4px_20px_rgba(0,0,0,0.60)]
                    active:scale-95 transition-transform duration-100"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-          <path d="M1 4h12M3 7h8M5 10h4" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M1 4h12M3 7h8M5 10h4" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         <span>{label}</span>
         {activeCount > 0 && (
           <span className="flex items-center justify-center w-5 h-5 text-[10px] font-bold
-                           rounded-full bg-[#c9a84c] text-[#1a0e00]">
+                           rounded-full bg-[var(--gold)] text-[#1a0e00]">
             {activeCount}
           </span>
         )}

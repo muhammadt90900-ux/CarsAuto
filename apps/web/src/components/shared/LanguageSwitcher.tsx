@@ -111,7 +111,7 @@ export function LanguageSwitcher({
                 text-sm transition-colors duration-150 text-left
                 ${
                   loc === locale
-                    ? 'bg-[#c9a84c]/15 text-[#e8cc7a] font-semibold'
+                    ? 'bg-[rgba(201,168,76,0.15)] text-[var(--gold-light)] font-semibold'
                     : 'text-white/70 hover:bg-white/[0.07] hover:text-white'
                 }
               `}
@@ -121,7 +121,7 @@ export function LanguageSwitcher({
               </span>
               <span>{localeNames[loc]}</span>
               {loc === locale && (
-                <span className="ms-auto text-[#c9a84c] text-xs">✓</span>
+                <span className="ms-auto text-[var(--gold)] text-xs">✓</span>
               )}
             </button>
           ))}

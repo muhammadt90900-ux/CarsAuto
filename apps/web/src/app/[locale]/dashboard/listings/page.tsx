@@ -120,7 +120,7 @@ export default function MyListingsPage() {
           <Link
             href="/dashboard/listings/new"
             className="inline-flex items-center gap-2 px-4 py-2.5
-                       bg-[#c9a84c] hover:bg-[#d4b45a] text-[#050b14]
+                       bg-[var(--gold)] hover:bg-[#d4b45a] text-[var(--ink-900)]
                        rounded-xl text-sm font-bold transition-all duration-200
                        shadow-[0_4px_16px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_24px_rgba(201,168,76,0.50)]
                        hover:-translate-y-0.5 active:translate-y-0"
@@ -140,7 +140,7 @@ export default function MyListingsPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label}
                className="flex items-center gap-3 p-3 rounded-2xl
-                          bg-white dark:bg-[#0b1525] border border-gray-100 dark:border-white/[0.07]">
+                          bg-white dark:bg-[var(--ink-750)] border border-gray-100 dark:border-white/[0.07]">
             <Icon className={`w-4 h-4 flex-shrink-0 ${color}`} aria-hidden />
             <div>
               <p className="text-base font-black text-gray-900 dark:text-white leading-none">{value}</p>
@@ -163,7 +163,7 @@ export default function MyListingsPage() {
                        border border-gray-200 dark:border-white/10
                        bg-white dark:bg-white/5 text-gray-900 dark:text-white
                        placeholder-gray-400 outline-none
-                       focus:ring-2 focus:ring-[#c9a84c]/20 focus:border-[#c9a84c]/40
+                       focus:ring-2 focus:ring-[rgba(201,168,76,0.2)] focus:border-[rgba(201,168,76,0.4)]
                        transition-all"
           />
         </div>
@@ -174,7 +174,7 @@ export default function MyListingsPage() {
               onClick={() => setActiveTab(key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150
                           ${activeTab === key
-                            ? 'bg-white dark:bg-[#0b1525] text-gray-900 dark:text-white shadow-sm'
+                            ? 'bg-white dark:bg-[var(--ink-750)] text-gray-900 dark:text-white shadow-sm'
                             : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'}`}
             >
               {label}
@@ -200,7 +200,7 @@ export default function MyListingsPage() {
           <Link
             href="/dashboard/listings/new"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
-                       bg-[#c9a84c] text-[#050b14] hover:bg-[#d4b45a] transition-all"
+                       bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a] transition-all"
           >
             <Plus className="w-4 h-4" />
             Post a Listing
@@ -218,12 +218,12 @@ export default function MyListingsPage() {
               <div
                 key={listing.id}
                 className={`rounded-2xl border overflow-hidden group transition-all duration-200
-                            bg-white dark:bg-[#0b1525]
+                            bg-white dark:bg-[var(--ink-750)]
                             hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/40
                             hover:-translate-y-0.5
                             ${isSelected
-                              ? 'border-[#c9a84c]/50 ring-2 ring-[#c9a84c]/20'
-                              : 'border-gray-100 dark:border-white/[0.07] hover:border-[#c9a84c]/30 dark:hover:border-[#c9a84c]/20'}`}
+                              ? 'border-[rgba(201,168,76,0.5)] ring-2 ring-[rgba(201,168,76,0.2)]'
+                              : 'border-gray-100 dark:border-white/[0.07] hover:border-[rgba(201,168,76,0.3)] dark:hover:border-[rgba(201,168,76,0.2)]'}`}
               >
                 {/* Image */}
                 <div className="relative h-40 bg-gradient-to-br from-slate-100 to-slate-200
@@ -246,12 +246,12 @@ export default function MyListingsPage() {
                     className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-2 flex items-center justify-center
                                 transition-all duration-150
                                 ${isSelected
-                                  ? 'bg-[#c9a84c] border-[#c9a84c]'
+                                  ? 'bg-[var(--gold)] border-[var(--gold)]'
                                   : 'bg-black/30 border-white/40 opacity-0 group-hover:opacity-100'}`}
                     aria-label="Select listing"
                   >
                     {isSelected && (
-                      <svg className="w-3 h-3 text-[#050b14]" viewBox="0 0 12 12" fill="none">
+                      <svg className="w-3 h-3 text-[var(--ink-900)]" viewBox="0 0 12 12" fill="none">
                         <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     )}
@@ -282,7 +282,7 @@ export default function MyListingsPage() {
                     <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-tight">
                       {listing.titleEn ?? listing.titleKu ?? '—'}
                     </h3>
-                    <p className="text-[#c9a84c] font-black text-lg mt-0.5 tabular-nums">
+                    <p className="text-[var(--gold)] font-black text-lg mt-0.5 tabular-nums">
                       ${listing.price?.toLocaleString()}
                     </p>
                   </div>
@@ -312,7 +312,7 @@ export default function MyListingsPage() {
                       className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl
                                  border border-gray-200 dark:border-white/10 text-xs font-semibold
                                  text-gray-700 dark:text-gray-300
-                                 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-[#c9a84c]/40
+                                 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-[rgba(201,168,76,0.4)]
                                  transition-all duration-150"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -350,10 +350,10 @@ export default function MyListingsPage() {
       {/* Boost upsell when listings exist */}
       {listings.length > 0 && (
         <div className="rounded-2xl p-4 flex items-center justify-between gap-4
-                        bg-gradient-to-r from-[#c9a84c]/8 to-transparent
-                        border border-[#c9a84c]/15">
+                        bg-gradient-to-r from-[rgba(201,168,76,0.08)] to-transparent
+                        border border-[rgba(201,168,76,0.15)]">
           <div className="flex items-center gap-3">
-            <BarChart2 className="w-5 h-5 text-[#c9a84c] flex-shrink-0" aria-hidden />
+            <BarChart2 className="w-5 h-5 text-[var(--gold)] flex-shrink-0" aria-hidden />
             <div>
               <p className="text-sm font-bold text-gray-900 dark:text-white">
                 Boost your reach
@@ -366,7 +366,7 @@ export default function MyListingsPage() {
           <Link
             href="/dashboard/subscription"
             className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
-                       text-sm font-bold bg-[#c9a84c] text-[#050b14]
+                       text-sm font-bold bg-[var(--gold)] text-[var(--ink-900)]
                        hover:bg-[#d4b45a] transition-all duration-200
                        shadow-[0_4px_12px_rgba(201,168,76,0.35)]"
           >
