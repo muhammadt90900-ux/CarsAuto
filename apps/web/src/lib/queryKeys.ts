@@ -9,6 +9,8 @@ export const queryKeys = {
     detail: (id: string) => ['listings', 'detail', id] as const,
     similar: (id: string) => ['listings', 'similar', id] as const,
     mine: () => ['listings', 'mine'] as const,
+    // Search Architecture Phase 3
+    facets: (params: Record<string, unknown>) => ['listings', 'facets', params] as const,
   },
   vehicles: {
     brands: (q?: string) => ['vehicles', 'brands', q ?? ''] as const,

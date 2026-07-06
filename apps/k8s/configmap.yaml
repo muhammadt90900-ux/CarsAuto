@@ -36,6 +36,10 @@ data:
   # in this manifest set; run it as a StatefulSet with a PVC, same idea as
   # docker-compose.yml's meilisearch service, or use Meilisearch Cloud).
   MEILISEARCH_URL: "http://meilisearch.carsauto.svc.cluster.local:7700"
+  # Search Architecture Phase 2: instant rollback to Postgres ILIKE search —
+  # change to "postgres" and roll the api/worker deployments, no image
+  # rebuild required.
+  SEARCH_ENGINE_MODE: "meilisearch"
 
   # ── Email (transactional) ─────────────────────────────────────────────────────
   SMTP_PORT: "587"

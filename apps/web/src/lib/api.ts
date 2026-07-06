@@ -275,6 +275,14 @@ export const listingsApi = {
   getAll: (params?: Record<string, unknown>) =>
     cachedGet<ListingListResponse>('/listings', params, TTL_DEFAULT),
 
+  // Search Architecture Phase 3: live facet counts for the marketplace
+  // filter sidebar — called in parallel with getAll() above, same filter
+  // params, never affects which listings getAll() itself returns. Returns
+  // {} (not an error) if the search index is unavailable — see
+  // ListingsService.getFacets()'s header comment.
+  getFacets: (params?: Record<string, unknown>) =>
+    cachedGet<Record<string, { value: string; count: number }[]>>('/listings/facets', params, TTL_DEFAULT),
+
   getById: (id: string) =>
     cachedGet<ListingDetailResponse>(`/listings/${id}`, undefined, 2 * 60_000),
 

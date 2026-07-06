@@ -27,18 +27,27 @@
 // it's currently a silent no-op there). This version sends real
 // `brandId`/`modelId` UUIDs, which the DTO does accept.
 
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search, SlidersHorizontal, X, Grid3X3, List,
   MapPin, Gauge, Heart, ChevronDown, ChevronUp,
-  Shield, Filter, Bike,
+  Shield, Filter, Bike, Navigation,
 } from 'lucide-react';
 import { listingsApi, vehiclesApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+
+// Search Architecture Phase 3: small helper so a facet count can be
+// rendered next to a filter option without every render site repeating
+// the same "find this value in the facet array" lookup.
+function facetCount(facets: Record<string, { value: string; count: number }[]> | undefined, field: string, value: string): number | null {
+  const entry = facets?.[field]?.find(f => f.value === value);
+  return entry ? entry.count : null;
+}
 
 const CONDITIONS = ['NEW', 'USED', 'SALVAGE'];
 const COLORS = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Gold', 'Brown'];
@@ -192,6 +201,60 @@ export function MotorcyclesClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [page, setPage] = useState(1);
 
+  // Search Architecture Phase 3: "near me" — requests browser geolocation
+  // once, on toggle. Graceful fallback: permission denial or any
+  // geolocation error just resets nearMe to false and coords to null —
+  // never shows an error to the user, the geo filter section simply
+  // disappears again (same UX contract the phase plan asked for).
+  const [nearMe, setNearMe] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [radiusKm, setRadiusKm] = useState('50');
+
+  const toggleNearMe = useCallback(() => {
+    if (nearMe) {
+      setNearMe(false);
+      setCoords(null);
+      return;
+    }
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearMe(true);
+        setPage(1);
+      },
+      () => {
+        // Permission denied or unavailable — silently no-op, toggle stays off.
+        setNearMe(false);
+        setCoords(null);
+      },
+      { timeout: 8000 },
+    );
+  }, [nearMe]);
+
+  // Search Architecture Phase 3: shareable/bookmarkable filtered URLs.
+  // Mirrors initialSearch's field names exactly (page.tsx forwards
+  // searchParams straight back in as initialSearch on next load).
+  const router = useRouter();
+  const pathname = usePathname();
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    const params = new URLSearchParams();
+    if (query)     params.set('search', query);
+    if (brandId)   params.set('brandId', brandId);
+    if (modelId)   params.set('modelId', modelId);
+    if (minYear)   params.set('minYear', minYear);
+    if (maxYear)   params.set('maxYear', maxYear);
+    if (minPrice)  params.set('minPrice', minPrice);
+    if (maxPrice)  params.set('maxPrice', maxPrice);
+    if (condition) params.set('condition', condition);
+    if (color)     params.set('color', color);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, brandId, modelId, minYear, maxYear, minPrice, maxPrice, condition, color]);
+
   const { data: brands } = useQuery({
     queryKey: queryKeys.vehicles.brands(),
     queryFn: () => vehiclesApi.getBrands(),
@@ -228,12 +291,26 @@ export function MotorcyclesClient({
     sortOrder: sortOrderParam,
     page,
     limit: 24,
+    // Search Architecture Phase 3 — "near me"
+    ...(nearMe && coords ? { lat: coords.lat, lng: coords.lng, radiusKm } : {}),
   };
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.listings.list(queryParams),
     queryFn: () => listingsApi.getAll(queryParams),
     placeholderData: page === 1 && !city ? initialData : (prev: any) => prev,
+  });
+
+  // Search Architecture Phase 3: live facet counts for the sidebar —
+  // fetched in parallel with the listing data above, never blocks or
+  // affects it. Returns {} (not an error) if the search index is down,
+  // in which case every facetCount() lookup below just returns null and
+  // the filter options render without counts.
+  const { data: facets } = useQuery({
+    queryKey: queryKeys.listings.facets(queryParams),
+    queryFn: () => listingsApi.getFacets(queryParams),
+    placeholderData: (prev: any) => prev,
+    staleTime: 30_000,
   });
 
   const allListings: any[] = data?.data ?? [];
@@ -247,11 +324,12 @@ export function MotorcyclesClient({
     [allListings],
   );
 
-  const activeCount = [brandId, modelId, minYear, maxYear, minPrice, maxPrice, condition, color, city].filter(Boolean).length;
+  const activeCount = [brandId, modelId, minYear, maxYear, minPrice, maxPrice, condition, color, city].filter(Boolean).length + (nearMe ? 1 : 0);
 
   const resetAll = useCallback(() => {
     setBrandId(''); setModelId(''); setMinYear(''); setMaxYear('');
     setMinPrice(''); setMaxPrice(''); setCondition(''); setColor(''); setCity('');
+    setNearMe(false); setCoords(null);
     setPage(1);
   }, []);
 
@@ -265,12 +343,16 @@ export function MotorcyclesClient({
 
       <FilterSection title="Brand">
         <div className="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar">
-          {(brands ?? []).map((b: any) => (
-            <label key={b.id} className="flex items-center gap-2.5 cursor-pointer group">
-              <input type="radio" name="brand" checked={brandId === b.id} onChange={() => selectBrand(b.id)} className="w-4 h-4 accent-[var(--gold)]" />
-              <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{b.name?.en ?? b.name}</span>
-            </label>
-          ))}
+          {(brands ?? []).map((b: any) => {
+            const count = facetCount(facets, 'brandId', b.id);
+            return (
+              <label key={b.id} className="flex items-center gap-2.5 cursor-pointer group">
+                <input type="radio" name="brand" checked={brandId === b.id} onChange={() => selectBrand(b.id)} className="w-4 h-4 accent-[var(--gold)]" />
+                <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors flex-1">{b.name?.en ?? b.name}</span>
+                {count != null && <span className="text-[10px] text-[var(--text-muted)]">({count})</span>}
+              </label>
+            );
+          })}
         </div>
       </FilterSection>
 
@@ -310,13 +392,38 @@ export function MotorcyclesClient({
 
       <FilterSection title="Condition">
         <div className="space-y-1.5">
-          {CONDITIONS.map((c) => (
-            <label key={c} className="flex items-center gap-2.5 cursor-pointer group">
-              <input type="radio" name="condition" checked={condition === c} onChange={() => { setCondition((cur) => (cur === c ? '' : c)); setPage(1); }} className="w-4 h-4 accent-[var(--gold)]" />
-              <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors capitalize">{c.toLowerCase()}</span>
-            </label>
-          ))}
+          {CONDITIONS.map((c) => {
+            const count = facetCount(facets, 'condition', c);
+            return (
+              <label key={c} className="flex items-center gap-2.5 cursor-pointer group">
+                <input type="radio" name="condition" checked={condition === c} onChange={() => { setCondition((cur) => (cur === c ? '' : c)); setPage(1); }} className="w-4 h-4 accent-[var(--gold)]" />
+                <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors capitalize flex-1">{c.toLowerCase()}</span>
+                {count != null && <span className="text-[10px] text-[var(--text-muted)]">({count})</span>}
+              </label>
+            );
+          })}
         </div>
+      </FilterSection>
+
+      <FilterSection title="Near Me">
+        <button
+          type="button"
+          onClick={toggleNearMe}
+          className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors
+            ${nearMe ? 'bg-[var(--gold-subtle)] border-[var(--border-gold)] text-[var(--gold)]' : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-gold)]'}`}
+        >
+          <Navigation className="w-3.5 h-3.5" />
+          {nearMe ? `Within ${radiusKm} km of you` : 'Search near me'}
+        </button>
+        {nearMe && (
+          <select
+            value={radiusKm}
+            onChange={(e) => { setRadiusKm(e.target.value); setPage(1); }}
+            className="input-base h-9 text-xs mt-2 w-full"
+          >
+            {['10', '25', '50', '100', '250'].map((r) => <option key={r} value={r}>{r} km</option>)}
+          </select>
+        )}
       </FilterSection>
 
       <FilterSection title="Color">

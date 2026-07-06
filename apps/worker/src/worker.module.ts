@@ -24,6 +24,8 @@ import { NotificationsService } from './modules/notifications/notifications.serv
 import { TranslationProcessor } from './processors/translation.processor';
 import { EmailNotificationProcessor } from './processors/email-notification.processor';
 import { PartitionMaintenanceProcessor } from './processors/partition-maintenance.processor';
+import { SearchIndexProcessor } from './processors/search-index.processor';
+import { MeilisearchService } from './common/search-index/meilisearch.service';
 
 @Module({
   imports: [
@@ -50,15 +52,22 @@ import { PartitionMaintenanceProcessor } from './processors/partition-maintenanc
     // tables supplied with future monthly partitions (pg_cron fallback —
     // this managed Postgres doesn't have pg_cron available).
     BullModule.registerQueue({ name: 'maintenance' }),
+    // Search Architecture Phase 1: same queue name the API's
+    // SearchIndexListener and AdminService.triggerSearchReindex() produce
+    // onto (apps/api/src/modules/search-indexing/) — this worker is the
+    // sole consumer.
+    BullModule.registerQueue({ name: 'search-index' }),
   ],
   providers: [
     PrismaService,
     OpenAiService,
     EmailService,
     NotificationsService,
+    MeilisearchService,
     TranslationProcessor,
     EmailNotificationProcessor,
     PartitionMaintenanceProcessor,
+    SearchIndexProcessor,
   ],
 })
 export class WorkerModule {}

@@ -8,6 +8,7 @@ import { AppCacheModule } from '../../common/cache/cache.module';
 import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { PermissionsModule } from '../../common/permissions/permissions.module';
 import { AiModule } from '../ai/ai.module';
+import { SearchModule } from '../search/search.module';
 
 // F-ARCH fix: DealersModule import (via forwardRef — a circular-dependency
 // workaround) removed. ListingsService no longer injects DealersService at
@@ -15,6 +16,11 @@ import { AiModule } from '../ai/ai.module';
 // modules/dealers/dealer.listeners.ts). EventEmitter2 is globally available
 // via EventEmitterModule.forRoot({ global: true }) in app.module.ts, so no
 // extra import is needed here for that either.
+//
+// Search Architecture Phase 3: SearchModule imported for its exported
+// MeilisearchSearchStrategy, used only by ListingsService.getFacets() (GET
+// /listings/facets) — no circular dependency (SearchModule doesn't import
+// ListingsModule).
 
 @Module({
   imports: [
@@ -22,6 +28,7 @@ import { AiModule } from '../ai/ai.module';
     AppCacheModule,
     PermissionsModule,
     AiModule,
+    SearchModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EmailVerifiedGuard, ViewFlushTask],

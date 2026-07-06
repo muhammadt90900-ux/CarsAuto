@@ -14,7 +14,13 @@ import { TranslationService } from '../ai/translation/translation.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { ListingType } from '@/common/prisma/enums';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ListingCreatedEvent, ListingSoldEvent, ListingDeletedEvent } from '../../common/events';
+import { MeilisearchSearchStrategy } from '../search/meilisearch-search.strategy';
+import {
+  ListingCreatedEvent,
+  ListingSoldEvent,
+  ListingDeletedEvent,
+  ListingUpdatedEvent,
+} from '../../common/events';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CACHE_TTL_LIST   = 30_000;        // 30 s  — list pages
@@ -180,6 +186,13 @@ export interface ListingQueryParams {
   // Feature 3 — accessory/service filters
   serviceType?:  string;
   mobile?:       string;
+  // Phase 3 (Search Architecture) — "near me" bounding-box geo filter.
+  // Approximate (lat/lng bounding box, not a true circle) — see
+  // buildWhereClause()'s geo section for why. All three must be present
+  // together; if any is missing, geo filtering is silently skipped.
+  lat?:          string;
+  lng?:          string;
+  radiusKm?:     string;
 }
 
 // F-HIGH fix: explicit response shapes for the two pagination modes
@@ -217,6 +230,9 @@ export class ListingsService {
     // domain events and has no compile-time knowledge of DealersService at
     // all. See common/events/ and modules/dealers/dealer.listeners.ts.
     private readonly eventEmitter:  EventEmitter2,
+    // Search Architecture Phase 3: powers getFacets() only — findAll()
+    // above is completely unaffected by this dependency.
+    private readonly meilisearchStrategy: MeilisearchSearchStrategy,
   ) {}
 
   // ── Pagination helpers ──────────────────────────────────────────────────────
@@ -646,6 +662,20 @@ export class ListingsService {
             data:  { status: 'UNDER_REVIEW' },
           }).catch(() => {});
 
+          // Search Architecture Phase 1: status changed (ACTIVE → UNDER_REVIEW)
+          // after the initial create() indexing signal already fired via
+          // ListingCreatedEvent — re-index so the quarantined listing drops
+          // out of search results. Fire-and-forget, same as every other
+          // event emit in this file.
+          try {
+            this.eventEmitter.emit(
+              'listing.updated',
+              new ListingUpdatedEvent(listing.id, data.userId, null),
+            );
+          } catch {
+            // Best-effort — never block the moderation flow on this.
+          }
+
           await this.auditLog.log({
             action:     AuditAction.LISTING_QUARANTINED,
             actorId:    data.userId,
@@ -825,6 +855,26 @@ export class ListingsService {
         }
       }
 
+      // Search Architecture Phase 1: update() is the single code path that
+      // can change any searchable field (title/translations, price, status,
+      // vehicleSpec, accessorySpec, locationId) — always emit here so
+      // SearchIndexListener re-indexes the listing. Emitted in addition to,
+      // not instead of, ListingSoldEvent above (dealer counters and search
+      // indexing are two independent concerns reacting to the same write).
+      // Fire-and-forget — never blocks the update response.
+      try {
+        const dealer = await this.prisma.dealer.findUnique({
+          where: { userId },
+          select: { id: true },
+        });
+        this.eventEmitter.emit(
+          'listing.updated',
+          new ListingUpdatedEvent(id, userId, dealer?.id ?? null),
+        );
+      } catch {
+        // Best-effort — never block the update response on this.
+      }
+
       return updated;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
@@ -887,6 +937,32 @@ export class ListingsService {
     if (params.featured === 'true') where.featured = true;
     if (params.categoryId) where.categoryId = params.categoryId;
     if (params.locationId) where.locationId = params.locationId;
+
+    // Phase 3 (Search Architecture) — "near me": approximate bounding-box
+    // filter on Location.lat/lng, NOT a true circle (that needs either
+    // PostGIS or Meilisearch's `_geoRadius`, which the /search/listings
+    // path already uses — see meilisearch-search.strategy.ts). A bounding
+    // box is a deliberate, low-risk approximation for this endpoint: it
+    // can include a few corner-of-the-box listings just outside the
+    // requested radius, but never excludes anything genuinely inside it,
+    // and needs no new indexes or query complexity here. Revisit if
+    // listings just outside the circle but inside the box become a
+    // real user complaint.
+    if (params.lat && params.lng && params.radiusKm) {
+      const lat = Number(params.lat);
+      const lng = Number(params.lng);
+      const radiusKm = Number(params.radiusKm);
+      const latDelta = radiusKm / 111; // ~111km per degree latitude, everywhere
+      const lngDelta = radiusKm / (111 * Math.cos((lat * Math.PI) / 180) || 1);
+      where.location = {
+        ...(where.location ?? {}),
+        is: {
+          ...(where.location?.is ?? {}),
+          lat: { gte: lat - latDelta, lte: lat + latDelta },
+          lng: { gte: lng - lngDelta, lte: lng + lngDelta },
+        },
+      };
+    }
 
     if (params.search) {
       where.OR = [
@@ -977,5 +1053,41 @@ export class ListingsService {
     }
 
     return where;
+  }
+
+  // ── Facet counts (Search Architecture Phase 3) ────────────────────────────
+  //
+  // Backs GET /listings/facets. Deliberately separate from findAll() above:
+  // findAll()'s actual listing data still comes straight from Postgres,
+  // completely unchanged by this phase (see search-indexing/README.md's
+  // Phase 3 section for why) — this method ONLY answers "how many listings
+  // match filters X, broken down by each facet field", which the frontend
+  // filter sidebar calls in parallel with its normal findAll() list request
+  // to annotate each filter checkbox with a live count.
+  //
+  // Powered by Meilisearch (same index Phase 1/2 already built) rather than
+  // N separate Postgres COUNT(*)...GROUP BY queries — Meilisearch computes
+  // every facet's distribution in a single request. Never throws: returns
+  // an empty object on any Meilisearch error/timeout so the sidebar simply
+  // renders without counts rather than failing the page.
+  async getFacets(params: ListingQueryParams): Promise<Record<string, { value: string; count: number }[]>> {
+    try {
+      return await this.meilisearchStrategy.facetCounts({
+        type: params.type,
+        brandId: params.brandId,
+        modelId: params.modelId,
+        year: params.year ? Number(params.year) : undefined,
+        minYear: params.minYear ? Number(params.minYear) : undefined,
+        maxYear: params.maxYear ? Number(params.maxYear) : undefined,
+        fuelType: params.fuelType,
+        transmission: params.transmission,
+        condition: params.condition,
+        minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+        maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+      });
+    } catch (err) {
+      this.logger.warn(`getFacets() failed — returning empty facets: ${err instanceof Error ? err.message : 'unknown error'}`);
+      return {};
+    }
   }
 }

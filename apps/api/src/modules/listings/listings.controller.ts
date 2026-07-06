@@ -48,6 +48,12 @@ class ListingQueryDto implements ListingQueryParams {
   // Feature 3 — accessory / service filters
   @IsOptional() @IsString() @MaxLength(60)  serviceType?:  string;
   @IsOptional() @IsBooleanString()          mobile?:       string;
+  // Search Architecture Phase 3 — "near me" (bounding-box approximation,
+  // see ListingsService.buildWhereClause()'s geo comment). All three must
+  // be present together.
+  @IsOptional() @IsNumberString()           lat?:          string;
+  @IsOptional() @IsNumberString()           lng?:          string;
+  @IsOptional() @IsNumberString()           radiusKm?:     string;
 }
 
 @ApiTags('Listings')
@@ -86,6 +92,19 @@ export class ListingsController {
   @Get('my')
   myListings(@Request() req: any) {
     return this.listingsService.myListings(req.user.userId);
+  }
+
+  // Search Architecture Phase 3: same filter query params as the root
+  // GET / above (reuses ListingQueryDto) — called by the marketplace
+  // filter sidebar IN PARALLEL with its normal findAll() request, purely
+  // to annotate each filter checkbox with a live count. Never affects
+  // which listings findAll() itself returns.
+  @ApiOperation({ summary: 'Facet counts (brand/model/year/fuelType/transmission/condition/featured) for the given filters' })
+  @ApiResponse({ status: 200, description: 'Facet distribution — empty object if the search index is unavailable' })
+  @UseGuards(OptionalJwtGuard)
+  @Get('facets')
+  getFacets(@Query() query: ListingQueryDto) {
+    return this.listingsService.getFacets(query);
   }
 
   // ── Parameterised public endpoint — must come AFTER all static routes ─────

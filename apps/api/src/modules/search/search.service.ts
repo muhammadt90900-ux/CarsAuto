@@ -3,15 +3,19 @@
 // FEATURE 2B: Semantic search via pgvector cosine similarity.
 // Falls back to ILIKE when OpenAI is unavailable or embeddings missing.
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { OpenAiService } from '../../common/ai/openai.service';
+import { MeilisearchSearchStrategy } from './meilisearch-search.strategy';
 
 // ── Cache TTLs ────────────────────────────────────────────────────────────────
 const CACHE_TTL_SEARCH        = 30_000;      // 30 s
 const CACHE_TTL_SEMANTIC      = 60_000;      // 60 s — shorter: semantic results are dynamic
 const CACHE_TTL_AUTOCOMPLETE  = 2 * 60_000;  // 2 min
+const CACHE_TTL_SUGGEST       = 2 * 60_000;  // 2 min — Phase 2 /search/suggest
+const MEILISEARCH_TIMEOUT_MS  = 800;         // Phase 2: fall back to ILIKE past this
 
 const MIN_QUERY_LENGTH  = 2;
 const SEMANTIC_POOL     = 50;   // candidates from vector search before filtering
@@ -54,6 +58,13 @@ export interface SearchFilters {
   maxMileage?: string;
   page?: number;
   limit?: number;
+  locale?: string; // Phase 2: passed through to the Meilisearch strategy
+  // Phase 3: geo radius search — Meilisearch's native `_geoRadius`, exact
+  // (unlike /listings' bounding-box approximation — see
+  // ListingsService.buildWhereClause()'s geo comment for that tradeoff).
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
 }
 
 const DIRECT_SPEC_FIELDS = [
@@ -64,16 +75,20 @@ const DIRECT_SPEC_FIELDS = [
 @Injectable()
 export class SearchService {
   [x: string]: any;
+  private readonly logger = new Logger(SearchService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly openai: OpenAiService,
+    private readonly meilisearchStrategy: MeilisearchSearchStrategy,
+    private readonly config: ConfigService,
   ) {}
 
   /* ── Keyword search (ILIKE) ─────────────────────────────────────────────── */
 
   async search(q: string, options: SearchFilters = {}) {
-    const { page = 1, limit = 20, ...filters } = options;
+    const { page = 1, limit = 20, locale, ...filters } = options;
 
     const normalizedQuery = q?.trim().toLowerCase() ?? '';
     const cacheKey = `search:${normalizedQuery}:${JSON.stringify(filters)}:p${page}:l${limit}`;
@@ -81,7 +96,124 @@ export class SearchService {
     // F-PERF fix: getOrSetWithLock (not plain getOrSet) — see cache.service
     // .ts's header comment on that method for why (stampede protection on
     // hot, short-TTL read caches).
-    return this.cache.getOrSetWithLock(cacheKey, async () => {
+    const result = await this.cache.getOrSetWithLock(cacheKey, async () => {
+      // Phase 2: SEARCH_ENGINE_MODE=postgres is the instant, no-deploy
+      // rollback switch (see search-indexing/README.md's rollback notes) —
+      // flip the env var and restart to bypass Meilisearch entirely.
+      const engineMode = this.config.get<string>('SEARCH_ENGINE_MODE', 'meilisearch');
+
+      if (engineMode !== 'postgres' && normalizedQuery.length >= MIN_QUERY_LENGTH) {
+        const meiliResult = await this.tryMeilisearch(normalizedQuery, {
+          locale,
+          type: filters.type,
+          locationId: filters.locationId,
+          brandId: filters.brandId,
+          modelId: filters.modelId,
+          fuelType: filters.fuelType,
+          transmission: filters.transmission,
+          condition: filters.condition,
+          minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+          maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+          minYear: filters.minYear ? Number(filters.minYear) : undefined,
+          maxYear: filters.maxYear ? Number(filters.maxYear) : undefined,
+          lat: filters.lat,
+          lng: filters.lng,
+          radiusKm: filters.radiusKm,
+          page,
+          limit,
+        });
+        if (meiliResult) return meiliResult;
+        // Falls through to the ILIKE path below on timeout/error — already
+        // logged a warning inside tryMeilisearch().
+      }
+
+      return this.searchPostgres(normalizedQuery, filters, page, limit);
+    }, CACHE_TTL_SEARCH);
+
+    // Phase 2: search query tracking — fire-and-forget, never blocks or
+    // fails the response. Powers Phase 4's trending searches later.
+    // Only track non-empty queries (empty q = browse, not search).
+    if (normalizedQuery.length >= MIN_QUERY_LENGTH) {
+      this.trackSearchEvent(normalizedQuery, locale, result.total).catch(() => {});
+    }
+
+    return result;
+  }
+
+  /**
+   * Phase 2: queries Meilisearch for ranked listing IDs, then hydrates the
+   * full records from Postgres (SEARCH_SELECT) preserving Meilisearch's
+   * order — see meilisearch-search.strategy.ts's header comment for why.
+   * Returns null (never throws) on timeout or any error, signalling the
+   * caller to fall back to the ILIKE path.
+   */
+  private async tryMeilisearch(
+    normalizedQuery: string,
+    options: {
+      locale?: string;
+      type?: string;
+      locationId?: string;
+      brandId?: string;
+      modelId?: string;
+      fuelType?: string;
+      transmission?: string;
+      condition?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      minYear?: number;
+      maxYear?: number;
+      lat?: number;
+      lng?: number;
+      radiusKm?: number;
+      page: number;
+      limit: number;
+    },
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number; facets: Record<string, { value: string; count: number }[]> } | null> {
+    try {
+      const timeout = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), MEILISEARCH_TIMEOUT_MS),
+      );
+      const query = this.meilisearchStrategy.search(normalizedQuery, options);
+      const result = await Promise.race([query, timeout]);
+
+      if (!result) {
+        this.logger.warn(`Meilisearch search timed out after ${MEILISEARCH_TIMEOUT_MS}ms — falling back to Postgres`);
+        return null;
+      }
+
+      if (!result.ids.length) {
+        return { data: [], total: result.total, page: options.page, limit: options.limit, totalPages: 0, facets: result.facets };
+      }
+
+      // locationId isn't a Meilisearch filter yet (city/governorate/country
+      // are, but not the locationId FK itself) — applied as a Postgres
+      // post-filter here so it isn't silently ignored if a caller passes it.
+      const rows = await this.prisma.db('read').listing.findMany({
+        where: {
+          id: { in: result.ids },
+          ...(options.locationId ? { locationId: options.locationId } : {}),
+        },
+        select: SEARCH_SELECT,
+      });
+      const byId = new Map(rows.map((r: any) => [r.id, r]));
+      const data = result.ids.map((id) => byId.get(id)).filter(Boolean);
+
+      return {
+        data,
+        total: result.total,
+        page: options.page,
+        limit: options.limit,
+        totalPages: Math.ceil(result.total / options.limit),
+        facets: result.facets,
+      };
+    } catch (err) {
+      this.logger.warn(`Meilisearch search failed — falling back to Postgres: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  /** The original ILIKE keyword search — now the fallback path, logic otherwise unchanged. */
+  private async searchPostgres(normalizedQuery: string, filters: Omit<SearchFilters, 'page' | 'limit' | 'locale'>, page: number, limit: number) {
       const skip = (page - 1) * limit;
       const where: any = { status: 'ACTIVE', deletedAt: null };
 
@@ -95,6 +227,12 @@ export class SearchService {
 
       if (filters.type)       where.type       = filters.type as any;
       if (filters.locationId) where.locationId = filters.locationId;
+      // Phase 3: lat/lng/radiusKm geo search has no ILIKE-fallback
+      // equivalent here — it's silently dropped if Meilisearch is down.
+      // Acceptable: this only affects the "near me" toggle during a
+      // Meilisearch outage, and the alternative (adding a Postgres
+      // bounding-box filter to this rarely-hit fallback path too) adds
+      // maintenance surface for a degraded-mode-only feature.
 
       if (filters.minPrice || filters.maxPrice) {
         where.price = {
@@ -152,8 +290,21 @@ export class SearchService {
         this.prisma.db('read').listing.count({ where }),
       ]);
 
-      return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
-    }, CACHE_TTL_SEARCH);
+      // Phase 3: no facet counts on the ILIKE fallback path — computing
+      // per-field GROUP BY counts here would mean N extra Postgres queries
+      // on every fallback request, which defeats the point of a fast
+      // fallback. Acceptable degradation: this path only runs when
+      // Meilisearch is down/timing out, and the frontend renders filters
+      // without counts rather than erroring (see HeroSearch.tsx-equivalent
+      // handling in the marketplace filter sidebar).
+      return { data, total, page, limit, totalPages: Math.ceil(total / limit), facets: {} };
+  }
+
+  /** Phase 2: fire-and-forget write to search_events — never blocks/fails the search response. */
+  private async trackSearchEvent(query: string, locale: string | undefined, resultCount: number, userId?: string): Promise<void> {
+    await this.prisma.searchEvent.create({
+      data: { query, locale: locale ?? 'ku', resultCount, userId: userId ?? null },
+    });
   }
 
   /* ── Semantic search (pgvector cosine similarity) ─────────────────────── */
@@ -254,6 +405,47 @@ export class SearchService {
 
       return { data, total, page, limit, totalPages: Math.ceil(total / limit), semantic: true };
     }, CACHE_TTL_SEMANTIC);
+  }
+
+  /* ── Autosuggest (Phase 2) ──────────────────────────────────────────────── */
+
+  /**
+   * Search Architecture Phase 2: implements SearchService.suggestions(),
+   * which search.controller.ts's GET /search/suggestions has been calling
+   * since before this phase — but the method never existed on this class.
+   * It compiled anyway because of the `[x: string]: any` index signature
+   * at the top of this class, so the route was silently throwing
+   * "searchService.suggestions is not a function" (a 500) at runtime.
+   * This phase's autosuggest requirement fixes it for real, backed by
+   * Meilisearch with a fallback to the existing SQL-based autocomplete().
+   */
+  async suggestions(q: string, locale?: string, limit = 8): Promise<string[]> {
+    if (!q || q.trim().length < MIN_QUERY_LENGTH) return [];
+
+    const term = q.trim();
+    const cacheKey = `search:suggest:${locale ?? 'ku'}:${term.toLowerCase()}`;
+
+    return this.cache.getOrSetWithLock(cacheKey, async () => {
+      const engineMode = this.config.get<string>('SEARCH_ENGINE_MODE', 'meilisearch');
+
+      if (engineMode !== 'postgres') {
+        try {
+          const timeout = new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), MEILISEARCH_TIMEOUT_MS),
+          );
+          const suggestions = await Promise.race([
+            this.meilisearchStrategy.suggest(term, locale, limit),
+            timeout,
+          ]);
+          if (suggestions) return suggestions;
+          this.logger.warn(`Meilisearch suggest timed out after ${MEILISEARCH_TIMEOUT_MS}ms — falling back`);
+        } catch (err) {
+          this.logger.warn(`Meilisearch suggest failed — falling back: ${(err as Error).message}`);
+        }
+      }
+
+      return this.autocomplete(term, limit);
+    }, CACHE_TTL_SUGGEST);
   }
 
   /* ── Autocomplete ───────────────────────────────────────────────────────── */

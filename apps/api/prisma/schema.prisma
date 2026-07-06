@@ -1602,3 +1602,29 @@ model UploadedFile {
   @@index([userId])
   @@map("uploaded_files")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEARCH EVENT (Search Architecture Phase 2)
+// One row per tracked search query (see SearchService.trackSearchEvent(),
+// called fire-and-forget from search()). High write volume, append-only,
+// never updated — same partitioning candidate as AuditLog if volume grows
+// (not partitioned yet; revisit if this table becomes a hot-write
+// bottleneck, per PARTITIONING-RUNBOOK.md's criteria). Powers Phase 4's
+// trending-searches feature; not read by anything yet in this phase.
+// No foreign-key-enforced relation to User — userId is nullable and
+// intentionally NOT a relation field, so this table's writes are never
+// blocked by (or need to cascade with) user deletion.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SearchEvent {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  query       String   @db.VarChar(200)
+  locale      String   @db.VarChar(8)
+  resultCount Int      @map("result_count")
+  userId      String?  @db.Uuid @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_events")
+}

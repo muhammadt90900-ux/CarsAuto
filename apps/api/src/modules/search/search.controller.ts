@@ -27,6 +27,19 @@ export class SearchController {
     @Query('type') type?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('locale') locale?: string,
+    @Query('brandId') brandId?: string,
+    @Query('modelId') modelId?: string,
+    @Query('minYear') minYear?: string,
+    @Query('maxYear') maxYear?: string,
+    @Query('fuelType') fuelType?: string,
+    @Query('transmission') transmission?: string,
+    @Query('condition') condition?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('radiusKm') radiusKm?: string,
     @Req() req?: Request,
   ) {
     const ip = this.extractIp(req);
@@ -42,6 +55,21 @@ export class SearchController {
       type,
       page: Number(page) || 1,
       limit: Number(limit) || 20,
+      locale,
+      brandId,
+      modelId,
+      minYear,
+      maxYear,
+      fuelType,
+      transmission,
+      condition,
+      minPrice,
+      maxPrice,
+      // Phase 3: geo radius — all three must be present together (see
+      // SearchService.search()'s SearchFilters.lat/lng/radiusKm comment).
+      lat: lat ? Number(lat) : undefined,
+      lng: lng ? Number(lng) : undefined,
+      radiusKm: radiusKm ? Number(radiusKm) : undefined,
     });
   }
 
@@ -59,16 +87,22 @@ export class SearchController {
     const ip = this.extractIp(req);
     this.searchProtection.checkSearchRate(ip);
 
+    // NOTE (Search Architecture Phase 2 audit): SearchService.advancedSearch()
+    // also does not exist on the class — same latent bug as `suggestions()`
+    // had (see SearchService.suggestions()'s header comment). Out of scope
+    // for this phase (not part of the instant-search/autosuggest work);
+    // flagging here so it isn't mistaken for working. POST /search/advanced
+    // currently 500s at runtime.
     return this.searchService.advancedSearch(query);
   }
 
   @Get('suggestions')
-  async suggestions(@Query('q') q: string, @Req() req: Request) {
+  async suggestions(@Query('q') q: string, @Query('locale') locale?: string, @Req() req?: Request) {
     const ip = this.extractIp(req);
     this.searchProtection.checkAutocompleteRate(ip);
 
     const safeQuery = this.searchProtection.validateQuery(q);
-    return this.searchService.suggestions(safeQuery);
+    return this.searchService.suggestions(safeQuery, locale);
   }
 
   /**

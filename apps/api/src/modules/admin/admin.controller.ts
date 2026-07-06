@@ -173,6 +173,15 @@ export class AdminController {
     return this.adminService.setFeatured(id, dto.featured, parsedDate);
   }
 
+  // ── Search Index (Search Architecture Phase 1) ────────────────────────────
+  // Triggers a full backfill of Meilisearch from every ACTIVE, non-deleted
+  // listing in Postgres. Returns immediately with the count of listings
+  // enqueued — actual indexing happens asynchronously in apps/worker.
+  @Post('search/reindex')
+  triggerSearchReindex() {
+    return this.adminService.triggerSearchReindex();
+  }
+
   // ── Reports ────────────────────────────────────────────────────────────
   @Get('reports')
   getReports(@Query('page') page: string, @Query('limit') limit: string) {

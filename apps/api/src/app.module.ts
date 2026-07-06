@@ -28,6 +28,8 @@ import { EmbeddingSyncTask }        from './common/tasks/embedding-sync.task';
 import { UploadModule }             from './common/upload/upload.module';
 import { OpenAiModule }            from './common/ai/openai.module';
 import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.module';
+import { SearchIndexCommonModule }  from './common/search-index/search-index.module';
+import { SearchIndexingModule }     from './modules/search-indexing/search-index.module';
 
 @Module({
   imports: [
@@ -65,6 +67,14 @@ import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.
 
     // ── Monitoring (global — must be before feature modules) ──────────────
     MonitoringModule,
+
+    // Search Architecture Phase 1: global Meilisearch client wrapper +
+    // the domain-event → BullMQ dual-write pipeline. Registered here
+    // (not inside a feature module) so AdminModule can also depend on
+    // SearchIndexingModule's exported queue for the full-reindex endpoint
+    // without a circular import.
+    SearchIndexCommonModule,
+    SearchIndexingModule,
 
     // ── Feature modules ────────────────────────────────────────────────────
     AuthModule,

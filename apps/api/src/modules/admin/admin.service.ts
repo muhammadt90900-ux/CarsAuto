@@ -4,6 +4,13 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.service';
 import { AuthService } from '../auth/auth.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import {
+  SEARCH_INDEX_QUEUE,
+  REINDEX_BATCH_SIZE,
+  SearchIndexJobData,
+} from '../search-indexing/search-index.constants';
 
 // IMPROVE: Added input validation and error handling constants
 const MAX_PAGE_LIMIT = 100;
@@ -21,6 +28,10 @@ export class AdminService {
     // PROMPT 4 FIX: needed to call revokeTokensIssuedBefore() from
     // banUser/suspendUser/setUserRole below.
     private authService: AuthService,
+    // Search Architecture Phase 1: same queue SearchIndexListener enqueues
+    // onto in reaction to domain events — triggerSearchReindex() below is
+    // just a bulk, admin-triggered producer of the same job shape.
+    @InjectQueue(SEARCH_INDEX_QUEUE) private searchIndexQueue: Queue<SearchIndexJobData>,
   ) {}
 
   // IMPROVE: Added validation for pagination inputs
@@ -1229,6 +1240,79 @@ export class AdminService {
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
       this.logger.error(`Failed to fetch subscriptions: ${err instanceof Error ? err.message : 'unknown error'}`);
+      throw err;
+    }
+  }
+
+  // ── Search Architecture Phase 1: full re-index ────────────────────────────
+  //
+  // Backfills Meilisearch with every currently-ACTIVE, non-deleted listing.
+  // This is how the search index is populated for the first time, and how
+  // it's repaired if it ever drifts from Postgres (Phase 5 adds an
+  // automated drift-detection job; this endpoint is the manual escape
+  // hatch for right now).
+  //
+  // Paginates in batches of REINDEX_BATCH_SIZE rather than loading every
+  // listing into memory at once — same reasoning as every other read-only
+  // admin list method in this file, just applied at a larger scale since
+  // this walks the ENTIRE active listing set, not one page of it.
+  //
+  // Returns immediately once every batch has been enqueued — indexing
+  // itself happens asynchronously in apps/worker's search-index.processor.ts,
+  // so this call does not wait for the reindex to actually complete.
+  async triggerSearchReindex(actorId?: string): Promise<{ queued: number }> {
+    let cursor: string | undefined;
+    let queued = 0;
+
+    try {
+      // F-PERF fix: read replica — this is a pure read walk over the
+      // dataset, same reasoning as getFeaturedListings()/getDashboardStats().
+      const db = this.prisma.db('read');
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const batch: { id: string }[] = await db.listing.findMany({
+          where: { status: 'ACTIVE', deletedAt: null },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+          take: REINDEX_BATCH_SIZE,
+          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        });
+
+        if (batch.length === 0) break;
+
+        await this.searchIndexQueue.addBulk(
+          batch.map((listing) => ({
+            name: 'upsert',
+            data: { action: 'upsert', listingId: listing.id } as SearchIndexJobData,
+            opts: {
+              attempts: 5,
+              backoff: { type: 'exponential', delay: 2_000 },
+              removeOnComplete: true,
+              removeOnFail: 1_000,
+            },
+          })),
+        );
+
+        queued += batch.length;
+        cursor = batch[batch.length - 1].id;
+
+        if (batch.length < REINDEX_BATCH_SIZE) break;
+      }
+
+      this.auditLog.log({
+        action: AuditAction.ADMIN_SEARCH_REINDEX_TRIGGERED,
+        actorId,
+        targetType: 'SearchIndex',
+        metadata: { queued },
+      }).catch(() => {});
+
+      this.logger.log(`Full search reindex: enqueued ${queued} listings`);
+      return { queued };
+    } catch (err) {
+      this.logger.error(
+        `Failed to trigger search reindex: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
       throw err;
     }
   }

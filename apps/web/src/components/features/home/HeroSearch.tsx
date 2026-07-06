@@ -2,6 +2,7 @@
 // components/features/home/HeroSearch.tsx
 
 import { useState, useReducer, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useLocale } from 'next-intl';
 import { CarBrandLogo, BrandGrid } from '@/components/shared/CarBrandLogo';
 import {
   Search, ChevronDown, SlidersHorizontal, X,
@@ -27,6 +28,21 @@ function saveHistory(term: string) {
 }
 function clearHistory() {
   try { localStorage.removeItem(HISTORY_KEY); } catch {}
+}
+
+/* ── Search Architecture Phase 2: live autosuggest ──────────────
+ * NEXT_PUBLIC_API_URL already includes the NestJS '/api' prefix — same
+ * convention as ChatWindow.tsx / server-api.ts. */
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+
+async function fetchLiveSuggestions(query: string, locale: string, signal: AbortSignal): Promise<string[]> {
+  const res = await fetch(
+    `${API_URL}/search/suggestions?q=${encodeURIComponent(query)}&locale=${locale}`,
+    { signal },
+  );
+  if (!res.ok) throw new Error(`suggest request failed: ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 /* ── Fuzzy suggestion helper ─────────────────────────────────── */
@@ -167,6 +183,7 @@ const initialSearchState: SearchState = { query: '', suggestions: [], history: [
 
 /* ── Main HeroSearch ─────────────────────────────────────────── */
 export function HeroSearch() {
+  const locale = useLocale();
   const [filters, dispatchFilters] = useReducer(filtersReducer, initialFilters);
   const [ui, setUi] = useState<UiState>(initialUi);
   const [search, setSearch] = useState<SearchState>(initialSearchState);
@@ -174,6 +191,7 @@ export function HeroSearch() {
   const inputRef    = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const abortRef     = useRef<AbortController>();
 
   const setFilter = useCallback((field: keyof FiltersState, value: string) => {
     dispatchFilters({ type: 'SET', field, value });
@@ -198,16 +216,37 @@ export function HeroSearch() {
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (search.query.length >= 2) {
-      const q = search.query;
-      debounceRef.current = setTimeout(() => {
-        setSearch(s => ({ ...s, suggestions: getSuggestions(q) }));
-      }, 150);
-    } else {
+    abortRef.current?.abort();
+
+    if (search.query.length < 2) {
       setSearch(s => ({ ...s, suggestions: [] }));
+      return;
     }
+
+    const q = search.query;
+    // Instant, local, zero-latency suggestions while the live request is
+    // in flight — replaced by the API's results if/when they arrive
+    // (still within the same debounce window), so the dropdown never
+    // sits empty during the 150ms wait.
+    setSearch(s => ({ ...s, suggestions: getSuggestions(q) }));
+
+    debounceRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      fetchLiveSuggestions(q, locale, controller.signal)
+        .then(live => {
+          if (live.length) setSearch(s => (s.query === q ? { ...s, suggestions: live } : s));
+        })
+        .catch(() => {
+          // Network error, timeout, or the request was aborted by a newer
+          // keystroke — the local getSuggestions() result already set
+          // above stays on screen either way.
+        });
+    }, 150);
+
+    return () => clearTimeout(debounceRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.query]);
+  }, [search.query, locale]);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
