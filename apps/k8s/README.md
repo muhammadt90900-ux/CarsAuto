@@ -24,6 +24,29 @@
    their own StatefulSets) — not included here either, for the same reason:
    stateful datastores need careful PVC/backup planning that's a separate
    decision from the stateless app tier this manifest set covers.
+   F-SEC fix (Prompt 6): "Redis" here is really two logical connections now
+   — see `secrets.yaml`'s `CRITICAL_REDIS_URL`/`CRITICAL_REDIS_DB` comment
+   for the two ways to satisfy that (separate instance, or same instance +
+   different db index) depending on what's available/affordable.
+   F-PERF fix (Prompt 7): `secrets.yaml`'s `DATABASE_READ_URLS` (plural,
+   comma-separated) replaces the old single `DATABASE_READ_URL` — provision
+   2 read replicas via your Postgres provider (a starting point, not a
+   load-tested number — see docker-compose.yml's equivalent comment) and
+   list both. `prisma.service.ts`'s `db('read')` round-robins across
+   whatever's listed there, so scaling to more replicas later is a
+   one-line `secrets.yaml` change, no code change.
+7. `pgbouncer-deployment.yaml` needs `secrets.yaml`'s `DATABASE_DIRECT_URL`
+   key filled in with the REAL, direct-to-Postgres connection string —
+   `DATABASE_URL` (used by the api/worker) points AT this PgBouncer
+   Deployment instead, once both are applied. Run schema migrations /
+   `prisma db push` against `DATABASE_DIRECT_URL`, not `DATABASE_URL` —
+   PgBouncer's transaction-pooling mode does not reliably support DDL.
+8. `hpa.yaml`'s p95-latency metric needs Prometheus Adapter already
+   installed cluster-wide (same "assumed, not included" pattern as
+   Postgres/Redis/Prometheus above) with `prometheus-adapter-rules.yaml`'s
+   rule merged into its config — see that file's header for exact steps.
+   The HPA still works on CPU alone if you skip this, just without the
+   latency-based trigger.
 
 ## Apply order
 
@@ -31,6 +54,7 @@
 kubectl apply -f namespace.yaml
 kubectl apply -f configmap.yaml
 kubectl apply -f secrets.yaml       # after filling in real values
+kubectl apply -f pgbouncer-deployment.yaml
 kubectl apply -f api-deployment.yaml
 kubectl apply -f web-deployment.yaml
 kubectl apply -f worker-deployment.yaml

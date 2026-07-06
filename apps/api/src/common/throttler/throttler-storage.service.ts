@@ -1,7 +1,10 @@
 // apps/api/src/common/throttler/throttler-storage.service.ts
 import { Injectable } from '@nestjs/common';
 import { ThrottlerStorage } from '@nestjs/throttler';
-import { CacheService } from '../cache/cache.service';
+// F-SEC fix (Prompt 6): rate-limit counters are security-critical state —
+// moved from CacheService to CriticalStateService (separate Redis
+// connection, noeviction). Same API, so only this import changed.
+import { CriticalStateService } from '../cache/critical-state.service';
 
 export interface ThrottlerStorageRecord {
   totalHits: number;
@@ -12,7 +15,7 @@ export interface ThrottlerStorageRecord {
 
 @Injectable()
 export class ThrottlerStorageService implements ThrottlerStorage {
-  constructor(private readonly cache: CacheService) {}
+  constructor(private readonly cache: CriticalStateService) {}
 
   async increment(
     key: string,

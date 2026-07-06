@@ -1,0 +1,44 @@
+# apps/k8s/prometheus-adapter-rules.yaml
+#
+# NOT a standalone applyable manifest — Prometheus Adapter isn't deployed by
+# this manifest set (same "assumed already installed cluster-wide" pattern
+# as Postgres/Redis/Prometheus itself; see configmap.yaml and
+# apps/k8s/README.md). This file documents the `rules.custom` values you
+# need to merge into whatever installs Prometheus Adapter in your cluster
+# (typically the `prometheus-adapter` subchart of the kube-prometheus-stack
+# Helm chart, or the standalone prometheus-adapter chart).
+#
+# What this rule does: turns the http_request_duration_seconds Histogram
+# already exported by metrics.service.ts (scraped from every carsauto-api
+# pod's /api/metrics endpoint per main.ts) into a Kubernetes custom metric,
+# http_request_duration_p95_seconds, that hpa.yaml's carsauto-api-hpa
+# references as a Pods-type metric.
+#
+# ── How to apply ─────────────────────────────────────────────────────────────
+# If Prometheus Adapter was installed via the kube-prometheus-stack Helm
+# chart, merge the `rules:` block below into that chart's values under
+# `prometheus-adapter.rules.custom`, then `helm upgrade` the release. If it's
+# a standalone install, merge into its ConfigMap
+# (kube-system/adapter-config or similar) and restart the adapter pod so it
+# picks up the change (it does not hot-reload).
+#
+# Verify it's working before relying on the HPA:
+#   kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/carsauto/pods/*/http_request_duration_p95_seconds" | jq .
+# should return one entry per carsauto-api pod with a non-null value once
+# that pod has served at least a few requests in the last rate() window.
+
+rules:
+  custom:
+    - seriesQuery: 'http_request_duration_seconds_bucket{namespace="carsauto"}'
+      resources:
+        overrides:
+          namespace: { resource: "namespace" }
+          pod:       { resource: "pod" }
+      name:
+        matches: "^http_request_duration_seconds_bucket$"
+        as: "http_request_duration_p95_seconds"
+      # 2m rate window: short enough to react to a real traffic-shape change
+      # within the HPA's own 30s scale-up stabilization window, long enough
+      # to not be dominated by a single slow request. Tune alongside the
+      # HPA's stabilizationWindowSeconds if you change one, not in isolation.
+      metricsQuery: 'histogram_quantile(0.95, sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (le, <<.GroupBy>>))'

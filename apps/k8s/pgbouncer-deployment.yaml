@@ -1,0 +1,136 @@
+# k8s/pgbouncer-deployment.yaml
+#
+# F-PERF fix: PgBouncer (transaction-mode connection pooler) sitting between
+# carsauto-api / the worker and Postgres. Without this, every API pod opens
+# up to Prisma's default (num_cpus*2+1) raw Postgres connections PER
+# PrismaClient, and PrismaService creates TWO PrismaClients per pod (write +
+# read) — see apps/api/src/common/prisma/prisma.service.ts. At this
+# manifest set's HPA limits that risks exhausting Postgres max_connections;
+# PgBouncer caps the REAL connections into Postgres to DEFAULT_POOL_SIZE per
+# replica, regardless of how many client (app-layer) connections it is
+# multiplexing.
+#
+# Assumes Postgres itself runs as its own StatefulSet/managed service (not
+# included in this manifest set, same as meilisearch — see configmap.yaml's
+# header), reachable at the host encoded in the DATABASE_DIRECT_URL secret
+# key below.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carsauto-pgbouncer
+  namespace: carsauto
+  labels:
+    app: carsauto-pgbouncer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: carsauto-pgbouncer
+  template:
+    metadata:
+      labels:
+        app: carsauto-pgbouncer
+    spec:
+      containers:
+        - name: pgbouncer
+          image: edoburu/pgbouncer:v1.21.0-p2
+          ports:
+            - containerPort: 6432
+              name: pgbouncer
+          env:
+            # Upstream (real) Postgres connection. This is DELIBERATELY a
+            # separate secret key from DATABASE_URL (which points AT this
+            # PgBouncer service once configured below) — pointing PgBouncer's
+            # own upstream at itself would be a circular connection.
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: carsauto-secrets
+                  key: DATABASE_DIRECT_URL
+            - name: LISTEN_PORT
+              value: "6432"
+            - name: POOL_MODE
+              value: transaction
+            - name: AUTH_TYPE
+              value: scram-sha-256
+            - name: SERVER_RESET_QUERY
+              value: "DISCARD ALL"
+            # Client-facing (app -> pgbouncer) connection ceiling per
+            # PgBouncer pod. Must be >= (api pods + worker pods) x 2 clients
+            # x PRISMA_CONNECTION_LIMIT — see the connection-math comment in
+            # prisma.service.ts for the full sum.
+            #
+            # F-PERF fix (hpa.yaml raised carsauto-api-hpa maxReplicas to
+            # 160): (160 api + 2 worker) x 2 clients x connection_limit(5) =
+            # 1,620 potential connections at full scale — raised from 200 to
+            # 2,000 per replica (x2 replicas = 4,000 total capacity via the
+            # Service, comfortably above 1,620 even accounting for uneven
+            # load-balancing across replicas). Recompute this if maxReplicas,
+            # PRISMA_CONNECTION_LIMIT, or the worker's fixed replica count
+            # change.
+            - name: MAX_CLIENT_CONN
+              value: "2000"
+            # Real connections PgBouncer itself opens to Postgres, PER
+            # REPLICA of this Deployment. This — not MAX_CLIENT_CONN — is
+            # what actually counts against Postgres max_connections:
+            # replicas (2) x DEFAULT_POOL_SIZE (20) = 40 real connections.
+            # This number does NOT need to grow just because MAX_CLIENT_CONN
+            # did — that's the entire point of transaction pooling. At
+            # sustained full scale (1,620 potential clients sharing 40 real
+            # connections) you may see more queueing wait inside PgBouncer
+            # than at lower traffic; if p95 latency data (see
+            # prometheus-adapter-rules.yaml) shows PgBouncer queueing as a
+            # bottleneck, raise DEFAULT_POOL_SIZE toward ~30-40/replica AND
+            # raise Postgres's own max_connections accordingly (talk to your
+            # DB host/provider — this is a bigger change than anything in
+            # this file, since it affects Postgres's own memory sizing).
+            - name: DEFAULT_POOL_SIZE
+              value: "20"
+            - name: MIN_POOL_SIZE
+              value: "5"
+            - name: RESERVE_POOL_SIZE
+              value: "5"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            tcpSocket:
+              port: 6432
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 6432
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+      # Spreads the 2 PgBouncer replicas across nodes so a single node loss
+      # doesn't take down all pooled connections at once.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: carsauto-pgbouncer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carsauto-pgbouncer
+  namespace: carsauto
+spec:
+  selector:
+    app: carsauto-pgbouncer
+  ports:
+    - port: 6432
+      targetPort: 6432
+      name: pgbouncer
+  type: ClusterIP

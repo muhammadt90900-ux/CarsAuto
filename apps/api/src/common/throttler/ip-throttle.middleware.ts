@@ -1,7 +1,10 @@
 // apps/api/src/common/throttler/ip-throttle.middleware.ts
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { CacheService } from '../cache/cache.service';
+// F-SEC fix (Prompt 6): IP rate-limit/block counters are security-critical —
+// moved from CacheService to CriticalStateService (separate Redis
+// connection, noeviction). Same API, so only this import changed.
+import { CriticalStateService } from '../cache/critical-state.service';
 
 const ROUTE_LIMITS: Array<{ prefix: string; maxHits: number; windowMs: number }> = [
   { prefix: '/api/auth/login',               maxHits: 10,  windowMs: 60_000       },
@@ -26,7 +29,7 @@ export class IpThrottleMiddleware implements NestMiddleware {
   private readonly logger = new Logger(IpThrottleMiddleware.name);
   private readonly trustProxy = process.env.TRUST_PROXY === 'true';
 
-  constructor(private readonly cache: CacheService) {}
+  constructor(private readonly cache: CriticalStateService) {}
 
   use(req: Request, res: Response, next: NextFunction): void {
     this.handle(req, res, next).catch((err: unknown) => {

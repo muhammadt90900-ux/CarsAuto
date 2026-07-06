@@ -1,6 +1,10 @@
 // apps/api/src/common/throttler/search-protection.service.ts
 import { Injectable, HttpException, HttpStatus, BadRequestException, Logger } from '@nestjs/common';
-import { CacheService } from '../cache/cache.service';
+// F-SEC fix (Prompt 6): not explicitly named in the prompt's list, but this
+// is rate-limiting (same bucket as ThrottlerStorageService/
+// IpThrottleMiddleware) — moved to CriticalStateService for the same
+// eviction-safety reason. Flagged to GJ as a judgment call, not silently.
+import { CriticalStateService } from '../cache/critical-state.service';
 
 const SEARCH_LIMIT_PER_MINUTE       = 60;
 const AUTOCOMPLETE_LIMIT_PER_MINUTE = 120;
@@ -20,7 +24,7 @@ const BLOCKED_PATTERNS = [
 export class SearchProtectionService {
   private readonly logger = new Logger(SearchProtectionService.name);
 
-  constructor(private readonly cache: CacheService) {}
+  constructor(private readonly cache: CriticalStateService) {}
 
   async checkSearchRate(ip: string): Promise<void> {
     const key = `search:rate:${ip}`;

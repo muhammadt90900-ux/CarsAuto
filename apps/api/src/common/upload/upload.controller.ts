@@ -48,7 +48,12 @@ import { Request } from 'express';
 import { UploadService, UploadFolderType } from './upload.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { imageUploadOptions } from './multer.config';
-import { CacheService } from '../cache/cache.service';
+// F-SEC fix (Prompt 6): upload rate-limit counters are security-critical —
+// moved from CacheService to CriticalStateService (separate Redis
+// connection, noeviction). Same API, so only this import changed. (The
+// actual ownership/IDOR check above this in the file is DB-backed via
+// PrismaService already, not cache-backed — unaffected by this change.)
+import { CriticalStateService } from '../cache/critical-state.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 
@@ -77,7 +82,7 @@ export class UploadController {
 
   constructor(
     private readonly uploadService: UploadService,
-    private readonly cache: CacheService,
+    private readonly cache: CriticalStateService,
     private readonly prisma: PrismaService,
   ) {}
 

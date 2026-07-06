@@ -21,7 +21,10 @@ networks:
 # ── Volumes ──────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:
+  postgres_replica_1_data:
+  postgres_replica_2_data:
   redis_data:
+  redis_critical_data:
   meilisearch_data:
   prometheus_data:
   grafana_data:
@@ -40,14 +43,108 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}     # no default — must be set
       POSTGRES_DB:       ${POSTGRES_DB:-carsauto}
       PGDATA:            /var/lib/postgresql/data/pgdata
+      # F-PERF fix (Prompt 7): consumed by
+      # scripts/postgres-init/01-replication-setup.sh (runs once, on this
+      # container's first boot only) to create the replicator role.
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # F-PERF fix (Prompt 7): sets up the `replicator` role + pg_hba.conf
+      # entry the 2 read replicas below need. Runs once via the official
+      # image's docker-entrypoint-initdb.d mechanism (empty-PGDATA-only).
+      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    # F-PERF fix (Prompt 7): wal_level=replica (+ senders/slots/hot_standby)
+    # is what makes streaming replication possible at all — without these,
+    # postgres-replica-1/2 below cannot connect. This does NOT change any
+    # existing primary/write behavior; it only enables a WAL sender process
+    # (idle, near-zero cost) that the replicas connect to.
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby=on
     healthcheck:
       test:     ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carsauto} -d ${POSTGRES_DB:-carsauto}"]
       interval: 10s
       timeout:  5s
       retries:  5
       start_period: 30s
+    deploy:
+      resources:
+        limits:   { memory: 1g, cpus: '1.0' }
+        reservations: { memory: 256m }
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+  # ── PostgreSQL read replicas ───────────────────────────────────────────────────
+  # F-PERF fix (Prompt 7): 2 replicas — GJ didn't have a measured read:write
+  # ratio to size against, so this is a starting point (see hpa.yaml's
+  # sizing-math comment for the same "no data yet, documented estimate"
+  # caveat), not a load-tested number. Scale by adding more
+  # postgres-replica-N services + appending to DATABASE_READ_URLS below —
+  # prisma.service.ts's resolveReplicaUrls() needs no code change for that.
+  #
+  # Real streaming (physical) replication via pg_basebackup, not a second
+  # independent database — see scripts/postgres-replica/replica-entrypoint.sh
+  # for exactly what runs on first boot. Verified end-to-end (data written
+  # to the primary appears on a replica within ~2s; replicas correctly
+  # reject writes) against real Postgres 16 while writing this, though not
+  # inside this exact multi-container docker-compose shape — validate that
+  # shape specifically before relying on it (see that script's own note).
+  postgres-replica-1:
+    image: postgres:16-alpine
+    container_name: cars_auto_db_replica_1
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      PGDATA:               /var/lib/postgresql/data/pgdata
+      PRIMARY_HOST:         postgres
+      PRIMARY_PORT:         "5432"
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    volumes:
+      - postgres_replica_1_data:/var/lib/postgresql/data
+      - ./scripts/postgres-replica/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/replica-entrypoint.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carsauto} -d ${POSTGRES_DB:-carsauto}"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 60s   # pg_basebackup on first boot takes longer than a normal start
+    deploy:
+      resources:
+        limits:   { memory: 1g, cpus: '1.0' }
+        reservations: { memory: 256m }
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "3" }
+
+  postgres-replica-2:
+    image: postgres:16-alpine
+    container_name: cars_auto_db_replica_2
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      PGDATA:               /var/lib/postgresql/data/pgdata
+      PRIMARY_HOST:         postgres
+      PRIMARY_PORT:         "5432"
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    volumes:
+      - postgres_replica_2_data:/var/lib/postgresql/data
+      - ./scripts/postgres-replica/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/replica-entrypoint.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carsauto} -d ${POSTGRES_DB:-carsauto}"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 60s
     deploy:
       resources:
         limits:   { memory: 1g, cpus: '1.0' }
@@ -80,6 +177,97 @@ services:
       resources:
         limits:   { memory: 512m, cpus: '0.5' }
         reservations: { memory: 64m }
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  # ── Redis (critical state) ────────────────────────────────────────────────────
+  # F-SEC fix (Prompt 6): separate instance from the hot-cache `redis` above.
+  # Holds rate-limit counters, OTP counters, the access-token blocklist,
+  # upload rate limits, and WebSocket presence/rate-limit keys — see
+  # apps/api/src/common/cache/critical-state.service.ts's header comment for
+  # why these must never be evicted the way hot-cache keys can be.
+  # `maxmemory-policy noeviction` means Redis returns OOM errors instead of
+  # silently dropping keys once memory fills — CriticalStateService's
+  # try/catch (inherited from BaseRedisStore) logs and fails per each
+  # caller's existing fail-open/fail-closed choice rather than crashing.
+  # This data is genuinely small-volume (counters + short sets, not cached
+  # DB rows), so 128mb is generous headroom, not a tight budget.
+  redis-critical:
+    image: redis:7-alpine
+    container_name: cars_auto_redis_critical
+    restart: unless-stopped
+    networks: [internal]
+    volumes:
+      - redis_critical_data:/data
+    healthcheck:
+      test:     ["CMD", "redis-cli", "-a", "${REDIS_CRITICAL_PASSWORD}", "ping"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_CRITICAL_PASSWORD}
+      --maxmemory 128mb
+      --maxmemory-policy noeviction
+    deploy:
+      resources:
+        limits:   { memory: 256m, cpus: '0.25' }
+        reservations: { memory: 32m }
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  # ── PgBouncer (transaction-mode connection pooler) ────────────────────────────
+  # F-PERF fix: sits between api/worker and Postgres. Without this, every pod
+  # opens up to Prisma's default (num_cpus*2+1) raw connections PER
+  # PrismaClient, and PrismaService creates TWO PrismaClients per pod
+  # (write + read) — see apps/api/src/common/prisma/prisma.service.ts. At
+  # current HPA limits (10 API pods) that risks exhausting Postgres
+  # max_connections; PgBouncer in transaction-pooling mode caps the REAL
+  # connections to Postgres to DEFAULT_POOL_SIZE regardless of how many
+  # client (app-layer) connections it's multiplexing.
+  #
+  # `pgbouncer=true` is added to the app's DATABASE_URL (in prisma.service.ts,
+  # not here) because transaction pooling does not support named prepared
+  # statements — Prisma needs to know to disable those when talking to
+  # PgBouncer specifically.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.21.0-p2
+    container_name: cars_auto_pgbouncer
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      # Upstream (real) Postgres connection — PgBouncer connects here, the
+      # app never does, once pointed at pgbouncer:6432 below.
+      DATABASE_URL:      postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-carsauto}
+      LISTEN_PORT:       "6432"
+      POOL_MODE:         transaction
+      AUTH_TYPE:         scram-sha-256
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      # Client-facing (app → pgbouncer) connection ceiling. Must be >=
+      # (api pods + worker pods) × 2 clients × PRISMA_CONNECTION_LIMIT — see
+      # the connection-math comment in prisma.service.ts for the full sum.
+      MAX_CLIENT_CONN:   "200"
+      # Real connections PgBouncer itself opens to Postgres. This — not
+      # MAX_CLIENT_CONN — is what actually counts against Postgres
+      # max_connections (default 100).
+      DEFAULT_POOL_SIZE: "20"
+      MIN_POOL_SIZE:     "5"
+      RESERVE_POOL_SIZE: "5"
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-carsauto}"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:   { memory: 128m, cpus: '0.25' }
+        reservations: { memory: 32m }
     logging:
       driver: json-file
       options: { max-size: "20m", max-file: "3" }
@@ -132,8 +320,22 @@ services:
     environment:
       NODE_ENV:                 production
       PORT:                     4000
-      DATABASE_URL:             postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-carsauto}
+      # F-PERF fix: routed through PgBouncer (pgbouncer:6432), not straight to
+      # Postgres (postgres:5432) — see the pgbouncer service above and the
+      # connection-math comment in prisma.service.ts. connection_limit,
+      # pool_timeout, and pgbouncer=true are appended by prisma.service.ts
+      # itself, not here, so they stay in one place.
+      DATABASE_URL:             postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB:-carsauto}
+      # F-PERF fix (Prompt 7): db('read') load-balances across both —
+      # comma-separated, see prisma.service.ts's resolveReplicaUrls(). Not
+      # routed through PgBouncer (each replica is its own Postgres instance;
+      # see the connection-math note in prisma.service.ts for why that's a
+      # separate follow-up, not part of this fix).
+      DATABASE_READ_URLS:       "postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@postgres-replica-1:5432/${POSTGRES_DB:-carsauto},postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@postgres-replica-2:5432/${POSTGRES_DB:-carsauto}"
       REDIS_URL:                redis://:${REDIS_PASSWORD}@redis:6379
+      # F-SEC fix (Prompt 6): separate connection for rate limits/OTP/token
+      # blocklist/presence — see critical-state.service.ts's header comment.
+      CRITICAL_REDIS_URL:       redis://:${REDIS_CRITICAL_PASSWORD}@redis-critical:6379
       JWT_SECRET:               ${JWT_SECRET}
       JWT_EXPIRES_IN:           ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN:   ${JWT_REFRESH_EXPIRES_IN:-7d}
@@ -163,9 +365,10 @@ services:
       LOG_LEVEL:                ${LOG_LEVEL:-log}
       SLOW_QUERY_THRESHOLD_MS:  ${SLOW_QUERY_THRESHOLD_MS:-500}
     depends_on:
-      postgres:     { condition: service_healthy }
-      redis:        { condition: service_healthy }
-      meilisearch:  { condition: service_healthy }
+      pgbouncer:       { condition: service_healthy }
+      redis:           { condition: service_healthy }
+      redis-critical:  { condition: service_healthy }
+      meilisearch:     { condition: service_healthy }
     deploy:
       resources:
         limits:   { memory: 1g, cpus: '1.0' }
@@ -188,7 +391,9 @@ services:
     networks: [internal]
     environment:
       NODE_ENV:                 production
-      DATABASE_URL:             postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-carsauto}
+      # F-PERF fix: same rationale as the api service above — through
+      # PgBouncer, not straight to Postgres.
+      DATABASE_URL:             postgresql://${POSTGRES_USER:-carsauto}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB:-carsauto}
       REDIS_URL:                redis://:${REDIS_PASSWORD}@redis:6379
       # Translation jobs
       OPENAI_API_KEY:           ${OPENAI_API_KEY:-}
@@ -210,8 +415,8 @@ services:
       LOG_LEVEL:                ${LOG_LEVEL:-log}
       SLOW_QUERY_THRESHOLD_MS:  ${SLOW_QUERY_THRESHOLD_MS:-500}
     depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
+      pgbouncer: { condition: service_healthy }
+      redis:     { condition: service_healthy }
     deploy:
       resources:
         limits:   { memory: 512m, cpus: '0.5' }

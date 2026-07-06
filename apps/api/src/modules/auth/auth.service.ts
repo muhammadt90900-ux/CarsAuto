@@ -24,7 +24,13 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailService } from '../../common/email/email.service';
-import { CacheService } from '../../common/cache/cache.service';
+// F-SEC fix (Prompt 6): the token blocklist + revocation floor are exactly
+// the kind of security-critical state this split was for — moved from
+// CacheService to CriticalStateService (separate Redis connection,
+// noeviction). An evicted blocklist entry means a revoked token becomes
+// valid again, which is a much worse failure mode than an evicted listing
+// cache entry. Same API, so only this import changed.
+import { CriticalStateService } from '../../common/cache/critical-state.service';
 import * as crypto from 'crypto';
 import { promisify } from 'util';
 
@@ -118,7 +124,7 @@ export class AuthService {
     private readonly config:       ConfigService,
     private readonly emailService: EmailService,
     // BUG #5 FIX: Injected so we can write / read the access-token blocklist.
-    private readonly cache:        CacheService,
+    private readonly cache:        CriticalStateService,
   ) {}
 
   // ── Register ────────────────────────────────────────────────────────────────

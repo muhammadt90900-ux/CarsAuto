@@ -1,7 +1,10 @@
 // apps/api/src/common/throttler/otp-protection.service.ts
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { CacheService } from '../cache/cache.service';
+// F-SEC fix (Prompt 6): OTP counters are security-critical — moved from
+// CacheService to CriticalStateService (separate Redis connection,
+// noeviction). Same API, so only this import changed.
+import { CriticalStateService } from '../cache/critical-state.service';
 
 const MAX_OTP_ATTEMPTS       = 5;
 const OTP_ATTEMPT_WINDOW_MS  = 10 * 60_000;
@@ -14,7 +17,7 @@ const OTP_RESEND_COOLDOWN_MS = 60_000;
 export class OtpProtectionService {
   private readonly logger = new Logger(OtpProtectionService.name);
 
-  constructor(private readonly cache: CacheService) {}
+  constructor(private readonly cache: CriticalStateService) {}
 
   async checkAttempt(identifier: string): Promise<void> {
     const key     = `otp:attempts:${identifier}`;

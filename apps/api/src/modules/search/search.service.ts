@@ -78,7 +78,10 @@ export class SearchService {
     const normalizedQuery = q?.trim().toLowerCase() ?? '';
     const cacheKey = `search:${normalizedQuery}:${JSON.stringify(filters)}:p${page}:l${limit}`;
 
-    return this.cache.getOrSet(cacheKey, async () => {
+    // F-PERF fix: getOrSetWithLock (not plain getOrSet) — see cache.service
+    // .ts's header comment on that method for why (stampede protection on
+    // hot, short-TTL read caches).
+    return this.cache.getOrSetWithLock(cacheKey, async () => {
       const skip = (page - 1) * limit;
       const where: any = { status: 'ACTIVE', deletedAt: null };
 
@@ -177,7 +180,10 @@ export class SearchService {
     const { page = 1, limit = 20, ...structuralFilters } = filters;
     const cacheKey = `search:semantic:${normalizedQuery}:${JSON.stringify(structuralFilters)}:p${page}:l${limit}`;
 
-    return this.cache.getOrSet(cacheKey, async () => {
+    // F-PERF fix: getOrSetWithLock (not plain getOrSet) — see cache.service
+    // .ts's header comment on that method for why (stampede protection on
+    // hot, short-TTL read caches).
+    return this.cache.getOrSetWithLock(cacheKey, async () => {
       // 1. Vector search — get top 50 by cosine similarity
       //    pgvector <=> operator = cosine distance (0=identical, 2=opposite)
       const vectorStr = `[${embedding.join(',')}]`;
@@ -262,7 +268,10 @@ export class SearchService {
     const term = q.trim().toLowerCase();
     const cacheKey = `search:autocomplete:${term}`;
 
-    return this.cache.getOrSet(cacheKey, async () => {
+    // F-PERF fix: getOrSetWithLock (not plain getOrSet) — see cache.service
+    // .ts's header comment on that method for why (stampede protection on
+    // hot, short-TTL read caches).
+    return this.cache.getOrSetWithLock(cacheKey, async () => {
       // Union 3 sources: listing titles + brand names + model names
       // F-ARCH fix: read replica — autocomplete is read-only.
       const rows = await this.prisma.db('read').$queryRaw<{ suggestion: string; rank: number }[]>`

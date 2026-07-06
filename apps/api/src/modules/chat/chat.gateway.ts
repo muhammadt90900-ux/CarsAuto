@@ -14,6 +14,13 @@ import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CacheService } from '../../common/cache/cache.service';
+// F-SEC fix (Prompt 6): wsrl:/voicerl: (rate limits) and online: (presence)
+// are security-critical state — moved to CriticalStateService (separate
+// Redis connection, noeviction). typing: stays on the regular hot cache
+// (CacheService) below — losing a typing indicator under memory pressure is
+// a harmless UX blip, not a security concern, so it doesn't need the
+// eviction-safety guarantee the others do.
+import { CriticalStateService } from '../../common/cache/critical-state.service';
 import { AuthService } from '../auth/auth.service';
 
 // ─── Presence ────────────────────────────────────────────────────────────────
@@ -87,6 +94,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private notificationsService: NotificationsService,
     private jwtService: JwtService,
     private cache: CacheService,
+    // F-SEC fix (Prompt 6): separate connection for wsrl:/voicerl:/online:
+    // (rate limits + presence) — see the import comment above.
+    private criticalState: CriticalStateService,
     // PROMPT 5 FIX: needed to check the same blocklist/token-floor that
     // JwtStrategy.validate() checks for REST requests.
     private authService: AuthService,
@@ -95,12 +105,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ─── Rate limit helpers ─────────────────────────────────────────────────────
 
   private async checkWsRateLimit(userId: string): Promise<boolean> {
-    const count = await this.cache.incrWithTtl(`wsrl:${userId}`, WS_RATE_WINDOW_MS);
+    const count = await this.criticalState.incrWithTtl(`wsrl:${userId}`, WS_RATE_WINDOW_MS);
     return count <= WS_RATE_MAX;
   }
 
   private async checkVoiceRateLimit(userId: string): Promise<boolean> {
-    const count = await this.cache.incrWithTtl(`voicerl:${userId}`, VOICE_RATE_WINDOW_MS);
+    const count = await this.criticalState.incrWithTtl(`voicerl:${userId}`, VOICE_RATE_WINDOW_MS);
     return count <= VOICE_RATE_MAX;
   }
 
@@ -134,12 +144,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.data.userId = userId;
 
-      await this.cache.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS);
+      await this.criticalState.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS);
 
       // Heartbeat: keep the presence TTL alive for as long as this socket is
       // connected, even if the user is idle (no typing/messages). Cleared on disconnect.
       client.data.presenceInterval = setInterval(() => {
-        this.cache.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS).catch(() => {});
+        this.criticalState.addToSet(`online:${userId}`, client.id, PRESENCE_TTL_MS).catch(() => {});
       }, PRESENCE_REFRESH_MS);
 
       // Per-connection typing-stop timers (see "Typing" comment above).
@@ -162,8 +172,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       clearInterval(client.data.presenceInterval);
     }
 
-    await this.cache.removeFromSet(`online:${userId}`, client.id);
-    const stillOnline = await this.cache.exists(`online:${userId}`);
+    await this.criticalState.removeFromSet(`online:${userId}`, client.id);
+    const stillOnline = await this.criticalState.exists(`online:${userId}`);
     if (!stillOnline) {
       client.rooms.forEach((room) => {
         client.to(room).emit('userOffline', {
@@ -442,7 +452,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         { chatId, senderId },
       );
 
-      const recipientSockets = await this.cache.setMembers(`online:${otherUserId}`);
+      const recipientSockets = await this.criticalState.setMembers(`online:${otherUserId}`);
       recipientSockets.forEach((socketId) => {
         this.server.to(socketId).emit('notification', notification);
         this.server.to(socketId).emit('messageDelivered', {
@@ -495,7 +505,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ): Promise<Record<string, boolean | string>> {
     if (!Array.isArray(userIds) || userIds.length > 50) return {};
     const entries = await Promise.all(
-      userIds.map(async (id) => [id, await this.cache.exists(`online:${id}`)] as const),
+      userIds.map(async (id) => [id, await this.criticalState.exists(`online:${id}`)] as const),
     );
     return Object.fromEntries(entries);
   }
@@ -526,13 +536,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ─── Public API ────────────────────────────────────────────────────────────
 
   async pushNotification(userId: string, notification: unknown): Promise<void> {
-    const sockets = await this.cache.setMembers(`online:${userId}`);
+    const sockets = await this.criticalState.setMembers(`online:${userId}`);
     sockets.forEach((socketId) =>
       this.server.to(socketId).emit('notification', notification),
     );
   }
 
   async isUserOnline(userId: string): Promise<boolean> {
-    return this.cache.exists(`online:${userId}`);
+    return this.criticalState.exists(`online:${userId}`);
   }
 }

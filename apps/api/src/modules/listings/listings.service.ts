@@ -391,7 +391,11 @@ export class ListingsService {
       // Cursor wins if both are somehow present; absence of `cursor` is 100%
       // backward compatible with every existing caller (offset mode, exact
       // same response shape as before this fix).
-      const base = await this.cache.getOrSet<OffsetListingsResponse | CursorListingsResponse>(
+      // F-PERF fix: getOrSetWithLock (not plain getOrSet) — this is one of
+      // the hottest read paths in the app (homepage/browse), so a bare
+      // cache-miss stampede here would hit Postgres with N identical
+      // findMany/count queries every time CACHE_TTL_LIST expires under load.
+      const base = await this.cache.getOrSetWithLock<OffsetListingsResponse | CursorListingsResponse>(
         cacheKey,
         () => (params.cursor !== undefined ? this.findAllCursor(params) : this.findAllOffset(params)),
         CACHE_TTL_LIST,
@@ -619,7 +623,16 @@ export class ListingsService {
         },
       });
 
-      await this.invalidateListCache();
+      // F-PERF fix: no longer calling invalidateListCache() here. That method
+      // did a full-keyspace Redis SCAN (cache.service.ts's del() prefix
+      // branch) on every single create/update/delete — Redis is
+      // single-threaded, so this blocked other commands while it ran, and
+      // got worse as the number of distinct cached filter-permutation keys
+      // grew. TTL-based expiry (CACHE_TTL_LIST, 30s) now replaces write-time
+      // invalidation: a listing appearing/disappearing from a browse page
+      // for up to 30s after a write is acceptable for this marketplace, and
+      // is already the effective staleness window between any two cache
+      // refreshes today regardless.
       this.ai.checkContent(
         listing.titleKu ?? listing.titleEn,
         listing.descriptionKu ?? listing.descriptionEn ?? '',
@@ -792,7 +805,9 @@ export class ListingsService {
       });
 
       await this.cache.del(`listings:detail:${id}`);
-      await this.invalidateListCache();
+      // F-PERF fix: invalidateListCache() removed here — see the comment at
+      // the equivalent point in create() above for why (TTL-based expiry
+      // replaces write-time SCAN-based invalidation).
       // SOLD (not on every update to an already-sold listing). The dealer
       // lookup mirrors create()'s — best-effort, never blocks the response.
       if (!wasAlreadySold && updated.status === 'SOLD') {
@@ -833,7 +848,9 @@ export class ListingsService {
         data:  { deletedAt: new Date(), status: 'EXPIRED' },
       });
       await this.cache.del(`listings:detail:${id}`);
-      await this.invalidateListCache();
+      // F-PERF fix: invalidateListCache() removed here — see the comment at
+      // the equivalent point in create() above for why (TTL-based expiry
+      // replaces write-time SCAN-based invalidation).
       // dealer.activeListings/totalListings in response (best-effort,
       // never throws back into this request).
       try {
@@ -960,19 +977,5 @@ export class ListingsService {
     }
 
     return where;
-  }
-
-  // PROMPT 5 FIX: was `private invalidateListCache(): void` with two
-  // un-awaited `this.cache.del(...)` fire-and-forget calls inside — every
-  // caller (create/update/delete) also called it without await, so cache
-  // invalidation could still be in flight (or silently fail) after the
-  // response had already returned to the client.
-  private async invalidateListCache(): Promise<void> {
-    await this.cache.del('listings:list:');
-    // F-HIGH fix: the cursor-pagination total-count cache (see getTotal())
-    // is a separate namespace from the list-page cache — must be cleared
-    // here too, or a stale total can outlive a create/update/delete by up
-    // to CACHE_TTL_LIST.
-    await this.cache.del('listings:count:');
   }
 }

@@ -1,7 +1,56 @@
 # k8s/hpa.yaml
 #
 # Requires the metrics-server addon running in the cluster (standard on
-# most managed Kubernetes offerings; install separately on bare clusters).
+# most managed Kubernetes offerings; install separately on bare clusters)
+# for the CPU metric, AND Prometheus Adapter (see
+# prometheus-adapter-rules.yaml in this directory) for the p95-latency
+# custom metric added below.
+#
+# ── F-PERF fix: sizing math for maxReplicas (per GJ, 2026-07) ───────────────
+# Input: peak concurrent users > 100,000 (open-ended — treating 100,000 as
+# the floor for this calculation, not a ceiling). No CarsAuto-specific load
+# test exists yet (see PROMPT 8, which covers exactly this) — the
+# requests-per-pod figure below is a rough estimate from public
+# NestJS+Prisma+Postgres/Redis benchmark ranges for mixed read/write JSON
+# APIs, NOT measured against this codebase. Re-run this math against real
+# numbers once Prompt 8's load test exists, and don't treat maxReplicas below
+# as more precise than the estimate it's built on.
+#
+#   1. Concurrent users -> request rate:
+#        Using a 5s average "think time" between actions (reasonable for a
+#        marketplace with search-as-you-type + infinite scroll, both of
+#        which fire API calls more often than a static content site).
+#        peak_rps = 100,000 users / 5s = 20,000 req/s
+#
+#   2. Per-pod capacity estimate (UNVERIFIED — flagged for Prompt 8):
+#        ~200 req/s per pod at the current 1-vCPU limit, for mixed listing
+#        CRUD + search endpoints under Prisma + Redis I/O.
+#
+#   3. Pods needed, keeping the existing 70%-utilization safety margin
+#      (i.e. size for 70% of each pod's estimated ceiling, not 100% of it,
+#      matching the `averageUtilization: 70` target already used below —
+#      running pods right up to their ceiling leaves no burst headroom):
+#        pods = ceil(20,000 / (200 * 0.7)) = ceil(142.9) = 143
+#
+#   4. Round up for buffer, since both "100,000" and "200 req/s/pod" are
+#      floors/estimates, not hard measurements:
+#        carsauto-api-hpa maxReplicas: 160
+#
+#   5. carsauto-web-hpa: no separate web-tier load-test data either, so
+#      scaled by the SAME multiplier as the API tier (160/10 = 16x) rather
+#      than inventing a second unverified per-pod estimate:
+#        6 * 16 = 96 -> rounded to 100
+#
+# ── Downstream consequence you must also apply ──────────────────────────────
+# 160 API pods x 2 PrismaClients x connection_limit(5) = 1,600 connections
+# into PgBouncer at full scale (worker's fixed 2 pods add a negligible 20
+# more). pgbouncer-deployment.yaml's MAX_CLIENT_CONN has been raised from
+# 200 to 2,000 per replica to cover this — see the connection-math comment
+# there. Postgres's own max_connections does NOT need to change (PgBouncer's
+# DEFAULT_POOL_SIZE, the number that actually counts against it, is
+# unchanged) — though at sustained full scale you may want to also bump
+# DEFAULT_POOL_SIZE somewhat to reduce queueing wait under that much
+# multiplexing; see the note in pgbouncer-deployment.yaml.
 
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -14,7 +63,7 @@ spec:
     kind: Deployment
     name: carsauto-api
   minReplicas: 3
-  maxReplicas: 10
+  maxReplicas: 160
   metrics:
     - type: Resource
       resource:
@@ -22,6 +71,23 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+    # F-PERF fix: CPU alone misses I/O-bound saturation — a pod can look
+    # CPU-idle while it's actually queued waiting on the Prisma connection
+    # pool or a slow Redis round-trip. p95 request latency, computed by
+    # Prometheus Adapter from the existing http_request_duration_seconds
+    # histogram (metrics.service.ts / metrics.middleware.ts, scraped at
+    # main.ts's /api/metrics), reacts to that saturation directly. HPA
+    # scales on whichever metric asks for more replicas first — CPU or
+    # this one, whichever is higher.
+    - type: Pods
+      pods:
+        metric:
+          name: http_request_duration_p95_seconds
+        target:
+          type: AverageValue
+          # 300ms target p95. This is a *scaling trigger*, not an SLO promise
+          # — tune against real traffic/Prompt 8 numbers before relying on it.
+          averageValue: "300m"
   behavior:
     # Scale up fast (traffic spikes shouldn't wait), scale down slowly
     # (avoid flapping replicas up/down on noisy short-lived dips).
@@ -29,6 +95,16 @@ spec:
       stabilizationWindowSeconds: 30
     scaleDown:
       stabilizationWindowSeconds: 300
+  # ── topologySpreadConstraints check (per this prompt's item 4) ────────────
+  # api-deployment.yaml's existing single hostname-based constraint
+  # (maxSkew: 1, whenUnsatisfiable: ScheduleAnyway) still makes sense at 160
+  # replicas — ScheduleAnyway means it's a soft preference, so it can never
+  # block scheduling from reaching the new ceiling even on a cluster with
+  # fewer than 160 nodes (pods will simply co-locate once spread options run
+  # out, rather than the Deployment getting stuck Pending). At this replica
+  # count on a multi-AZ cluster, also add a zone-level constraint (done in
+  # api-deployment.yaml) so a single AZ outage doesn't disproportionately
+  # thin out capacity — hostname spread alone doesn't protect against that.
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -41,7 +117,7 @@ spec:
     kind: Deployment
     name: carsauto-web
   minReplicas: 2
-  maxReplicas: 6
+  maxReplicas: 100
   metrics:
     - type: Resource
       resource:
@@ -54,3 +130,4 @@ spec:
       stabilizationWindowSeconds: 30
     scaleDown:
       stabilizationWindowSeconds: 300
+

@@ -448,6 +448,9 @@ model CarBrand {
   // CHANGE: composite partial index — only active brands matter for searches
   @@index([isActive, slug])
   @@index([countryCode])
+  // F-PERF fix: nameEn/nameKu GIN trigram indexes for autocomplete/search
+  // ILIKE queries are in
+  // prisma/migrations-manual/2026-07-pg-trgm-search-indexes.sql.
   @@map("car_brands")
 }
 
@@ -471,6 +474,9 @@ model CarModel {
   @@unique([brandId, slug])
   // CHANGE: composite — brand + active used in dropdowns
   @@index([brandId, isActive])
+  // F-PERF fix: nameEn/nameKu GIN trigram indexes for autocomplete/search
+  // ILIKE queries are in
+  // prisma/migrations-manual/2026-07-pg-trgm-search-indexes.sql.
   @@map("car_models")
 }
 
@@ -627,6 +633,14 @@ model Listing {
   // See prisma/migrations-manual/backfill-listing-translations.ts for the
   // one-time backfill, and the Phase 2 audit notes for the checklist to run
   // before the follow-up drop migration.
+  //
+  // F-PERF fix: GIN trigram indexes for the ILIKE '%term%' search these 3
+  // columns still take (search.service.ts, listings.service.ts
+  // buildWhereClause()) are in
+  // prisma/migrations-manual/2026-07-pg-trgm-search-indexes.sql — not
+  // expressible as a Prisma @@index (no operator-class support in the
+  // schema DSL). Drop those 3 indexes in the same follow-up migration that
+  // drops these columns.
   titleKu       String  @db.VarChar(255)
   titleAr       String  @db.VarChar(255)
   titleEn       String  @db.VarChar(255)

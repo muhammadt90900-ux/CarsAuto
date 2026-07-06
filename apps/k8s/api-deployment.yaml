@@ -32,13 +32,25 @@ spec:
                 name: carsauto-config
             - secretRef:
                 name: carsauto-secrets
+          # F-PERF fix: limits raised from cpu:1/memory:512Mi. At the new
+          # maxReplicas: 160 (hpa.yaml) and sustained high throughput, 512Mi
+          # was flagged as too tight — Node's GC has to run much more
+          # frequently as it approaches a low heap ceiling, which under heavy
+          # Prisma result-set + JSON serialization load (large listing pages,
+          # search results) shows up as latency spikes that look like "CPU
+          # saturation" in the HPA's CPU metric but are actually GC pressure.
+          # cpu limit raised similarly to give bursty GC/serialization work
+          # more headroom rather than getting throttled mid-request. requests
+          # (what actually reserves cluster capacity x maxReplicas — check
+          # your node pool can fit 160 x these requests before applying)
+          # left unchanged; only the ceiling moved.
           resources:
             requests:
               cpu: 250m
               memory: 256Mi
             limits:
-              cpu: "1"
-              memory: 512Mi
+              cpu: "1.5"
+              memory: 1Gi
           # F-ARCH fix: these probes only became meaningful once
           # health.controller.ts was fixed to return a real HTTP 503 when
           # `status: 'down'` — previously it always returned 200 regardless
@@ -61,11 +73,22 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
-      # Spreads replicas across nodes where possible — avoids all 3 API
-      # pods landing on the same node and going down together.
+      # Spreads replicas across nodes where possible — avoids all API pods
+      # landing on the same node and going down together.
+      # F-PERF fix: at maxReplicas: 160 (hpa.yaml), also spread across AZs —
+      # hostname-spread alone doesn't protect against a single zone outage
+      # once you have far more pods than nodes-per-zone. Both are
+      # ScheduleAnyway (soft), so neither can leave the Deployment stuck
+      # Pending if the cluster is smaller than the ceiling assumes.
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: carsauto-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:

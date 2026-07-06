@@ -32,28 +32,33 @@ export class AdminService {
 
   async getDashboardStats() {
     try {
+      // F-PERF fix (Prompt 8): 13 independent counts/aggregates, no writes
+      // anywhere in this method and nothing here needs to reflect a write
+      // from earlier in the SAME request — same read-after-write reasoning
+      // as listings.service.ts's browse-mode queries, not its findOne().
+      const db = this.prisma.db('read');
       const [
         totalUsers, totalListings, activeListings, totalReports, pendingListings,
         totalAds, featuredListings, totalDealers, pendingDealers, activeSubscriptions,
         revenueAgg, bannedUsers, suspendedUsers,
       ] =
         await Promise.all([
-          this.prisma.user.count(),
-          this.prisma.listing.count(),
-          this.prisma.listing.count({ where: { status: 'ACTIVE' } }),
-          this.prisma.report.count({ where: { status: 'PENDING' } }),
-          this.prisma.listing.count({ where: { status: 'PENDING' } }),
-          this.prisma.ad?.count() ?? Promise.resolve(0) as Promise<number>,
-          this.prisma.listing.count({ where: { featured: true } }),
-          this.prisma.dealer.count(),
-          this.prisma.dealer.count({ where: { status: 'PENDING' } }),
-          this.prisma.dealerSubscription.count({ where: { status: 'ACTIVE' } }),
-          this.prisma.payment.aggregate({
+          db.user.count(),
+          db.listing.count(),
+          db.listing.count({ where: { status: 'ACTIVE' } }),
+          db.report.count({ where: { status: 'PENDING' } }),
+          db.listing.count({ where: { status: 'PENDING' } }),
+          db.ad?.count() ?? Promise.resolve(0) as Promise<number>,
+          db.listing.count({ where: { featured: true } }),
+          db.dealer.count(),
+          db.dealer.count({ where: { status: 'PENDING' } }),
+          db.dealerSubscription.count({ where: { status: 'ACTIVE' } }),
+          db.payment.aggregate({
             where: { status: 'COMPLETED' },
             _sum: { amount: true },
           }),
-          this.prisma.user.count({ where: { banned: true } }),
-          this.prisma.user.count({ where: { suspendedUntil: { gt: new Date() } } }),
+          db.user.count({ where: { banned: true } }),
+          db.user.count({ where: { suspendedUntil: { gt: new Date() } } }),
         ]);
       return {
         totalUsers, totalListings, activeListings, totalReports, pendingListings,
@@ -79,17 +84,58 @@ export class AdminService {
         };
       });
 
-      const data = await Promise.all(
-        months.map(async ({ year, month, label }) => {
-          const start = new Date(year, month - 1, 1);
-          const end = new Date(year, month, 1);
-          const [listings, users] = await Promise.all([
-            this.prisma.listing.count({ where: { createdAt: { gte: start, lt: end } } }),
-            this.prisma.user.count({ where: { createdAt: { gte: start, lt: end } } }),
-          ]);
-          return { label, listings, users };
+      // F-PERF fix (Prompt 8) — N+1 FLAGGED: this used to be
+      // `months.map(async ({ year, month }) => { ...2 counts... })` inside a
+      // Promise.all — 6 months x 2 counts = 12 separate queries per request
+      // to this dashboard endpoint, where a single pair of range queries
+      // does the same job. Prisma's groupBy() can't bucket by a truncated
+      // date (only by literal column values), and hand-written raw SQL
+      // here would need an exactly-cased quoted "User" table identifier
+      // (no @@map on that model) — fragile for a 12-query-vs-2-query win
+      // on what's already a single lightweight column. Instead: fetch just
+      // `createdAt` for the whole 6-month window in ONE query per model,
+      // then bucket by month in memory. Still 12 queries -> 2, without the
+      // raw-SQL fragility, at the cost of transferring one timestamp
+      // column per row in the window rather than doing the count fully in
+      // Postgres — reasonable for a 6-month admin dashboard chart, revisit
+      // if listing/user volume grows large enough to make that transfer
+      // itself the bottleneck (at which point the raw SQL groupBy becomes
+      // worth the fragility).
+      const rangeStart = new Date(months[0].year, months[0].month - 1, 1);
+      const rangeEnd = new Date(months[5].year, months[5].month, 1); // exclusive
+
+      const db = this.prisma.db('read');
+      const [listingRows, userRows] = await Promise.all([
+        db.listing.findMany({
+          where: { createdAt: { gte: rangeStart, lt: rangeEnd } },
+          select: { createdAt: true },
         }),
-      );
+        db.user.findMany({
+          where: { createdAt: { gte: rangeStart, lt: rangeEnd } },
+          select: { createdAt: true },
+        }),
+      ]);
+
+      const bucketKey = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}`;
+      const countByMonth = (rows: { createdAt: Date }[]) => {
+        const counts = new Map<string, number>();
+        for (const { createdAt } of rows) {
+          const k = bucketKey(createdAt);
+          counts.set(k, (counts.get(k) ?? 0) + 1);
+        }
+        return counts;
+      };
+      const listingCounts = countByMonth(listingRows);
+      const userCounts = countByMonth(userRows);
+
+      const data = months.map(({ year, month, label }) => {
+        const k = `${year}-${month}`;
+        return {
+          label,
+          listings: listingCounts.get(k) ?? 0,
+          users: userCounts.get(k) ?? 0,
+        };
+      });
       return data;
     } catch (err) {
       this.logger.error(`Failed to fetch analytics: ${err instanceof Error ? err.message : 'unknown error'}`);
@@ -131,8 +177,11 @@ export class AdminService {
     if (conditions.length) where.AND = conditions;
 
     try {
+      // F-PERF fix (Prompt 8): paginated list view, same replica-lag
+      // trade-off already accepted for listings/search browse-mode.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.user.findMany({
+        db.user.findMany({
           skip,
           take: validLimit,
           where,
@@ -151,7 +200,7 @@ export class AdminService {
             _count: { select: { listings: true, reports: true } },
           },
         }),
-        this.prisma.user.count({ where }),
+        db.user.count({ where }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -163,6 +212,17 @@ export class AdminService {
   // ── getUserDetail ──────────────────────────────────────────────────────────
   // Full profile for the admin user-detail drawer: account info, listings,
   // payments, and reports filed against them — i.e. "seller activity".
+  //
+  // F-PERF fix (Prompt 8) — FLAGGED, deliberately NOT routed to db('read'):
+  // same reasoning as listings.service.ts findOne(). An admin very
+  // plausibly opens this drawer immediately after banUser()/suspendUser()/
+  // setUserRole() on the SAME user (separate request, but a tight
+  // click-then-view admin workflow) — reading a lagging replica could show
+  // the pre-ban state right after the ban action, which would look like the
+  // action silently failed. Stays on the primary; the read-only sub-queries
+  // below (listings/payments/reportsAgainst/reportsFiled) also aren't split
+  // off to the replica, for the same reason — this whole drawer should be
+  // one consistent, current snapshot.
   async getUserDetail(id: string) {
     if (!id) throw new BadRequestException('User ID is required');
 
@@ -347,8 +407,11 @@ export class AdminService {
     const skip = (validPage - 1) * validLimit;
 
     try {
+      // F-PERF fix (Prompt 8): paginated moderation queue — same
+      // browse-mode replica-lag trade-off as listings.service.ts.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.listing.findMany({
+        db.listing.findMany({
           where: { status: 'PENDING' },
           skip,
           take: validLimit,
@@ -358,7 +421,7 @@ export class AdminService {
             images: { where: { isCover: true }, take: 1 },
           },
         }),
-        this.prisma.listing.count({ where: { status: 'PENDING' } }),
+        db.listing.count({ where: { status: 'PENDING' } }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -388,8 +451,11 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): paginated list view, same replica-lag
+      // trade-off already accepted for listings/search browse-mode.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.listing.findMany({
+        db.listing.findMany({
           skip,
           take: validLimit,
           where,
@@ -399,7 +465,7 @@ export class AdminService {
             images: { where: { isCover: true }, take: 1 },
           },
         }),
-        this.prisma.listing.count({ where }),
+        db.listing.count({ where }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -517,7 +583,8 @@ export class AdminService {
 
   async getFeaturedListings() {
     try {
-      return await this.prisma.listing.findMany({
+      // F-PERF fix (Prompt 8): read-only list view.
+      return await this.prisma.db('read').listing.findMany({
         where: { featured: true },
         orderBy: { createdAt: 'desc' },
         include: {
@@ -561,8 +628,12 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): read-only moderation queue + its batched
+      // enrichment queries below (already correctly batched, not N+1 —
+      // just needed replica routing).
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.report.findMany({
+        db.report.findMany({
           skip,
           take: validLimit,
           where,
@@ -571,7 +642,7 @@ export class AdminService {
             reporter: { select: { id: true, name: true, email: true } },
           },
         }),
-        this.prisma.report.count({ where }),
+        db.report.count({ where }),
       ]);
 
       // Best-effort enrichment of the reported entity's display label.
@@ -581,10 +652,10 @@ export class AdminService {
 
       const [listings, users] = await Promise.all([
         listingIds.length
-          ? this.prisma.listing.findMany({ where: { id: { in: listingIds } }, select: { id: true, titleEn: true, titleKu: true } })
+          ? db.listing.findMany({ where: { id: { in: listingIds } }, select: { id: true, titleEn: true, titleKu: true } })
           : Promise.resolve([]),
         userIds.length
-          ? this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
+          ? db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
           : Promise.resolve([]),
       ]);
       const listingMap = new Map(listings.map((l: any) => [l.id, l]));
@@ -639,7 +710,8 @@ export class AdminService {
   // IMPROVE: Added error handling
   async getCategories() {
     try {
-      return await this.prisma.category.findMany({
+      // F-PERF fix (Prompt 8): read-only list view.
+      return await this.prisma.db('read').category.findMany({
         orderBy: { nameEn: 'asc' },
         include: { _count: { select: { listings: true } } },
       });
@@ -719,7 +791,8 @@ export class AdminService {
 
     const where = locale ? { locale } : {};
     try {
-      return await this.prisma.translation.findMany({
+      // F-PERF fix (Prompt 8): read-only list view.
+      return await this.prisma.db('read').translation.findMany({
         where,
         orderBy: [{ locale: 'asc' }, { namespace: 'asc' }, { key: 'asc' }],
       });
@@ -768,9 +841,11 @@ export class AdminService {
     const skip = (validPage - 1) * validLimit;
 
     try {
+      // F-PERF fix (Prompt 8): read-only list view.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.ad.findMany({ skip, take: validLimit, orderBy: { createdAt: 'desc' } }),
-        this.prisma.ad.count(),
+        db.ad.findMany({ skip, take: validLimit, orderBy: { createdAt: 'desc' } }),
+        db.ad.count(),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -850,7 +925,8 @@ export class AdminService {
 
   async getSettings() {
     try {
-      return await this.prisma.setting.findMany({ orderBy: { key: 'asc' } });
+      // F-PERF fix (Prompt 8): read-only list view.
+      return await this.prisma.db('read').setting.findMany({ orderBy: { key: 'asc' } });
     } catch (err) {
       this.logger.error(`Failed to fetch settings: ${err instanceof Error ? err.message : 'unknown error'}`);
       throw err;
@@ -903,14 +979,25 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): read-only list view — consistent with the
+      // other paginated admin list views above. (Considered keeping this
+      // one on the primary, since audit logs are written by nearly every
+      // other write method in this file and an admin might check this page
+      // right after taking an action — but that's the same "list view
+      // after a related write" situation as getAllListings after
+      // approveListing, which we treat as an acceptable replica-lag
+      // trade-off elsewhere in this file. Flagging the judgment call: move
+      // this back to `this.prisma` directly if audit-log review is
+      // compliance-sensitive enough that even a few seconds of lag matters.)
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.auditLog.findMany({
+        db.auditLog.findMany({
           where,
           skip,
           take:    vl,
           orderBy: { createdAt: 'desc' },
         }),
-        this.prisma.auditLog.count({ where }),
+        db.auditLog.count({ where }),
       ]);
       return { data, total, page: vp, limit: vl, pages: Math.ceil(total / vl) };
     } catch (err) {
@@ -944,8 +1031,10 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): read-only list view.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.dealer.findMany({
+        db.dealer.findMany({
           where,
           skip,
           take: validLimit,
@@ -956,7 +1045,7 @@ export class AdminService {
             _count: { select: { showroomImages: true, reviews: true } },
           },
         }),
-        this.prisma.dealer.count({ where }),
+        db.dealer.count({ where }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -1025,8 +1114,10 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): read-only list + aggregate view.
+      const db = this.prisma.db('read');
       const [data, total, revenueAgg] = await Promise.all([
-        this.prisma.payment.findMany({
+        db.payment.findMany({
           where,
           skip,
           take: validLimit,
@@ -1035,8 +1126,8 @@ export class AdminService {
             user: { select: { id: true, name: true, email: true } },
           },
         }),
-        this.prisma.payment.count({ where }),
-        this.prisma.payment.aggregate({ where: { ...where, status: 'completed' }, _sum: { amount: true } }),
+        db.payment.count({ where }),
+        db.payment.aggregate({ where: { ...where, status: 'completed' }, _sum: { amount: true } }),
       ]);
       return {
         data,
@@ -1052,6 +1143,11 @@ export class AdminService {
     }
   }
 
+  // F-PERF fix (Prompt 8) — FLAGGED, deliberately NOT routed to db('read'):
+  // same reasoning as getUserDetail() above / listings.service.ts findOne()
+  // — single-record detail view for a transaction an admin may have just
+  // resolved/refunded, where stale replica data would look like the action
+  // silently failed.
   async getTransactionDetail(id: string) {
     if (!id) throw new BadRequestException('Transaction ID is required');
 
@@ -1084,8 +1180,10 @@ export class AdminService {
     }
 
     try {
+      // F-PERF fix (Prompt 8): read-only list view.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.dealerSubscription.findMany({
+        db.dealerSubscription.findMany({
           where,
           skip,
           take: validLimit,
@@ -1099,7 +1197,7 @@ export class AdminService {
             },
           },
         }),
-        this.prisma.dealerSubscription.count({ where }),
+        db.dealerSubscription.count({ where }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
@@ -1116,15 +1214,17 @@ export class AdminService {
     if (status) where.status = status;
 
     try {
+      // F-PERF fix (Prompt 8): read-only list view.
+      const db = this.prisma.db('read');
       const [data, total] = await Promise.all([
-        this.prisma.subscription.findMany({
+        db.subscription.findMany({
           where,
           skip,
           take: validLimit,
           orderBy: { currentPeriodEnd: 'desc' },
           include: { user: { select: { id: true, name: true, email: true, role: true } } },
         }),
-        this.prisma.subscription.count({ where }),
+        db.subscription.count({ where }),
       ]);
       return { data, total, page: validPage, limit: validLimit, totalPages: Math.ceil(total / validLimit) };
     } catch (err) {
