@@ -11,6 +11,8 @@ import {
   REINDEX_BATCH_SIZE,
   SearchIndexJobData,
 } from '../search-indexing/search-index.constants';
+import { computeRankingScore, CTR_WINDOW_DAYS } from '../../common/ranking/ranking-formula';
+import { MetricsService } from '../../common/monitoring/metrics.service';
 
 // IMPROVE: Added input validation and error handling constants
 const MAX_PAGE_LIMIT = 100;
@@ -32,6 +34,8 @@ export class AdminService {
     // onto in reaction to domain events — triggerSearchReindex() below is
     // just a bulk, admin-triggered producer of the same job shape.
     @InjectQueue(SEARCH_INDEX_QUEUE) private searchIndexQueue: Queue<SearchIndexJobData>,
+    // Search Architecture Phase 5
+    private readonly metrics: MetricsService,
   ) {}
 
   // IMPROVE: Added validation for pagination inputs
@@ -1263,6 +1267,10 @@ export class AdminService {
   async triggerSearchReindex(actorId?: string): Promise<{ queued: number }> {
     let cursor: string | undefined;
     let queued = 0;
+    // Search Architecture Phase 5: see metrics.service.ts's
+    // searchReindexDuration comment — this times the ENQUEUE loop only,
+    // not full indexing completion (which happens async in the worker).
+    const stopTimer = this.metrics.searchReindexDuration.startTimer();
 
     try {
       // F-PERF fix: read replica — this is a pure read walk over the
@@ -1308,12 +1316,77 @@ export class AdminService {
       }).catch(() => {});
 
       this.logger.log(`Full search reindex: enqueued ${queued} listings`);
+      stopTimer();
       return { queued };
     } catch (err) {
+      stopTimer();
       this.logger.error(
         `Failed to trigger search reindex: ${err instanceof Error ? err.message : 'unknown error'}`,
       );
       throw err;
     }
+  }
+
+  // ── Ranking breakdown (Search Architecture Phase 4) ───────────────────────
+  //
+  // Backs GET /admin/listings/:id/ranking — lets support/ops answer "why is
+  // this listing ranked where it is" complaints from dealers without
+  // reading code. Read-only: computes the breakdown fresh from current
+  // data but does NOT persist it (persisting only happens via the nightly
+  // ranking-recompute.processor.ts job or the immediate on-index path in
+  // search-index.processor.ts) — so calling this endpoint repeatedly can
+  // never itself cause ranking drift.
+  async getRankingBreakdown(listingId: string) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { id: true, createdAt: true, featured: true, featuredUntil: true, userId: true, rankingScore: true },
+    });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    const dealer = await this.prisma.dealer.findUnique({
+      where: { userId: listing.userId },
+      select: { verifiedAt: true },
+    });
+
+    const since = new Date(Date.now() - CTR_WINDOW_DAYS * 86_400_000);
+    const [impressions, clicks] = await Promise.all([
+      this.prisma.searchEvent.count({
+        where: { resultListingIds: { has: listing.id }, createdAt: { gte: since } },
+      }),
+      this.prisma.searchClick.count({
+        where: { listingId: listing.id, createdAt: { gte: since } },
+      }),
+    ]);
+
+    const breakdown = computeRankingScore({
+      createdAt: listing.createdAt,
+      featured: listing.featured,
+      featuredUntil: listing.featuredUntil,
+      dealerVerified: dealer?.verifiedAt != null,
+      impressions,
+      clicks,
+    });
+
+    return {
+      listingId: listing.id,
+      // The score currently stored/used by Meilisearch — may differ
+      // slightly from `breakdown.finalScore` below if it hasn't been
+      // recomputed since the last nightly run or on-index event.
+      storedRankingScore: listing.rankingScore,
+      // Freshly computed right now, from current inputs — what the score
+      // WOULD be if recomputed this instant.
+      ...breakdown,
+      inputs: {
+        ageDays: Math.floor((Date.now() - listing.createdAt.getTime()) / 86_400_000),
+        featured: listing.featured,
+        featuredUntil: listing.featuredUntil,
+        dealerVerified: dealer?.verifiedAt != null,
+        impressions,
+        clicks,
+        ctrWindowDays: CTR_WINDOW_DAYS,
+      },
+    };
   }
 }

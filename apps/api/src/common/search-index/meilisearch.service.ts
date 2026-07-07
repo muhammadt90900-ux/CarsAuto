@@ -102,6 +102,9 @@ export interface ListingDocument {
   dealerVerified: boolean;
   createdAt: number; // unix seconds
   deletedAt: number | null; // unix seconds — used to filter, not display
+  // Search Architecture Phase 4: secondary sort tiebreaker — see
+  // ensureListingsIndex()'s rankingRules and common/ranking/ranking-formula.ts.
+  rankingScore: number;
 }
 
 @Injectable()
@@ -167,6 +170,21 @@ export class MeilisearchService implements OnModuleInit {
           enabled: true,
           minWordSizeForTypos: { oneTypo: 4, twoTypos: 8 },
         },
+        // Search Architecture Phase 4: text-relevance rules first (same
+        // five Meilisearch ships by default, minus its own generic
+        // "sort"/"exactness" tail), then our two explicit tiebreakers —
+        // rankingScore (freshness/featured/dealer-trust/CTR composite,
+        // see common/ranking/ranking-formula.ts) beats plain recency,
+        // createdAt is the final tiebreaker for anything still tied.
+        rankingRules: [
+          'words',
+          'typo',
+          'proximity',
+          'attribute',
+          'exactness',
+          'rankingScore:desc',
+          'createdAt:desc',
+        ],
       });
       this.logger.log(`Applied settings to Meilisearch index "${LISTINGS_INDEX}"`);
     } catch (err) {

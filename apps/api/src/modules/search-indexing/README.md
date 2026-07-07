@@ -149,6 +149,108 @@ entirely — their filters (serviceType, mobile, etc.) aren't part of the
 Meilisearch document schema at all (see Phase 1's `ListingDocument`
 comment on why it's deliberately lean), so there's nothing to facet.
 
+## Phase 4 — ranking + relevance tuning
+
+Every ACTIVE listing now has a `rankingScore` (Prisma `Listing.rankingScore`,
+default 1.0), used as Meilisearch's sort tiebreaker — see
+`ensureListingsIndex()`'s `rankingRules`: text-match relevance first, then
+`rankingScore:desc`, then `createdAt:desc`.
+
+**Formula** (`common/ranking/ranking-formula.ts` — duplicated in
+`apps/api` and `apps/worker`, same convention as `MeilisearchService`):
+
+```
+rankingScore = freshnessScore × featuredMultiplier × dealerMultiplier × ctrMultiplier
+```
+
+- **freshnessScore** — exponential decay from `createdAt`, 14-day half-life, floored at 0.05.
+- **featuredMultiplier** — ×1.8 while `featured && featuredUntil > now`, else ×1.0.
+- **dealerMultiplier** — ×1.3 if the listing's dealer has `verifiedAt` set, else ×1.0.
+- **ctrMultiplier** — only applied once a listing has ≥20 impressions in the
+  trailing 14 days (below that, no adjustment — too little signal to trust).
+  Above that: `clicks / impressions` compared to an assumed 5% catalog-average
+  CTR, clamped to `[0.7, 1.5]`.
+
+All five numeric constants are first-pass estimates — expect to retune
+once there's a few weeks of real `search_events`/`search_clicks` volume.
+
+**Impressions & clicks**: `SearchEvent.resultListingIds` (up to the top 20
+listing ids per search, written by `SearchService.search()`) is the
+impressions half; the new `SearchClick` table (written by
+`POST /search/click`, called by the frontend when a user clicks a result
+card) is the clicks half.
+
+**Recompute triggers**:
+- Nightly, for every ACTIVE listing in batches of 500 —
+  `apps/worker/src/processors/ranking-recompute.processor.ts` (same
+  BullMQ repeatable-job structure as `partition-maintenance.processor.ts`,
+  registered on the same `maintenance` queue, 04:00 UTC daily). Computes
+  the CTR aggregate for the *entire* catalog in 2 raw SQL queries (not
+  2×N), persists via one bulk `UPDATE ... FROM (VALUES ...)` per batch,
+  then re-enqueues each listing onto the `search-index` queue so
+  Meilisearch's copy of the score updates too.
+- Immediately, for a single listing — `search-index.processor.ts`'s
+  existing on-create/on-update indexing path now also recomputes and
+  persists that one listing's score before building its Meilisearch
+  document, so a brand-new listing isn't stuck at the schema default
+  until the next nightly run.
+
+**Debugging a "why is this listing ranked here" complaint**:
+`GET /admin/listings/:id/ranking` returns the full breakdown (each
+multiplier, the raw inputs, and both the currently-stored score and a
+freshly-recomputed one) — read-only, never persists anything.
+
+**Not yet wired**: the frontend doesn't call `POST /search/click` anywhere
+yet — this phase implemented the backend endpoint and the CTR pipeline
+it feeds, but wiring the call into the search-results card's click
+handler (and passing along the `searchEventId` `SearchService.search()`
+now returns) is frontend work left for whoever builds the actual search
+results page UI. Until that's wired up, every listing's CTR stays 0 and
+`ctrMultiplier` stays 1.0 for everyone — harmless (the formula degrades
+to freshness × featured × dealer-trust only), just inert.
+
+Run `npx prisma db push` (from `apps/api`) to apply `rankingScore`,
+`SearchEvent.resultListingIds`, and the new `search_clicks` table before
+deploying this phase.
+
+## Phase 5 — observability, resilience, load hardening
+
+**Metrics** (`common/monitoring/metrics.service.ts`, scraped at `/api/metrics`):
+- `carsauto_meilisearch_query_duration_seconds{outcome}` — histogram, `outcome` is `hit`/`timeout`/`error`.
+- `carsauto_meilisearch_fallback_total{reason}` — counter, `reason` is `timeout`/`error`.
+- `carsauto_meilisearch_health_up` — gauge, polled every 15s by `SearchIndexMetricsService`.
+- `carsauto_search_index_queue_depth{state}` — gauge (`waiting`/`active`/`delayed`/`failed`), same 15s poll.
+- `carsauto_search_reindex_enqueue_duration_seconds` — histogram; times `POST /admin/search/reindex`'s enqueue loop only, **not** full indexing completion (that happens async in the worker — there's no single "reindex done" event to time end-to-end without more infra than this phase adds; the queue-depth gauge above is the practical proxy for "how far behind is indexing right now").
+
+5 corresponding panels are in `monitoring/grafana/dashboards/carsauto-overview.json` (ids 9–13). The older `autobazaar-overview.json` dashboard was left untouched — it looks like a pre-rebrand duplicate, not something actively maintained alongside the current one.
+
+**Nightly consistency check** (`apps/worker/src/processors/search-consistency-check.processor.ts`, 04:30 UTC daily): compares Postgres's ACTIVE listing count against Meilisearch's document count (>2% drift = alert), and field-compares (title/price/status) 25 random ACTIVE listings (>2 mismatches = alert). Alerts via `logger.error` always, plus an email to `ADMIN_ALERT_EMAIL` if that env var is set — there's no Slack/PagerDuty integration in this repo yet, so email via the worker's existing `EmailService` is the closest available hook.
+
+**Load testing**: `npm run test:load:search` (autocannon — see `scripts/load-test/search-load-test.js`'s header comment for why autocannon over k6: the repo's `e2e/` only had Playwright, no existing load-test tooling to extend). Exercises `GET /search/listings` and `GET /search/suggestions` at a configurable concurrency (default 20) for a configurable duration (default 30s). Use its output alongside the Grafana panels above to tune `CACHE_TTL_SEARCH`/`CACHE_TTL_SUGGEST` (search.service.ts), `MEILISEARCH_TIMEOUT_MS`, and the `search-index` BullMQ queue's concurrency.
+
+### Rollback runbook
+
+**Search relevance or availability regressed — go back to Postgres ILIKE search:**
+1. Set `SEARCH_ENGINE_MODE=postgres` (docker-compose `api` service env, or the k8s configmap).
+2. Restart the `api` deployment/service (no rebuild, no migration).
+3. Confirm via the Meilisearch-health/fallback-rate Grafana panels that fallback is now 100% (expected — everything is now intentionally bypassing Meilisearch, not "falling back" to it).
+4. To re-enable later: flip the env var back to `meilisearch` (or remove it — that's the default) and restart again.
+
+**Force a full reindex** (after a rollback, after suspected drift, or after a bulk data migration):
+1. `POST /admin/search/reindex` (admin auth required).
+2. Watch `carsauto_search_index_queue_depth{state="waiting"}` in Grafana drop back toward 0 — that's when indexing has actually caught up (the endpoint itself returns immediately after enqueueing, per its own docstring).
+
+**Check queue backlog directly** (without waiting for the next Grafana scrape):
+```
+# From a shell with access to the same Redis the BullMQ queues use:
+redis-cli -a $REDIS_PASSWORD LLEN bull:search-index:wait
+redis-cli -a $REDIS_PASSWORD LLEN bull:search-index:active
+redis-cli -a $REDIS_PASSWORD LLEN bull:search-index:failed
+```
+A consistently large or growing `wait` count means the worker isn't keeping up — check worker replica count/CPU before assuming it's a Meilisearch-side problem.
+
+**A specific listing seems to be ranked wrong:** `GET /admin/listings/:id/ranking` (Phase 4) before assuming it's a search-relevance bug — it may just be a low/expected `rankingScore` (e.g. an old, unfeatured, unverified-dealer listing with no click history).
+
 ## Local dev setup
 
 1. `docker compose up meilisearch` (or just run the full stack — `api` and

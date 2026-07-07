@@ -9,6 +9,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { OpenAiService } from '../../common/ai/openai.service';
 import { MeilisearchSearchStrategy } from './meilisearch-search.strategy';
+import { MetricsService } from '../../common/monitoring/metrics.service';
 
 // ── Cache TTLs ────────────────────────────────────────────────────────────────
 const CACHE_TTL_SEARCH        = 30_000;      // 30 s
@@ -83,6 +84,7 @@ export class SearchService {
     private readonly openai: OpenAiService,
     private readonly meilisearchStrategy: MeilisearchSearchStrategy,
     private readonly config: ConfigService,
+    private readonly metrics: MetricsService,
   ) {}
 
   /* ── Keyword search (ILIKE) ─────────────────────────────────────────────── */
@@ -130,14 +132,29 @@ export class SearchService {
       return this.searchPostgres(normalizedQuery, filters, page, limit);
     }, CACHE_TTL_SEARCH);
 
-    // Phase 2: search query tracking — fire-and-forget, never blocks or
-    // fails the response. Powers Phase 4's trending searches later.
-    // Only track non-empty queries (empty q = browse, not search).
+    // Phase 2/4: search query tracking — records which listings were shown
+    // (the "impressions" half of Phase 4's CTR calculation) and returns
+    // this row's id so the frontend can send it back on
+    // POST /search/click, linking a click to the search that produced it.
+    // Never blocks or fails the response: on any DB error, searchEventId
+    // is just omitted and click-tracking for this particular search is
+    // silently skipped — search results themselves are unaffected either way.
+    let searchEventId: string | null = null;
     if (normalizedQuery.length >= MIN_QUERY_LENGTH) {
-      this.trackSearchEvent(normalizedQuery, locale, result.total).catch(() => {});
+      try {
+        searchEventId = await this.trackSearchEvent(
+          normalizedQuery,
+          locale,
+          result.total,
+          result.data?.map((d: any) => d.id) ?? [],
+        );
+      } catch {
+        // Already logged inside trackSearchEvent if it has its own logging;
+        // deliberately silent here too — see comment above.
+      }
     }
 
-    return result;
+    return { ...result, searchEventId };
   }
 
   /**
@@ -169,6 +186,10 @@ export class SearchService {
       limit: number;
     },
   ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number; facets: Record<string, { value: string; count: number }[]> } | null> {
+    // Search Architecture Phase 5: query latency + fallback-rate metrics.
+    // Timer started before the timeout race so a timeout itself is
+    // recorded at (approximately) MEILISEARCH_TIMEOUT_MS, not 0.
+    const stopTimer = this.metrics.meilisearchQueryDuration.startTimer();
     try {
       const timeout = new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), MEILISEARCH_TIMEOUT_MS),
@@ -177,9 +198,12 @@ export class SearchService {
       const result = await Promise.race([query, timeout]);
 
       if (!result) {
+        stopTimer({ outcome: 'timeout' });
+        this.metrics.meilisearchFallbackTotal.inc({ reason: 'timeout' });
         this.logger.warn(`Meilisearch search timed out after ${MEILISEARCH_TIMEOUT_MS}ms — falling back to Postgres`);
         return null;
       }
+      stopTimer({ outcome: 'hit' });
 
       if (!result.ids.length) {
         return { data: [], total: result.total, page: options.page, limit: options.limit, totalPages: 0, facets: result.facets };
@@ -207,6 +231,8 @@ export class SearchService {
         facets: result.facets,
       };
     } catch (err) {
+      stopTimer({ outcome: 'error' });
+      this.metrics.meilisearchFallbackTotal.inc({ reason: 'error' });
       this.logger.warn(`Meilisearch search failed — falling back to Postgres: ${(err as Error).message}`);
       return null;
     }
@@ -300,11 +326,48 @@ export class SearchService {
       return { data, total, page, limit, totalPages: Math.ceil(total / limit), facets: {} };
   }
 
-  /** Phase 2: fire-and-forget write to search_events — never blocks/fails the search response. */
-  private async trackSearchEvent(query: string, locale: string | undefined, resultCount: number, userId?: string): Promise<void> {
-    await this.prisma.searchEvent.create({
-      data: { query, locale: locale ?? 'ku', resultCount, userId: userId ?? null },
+  /**
+   * Phase 2/4: writes the search_events row and returns its id (used by
+   * the frontend for POST /search/click). Stores up to the top 20 result
+   * listing ids as "impressions" — see ranking-formula.ts's CTR comment
+   * for how these feed Phase 4's ranking score.
+   */
+  private async trackSearchEvent(
+    query: string,
+    locale: string | undefined,
+    resultCount: number,
+    resultListingIds: string[] = [],
+    userId?: string,
+  ): Promise<string> {
+    const row = await this.prisma.searchEvent.create({
+      data: {
+        query,
+        locale: locale ?? 'ku',
+        resultCount,
+        userId: userId ?? null,
+        resultListingIds: resultListingIds.slice(0, 20),
+      },
+      select: { id: true },
     });
+    return row.id;
+  }
+
+  /**
+   * Search Architecture Phase 4: records a click on a search result card
+   * — POST /search/click. searchEventId is optional (a click without a
+   * known parent search — e.g. from a bookmarked/shared result link — is
+   * still worth recording for the listing's overall CTR, just without a
+   * specific search to attribute impressions to for that one row).
+   * Fire-and-forget from the controller's perspective — never throws.
+   */
+  async recordClick(listingId: string, searchEventId?: string): Promise<void> {
+    try {
+      await this.prisma.searchClick.create({
+        data: { listingId, searchEventId: searchEventId ?? null },
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to record search click for listing ${listingId}: ${(err as Error).message}`);
+    }
   }
 
   /* ── Semantic search (pgvector cosine similarity) ─────────────────────── */

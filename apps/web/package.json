@@ -16,7 +16,7 @@
     "@cars-auto/types": "*",
     "@cars-auto/utils": "*",
     "@hookform/resolvers": "^3.9.0",
-    "@nestjs/core": "11.1.24",
+    "@nestjs/core": "11.1.26",
     "@stripe/stripe-js": "^9.8.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-query-devtools": "^5.0.0",

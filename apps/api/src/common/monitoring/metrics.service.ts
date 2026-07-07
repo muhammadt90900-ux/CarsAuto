@@ -112,6 +112,42 @@ export class MetricsService implements OnModuleInit {
     registers:  [this.registry],
   });
 
+  // ── Search / Meilisearch metrics (Search Architecture Phase 5) ────────────
+  readonly meilisearchQueryDuration = new Histogram({
+    name:       'carsauto_meilisearch_query_duration_seconds',
+    help:       'Duration of Meilisearch queries (search + suggest), by outcome',
+    labelNames: ['outcome'], // hit | timeout | error
+    buckets:    [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.8, 1.5, 3],
+    registers:  [this.registry],
+  });
+
+  readonly meilisearchFallbackTotal = new Counter({
+    name:       'carsauto_meilisearch_fallback_total',
+    help:       'Times a request fell back from Meilisearch to the Postgres ILIKE path',
+    labelNames: ['reason'], // timeout | error
+    registers:  [this.registry],
+  });
+
+  readonly meilisearchHealthUp = new Gauge({
+    name:      'carsauto_meilisearch_health_up',
+    help:      'Whether the last Meilisearch health check succeeded (1) or failed (0)',
+    registers: [this.registry],
+  });
+
+  readonly searchIndexQueueDepth = new Gauge({
+    name:       'carsauto_search_index_queue_depth',
+    help:       'Number of jobs in the search-index BullMQ queue, by state',
+    labelNames: ['state'], // waiting | active | delayed | failed
+    registers:  [this.registry],
+  });
+
+  readonly searchReindexDuration = new Histogram({
+    name:       'carsauto_search_reindex_enqueue_duration_seconds',
+    help:       'Duration of the admin-triggered full-reindex ENQUEUE loop (not full indexing completion — see search-indexing/README.md)',
+    buckets:    [0.1, 0.5, 1, 2.5, 5, 10, 30, 60],
+    registers:  [this.registry],
+  });
+
   onModuleInit() {
     collectDefaultMetrics({
       register: this.registry,

@@ -673,6 +673,15 @@ model Listing {
   featured      Boolean   @default(false)
   featuredUntil DateTime?
 
+  // Search Architecture Phase 4: multi-factor ranking score used as
+  // Meilisearch's secondary sort tiebreaker (after text-match relevance,
+  // before createdAt) — see search-indexing/ranking-formula.ts for the
+  // exact formula. Recomputed nightly for all ACTIVE listings
+  // (ranking-recompute.processor.ts) and once immediately on
+  // create/update (search-index.processor.ts) so a brand-new listing
+  // isn't stuck at the default until the next nightly run.
+  rankingScore  Float     @default(1.0) @map("ranking_score")
+
   // ADDED: soft-delete
   deletedAt DateTime?
 
@@ -1624,7 +1633,36 @@ model SearchEvent {
   userId      String?  @db.Uuid @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
+  // Search Architecture Phase 4: the (up to 20) listing IDs shown for this
+  // search — the "impressions" half of the CTR calculation in
+  // ranking-formula.ts. `has`/`hasSome` Prisma filters and Postgres's
+  // native `= ANY(...)` both work directly against this without a join
+  // table; ranking-recompute.processor.ts's nightly batch instead uses a
+  // raw `unnest()` GROUP BY for the aggregate case (see that file) since
+  // it needs a per-listing count across ALL rows, not a single lookup.
+  resultListingIds String[] @default([]) @map("result_listing_ids")
+
+  clicks      SearchClick[]
+
   @@index([query])
   @@index([createdAt])
   @@map("search_events")
+}
+
+// Search Architecture Phase 4: one row per click on a search result card
+// (POST /search/click, called by the frontend — see
+// SearchService.recordClick()). Paired with SearchEvent.resultListingIds
+// to compute per-listing CTR (ranking-formula.ts). searchEventId is a
+// real relation (onDelete: SetNull, not Cascade) — a click is still a
+// meaningful signal for the listing's CTR even if its parent search_event
+// row is ever pruned, so it deliberately isn't deleted along with it.
+model SearchClick {
+  id            String       @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  searchEventId String?      @db.Uuid @map("search_event_id")
+  searchEvent   SearchEvent? @relation(fields: [searchEventId], references: [id], onDelete: SetNull)
+  listingId     String       @db.Uuid @map("listing_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([listingId, createdAt])
+  @@map("search_clicks")
 }

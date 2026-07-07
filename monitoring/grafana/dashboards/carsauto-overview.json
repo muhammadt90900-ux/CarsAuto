@@ -1,58 +1,260 @@
 {
-  "title": "CarsAuto — API Overview",
-  "uid":   "carsauto-api",
-  "tags":  ["carsauto", "api"],
-  "time":  { "from": "now-1h", "to": "now" },
+  "title": "CarsAuto \u2014 API Overview",
+  "uid": "carsauto-api",
+  "tags": [
+    "carsauto",
+    "api"
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "refresh": "30s",
   "panels": [
     {
-      "id": 1, "type": "stat", "title": "Request Rate (req/s)",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "targets": [{ "expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "req/s" }]
-    },
-    {
-      "id": 2, "type": "stat", "title": "Error Rate",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "targets": [{ "expr": "sum(rate(http_requests_total{status_code=~'5..'}[5m])) / sum(rate(http_requests_total[5m]))", "legendFormat": "5xx rate" }],
-      "options": { "unit": "percentunit" }
-    },
-    {
-      "id": 3, "type": "stat", "title": "p95 Latency",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "targets": [{ "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p95" }],
-      "options": { "unit": "s" }
-    },
-    {
-      "id": 4, "type": "stat", "title": "Active Heap (MB)",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "targets": [{ "expr": "carsauto_node_process_heap_bytes{type='used'} / 1024 / 1024" }]
-    },
-    {
-      "id": 5, "type": "timeseries", "title": "HTTP Request Rate by Status",
-      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "id": 1,
+      "type": "stat",
+      "title": "Request Rate (req/s)",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "targets": [
-        { "expr": "sum by(status_code)(rate(http_requests_total[1m]))", "legendFormat": "{{status_code}}" }
+        {
+          "expr": "sum(rate(http_requests_total[1m]))",
+          "legendFormat": "req/s"
+        }
       ]
     },
     {
-      "id": 6, "type": "timeseries", "title": "Request Duration Percentiles",
-      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "id": 2,
+      "type": "stat",
+      "title": "Error Rate",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "targets": [
-        { "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p50" },
-        { "expr": "histogram_quantile(0.90, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p90" },
-        { "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p99" }
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~'5..'}[5m])) / sum(rate(http_requests_total[5m]))",
+          "legendFormat": "5xx rate"
+        }
+      ],
+      "options": {
+        "unit": "percentunit"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "p95 Latency",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        }
+      ],
+      "options": {
+        "unit": "s"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active Heap (MB)",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "carsauto_node_process_heap_bytes{type='used'} / 1024 / 1024"
+        }
       ]
     },
     {
-      "id": 7, "type": "timeseries", "title": "DB Slow Queries",
-      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 },
-      "targets": [{ "expr": "rate(carsauto_db_slow_queries_total[5m])", "legendFormat": "slow queries/s" }]
+      "id": 5,
+      "type": "timeseries",
+      "title": "HTTP Request Rate by Status",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by(status_code)(rate(http_requests_total[1m]))",
+          "legendFormat": "{{status_code}}"
+        }
+      ]
     },
     {
-      "id": 8, "type": "timeseries", "title": "Auth Events",
-      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 },
+      "id": 6,
+      "type": "timeseries",
+      "title": "Request Duration Percentiles",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
       "targets": [
-        { "expr": "sum by(action,result)(rate(carsauto_auth_attempts_total[5m]))", "legendFormat": "{{action}} {{result}}" }
+        {
+          "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.90, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p90"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "DB Slow Queries",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "rate(carsauto_db_slow_queries_total[5m])",
+          "legendFormat": "slow queries/s"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Auth Events",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by(action,result)(rate(carsauto_auth_attempts_total[5m]))",
+          "legendFormat": "{{action}} {{result}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Meilisearch Query Latency (p50/p95/p99)",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(carsauto_meilisearch_query_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(carsauto_meilisearch_query_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(carsauto_meilisearch_query_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Fallback-to-Postgres Rate",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(carsauto_meilisearch_fallback_total[5m])) by (reason)",
+          "legendFormat": "{{reason}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Meilisearch Health",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "carsauto_meilisearch_health_up",
+          "legendFormat": "up"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Search-Index Queue Depth",
+      "gridPos": {
+        "x": 6,
+        "y": 26,
+        "w": 18,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "carsauto_search_index_queue_depth",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Reindex Enqueue Duration (p50/p95)",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(carsauto_search_reindex_enqueue_duration_seconds_bucket[1h])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(carsauto_search_reindex_enqueue_duration_seconds_bucket[1h])) by (le))",
+          "legendFormat": "p95"
+        }
       ]
     }
   ],

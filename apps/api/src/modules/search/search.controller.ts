@@ -105,6 +105,24 @@ export class SearchController {
     return this.searchService.suggestions(safeQuery, locale);
   }
 
+  // Search Architecture Phase 4: fired by the frontend when a user clicks
+  // a search result card — see SearchService.recordClick()'s header
+  // comment. No auth required (works for anonymous browsers); light rate
+  // limiting reuses the same autocomplete bucket since a single click
+  // carries the same low-cost/low-abuse-risk profile as an autocomplete
+  // keystroke, not a full search.
+  @Post('click')
+  async click(@Body() body: { listingId?: string; searchEventId?: string }, @Req() req: Request) {
+    const ip = this.extractIp(req);
+    this.searchProtection.checkAutocompleteRate(ip);
+
+    if (!body?.listingId) {
+      throw new BadRequestException('listingId is required');
+    }
+    await this.searchService.recordClick(body.listingId, body.searchEventId);
+    return { ok: true };
+  }
+
   /**
    * FEATURE 2B: Semantic search using pgvector cosine similarity.
    * Falls back to ILIKE keyword search if OpenAI is unavailable.

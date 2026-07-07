@@ -182,6 +182,14 @@ export class AdminController {
     return this.adminService.triggerSearchReindex();
   }
 
+  // Search Architecture Phase 4: debugging aid for "why is this listing
+  // ranked where it is" — see AdminService.getRankingBreakdown()'s header
+  // comment.
+  @Get('listings/:id/ranking')
+  getRankingBreakdown(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getRankingBreakdown(id);
+  }
+
   // ── Reports ────────────────────────────────────────────────────────────
   @Get('reports')
   getReports(@Query('page') page: string, @Query('limit') limit: string) {

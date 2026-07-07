@@ -46,6 +46,9 @@ export interface ListingDocument {
   dealerVerified: boolean;
   createdAt: number; // unix seconds
   deletedAt: number | null;
+  // Search Architecture Phase 4 — see apps/api's copy of this interface
+  // for the full comment.
+  rankingScore: number;
 }
 
 @Injectable()
@@ -72,5 +75,21 @@ export class MeilisearchService implements OnModuleInit {
 
   async deleteDocument(id: string): Promise<void> {
     await this.index().deleteDocument(id);
+  }
+
+  /** Search Architecture Phase 5: used by search-consistency-check.processor.ts's drift check. */
+  async getDocumentCount(): Promise<number> {
+    const stats = await this.index().getStats();
+    return stats.numberOfDocuments;
+  }
+
+  /** Search Architecture Phase 5: used by search-consistency-check.processor.ts's spot-check. Returns null if the document doesn't exist (never throws for a 404). */
+  async getDocument(id: string): Promise<ListingDocument | null> {
+    try {
+      const doc = await this.index().getDocument(id);
+      return doc as ListingDocument;
+    } catch {
+      return null;
+    }
   }
 }

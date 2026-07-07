@@ -234,7 +234,7 @@ services:
   # statements — Prisma needs to know to disable those when talking to
   # PgBouncer specifically.
   pgbouncer:
-    image: edoburu/pgbouncer:v1.21.0-p2
+    image: edoburu/pgbouncer:v1.24.1-p1
     container_name: cars_auto_pgbouncer
     restart: unless-stopped
     networks: [internal]
@@ -406,7 +406,8 @@ services:
       # the same Meilisearch instance the api service reads from.
       MEILISEARCH_URL:          http://meilisearch:7700
       MEILISEARCH_API_KEY:      ${MEILISEARCH_API_KEY:-}
-      # Notification jobs — email
+      # Search Architecture Phase 5
+      ADMIN_ALERT_EMAIL:        ${ADMIN_ALERT_EMAIL:-}
       SMTP_HOST:                ${SMTP_HOST:-}
       SMTP_PORT:                ${SMTP_PORT:-587}
       SMTP_USER:                ${SMTP_USER:-}

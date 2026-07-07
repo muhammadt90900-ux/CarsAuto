@@ -17,10 +17,15 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { MeilisearchService, ListingDocument } from '../common/search-index/meilisearch.service';
+import { computeRankingScore, CTR_WINDOW_DAYS } from '../common/ranking/ranking-formula';
 
-type SearchIndexAction = 'upsert' | 'delete';
+// Exported so ranking-recompute.processor.ts (Search Architecture Phase 4)
+// can reuse the exact same job shape when it bulk-enqueues re-index jobs
+// after recomputing scores — one shared type instead of a second copy
+// drifting from this one.
+export type SearchIndexAction = 'upsert' | 'delete';
 
-interface SearchIndexJobData {
+export interface SearchIndexJobData {
   action: SearchIndexAction;
   listingId: string;
 }
@@ -40,6 +45,7 @@ const INDEX_SELECT = {
   price: true,
   currency: true,
   featured: true,
+  featuredUntil: true,
   createdAt: true,
   deletedAt: true,
   userId: true,
@@ -111,6 +117,37 @@ export class SearchIndexProcessor extends WorkerHost {
       select: { id: true, verifiedAt: true },
     });
 
+    // Search Architecture Phase 4: give a brand-new or just-edited listing
+    // an up-to-date rankingScore immediately, rather than leaving it at
+    // whatever the last nightly ranking-recompute.processor.ts run set (or
+    // the schema default, for a listing that's never been scored). Single-
+    // listing CTR lookup here (2 small counts) is fine per-job — it's the
+    // *nightly batch* job that needs the aggregate-query optimization, not
+    // this one-at-a-time indexing path.
+    const since = new Date(Date.now() - CTR_WINDOW_DAYS * 86_400_000);
+    const [impressions, clicks] = await Promise.all([
+      this.prisma.searchEvent.count({
+        where: { resultListingIds: { has: listing.id }, createdAt: { gte: since } },
+      }),
+      this.prisma.searchClick.count({
+        where: { listingId: listing.id, createdAt: { gte: since } },
+      }),
+    ]);
+
+    const { finalScore } = computeRankingScore({
+      createdAt: listing.createdAt,
+      featured: listing.featured,
+      featuredUntil: listing.featuredUntil,
+      dealerVerified: dealer?.verifiedAt != null,
+      impressions,
+      clicks,
+    });
+
+    await this.prisma.listing.update({
+      where: { id: listing.id },
+      data: { rankingScore: finalScore },
+    });
+
     const doc: ListingDocument = {
       id: listing.id,
       type: listing.type,
@@ -143,6 +180,7 @@ export class SearchIndexProcessor extends WorkerHost {
       dealerVerified: dealer?.verifiedAt != null,
       createdAt: Math.floor(listing.createdAt.getTime() / 1000),
       deletedAt: null,
+      rankingScore: finalScore,
     };
 
     await this.meilisearch.upsertDocument(doc);

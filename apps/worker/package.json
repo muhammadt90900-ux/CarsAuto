@@ -14,7 +14,7 @@
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.24",
+    "@nestjs/core": "^11.1.26",
     "@prisma/client": "^5.0.0",
     "bullmq": "^5.0.0",
     "meilisearch": "^0.45.0",

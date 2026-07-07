@@ -25,6 +25,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "test:load:search": "node scripts/load-test/search-load-test.js",
     "validate:deploy": "./scripts/validate-deploy.sh",
     "audit:check": "npm audit --audit-level=high",
     "clean": "turbo run clean && rm -rf node_modules",
@@ -36,6 +37,7 @@
     "@playwright/test": "^1.44.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "autocannon": "^7.15.0",
     "prettier": "^3.0.0",
     "turbo": "latest"
   },
@@ -44,8 +46,9 @@
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
-  "overrides": {
-    "ws": ">=8.17.1"
+ "overrides": {
+    "ws": ">=8.17.1",
+    "@nestjs/core": "11.1.26"
   },
   "dependencies": {
     "axios": "^1.18.1",

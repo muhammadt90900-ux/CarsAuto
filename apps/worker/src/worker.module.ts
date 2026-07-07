@@ -25,6 +25,8 @@ import { TranslationProcessor } from './processors/translation.processor';
 import { EmailNotificationProcessor } from './processors/email-notification.processor';
 import { PartitionMaintenanceProcessor } from './processors/partition-maintenance.processor';
 import { SearchIndexProcessor } from './processors/search-index.processor';
+import { RankingRecomputeProcessor } from './processors/ranking-recompute.processor';
+import { SearchConsistencyCheckProcessor } from './processors/search-consistency-check.processor';
 import { MeilisearchService } from './common/search-index/meilisearch.service';
 
 @Module({
@@ -68,6 +70,8 @@ import { MeilisearchService } from './common/search-index/meilisearch.service';
     EmailNotificationProcessor,
     PartitionMaintenanceProcessor,
     SearchIndexProcessor,
+    RankingRecomputeProcessor,
+    SearchConsistencyCheckProcessor,
   ],
 })
 export class WorkerModule {}
