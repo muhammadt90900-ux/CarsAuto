@@ -299,6 +299,8 @@ model User {
   notificationPreference NotificationPreference?
   followedDealers        DealerFollower[]
   uploadedFiles          UploadedFile[]
+  aiUsageLogs            AiUsageLog[]
+  aiChatSessions         AiChatSession[]
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -420,6 +422,78 @@ model AuditLog {
   @@index([ip])
   @@index([userId, action, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI CHAT SESSION / MESSAGE
+// ADDED (Prompt 3 — Buyer-Facing AI Chat Assistant): deliberately NOT the
+// same tables as Chat/Message above — those are human-to-human buyer↔seller
+// chat; this is a separate concern (one visitor talking to the assistant).
+// userId is nullable — anonymous visitors can use the assistant without an
+// account (soft-verified from a bearer token when present; see
+// AiChatController's extractOptionalUserId()).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AiChatSession {
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  locale    String   @default("ku") @db.VarChar(8)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  messages  AiChatMessage[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("ai_chat_sessions")
+}
+
+enum AiChatRole {
+  user
+  assistant
+}
+
+model AiChatMessage {
+  id        String        @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  sessionId String        @db.Uuid
+  session   AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      AiChatRole
+  content   String        @db.Text
+  createdAt DateTime      @default(now())
+
+  // History pagination: fetch a session's turns in order.
+  @@index([sessionId, createdAt(sort: Asc)])
+  @@map("ai_chat_messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI USAGE LOG
+// ADDED (AI Gateway Foundation, Prompt 1): append-only log of every LLM call
+// made through OpenAiService (embed/complete/moderate), written by
+// AiCostTrackerService. userId is nullable — background jobs (nightly
+// scoring, translation queue workers) have no request-scoped user.
+// Decimal(10,6) — NOT (12,2) like Payment/monetary tables — because a
+// single call often costs a fraction of a cent; (12,2) would round every
+// row to 0.00 and defeat the purpose of cost tracking.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AiUsageLog {
+  id               String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  feature          String   @db.VarChar(100)
+  model            String   @db.VarChar(100)
+  userId           String?  @db.Uuid
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  estimatedCostUsd Decimal  @db.Decimal(10, 6)
+  createdAt        DateTime @default(now())
+
+  // Cost dashboards / admin reporting group by feature and by day.
+  @@index([feature, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([model, createdAt(sort: Desc)])
+  @@map("ai_usage_logs")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

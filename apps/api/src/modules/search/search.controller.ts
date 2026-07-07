@@ -159,6 +159,33 @@ export class SearchController {
     });
   }
 
+  /**
+   * Prompt 2: Smart search — combines LLM-based natural-language filter
+   * extraction with the existing keyword/Meilisearch search, falling back
+   * to the existing semantic (pgvector) search on thin results.
+   * POST /search/smart
+   *
+   * Uses the same SearchProtectionService.checkSearchRate(ip) pattern as
+   * every other search route in this controller — NOT @Throttle, which
+   * this codebase's search module doesn't use anywhere (checked before
+   * writing this: search.controller.ts has zero @Throttle decorators).
+   */
+  @Post('smart')
+  async smartSearch(
+    @Body() body: { query?: string; locale?: string },
+    @Req() req: Request,
+  ) {
+    const ip = this.extractIp(req);
+    this.searchProtection.checkSearchRate(ip);
+
+    const safeQuery = this.searchProtection.validateQuery(body?.query);
+    if (!safeQuery) {
+      throw new BadRequestException('query is required');
+    }
+
+    return this.searchService.smartSearch(safeQuery, body?.locale ?? 'ku');
+  }
+
   private extractIp(req: Request | undefined): string {
     // F6 fix: use req.ip which respects the trust proxy setting from main.ts
     // instead of manually re-parsing X-Forwarded-For (which an attacker can spoof).

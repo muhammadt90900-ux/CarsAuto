@@ -8,8 +8,25 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheService } from '../../common/cache/cache.service';
 import { OpenAiService } from '../../common/ai/openai.service';
+import { AiCacheService } from '../../common/ai/ai-cache.service';
 import { MeilisearchSearchStrategy } from './meilisearch-search.strategy';
 import { MetricsService } from '../../common/monitoring/metrics.service';
+
+// ── Prompt 2: Smart Search ──────────────────────────────────────────────────
+const CACHE_TTL_NL_PARSE = 7 * 24 * 3600; // 7 days, per Prompt 2 spec
+const SMART_SEARCH_THIN_THRESHOLD = 3;    // below this many results, try semantic fallback
+
+export interface ParsedFilters {
+  brand?: string;
+  model?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minYear?: number;
+  maxYear?: number;
+  bodyType?: string;
+  fuelType?: string;
+  location?: string;
+}
 
 // ── Cache TTLs ────────────────────────────────────────────────────────────────
 const CACHE_TTL_SEARCH        = 30_000;      // 30 s
@@ -82,6 +99,7 @@ export class SearchService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly openai: OpenAiService,
+    private readonly aiCache: AiCacheService,
     private readonly meilisearchStrategy: MeilisearchSearchStrategy,
     private readonly config: ConfigService,
     private readonly metrics: MetricsService,
@@ -468,6 +486,118 @@ export class SearchService {
 
       return { data, total, page, limit, totalPages: Math.ceil(total / limit), semantic: true };
     }, CACHE_TTL_SEMANTIC);
+  }
+
+  /* ── Prompt 2: Natural-language query understanding ─────────────────────── */
+
+  /**
+   * Extracts structured filters from a free-text query in KU/AR/EN/ZH via
+   * OpenAiService.complete() in JSON mode. Never throws — parsing failure
+   * or an empty/garbled model response both just return {}, so callers can
+   * treat the smart-search path as "structured filters on top of whatever
+   * the plain query already does," never a hard dependency.
+   *
+   * Caching: normalizes the query first (lowercase, trim, collapse
+   * whitespace) so trivially-different inputs ("Toyota  Camry", "toyota
+   * camry") share one cache entry, then delegates to
+   * OpenAiService.complete()'s own cache (meta.cache = true) rather than a
+   * second cache layer — complete() already hashes the full prompt
+   * (system + user text), and the normalized query is what goes into that
+   * prompt, so this achieves the same 7-day query→filters cache Prompt 2
+   * asks for without a redundant AiCacheService.get/set pair here.
+   */
+  async parseNaturalLanguageQuery(query: string, locale = 'ku'): Promise<ParsedFilters> {
+    const normalized = query?.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!normalized) return {};
+
+    const systemPrompt = `You extract structured vehicle search filters from a short user query written in Kurdish (Sorani), Arabic, English, or Chinese.
+Return ONLY a JSON object with these optional keys (omit any key you can't confidently infer from the text):
+brand (string), model (string), minPrice (number), maxPrice (number), minYear (number), maxYear (number),
+bodyType (string, e.g. "sedan"/"suv"/"pickup"), fuelType (string, e.g. "petrol"/"diesel"/"hybrid"/"electric"), location (string, a city or region name).
+Prices are assumed to be in USD unless a currency is stated. If the query mentions no filterable attribute, return {}.
+No preamble, no markdown fences, no explanation — JSON only.`;
+
+    try {
+      const raw = await this.openai.complete(normalized, systemPrompt, true, {
+        feature: 'search.parseNaturalLanguageQuery',
+        cache: true,
+        cacheTtlSeconds: CACHE_TTL_NL_PARSE,
+      });
+
+      if (!raw) return {};
+
+      const parsed = JSON.parse(raw) as Partial<ParsedFilters>;
+      const result: ParsedFilters = {};
+
+      if (typeof parsed.brand === 'string') result.brand = parsed.brand;
+      if (typeof parsed.model === 'string') result.model = parsed.model;
+      if (typeof parsed.bodyType === 'string') result.bodyType = parsed.bodyType;
+      if (typeof parsed.fuelType === 'string') result.fuelType = parsed.fuelType;
+      if (typeof parsed.location === 'string') result.location = parsed.location;
+      if (typeof parsed.minPrice === 'number') result.minPrice = parsed.minPrice;
+      if (typeof parsed.maxPrice === 'number') result.maxPrice = parsed.maxPrice;
+      if (typeof parsed.minYear === 'number') result.minYear = parsed.minYear;
+      if (typeof parsed.maxYear === 'number') result.maxYear = parsed.maxYear;
+
+      return result;
+    } catch (err) {
+      // Covers both a network/API failure inside complete() (which already
+      // returns '' on error, so JSON.parse('') throws here) and a
+      // malformed/non-JSON model response — either way, fail to {}.
+      this.logger.warn(`parseNaturalLanguageQuery() failed to parse — returning {}: ${(err as Error).message}`);
+      return {};
+    }
+  }
+
+  /* ── Prompt 2: Smart search endpoint ─────────────────────────────────────── */
+
+  /**
+   * Combines NL filter extraction with the existing search paths:
+   *   1. Parse the free-text query into structural filters.
+   *   2. Merge those filters with any explicitly-passed filters (explicit
+   *      filters win on conflict — the model's guess shouldn't override a
+   *      filter the user set directly, e.g. via a dropdown).
+   *   3. Run the existing keyword/Meilisearch search with the merged filters.
+   *   4. If results are thin (< SMART_SEARCH_THIN_THRESHOLD), retry via the
+   *      existing semanticSearch() pgvector path — reusing Prompt 2B's
+   *      already-built semantic search rather than duplicating it.
+   * Logs the raw query via the existing trackSearchEvent() path (called
+   * inside search()/semanticSearch() already) — no new SearchEvent column
+   * needed; `query` already stores exactly the free text passed in.
+   */
+  async smartSearch(query: string, locale = 'ku', explicitFilters: SearchFilters = {}) {
+    const parsed = await this.parseNaturalLanguageQuery(query, locale);
+
+    const mergedFilters: SearchFilters = {
+      ...(parsed.minPrice !== undefined ? { minPrice: String(parsed.minPrice) } : {}),
+      ...(parsed.maxPrice !== undefined ? { maxPrice: String(parsed.maxPrice) } : {}),
+      ...(parsed.minYear !== undefined ? { minYear: String(parsed.minYear) } : {}),
+      ...(parsed.maxYear !== undefined ? { maxYear: String(parsed.maxYear) } : {}),
+      ...(parsed.fuelType ? { fuelType: parsed.fuelType } : {}),
+      // NOTE: brand/model/location from the LLM are names, not the
+      // brandId/modelId/locationId FKs that SearchFilters expects — mapping
+      // name → id needs a CarBrand/CarModel/Location lookup, which is worth
+      // its own small resolver rather than guessing string-matches here.
+      // Left as a known gap for a follow-up pass; the LLM output is still
+      // useful today for the free-text query itself (Meilisearch/ILIKE
+      // already search title text, which usually contains the brand/model).
+      locale,
+      ...explicitFilters, // explicit filters always win over the model's guess
+    };
+
+    const primary = await this.search(query, mergedFilters);
+
+    if (primary.total >= SMART_SEARCH_THIN_THRESHOLD) {
+      return { ...primary, filtersUsed: parsed };
+    }
+
+    // Thin results — try the semantic pgvector fallback (Prompt 2B, already built).
+    const semantic = await this.semanticSearch(query, mergedFilters);
+    if (semantic.total > primary.total) {
+      return { ...semantic, filtersUsed: parsed };
+    }
+
+    return { ...primary, filtersUsed: parsed };
   }
 
   /* ── Autosuggest (Phase 2) ──────────────────────────────────────────────── */

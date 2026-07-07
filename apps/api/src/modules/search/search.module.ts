@@ -18,6 +18,9 @@ import { MeilisearchSearchStrategy } from './meilisearch-search.strategy';
   // Search Architecture Phase 3: exported so ListingsModule can inject
   // MeilisearchSearchStrategy directly for GET /listings/facets, without
   // pulling in SearchService/SearchController.
-  exports: [MeilisearchSearchStrategy],
+  // Prompt 3 (AI Chat): AiChatModule reuses SearchService.parseNaturalLanguageQuery
+  // + search() directly rather than duplicating NL-filter-parsing logic —
+  // exported alongside MeilisearchSearchStrategy for that purpose.
+  exports: [MeilisearchSearchStrategy, SearchService],
 })
 export class SearchModule {}

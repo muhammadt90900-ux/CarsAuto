@@ -13,6 +13,27 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { AiCacheService } from './ai-cache.service';
+import { AiCostTrackerService } from './ai-cost-tracker.service';
+
+/**
+ * Optional call-site context for cost tracking / cache scoping.
+ * Added as an optional trailing parameter on embed()/complete()/moderate()
+ * so every EXISTING caller (AiService.suggestPrice, detectSpamFull, etc.)
+ * keeps compiling and behaving exactly as before with zero changes — this
+ * is additive, not a breaking signature change. Callers that want their
+ * usage attributed to a feature/user should start passing it; callers that
+ * don't are logged under feature: 'unknown'.
+ */
+export interface AiCallMeta {
+  /** e.g. 'suggestPrice', 'detectSpamFull', 'search.parseNaturalLanguage' */
+  feature?: string;
+  userId?: string | null;
+  /** Cache TTL override in seconds. Ignored if cache=false. */
+  cacheTtlSeconds?: number;
+  /** Set false to bypass the cache for this call (default true). */
+  cache?: boolean;
+}
 
 /* ── Public result types ─────────────────────────────────────────────────── */
 
@@ -51,7 +72,11 @@ export class OpenAiService {
   /** gpt-4o-mini for chat completions */
   private readonly chatModel: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly aiCache: AiCacheService,
+    private readonly costTracker: AiCostTrackerService,
+  ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     const enabledFlag = this.config.get<string>('OPENAI_ENABLED', 'true');
     this.enabled = enabledFlag !== 'false' && !!apiKey;
@@ -85,16 +110,45 @@ export class OpenAiService {
    * Falls back to [] if OpenAI is unavailable — callers should treat [] as
    * "semantic search not possible, fall back to ILIKE".
    */
-  async embed(text: string): Promise<number[]> {
+  async embed(text: string, meta?: AiCallMeta): Promise<number[]> {
     if (!this.client || !text?.trim()) return [];
+
+    const input = text.slice(0, 8191); // API limit
+    const useCache = meta?.cache !== false;
+    const cacheKey = this.aiCache.hashKey(
+      'openai',
+      'embed',
+      this.embedModel,
+      this.aiCache.hashPart(input),
+    );
+
+    if (useCache) {
+      const cached = await this.aiCache.get<number[]>(cacheKey);
+      if (cached) return cached;
+    }
 
     try {
       const response = await this.client.embeddings.create({
         model: this.embedModel,
-        input: text.slice(0, 8191), // API limit
+        input,
         encoding_format: 'float',
       });
-      return response.data[0]?.embedding ?? [];
+      const embedding = response.data[0]?.embedding ?? [];
+
+      if (useCache && embedding.length) {
+        // Embeddings for identical text never change — safe to cache long.
+        await this.aiCache.set(cacheKey, embedding, meta?.cacheTtlSeconds ?? 30 * 24 * 3600);
+      }
+
+      void this.costTracker.log({
+        feature: meta?.feature ?? 'unknown',
+        model: this.embedModel,
+        userId: meta?.userId ?? null,
+        promptTokens: response.usage?.total_tokens ?? this.costTracker.estimateTokens(input),
+        completionTokens: 0,
+      });
+
+      return embedding;
     } catch (err) {
       this.logger.warn(`embed() failed: ${(err as Error).message}`);
       return [];
@@ -145,7 +199,7 @@ export class OpenAiService {
    * Falls back to { flagged: false } so listings are never silently blocked
    * when the API is unavailable.
    */
-  async moderate(text: string): Promise<ModerationResult> {
+  async moderate(text: string, meta?: AiCallMeta): Promise<ModerationResult> {
     const safe: ModerationResult = {
       flagged: false,
       categories: {
@@ -161,10 +215,17 @@ export class OpenAiService {
 
     if (!this.client || !text?.trim()) return safe;
 
+    const input = text.slice(0, 32_768);
+    const useCache = meta?.cache !== false;
+    const cacheKey = this.aiCache.hashKey('openai', 'moderate', this.aiCache.hashPart(input));
+
+    if (useCache) {
+      const cached = await this.aiCache.get<ModerationResult>(cacheKey);
+      if (cached) return cached;
+    }
+
     try {
-      const response = await this.client.moderations.create({
-        input: text.slice(0, 32_768),
-      });
+      const response = await this.client.moderations.create({ input });
 
       const result = response.results[0];
       if (!result) return safe;
@@ -172,7 +233,7 @@ export class OpenAiService {
       const c = result.categories as unknown as Record<string, boolean>;
       const s = result.category_scores as unknown as Record<string, number>;
 
-      return {
+      const moderation: ModerationResult = {
         flagged: result.flagged,
         categories: {
           hate: c['hate'] ?? false,
@@ -184,6 +245,22 @@ export class OpenAiService {
         },
         scores: s,
       };
+
+      if (useCache) {
+        await this.aiCache.set(cacheKey, moderation, meta?.cacheTtlSeconds ?? 24 * 3600);
+      }
+
+      // Moderation endpoint is free, but every call still counts against
+      // OpenAI rate limits and is worth seeing in the usage dashboard.
+      void this.costTracker.log({
+        feature: meta?.feature ?? 'unknown',
+        model: 'omni-moderation',
+        userId: meta?.userId ?? null,
+        promptTokens: this.costTracker.estimateTokens(input),
+        completionTokens: 0,
+      });
+
+      return moderation;
     } catch (err) {
       this.logger.warn(`moderate() failed: ${(err as Error).message}`);
       return safe;
@@ -298,8 +375,30 @@ Return JSON only.`;
     prompt: string,
     systemPrompt = 'You are a helpful assistant.',
     jsonMode = false,
+    meta?: AiCallMeta,
   ): Promise<string> {
     if (!this.client) return '';
+
+    // Cache is OFF by default for complete() (unlike embed()/moderate()) —
+    // unlike an embedding, "the same prompt" often isn't semantically
+    // idempotent for existing callers (e.g. suggestPrice's GPT fallback can
+    // reasonably return different phrasing call to call), and turning
+    // caching on globally here could silently change behavior for callers
+    // that never asked for it. Callers that DO want caching (e.g. Prompt 2's
+    // parseNaturalLanguageQuery) should pass `meta.cache = true` explicitly.
+    const useCache = meta?.cache === true;
+    const cacheKey = this.aiCache.hashKey(
+      'openai',
+      'complete',
+      this.chatModel,
+      String(jsonMode),
+      this.aiCache.hashPart(`${systemPrompt}\n${prompt}`),
+    );
+
+    if (useCache) {
+      const cached = await this.aiCache.get<string>(cacheKey);
+      if (cached !== null) return cached;
+    }
 
     try {
       const response = await this.client.chat.completions.create({
@@ -312,7 +411,22 @@ Return JSON only.`;
         max_tokens: 800,
         ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
       });
-      return response.choices[0]?.message?.content?.trim() ?? '';
+      const text = response.choices[0]?.message?.content?.trim() ?? '';
+      const usage = response.usage;
+
+      if (useCache && text) {
+        await this.aiCache.set(cacheKey, text, meta?.cacheTtlSeconds ?? 3600);
+      }
+
+      void this.costTracker.log({
+        feature: meta?.feature ?? 'unknown',
+        model: this.chatModel,
+        userId: meta?.userId ?? null,
+        promptTokens: usage?.prompt_tokens ?? this.costTracker.estimateTokens(systemPrompt + prompt),
+        completionTokens: usage?.completion_tokens ?? this.costTracker.estimateTokens(text),
+      });
+
+      return text;
     } catch (err) {
       this.logger.warn(`complete() failed: ${(err as Error).message}`);
       return '';
