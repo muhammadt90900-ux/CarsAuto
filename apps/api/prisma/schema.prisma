@@ -301,6 +301,7 @@ model User {
   uploadedFiles          UploadedFile[]
   aiUsageLogs            AiUsageLog[]
   aiChatSessions         AiChatSession[]
+  fraudScore             FraudScore?
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -422,6 +423,36 @@ model AuditLog {
   @@index([ip])
   @@index([userId, action, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FRAUD SCORE
+// ADDED (Prompt 4 — Account Risk Scoring): one row per user, overwritten on
+// each recompute (nightly batch + on-demand admin recompute) rather than an
+// append-only history table — admin needs "what's the risk RIGHT NOW",
+// not a full audit trail of every past score. If a historical trend view is
+// wanted later, that's an additive AiUsageLog-style append table, not a
+// change to this one.
+//
+// KNOWN GAPS (flagged, not silently worked around — see FraudScoringService
+// header comment for detail): no IP-address field exists anywhere in this
+// schema (Payment, User, TransactionLog all lack one), and there's no
+// chargeback/dispute tracking model. Two signals a fraud system would
+// normally use (IP velocity/mismatch, chargeback rate) are NOT included in
+// `signals` below because the underlying data doesn't exist yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FraudScore {
+  id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId       String   @unique @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallRisk  Int      // 0-100
+  signals      Json     // breakdown: { signal_name: { score, detail } } — see FraudScoringService
+  computedAt   DateTime @default(now())
+
+  // Admin fraud queue: "show me the riskiest accounts first"
+  @@index([overallRisk(sort: Desc)])
+  @@map("fraud_scores")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

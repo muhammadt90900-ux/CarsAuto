@@ -19,6 +19,9 @@ import { BullModule } from '@nestjs/bullmq';
 
 import { PrismaService } from './common/prisma/prisma.service';
 import { OpenAiService } from './common/ai/openai.service';
+import { CacheService } from './common/cache/cache.service';
+import { AiCacheService } from './common/ai/ai-cache.service';
+import { AiCostTrackerService } from './common/ai/ai-cost-tracker.service';
 import { EmailService } from './common/email/email.service';
 import { NotificationsService } from './modules/notifications/notifications.service';
 import { TranslationProcessor } from './processors/translation.processor';
@@ -27,6 +30,8 @@ import { PartitionMaintenanceProcessor } from './processors/partition-maintenanc
 import { SearchIndexProcessor } from './processors/search-index.processor';
 import { RankingRecomputeProcessor } from './processors/ranking-recompute.processor';
 import { SearchConsistencyCheckProcessor } from './processors/search-consistency-check.processor';
+import { FraudRecomputeProcessor } from './processors/fraud-recompute.processor';
+import { FraudScoringService } from './modules/fraud/fraud-scoring.service';
 import { MeilisearchService } from './common/search-index/meilisearch.service';
 
 @Module({
@@ -63,6 +68,9 @@ import { MeilisearchService } from './common/search-index/meilisearch.service';
   providers: [
     PrismaService,
     OpenAiService,
+    CacheService,
+    AiCacheService,
+    AiCostTrackerService,
     EmailService,
     NotificationsService,
     MeilisearchService,
@@ -72,6 +80,8 @@ import { MeilisearchService } from './common/search-index/meilisearch.service';
     SearchIndexProcessor,
     RankingRecomputeProcessor,
     SearchConsistencyCheckProcessor,
+    FraudRecomputeProcessor,
+    FraudScoringService,
   ],
 })
 export class WorkerModule {}

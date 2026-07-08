@@ -30,6 +30,7 @@ import { OpenAiModule }            from './common/ai/openai.module';
 import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.module';
 import { SearchIndexCommonModule }  from './common/search-index/search-index.module';
 import { SearchIndexingModule }     from './modules/search-indexing/search-index.module';
+import { FraudModule }              from './modules/fraud/fraud.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { SearchIndexingModule }     from './modules/search-indexing/search-index
     SecurityThrottlerModule,
     SubscriptionsModule,
     CurrencyModule,
+    FraudModule,
   ],
   providers: [TokenCleanupTask, EmbeddingSyncTask],
 })

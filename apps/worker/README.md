@@ -30,6 +30,10 @@ The following files are **verbatim copies** of files that still live in
 |---|---|
 | `src/common/prisma/prisma.service.ts` | `src/common/prisma/prisma.service.ts` |
 | `src/common/ai/openai.service.ts` | `src/common/ai/openai.service.ts` |
+| `src/common/ai/ai-cache.service.ts` | `src/common/ai/ai-cache.service.ts` |
+| `src/common/ai/ai-cost-tracker.service.ts` | `src/common/ai/ai-cost-tracker.service.ts` |
+| `src/common/cache/cache.service.ts` | `src/common/cache/cache.service.ts` |
+| `src/common/cache/base-redis-store.ts` | `src/common/cache/base-redis-store.ts` |
 | `src/common/email/email.service.ts` + `templates/` | `src/common/email/email.service.ts` + `templates/` |
 | `src/common/logger/logger.service.ts` | `src/common/logger/logger.service.ts` |
 | `src/modules/notifications/notifications.service.ts` | `src/modules/notifications/notifications.service.ts` |
