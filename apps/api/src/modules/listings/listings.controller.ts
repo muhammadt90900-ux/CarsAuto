@@ -14,6 +14,7 @@ import { JwtAuthGuard }          from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtGuard }      from '../auth/guards/optional-jwt.guard';
 import { EmailVerifiedGuard }    from '../../common/guards/email-verified.guard';
 import { CreateListingDto }      from './dto/create-listing.dto';
+import { MarkSoldDto }           from './dto/mark-sold.dto';
 import { ListingType, ListingCondition, FuelType, TransmissionType } from '../../common/prisma/enums';
 import { ListingPermissionService } from '../../common/permissions/listing-permission.service';
 
@@ -147,6 +148,18 @@ export class ListingsController {
     @Body() dto: Partial<CreateListingDto>,
   ) {
     return this.listingsService.update(id, req.user.userId, dto);
+  }
+
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Mark a listing sold with its final price (Prompt 7 — Price Feedback Loop)' })
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @Patch(':id/sold')
+  markSold(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+    @Body() dto: MarkSoldDto,
+  ) {
+    return this.listingsService.markSold(id, req.user.userId, dto.soldPrice);
   }
 
   @ApiBearerAuth('bearer')

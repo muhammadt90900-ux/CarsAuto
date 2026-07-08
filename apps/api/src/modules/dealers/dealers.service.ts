@@ -22,6 +22,7 @@ import { UpdateDealerDto }  from './dto/update-dealer.dto';
 import { CreateReviewDto }  from './dto/create-review.dto';
 import { DealerQueryDto }   from './dto/dealer-query.dto';
 import { ContactDealerDto } from './dto/contact-dealer.dto';
+import { LeadScoringService } from '../analytics/lead-scoring.service';
 import slugify from 'slugify';
 
 type AnalyticsField =
@@ -89,6 +90,7 @@ export class DealersService {
     private readonly cache: CacheService,
     private readonly notifications: NotificationsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly leadScoring: LeadScoringService,
   ) {}
 
   // ── create ─────────────────────────────────────────────────────────────────
@@ -327,6 +329,15 @@ export class DealersService {
 
     this.bufferAnalytic(dealer.id, 'newLeads');
     scheduleAnalyticFlush(this.prisma);
+
+    // Fire-and-forget — scoring involves an LLM call (see LeadScoringService)
+    // and must never add latency to the buyer's contact-form submission.
+    // Same "don't await, just log on failure" discipline as bufferAnalytic
+    // above.
+    void this.leadScoring.scoreLead(request.id).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn(`Lead scoring failed for request ${request.id}: ${(err as Error).message}`);
+    });
 
     let whatsappUrl: string | null = null;
     if (dealer.whatsapp) {

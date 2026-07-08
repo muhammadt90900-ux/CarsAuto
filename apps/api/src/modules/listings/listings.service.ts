@@ -883,6 +883,40 @@ export class ListingsService {
     }
   }
 
+  // ── mark sold (Prompt 7 — Price Feedback Loop) ────────────────────────────
+  /**
+   * GAP FOUND WHILE IMPLEMENTING THIS: update()'s SOLD-transition branch
+   * above (ListingSoldEvent, dealer/search listeners) has existed for a
+   * while, but PATCH /listings/:id validates against
+   * `Partial<CreateListingDto>`, which has NO `status` field — and the
+   * global ValidationPipe runs with `whitelist: true` (main.ts). So a
+   * client-sent `status: 'SOLD'` in that PATCH body is silently stripped
+   * before it ever reaches update() — the SOLD transition path was
+   * unreachable from the public API. Rather than widen CreateListingDto to
+   * accept an arbitrary status (which would let a PATCH set status to
+   * anything, including moderation states like UNDER_REVIEW), this adds
+   * ONE narrow, purpose-built entry point that calls update() with a
+   * fixed, server-controlled payload — reusing the existing transaction +
+   * event-emission logic exactly, per this prompt's instruction not to
+   * build a parallel status field.
+   *
+   * soldAt is ALWAYS set here (new Date()), never accepted from the
+   * client — a client-supplied sale date can't be trusted the way a
+   * client-supplied sale PRICE can be checked against the listing's own
+   * price for plausibility.
+   */
+  async markSold(id: string, userId: string, soldPrice: number) {
+    if (!Number.isFinite(soldPrice) || soldPrice <= 0) {
+      throw new BadRequestException('soldPrice must be a positive number');
+    }
+
+    return this.update(id, userId, {
+      status: 'SOLD',
+      soldPrice,
+      soldAt: new Date(),
+    } as any);
+  }
+
   // ── delete ─────────────────────────────────────────────────────────────────
   async delete(id: string, userId: string): Promise<void> {
     if (!id || !userId) throw new BadRequestException('Listing ID and user ID are required');

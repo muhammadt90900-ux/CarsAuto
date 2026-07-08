@@ -302,6 +302,7 @@ model User {
   aiUsageLogs            AiUsageLog[]
   aiChatSessions         AiChatSession[]
   fraudScore             FraudScore?
+  sellerScore            SellerScore?
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -423,6 +424,92 @@ model AuditLog {
   @@index([ip])
   @@index([userId, action, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE CURVE
+// ADDED (Prompt 7 — Price Feedback Loop): nightly-computed depreciation
+// curve per (brand, bodyType, country, yearBucket), from SOLD listings
+// only (status = SOLD AND soldPrice IS NOT NULL). Used ONLY as an
+// additional sanity-check signal in AiService.suggestPrice — never
+// replaces the existing IQR/median comparable-based logic. See
+// AiService.suggestPrice's updated header comment for the minimum
+// sampleSize threshold below which a row here is ignored.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PriceCurve {
+  id                 String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  brandId            String   @db.Uuid
+  brand              CarBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  bodyType           BodyType
+  // NOTE: matches Location.country's format (free-text country NAME, e.g.
+  // "Iraq") — NOT CarBrand.countryCode's ISO 3166-1 alpha-2 format. There
+  // is no country-name → ISO2 mapping anywhere in this schema, so the
+  // worker job groups by whatever string is already sitting in
+  // Location.country rather than inventing a lookup table for this one
+  // feature. If Location.country ever gets normalized to ISO2, this
+  // column should follow it — flagging the inconsistency rather than
+  // quietly picking one.
+  country            String   @db.VarChar(100)
+  yearBucket         Int      // e.g. vehicle model year, bucketed (see worker job comment)
+  avgDepreciationPct Float    // average % below original/comparable price at this age
+  sampleSize         Int
+  lastComputedAt     DateTime @default(now())
+
+  @@unique([brandId, bodyType, country, yearBucket])
+  @@map("price_curves")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SELLER SCORE
+// ADDED (Prompt 5 — Seller Behavior Scoring): one row per user, overwritten
+// on each recompute — same "current state, not history" reasoning as
+// FraudScore. narrativeEn/Ku/Ar follow the same per-locale reasoning
+// pattern PriceSuggestion already uses in ai.service.ts (no narrativeZh
+// there either, despite Chinese being a supported locale — matching that
+// existing gap rather than fixing it silently here).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SellerScore {
+  id                        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId                    String   @unique @db.Uuid
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avgResponseMinutes        Float?   // null = no message history to measure
+  listingQualityScore       Int      // 0-100
+  priceCompetitivenessScore Int      // 0-100 (100 = priced at/below market)
+  reportRateScore           Int      // 0-100 (100 = worst / highest report rate)
+  overallScore              Int      // 0-100
+  narrativeEn               String?  @db.Text
+  narrativeKu                String? @db.Text
+  narrativeAr                String? @db.Text
+  computedAt                DateTime @default(now())
+
+  @@index([overallScore(sort: Desc)])
+  @@map("seller_scores")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEALER LEAD SCORE
+// ADDED (Prompt 5 — Dealer Lead Scoring): one row per DealerContactRequest,
+// computed once shortly after creation (not continuously re-scored — a
+// lead's "hotness" at time of contact is what a dealer needs to triage
+// their inbox, see LeadScoringService's header comment for the known gap
+// this implies).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DealerLeadScore {
+  id               String               @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  contactRequestId String               @unique @db.Uuid
+  contactRequest   DealerContactRequest @relation(fields: [contactRequestId], references: [id], onDelete: Cascade)
+  score            Int                  // 0-100, higher = hotter lead
+  reasons          Json
+  narrativeEn      String?              @db.Text
+  narrativeKu      String?              @db.Text
+  narrativeAr      String?              @db.Text
+  computedAt       DateTime             @default(now())
+
+  @@index([score(sort: Desc)])
+  @@map("dealer_lead_scores")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -549,6 +636,7 @@ model CarBrand {
   models              CarModel[]
   listingSpecs        ListingVehicleSpec[]
   partCompatibilities PartCompatibility[]
+  priceCurves         PriceCurve[]
 
   // CHANGE: composite partial index — only active brands matter for searches
   @@index([isActive, slug])
@@ -764,6 +852,13 @@ model Listing {
   price      Decimal @db.Decimal(12, 2)
   currency   String  @default("USD") @db.Char(3)
   negotiable Boolean @default(false)
+
+  // ADDED (Prompt 7 — Price Feedback Loop): set when status transitions to
+  // SOLD via ListingsService.markSold(). Nullable — most listings never
+  // reach this. soldAt is set server-side (new Date()) at transition time,
+  // never trusted from client input — see markSold()'s comment for why.
+  soldPrice Decimal? @db.Decimal(12, 2)
+  soldAt    DateTime?
 
   locationId String?   @db.Uuid
   location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -1495,6 +1590,8 @@ model DealerContactRequest {
   status    ContactRequestStatus @default(NEW)
   readAt    DateTime?
   createdAt DateTime @default(now())
+
+  leadScore DealerLeadScore?
 
   // CHANGE: dealer inbox queue — status + createdAt for sorting
   @@index([dealerId, status, createdAt(sort: Desc)])

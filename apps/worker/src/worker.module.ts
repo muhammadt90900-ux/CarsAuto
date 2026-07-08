@@ -32,6 +32,11 @@ import { RankingRecomputeProcessor } from './processors/ranking-recompute.proces
 import { SearchConsistencyCheckProcessor } from './processors/search-consistency-check.processor';
 import { FraudRecomputeProcessor } from './processors/fraud-recompute.processor';
 import { FraudScoringService } from './modules/fraud/fraud-scoring.service';
+import { SellerScoreRecomputeProcessor } from './processors/seller-score-recompute.processor';
+import { SellerScoreService } from './modules/analytics/seller-score.service';
+import { SellerScoreNarrativeService } from './modules/analytics/seller-score-narrative.service';
+import { SellerScoreRecomputeService } from './modules/analytics/seller-score-recompute.service';
+import { PriceCurveRecomputeProcessor } from './processors/price-curve-recompute.processor';
 import { MeilisearchService } from './common/search-index/meilisearch.service';
 
 @Module({
@@ -82,6 +87,11 @@ import { MeilisearchService } from './common/search-index/meilisearch.service';
     SearchConsistencyCheckProcessor,
     FraudRecomputeProcessor,
     FraudScoringService,
+    SellerScoreRecomputeProcessor,
+    SellerScoreService,
+    SellerScoreNarrativeService,
+    SellerScoreRecomputeService,
+    PriceCurveRecomputeProcessor,
   ],
 })
 export class WorkerModule {}

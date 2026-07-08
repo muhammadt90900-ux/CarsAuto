@@ -17,6 +17,8 @@ import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { DealerTier } from '../../common/prisma/enums';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DealerReconciliationService } from './tasks/dealer-reconciliation.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { SellerScoreRecomputeService } from '../analytics/seller-score-recompute.service';
 
 @ApiTags('Dealers')
 @Controller('dealers')
@@ -24,6 +26,8 @@ export class DealersController {
   constructor(
     private readonly service: DealersService,
     private readonly reconciliation: DealerReconciliationService,
+    private readonly prisma: PrismaService,
+    private readonly sellerScoreRecompute: SellerScoreRecomputeService,
   ) {}
 
   // ── Public endpoints ───────────────────────────────────────────────────
@@ -48,6 +52,60 @@ export class DealersController {
   @UseGuards(JwtAuthGuard)
   analytics(@Request() req: any, @Query('days') days = 30) {
     return this.service.getAnalytics(req.user.userId, +days);
+  }
+
+  /**
+   * GET /dealers/me/seller-score — Prompt 5. Returns the last-computed
+   * score (nightly job); falls back to computing on-demand if none exists
+   * yet (e.g. brand-new seller who hasn't been through a nightly run) so
+   * the endpoint never just 404s on a new account.
+   */
+  @Get('me/seller-score')
+  @ApiBearerAuth('bearer')
+  @UseGuards(JwtAuthGuard)
+  async sellerScore(@Request() req: any) {
+    const existing = await this.prisma.sellerScore.findUnique({ where: { userId: req.user.userId } });
+    if (existing) return existing;
+    return this.sellerScoreRecompute.recompute(req.user.userId);
+  }
+
+  /**
+   * GET /dealers/me/leads — Prompt 5. This dealer's contact requests,
+   * hottest lead first, with the score breakdown attached.
+   */
+  @Get('me/leads')
+  @ApiBearerAuth('bearer')
+  @UseGuards(JwtAuthGuard)
+  async leads(@Request() req: any, @Query('page') page = 1, @Query('limit') limit = 20) {
+    const dealer = await this.prisma.dealer.findUnique({
+      where: { userId: req.user.userId },
+      select: { id: true },
+    });
+    if (!dealer) return { data: [], total: 0, page: 1, limit: +limit, totalPages: 0 };
+
+    const safePage = Math.max(1, +page);
+    const safeLimit = Math.min(100, Math.max(1, +limit));
+
+    const [data, total] = await Promise.all([
+      this.prisma.dealerContactRequest.findMany({
+        where: { dealerId: dealer.id },
+        include: { leadScore: true },
+        // Hottest leads first. NOTE: unverified — Postgres's default NULLS
+        // FIRST-on-DESC means a request with no leadScore yet (scoring is
+        // fire-and-forget, so there's a brief window right after creation
+        // where it's null) may sort to the TOP, not the bottom, unless
+        // Prisma's `nulls: 'last'` ordering option is available on this
+        // Prisma version for a to-one relation field — please verify
+        // against a lead created in the last few seconds before trusting
+        // this ordering in the dealer UI.
+        orderBy: [{ leadScore: { score: 'desc' } }, { createdAt: 'desc' }],
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+      }),
+      this.prisma.dealerContactRequest.count({ where: { dealerId: dealer.id } }),
+    ]);
+
+    return { data, total, page: safePage, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) };
   }
 
   /** GET /dealers/:slug — public showroom (attaches isFollowing if authenticated) */

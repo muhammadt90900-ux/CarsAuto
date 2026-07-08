@@ -121,7 +121,119 @@ export class AiService {
    *  3–9 comparables → median ± 15%, confidence = 'medium'
    *  <3 comparables  → GPT-4o-mini estimate, confidence = 'low'
    */
+  /**
+   * PUBLIC ENTRY POINT — Prompt 7 wrapper. The actual IQR/median/GPT-fallback
+   * logic below (_computeBaseSuggestion) is UNTOUCHED by this prompt, exactly
+   * as instructed. This wrapper calls it, then applies PriceCurve ONLY as an
+   * advisory sanity-check — it can attach a warning note to the reasoning
+   * fields, it can NEVER change suggested/min/max.
+   *
+   * SIGNATURE NOTE: added one new OPTIONAL parameter, `bodyType`, because
+   * PriceCurve is grouped by (brand, bodyType, country, year) — see
+   * PriceCurve's schema comment — and the sanity check has no way to look
+   * up a curve bucket without it. Every existing caller that doesn't pass
+   * bodyType keeps working exactly as before; it just means the sanity
+   * check silently no-ops for them (no curve lookup possible without a
+   * body type to key on).
+   */
   async suggestPrice(
+    make: string,
+    model: string,
+    year: number,
+    mileage: number,
+    condition = 'USED',
+    location = 'Iraq',
+    bodyType?: string,
+  ): Promise<PriceSuggestion> {
+    const base = await this._computeBaseSuggestion(make, model, year, mileage, condition, location);
+    return this._applyPriceCurveSanityCheck(base, make, year, location, bodyType);
+  }
+
+  /**
+   * Prompt 7 — PriceCurve sanity check. Flags (does not correct) when the
+   * base suggestion's implied discount-from-asking deviates >20% from
+   * PriceCurve.avgDepreciationPct for the matching bucket.
+   *
+   * MINIMUM SAMPLE SIZE: a PriceCurve row is only trusted once
+   * sampleSize >= 20. Below that, the row is ignored entirely (no note
+   * added) — see this method's answer to "what should the threshold be"
+   * in the accompanying chat message; 20 was chosen because
+   * avgDepreciationPct is a percentage derived from real-world sale
+   * prices with high individual variance (negotiation, condition,
+   * urgency), and under ~20 sold data points a single unusual sale can
+   * swing the average by several points — noisy enough to do more harm
+   * than good as a "your price looks off" signal to a seller.
+   */
+  private async _applyPriceCurveSanityCheck(
+    base: PriceSuggestion,
+    make: string,
+    year: number,
+    location: string,
+    bodyType?: string,
+  ): Promise<PriceSuggestion> {
+    if (!bodyType) return base; // no bucket to look up — see signature note above
+
+    const MIN_TRUSTED_SAMPLE_SIZE = 20;
+    const DEVIATION_THRESHOLD_PCT = 20;
+
+    try {
+      const brand = await this.prisma.carBrand.findFirst({
+        where: { nameEn: { contains: make, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (!brand) return base;
+
+      const curve = await this.prisma.priceCurve.findUnique({
+        where: {
+          brandId_bodyType_country_yearBucket: {
+            brandId: brand.id,
+            bodyType: bodyType as any,
+            country: location,
+            yearBucket: year,
+          },
+        },
+      });
+
+      if (!curve || curve.sampleSize < MIN_TRUSTED_SAMPLE_SIZE) return base;
+
+      // We don't have an "asking price" here (suggestPrice runs BEFORE a
+      // listing exists, while a seller is still deciding what to list at)
+      // — so there's nothing to compute an implied discount FROM yet.
+      // The check that IS meaningful pre-listing: does the suggested
+      // price, if the seller then negotiated down by the curve's typical
+      // discount, land somewhere implausible? Flag only if that implied
+      // post-negotiation figure would sit far outside [min, max] —
+      // i.e. the comparable-based range and the sold-price curve
+      // meaningfully disagree about this segment.
+      const impliedPostNegotiation = base.suggested * (1 - curve.avgDepreciationPct / 100);
+      const deviationFromRange =
+        impliedPostNegotiation < base.min
+          ? ((base.min - impliedPostNegotiation) / base.min) * 100
+          : impliedPostNegotiation > base.max
+            ? ((impliedPostNegotiation - base.max) / base.max) * 100
+            : 0;
+
+      if (deviationFromRange <= DEVIATION_THRESHOLD_PCT) return base;
+
+      const note = ` (Note: historical sold-price data for this segment suggests buyers typically negotiate ~${Math.round(curve.avgDepreciationPct)}% below asking — worth double-checking this estimate.)`;
+      return {
+        ...base,
+        reasoning: base.reasoning + note,
+        reasoningKu: base.reasoningKu + ' (تێبینی: داتای فرۆشتنی ڕابردوو دەریدەخات کڕیاران زۆرجار نرخ دادەبەزێننەوە بۆ ئەم جۆرە — باشترە دووبارە پشکنین بکرێت.)',
+        reasoningAr: base.reasoningAr + ' (ملاحظة: تشير بيانات المبيعات السابقة إلى أن المشترين عادة يفاوضون لتخفيض السعر — يُفضّل مراجعة هذا التقدير.)',
+      };
+    } catch (err) {
+      this.logger.warn(`PriceCurve sanity check failed (non-fatal): ${(err as Error).message}`);
+      return base; // never let the sanity check itself break price suggestion
+    }
+  }
+
+  /**
+   * UNCHANGED from before Prompt 7 — the existing IQR/median/GPT-fallback
+   * logic. Renamed from suggestPrice to _computeBaseSuggestion and made
+   * private; suggestPrice() above is now the public entry point.
+   */
+  private async _computeBaseSuggestion(
     make: string,
     model: string,
     year: number,
