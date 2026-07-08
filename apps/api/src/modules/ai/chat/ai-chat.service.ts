@@ -214,7 +214,12 @@ export class AiChatService {
     rows: Array<{ id: string; titleEn?: string; titleKu?: string; price: any; currency?: string }>,
     userMessage: string,
     locale: string,
-    parsedFilters?: Record<string, unknown>,
+    // NOTE: was `Record<string, unknown>`. ParsedFilters (from SearchService)
+    // has no index signature, so TS rejected it here (TS2345). This param is
+    // only ever JSON.stringify'd below — it's never accessed by key — so
+    // `unknown` is both looser (accepts ParsedFilters) and more honest about
+    // what's actually needed, without weakening ParsedFilters itself.
+    parsedFilters?: unknown,
   ): Promise<string> {
     if (!rows.length) {
       return locale === 'ku'
