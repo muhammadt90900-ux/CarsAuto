@@ -16,6 +16,23 @@ metadata:
 data:
   NODE_ENV: "production"
 
+  # ── Error tracking (Sentry) — PROMPT 3 ──────────────────────────────────────────
+  # SENTRY_DSN is safe to keep here (not in secrets.yaml) — a DSN can only
+  # submit events, not read them, same reasoning as
+  # apps/web/sentry.client.config.ts's header comment. Empty by default so
+  # a fresh deploy without a Sentry project configured still starts up
+  # cleanly (see apps/api/src/config/env.validation.ts's warning instead of
+  # hard-fail) — fill in once you've created a Sentry project.
+  SENTRY_DSN: ""
+  SENTRY_TRACES_SAMPLE_RATE: "0.1"
+  # Substituted by the `deploy` job in .github/workflows/ci.yml (sed, same
+  # lightweight approach as this file's other CI-templated values) —
+  # literal text at rest here, not meant to be applied as-is. Powers the
+  # `release` tag on every Sentry event (see sentry.init.ts in
+  # apps/api/src and apps/worker/src) so a specific deploy can be singled
+  # out in Sentry's UI.
+  APP_VERSION: "{{GIT_SHA}}"
+
   # ── API ──────────────────────────────────────────────────────────────────────
   PORT: "4000"
   FRONTEND_URL: "https://carsauto.iq"                 # TODO: replace with your real domain

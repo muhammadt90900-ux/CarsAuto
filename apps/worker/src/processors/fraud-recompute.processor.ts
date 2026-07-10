@@ -10,12 +10,13 @@
 // (each call does its own small set of indexed queries + one upsert — see
 // that service for why there's no OpenAI call anywhere in this path).
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { FraudScoringService } from '../modules/fraud/fraud-scoring.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 const BATCH_SIZE = 500;
 
@@ -28,6 +29,7 @@ export class FraudRecomputeProcessor extends WorkerHost implements OnModuleInit 
     private readonly prisma: PrismaService,
     private readonly fraudScoring: FraudScoringService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -84,5 +86,19 @@ export class FraudRecomputeProcessor extends WorkerHost implements OnModuleInit 
     }
 
     this.logger.log(`Fraud recompute complete — ${processed} scored, ${failed} failed`);
+  }
+
+  // PROMPT 3: job.data here is at most a batch of userIds, no PII beyond
+  // that — still kept out of the tracked payload on principle, same as
+  // every other processor's handler.
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'FraudRecomputeProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

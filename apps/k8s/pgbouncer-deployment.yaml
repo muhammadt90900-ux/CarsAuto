@@ -10,10 +10,17 @@
 # replica, regardless of how many client (app-layer) connections it is
 # multiplexing.
 #
-# Assumes Postgres itself runs as its own StatefulSet/managed service (not
-# included in this manifest set, same as meilisearch — see configmap.yaml's
-# header), reachable at the host encoded in the DATABASE_DIRECT_URL secret
-# key below.
+# Assumes Postgres itself is reachable at the host encoded in the
+# DATABASE_DIRECT_URL secret key below. PROMPT 2: in production that's a
+# managed RDS Multi-AZ instance's writer endpoint (see secrets.yaml's
+# DATABASE_DIRECT_URL comment and docs/DATABASE-OPERATIONS.md) — NOT a
+# self-hosted Postgres StatefulSet/Service in this cluster. This manifest
+# doesn't change at all between the two cases (PgBouncer just proxies to
+# whatever hostname DATABASE_DIRECT_URL resolves to); only the secret value
+# differs, which is exactly why this indirection through a secret key
+# rather than a hardcoded hostname was already the right design before this
+# prompt — nothing here needed changing, just this comment updating so the
+# next person reading it doesn't assume in-cluster Postgres.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

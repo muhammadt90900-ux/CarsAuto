@@ -26,6 +26,15 @@
 // (0 → read hits the primary DB via DATABASE_URL, same as today's
 // no-replica fallback; 1 → every read hits that one replica, same as
 // today). See resolveReplicaUrls() below for the env var convention.
+//
+// PROMPT 2 (managed Postgres, RDS Multi-AZ failover): confirmed the
+// existing health-tracking (reactive `$on('error')` + periodic recheck)
+// already degrades to the primary rather than throwing once a replica is
+// KNOWN unhealthy — added `readWithFallback()` below to close the one real
+// gap that left (the specific in-flight query during the few-second window
+// an RDS failover event is actually happening), and shortened the periodic
+// recheck interval from 30s to 10s. See both change sites for the reasoning
+// on why this is additive/opt-in rather than a change to `db()` itself.
 
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
@@ -281,6 +290,58 @@ export class PrismaService
     return replica.client;
   }
 
+  /**
+   * PROMPT 2: `db('read')` alone (above) only routes AROUND replicas
+   * already known-unhealthy from a PAST error/health-check — it can't
+   * protect the specific query a caller runs immediately after against a
+   * replica that fails RIGHT NOW (e.g. the exact few-second window of an
+   * RDS Multi-AZ failover). That gap is real and, per this method's own
+   * doc comment above, deliberately not closed by turning `db()` itself
+   * into a Proxy that intercepts every model method call — this codebase
+   * has ~9 call sites using `db('read')` directly (`grep -rn ".db('read')"
+   * apps/api/src`), and retrofitting a transparent-retry Proxy under all of
+   * them at once is a much larger, riskier change than "confirm/add a
+   * bounded retry" calls for.
+   *
+   * Instead: this is a NEW, OPT-IN helper — existing `db('read')` call
+   * sites are completely unaffected (zero behavior change, zero risk to
+   * them from this addition). New read-heavy code, or a deliberate later
+   * pass migrating the existing 9 call sites, can use this instead:
+   *
+   *   const listing = await this.prisma.readWithFallback(
+   *     (client) => client.listing.findUnique({ where: { id } }),
+   *   );
+   *
+   * Behavior: try the callback against a `db('read')` client; on ANY
+   * thrown error, mark that specific replica unhealthy immediately
+   * (don't wait for the reactive `$on('error')` listener or the periodic
+   * recheck) and retry EXACTLY ONCE against `db('read')` again — which,
+   * with that replica now excluded, routes to a different healthy replica
+   * or, if none remain, the primary. Bounded to at most 2 attempts total;
+   * the second attempt's error (if any) propagates to the caller
+   * unchanged — this is a fallback for connectivity blips, not a generic
+   * retry-forever wrapper for genuine query errors.
+   */
+  async readWithFallback<T>(fn: (client: PrismaClient) => Promise<T>): Promise<T> {
+    const first = this.db('read');
+    try {
+      return await fn(first);
+    } catch (err) {
+      const failedReplica = this.replicas.find((r) => r.client === first);
+      if (failedReplica && failedReplica.healthy) {
+        failedReplica.healthy = false;
+        this.logger.warn(
+          `readWithFallback: replica (${failedReplica.label}) failed for an in-flight query, marking unhealthy and retrying once: ${(err as Error).message}`,
+        );
+      }
+      // db('read') now excludes the just-failed replica (or falls back to
+      // the primary if that was the last healthy one) — see db()'s own
+      // healthyReplicas filter above.
+      const second = this.db('read');
+      return fn(second);
+    }
+  }
+
   async onModuleInit(): Promise<void> {
     await this.$connect();
 
@@ -315,13 +376,22 @@ export class PrismaService
 
     // Periodic recovery check — "basic" health-awareness means a transient
     // failure shouldn't permanently exile a replica until the next pod
-    // restart. Every 30s, ping any currently-unhealthy replica and flip it
+    // restart. Every 10s, ping any currently-unhealthy replica and flip it
     // back to healthy the moment it responds again.
+    //
+    // PROMPT 2: shortened from 30s to 10s specifically for RDS Multi-AZ
+    // failover — AWS's own docs describe failover as typically completing
+    // in under a minute, with the replacement primary reachable at the
+    // SAME endpoint/DNS name within that window (this is the entire point
+    // of RDS Multi-AZ: the app doesn't need to know a failover happened,
+    // just tolerate a few seconds of connection errors while DNS/routing
+    // catches up). 10s means a replica wrongly marked unhealthy during a
+    // brief blip recovers within one or two intervals instead of up to 30s.
     this.replicaHealthCheckInterval = setInterval(() => {
       this.recheckUnhealthyReplicas().catch((err) =>
         this.logger.error(`Replica health recheck failed unexpectedly: ${(err as Error).message}`),
       );
-    }, 30_000);
+    }, 10_000);
   }
 
   private async recheckUnhealthyReplicas(): Promise<void> {

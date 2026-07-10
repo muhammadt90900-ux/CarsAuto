@@ -71,7 +71,33 @@ It connects car buyers and sellers, dealers, and service providers in a premium,
 | Payments         | Stripe, custom gateways (FastPay, ZainCash, etc.) |
 | AI               | OpenAI (embeddings, moderation, translation)    |
 | Storage          | Cloudinary (images, videos, audio)              |
-| DevOps           | Docker, Turborepo, GitHub Actions (CI/CD)       |
+| DevOps           | Docker, Turborepo, GitHub Actions (CI/CD), Kubernetes |
+
+---
+
+## 🚀 Deployment
+
+### Production Deployment
+
+Production runs on **Kubernetes**, deployed automatically by the `deploy`
+job in `.github/workflows/ci.yml` on every push to `main` that passes all
+CI gates (lint, tests, build, security scan, e2e). The pipeline builds and
+pushes the `api`, `web`, and `worker` images, substitutes their digests into
+`apps/k8s/` via `kustomize edit set image`, runs `kubectl apply -k apps/k8s/`,
+and waits on `kubectl rollout status` as the health gate — automatically
+rolling back on failure. See `apps/k8s/README.md` for the manifest set and
+`PRODUCTION.md` for the full runbook. Render.com is no longer used.
+
+### Local Development
+
+Local development and staging use **Docker Compose**:
+
+```bash
+docker compose up -d
+```
+
+This is not used to deploy production — see `docker-compose.yml`'s header
+comment for details.
 
 ---
 

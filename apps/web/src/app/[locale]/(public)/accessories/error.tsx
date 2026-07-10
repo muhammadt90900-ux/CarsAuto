@@ -5,11 +5,13 @@
 // thrown during rendering of accessories/page.tsx and its children.
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 
 export default function AccessoriesError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[accessories] page error:', error);
+    reportError(error, 'accessories');
   }, [error]);
 
   return (

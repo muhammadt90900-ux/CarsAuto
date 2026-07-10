@@ -1,0 +1,186 @@
+# apps/k8s/promtail-daemonset.yaml
+#
+# PROMPT 4: ships every pod's stdout/stderr (across every node) to Loki —
+# the Kubernetes equivalent of docker-compose.yml's `promtail` service,
+# same image family, different discovery mechanism (kubernetes_sd_configs
+# here instead of docker_sd_configs, since there's no single Docker socket
+# to watch across a multi-node cluster — DaemonSet + hostPath mounts is the
+# standard pattern so exactly one Promtail pod runs per node, reading that
+# node's own log files).
+#
+# ── Assumption that needs a real decision before this is production-ready ──
+# This manifest ships logs to a Loki instance at `http://loki:3100` in THIS
+# namespace (`carsauto`) — same "assumed to exist, add separately" pattern
+# already used for Postgres/Redis/Meilisearch/Prometheus in
+# configmap.yaml/network-policies.yaml. Two real options, and this repo
+# deliberately does NOT pick one for you:
+#
+#   (a) Reuse docker-compose.yml's Loki instance as a shared staging/
+#       production log sink. Simplest to stand up, but its
+#       monitoring/loki-config.yml uses `filesystem` storage with
+#       `replication_factor: 1` and no clustering — fine for local dev,
+#       genuinely NOT fine once real production traffic hits it: no HA (one
+#       pod restart loses nothing since it's a Deployment with a PVC, but
+#       you're single-node-bottlenecked on ingestion), and local-disk
+#       retention doesn't scale independently of the ingestion rate.
+#   (b) (Recommended for real production) Deploy Loki as its own Helm-
+#       chart-managed StatefulSet/Deployment in this cluster, backed by
+#       object storage (S3/GCS/Azure Blob) instead of `filesystem` — this
+#       is a `storage_config` change in a Loki config, not a Promtail
+#       change; nothing in THIS file needs to differ between (a) and (b).
+#       This needs a real decision this pass isn't making for you: which
+#       object store, which region/bucket, and a retention budget — same
+#       category of "infrastructure choice you can't guess" as PROMPT 2's
+#       managed-Postgres provider decision.
+#
+# Either way, if Loki ends up reachable at a different hostname/namespace
+# than `loki.carsauto.svc.cluster.local:3100`, update the `clients.url`
+# inside the ConfigMap below.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: carsauto
+---
+# Cluster-scoped (not namespace-scoped) because Promtail's
+# kubernetes_sd_configs discovery reads pod metadata (labels, namespace,
+# container names) to attach as Loki labels — get/list/watch only, no
+# write access to anything.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promtail
+subjects:
+  - kind: ServiceAccount
+    name: promtail
+    namespace: carsauto
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: carsauto
+data:
+  promtail-config.yml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    clients:
+      # See this file's header for the (a)/(b) production-Loki-location
+      # decision this hostname depends on.
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          # Same reasoning as monitoring/promtail-config.yml (docker-compose
+          # side) — only `level` gets promoted to a label (low cardinality);
+          # request_id/trace_id stay in the stored JSON line and are queried
+          # via LogQL's `| json` at query time instead of as index labels,
+          # to avoid the high-cardinality-label ingestion/query cost. See
+          # that file's comment for the full reasoning, identical here.
+          - json:
+              expressions:
+                level: level
+          - labels:
+              level:
+        relabel_configs:
+          # Only scrape pods in the carsauto namespace — a cluster-wide
+          # Promtail slurping every namespace's logs (kube-system,
+          # ingress-nginx, monitoring itself) is a much bigger volume/cost
+          # surface than this prompt's scope; narrow to what this app
+          # actually needs visibility into.
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: carsauto
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: container
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: k8s_container
+          # Standard path for the kubelet's per-container log symlinks —
+          # what Promtail actually tails once a pod is discovered above.
+          - source_labels:
+              [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            target_label: __path__
+            separator: /
+            replacement: /var/log/pods/*$1/*.log
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: carsauto
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      serviceAccountName: promtail
+      tolerations:
+        # Run on every node, including control-plane nodes if your cluster
+        # taints them — a node's control-plane pods (if any run workloads
+        # at all) deserve the same log visibility as everything else.
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.6
+          args:
+            - -config.file=/etc/promtail/promtail-config.yml
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: pods-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: positions
+              mountPath: /run/promtail
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits:   { cpu: 200m, memory: 128Mi }
+          securityContext:
+            # Reading hostPath log files under /var/log/pods requires root
+            # on most node OSes (kubelet writes them root-owned) — this is
+            # the one workload in this manifest set that can't run as a
+            # non-root UID, unlike api/web/worker's containers.
+            runAsUser: 0
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+        - name: pods-logs
+          hostPath:
+            path: /var/log/pods
+        - name: positions
+          emptyDir: {}

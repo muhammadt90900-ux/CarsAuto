@@ -11,6 +11,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { MetricsService } from './common/monitoring/metrics.service';
 import { MetricsMiddleware } from './common/monitoring/metrics.middleware';
 import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
+import { initSentry } from './common/monitoring/sentry.init';
+import * as Sentry from '@sentry/node';
 import { validateEnv } from './config/env.validation';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -37,6 +39,12 @@ function responseTimeMiddleware() {
 (BigInt.prototype as any).toJSON = function () { return this.toString(); };
 
 async function bootstrap() {
+  // PROMPT 3: initialized before anything else so bootstrap-time failures
+  // (bad env var, DI wiring error) are captured too, not just request-time
+  // exceptions. Safe to call even with SENTRY_DSN unset — see
+  // sentry.init.ts's comment.
+  initSentry();
+
   validateEnv();
 
   const structuredLogger = new StructuredLogger();
@@ -284,6 +292,10 @@ async function bootstrap() {
     logger.log(`${signal} received — shutting down gracefully`);
     await redisIoAdapter.dispose();
     await app.close();
+    // PROMPT 3: give any in-flight Sentry events up to 2s to actually send
+    // before the process exits — without this, an error captured right
+    // before shutdown can be silently dropped.
+    await Sentry.close(2000);
     process.exit(0);
   };
 

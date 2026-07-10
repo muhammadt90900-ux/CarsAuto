@@ -1,0 +1,64 @@
+# apps/k8s/pdb.yaml
+#
+# PROMPT 6 fix: without a PodDisruptionBudget, a voluntary disruption
+# (node drain during a cluster upgrade, cordoning a node for maintenance,
+# cluster-autoscaler scaling down a node) can evict every replica of a
+# Deployment at once if the scheduler happened to co-locate them (or if the
+# cluster only has as many nodes as the eviction batch size) — the
+# topologySpreadConstraints in each *-deployment.yaml reduce how *likely*
+# that co-location is, but only a PDB actually makes the Kubernetes eviction
+# API refuse a disruption that would breach the floor below.
+#
+# minAvailable values below are set relative to each Deployment's
+# minReplicas (for the two HPA-managed Deployments, see hpa.yaml) or fixed
+# replica count (for the two that aren't autoscaled), per this prompt's
+# guidance: minAvailable = minReplicas - 1, so a single voluntary disruption
+# can always proceed but a second concurrent one is blocked until the first
+# pod is back and Ready.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: carsauto-api-pdb
+  namespace: carsauto
+spec:
+  # hpa.yaml: carsauto-api-hpa minReplicas: 3
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: carsauto-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: carsauto-web-pdb
+  namespace: carsauto
+spec:
+  # hpa.yaml: carsauto-web-hpa minReplicas: 2
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: carsauto-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: carsauto-worker-pdb
+  namespace: carsauto
+spec:
+  # worker-deployment.yaml: fixed replicas: 2 (not HPA-managed)
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: carsauto-worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: carsauto-pgbouncer-pdb
+  namespace: carsauto
+spec:
+  # pgbouncer-deployment.yaml: fixed replicas: 2 (not HPA-managed)
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: carsauto-pgbouncer

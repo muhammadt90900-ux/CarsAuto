@@ -1,0 +1,112 @@
+# apps/k8s/resource-quota.yaml
+#
+# PROMPT 6 fix: without a ResourceQuota, nothing stops a future
+# misconfigured manifest (e.g. someone copy-pastes a Deployment and forgets
+# to set `replicas: 3` instead of `300`, or a `resources.limits` typo) from
+# consuming unbounded cluster resources and starving every other workload
+# in the namespace, or the cluster.
+#
+# ── F-INFRA fix: sizing math (matching hpa.yaml's sizing-math comment style) ─
+# Goal: size the quota as a genuine safety net comfortably ABOVE what this
+# manifest set would actually consume at hpa.yaml's documented maxReplicas
+# ceiling — not a day-to-day constraint that has to be revisited every time
+# someone tunes a Deployment's resources. Two components are summed:
+# (a) steady-state consumption at max scale, and (b) rolling-update surge
+# headroom, since none of the *-deployment.yaml files override the default
+# Deployment `strategy` (RollingUpdate, maxSurge: 25%), so up to 25% extra
+# pods can exist MOMENTARILY mid-rollout even at already-max replica counts.
+#
+#   Steady-state at max scale (requests / limits, per *-deployment.yaml):
+#     carsauto-api      (maxReplicas 160, hpa.yaml): requests 250m/256Mi, limits 1.5/1Gi
+#       -> requests: 160 * 0.25    = 40    cores | 160 * 256Mi  = 40    Gi
+#       -> limits:   160 * 1.5     = 240   cores | 160 * 1Gi    = 160   Gi
+#     carsauto-web      (maxReplicas 100, hpa.yaml): requests 100m/192Mi, limits 500m/384Mi
+#       -> requests: 100 * 0.10    = 10    cores | 100 * 192Mi  = 18.75 Gi
+#       -> limits:   100 * 0.50    = 50    cores | 100 * 384Mi  = 37.5  Gi
+#     carsauto-worker   (fixed replicas: 2): requests 100m/128Mi, limits 500m/512Mi
+#       -> requests: 2 * 0.10      = 0.2   cores | 2 * 128Mi    = 0.25  Gi
+#       -> limits:   2 * 0.50      = 1     core  | 2 * 512Mi    = 1     Gi
+#     carsauto-pgbouncer(fixed replicas: 2): requests 100m/64Mi, limits 250m/128Mi
+#       -> requests: 2 * 0.10      = 0.2   cores | 2 * 64Mi     = 0.125 Gi
+#       -> limits:   2 * 0.25      = 0.5   core  | 2 * 128Mi    = 0.25  Gi
+#     Steady-state totals: requests.cpu = 50.4 cores, requests.memory = 59.1 Gi
+#                           limits.cpu   = 291.5 cores, limits.memory  = 198.75 Gi
+#
+#   Rolling-update surge headroom (25% maxSurge, api + web dominate since
+#   worker/pgbouncer's 2-replica surge rounds to ~1 extra pod each,
+#   negligible):
+#     api surge:  40 extra pods -> +10 requests.cpu, +60 limits.cpu, +10 Gi requests.mem, +40 Gi limits.mem
+#     web surge:  25 extra pods -> +2.5 requests.cpu, +12.5 limits.cpu, +4.7 Gi requests.mem, +9.4 Gi limits.mem
+#
+#   Grand total (steady-state + surge), then rounded UP generously so this
+#   is a safety net, not a live constraint:
+#     requests.cpu:    50.4 + ~13   = ~63  cores  -> quota: 70 cores
+#     requests.memory: 59.1 + ~15   = ~74  Gi     -> quota: 90Gi
+#     limits.cpu:      291.5 + ~73  = ~365 cores  -> quota: 400 cores
+#     limits.memory:   198.75 + ~49 = ~248 Gi     -> quota: 300Gi
+#     pod count: (160+40)+(100+25)+(2+1)+(2+1) = 331, +1 for the CI
+#       migration Pod (see .github/workflows/ci.yml's "Run database
+#       migrations" step) = 332 -> quota: 400 pods
+#
+# Re-run this math if hpa.yaml's maxReplicas ceiling changes, or if any
+# *-deployment.yaml's resources.requests/limits change — see PROMPT 8 for
+# why the current maxReplicas figures themselves are still an unverified
+# estimate, which is exactly why this quota rounds up as generously as it
+# does rather than tracking the steady-state number tightly.
+#
+# PROMPT 4 addendum: promtail-daemonset.yaml adds one small pod (50m/64Mi
+# request, 200m/128Mi limit) PER CLUSTER NODE, not accounted for in the
+# arithmetic above since it postdates it. Negligible at normal node counts
+# (even 50 nodes is only +2.5 cores/+3.2Gi requests, well inside the
+# headroom already built into the rounded totals below) — re-check this
+# quota specifically if your cluster has an unusually large node count.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: carsauto-quota
+  namespace: carsauto
+spec:
+  hard:
+    requests.cpu: "70"
+    requests.memory: 90Gi
+    limits.cpu: "400"
+    limits.memory: 300Gi
+    pods: "400"
+---
+# apps/k8s/resource-quota.yaml (LimitRange section)
+#
+# PROMPT 6 fix: applies a sane default request/limit to any container added
+# to this namespace in the future that forgets to specify its own
+# `resources:` block — every current container (api/web/worker/pgbouncer)
+# already sets explicit resources, so this LimitRange doesn't change any of
+# their behavior today; it's defense-in-depth for what gets added later.
+# Values chosen to match this repo's smallest existing workloads
+# (worker/pgbouncer scale) rather than api's larger footprint, since
+# "reasonable default for an unknown future container" should lean small —
+# a container that actually needs more should specify its own resources
+# explicitly rather than relying on the default.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: carsauto-limit-range
+  namespace: carsauto
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+      # Extra guardrail beyond what this prompt strictly asked for: caps any
+      # SINGLE container's resources even if it does specify its own,
+      # closing the gap ResourceQuota's namespace-total limits don't cover
+      # (a lone container requesting e.g. cpu: 50 would fit under a 400-core
+      # namespace total quota while still starving every other pod on its
+      # node). Set above carsauto-api's current largest limits (cpu 1.5,
+      # memory 1Gi) with headroom, so it doesn't need to change alongside
+      # routine tuning of that Deployment.
+      max:
+        cpu: "4"
+        memory: 4Gi

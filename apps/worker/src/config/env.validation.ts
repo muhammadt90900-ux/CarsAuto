@@ -42,6 +42,10 @@ export function validateWorkerEnv(): void {
     warnings.push('No SMTP_HOST or GMAIL_USER configured — "notifications" jobs will skip email delivery (push notifications, if configured, still work).');
   }
 
+  if (process.env.NODE_ENV === 'production' && !process.env.SENTRY_DSN) {
+    warnings.push('SENTRY_DSN is not set — running in production with no error tracking for BullMQ job failures. See docs/ERROR-TRACKING.md.');
+  }
+
   for (const w of warnings) logger.warn(w);
 
   if (errors.length > 0) {

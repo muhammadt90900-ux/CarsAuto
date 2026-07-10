@@ -8,11 +8,13 @@
 // unexpected render-time errors further down the tree).
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 
 export default function CarsError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[cars] page error:', error);
+    reportError(error, 'cars');
   }, [error]);
 
   return (

@@ -1,0 +1,239 @@
+# apps/k8s/network-policies.yaml
+#
+# PROMPT 6 fix: the carsauto namespace previously had no NetworkPolicy at
+# all, meaning every pod could reach every other pod on any port by
+# default — a compromised low-value pod (e.g. web, which renders
+# user-influenced content) had a clear network path straight to
+# PgBouncer/Postgres, Redis, and Meilisearch.
+#
+# Strategy: default-deny INGRESS only (not egress) for every pod in the
+# namespace, then one allow-ingress NetworkPolicy per destination, scoped to
+# exactly the source pods/namespaces and ports that traffic map below shows
+# are real. Egress is deliberately left unrestricted — every workload here
+# also needs outbound access to things with no stable in-cluster identity to
+# write an egress rule against anyway (OpenAI, SMTP, payment gateway
+# webhooks, the managed Postgres host outside this manifest set) — see
+# PROMPT 2 for whether a future egress lockdown is worth the added
+# operational risk once that infra is finalized.
+#
+# ── Full traffic map verified against this repo before writing this file ──
+#   1. ingress-nginx        -> carsauto-api      :4000  (ingress.yaml /api/, /socket.io/)
+#   2. ingress-nginx        -> carsauto-web      :3000  (ingress.yaml /)
+#   3. carsauto-web         -> carsauto-api      :4000  (INTERNAL_API_URL, server-api.ts RSC fetches)
+#   4. carsauto-api         -> carsauto-pgbouncer:6432  (DATABASE_URL, prisma.service.ts)
+#   5. carsauto-worker      -> carsauto-pgbouncer:6432  (DATABASE_URL)
+#   6. carsauto-api         -> redis             :6379  (REDIS_URL — cache, sessions, BullMQ producer)
+#   7. carsauto-worker      -> redis             :6379  (REDIS_URL — BullMQ consumer)
+#   8. carsauto-api         -> redis-critical    :6379  (CRITICAL_REDIS_URL, when set — see secrets.yaml)
+#   9. carsauto-worker      -> redis-critical    :6379  (same, worker also has queue processors)
+#  10. carsauto-api         -> meilisearch       :7700  (MEILISEARCH_URL — search reads + writes)
+#  11. carsauto-worker      -> meilisearch       :7700  (search-index.processor.ts, search-consistency-check.processor.ts, ranking-recompute.processor.ts)
+#  12. prometheus           -> carsauto-api      :4000  (/api/metrics — metrics.middleware.ts)
+#  NOT included, on purpose:
+#   - Nothing -> carsauto-worker: worker opens no HTTP port at all (see
+#     worker-deployment.yaml's header comment) and has no Service
+#     (services.yaml). Default-deny leaves it correctly unreachable, same as
+#     before this file existed.
+#   - Nothing -> carsauto-web beyond ingress-nginx: web has no /metrics
+#     endpoint (Next.js, no prom-client instrumentation found), so no
+#     Prometheus rule for it.
+#   - carsauto-pgbouncer's own egress to real Postgres, and redis/
+#     redis-critical/meilisearch's ingress from outside this list: those
+#     pods/that upstream Postgres aren't defined in this manifest set (see
+#     configmap.yaml / pgbouncer-deployment.yaml headers — same
+#     "assumed to exist, add manifests separately" pattern). The allow rules
+#     below (#6-#11) still apply because default-deny ingress is
+#     namespace-wide — if redis/meilisearch end up scheduled in the
+#     `carsauto` namespace (as their DNS names `*.carsauto.svc.cluster.local`
+#     in configmap.yaml/secrets.yaml imply), they need these rules to
+#     receive any traffic at all once default-deny is applied. If you
+#     instead run them in a different namespace or as managed cloud
+#     services, these three rules are inert and harmless to leave in place.
+#
+# ── Assumptions that need verifying against your actual cluster ───────────
+#   - Ingress controller: assumed to be ingress-nginx (matches
+#     ingress.yaml's `ingressClassName: nginx`), running in a namespace
+#     literally named `ingress-nginx` (the standard ingress-nginx Helm
+#     chart default). Matched below via the auto-populated
+#     `kubernetes.io/metadata.name` namespace label, not a custom label, so
+#     no manual namespace labeling is required — but if your controller
+#     lives in a differently-named namespace, update the `matchLabels` value
+#     in the `allow-ingress-to-api`/`allow-ingress-to-web` policies below.
+#   - Prometheus: assumed to run in a namespace literally named `monitoring`
+#     (common convention, e.g. kube-prometheus-stack's default). Same
+#     `kubernetes.io/metadata.name` matching approach — update if different.
+
+# ── 1. Default-deny ingress for every pod in the namespace ─────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: carsauto
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  # No `ingress:` rules -> denies all inbound traffic to every pod in this
+  # namespace that isn't explicitly allowed by one of the policies below.
+---
+# ── 2. Ingress controller -> carsauto-api ───────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-api
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: carsauto-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 4000
+    - from:
+        - podSelector:
+            matchLabels:
+              app: carsauto-web
+      ports:
+        - protocol: TCP
+          port: 4000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 4000
+---
+# ── 3. Ingress controller -> carsauto-web ───────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-web
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: carsauto-web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+# ── 4. carsauto-api / carsauto-worker -> carsauto-pgbouncer ────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-pgbouncer
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: carsauto-pgbouncer
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: carsauto-api
+        - podSelector:
+            matchLabels:
+              app: carsauto-worker
+      ports:
+        - protocol: TCP
+          port: 6432
+---
+# ── 5. carsauto-api / carsauto-worker -> redis ──────────────────────────────
+# Label assumption (redis has no manifest in this repo — see header comment
+# above): `app: redis`, matching the `redis.carsauto.svc.cluster.local` DNS
+# name already used in secrets.yaml's REDIS_URL.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-redis
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: carsauto-api
+        - podSelector:
+            matchLabels:
+              app: carsauto-worker
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# ── 6. carsauto-api / carsauto-worker -> redis-critical ─────────────────────
+# Same assumption as above, label `app: redis-critical`. Only exercised when
+# CRITICAL_REDIS_URL is actually set (secrets.yaml defaults it empty, in
+# which case CRITICAL_REDIS_DB is used against the main `redis` Service
+# instead — see secrets.yaml's comment) — harmless to leave allowed either
+# way.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-redis-critical
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: redis-critical
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: carsauto-api
+        - podSelector:
+            matchLabels:
+              app: carsauto-worker
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# ── 7. carsauto-api / carsauto-worker -> meilisearch ────────────────────────
+# Label assumption, `app: meilisearch`, matching
+# `meilisearch.carsauto.svc.cluster.local` in configmap.yaml.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-meilisearch
+  namespace: carsauto
+spec:
+  podSelector:
+    matchLabels:
+      app: meilisearch
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: carsauto-api
+        - podSelector:
+            matchLabels:
+              app: carsauto-worker
+      ports:
+        - protocol: TCP
+          port: 7700

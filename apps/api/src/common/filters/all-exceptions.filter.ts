@@ -83,9 +83,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // ── Error tracking (5xx only) ──────────────────────────────────────────
     if (shouldTrack && this.tracker && exception instanceof Error) {
+      // PROMPT 3: req.user is populated by the JWT strategy for
+      // authenticated requests (see email-verified.guard.ts for the same
+      // shape) — only the id is forwarded, never the full user object or
+      // request body, so no PII/payment data reaches Sentry from here.
+      const authUser = (req as any).user as { userId: string } | undefined;
       this.tracker.capture({
         error:   exception,
         context: 'ExceptionFilter',
+        userId:  authUser?.userId,
         extra:   {
           method:     req.method,
           url:        req.url,

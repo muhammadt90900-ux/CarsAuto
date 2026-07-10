@@ -8,6 +8,25 @@
 #
 # TODO: replace carsauto.iq / api.carsauto.iq with your real domain(s), and
 # letsencrypt-prod with your actual ClusterIssuer name if different.
+# STATUS (as of this writing): carsauto.iq is not yet a registered domain —
+# see docs/CDN-SETUP.md's status note. The hostnames below are the intended
+# production domains, not yet live.
+#
+# PROMPT 5 (CDN): once Cloudflare sits in front of these hostnames (see
+# docs/CDN-SETUP.md), TLS termination happens TWICE — browser-to-Cloudflare
+# at the edge, then Cloudflare-to-origin (this ingress) — and cert-manager's
+# Let's Encrypt cert below is STILL NEEDED for the second hop. Implementing
+# Cloudflare's "Full (strict)" SSL/TLS mode, not a Cloudflare Origin
+# Certificate: Full (strict) validates the origin cert against a
+# publicly-trusted CA, which cert-manager/Let's Encrypt already satisfies —
+# zero changes needed here, Cloudflare just gets pointed at an origin that
+# already presents a valid cert. A Cloudflare Origin Certificate would
+# instead REPLACE this cert-manager setup with one Cloudflare issues itself
+# (only valid when Cloudflare is the one connecting, i.e. no protection if
+# someone bypasses Cloudflare and hits the origin IP directly) — more
+# "correct" in some setups, but a bigger, riskier change to already-working
+# infrastructure for marginal benefit here. See docs/CDN-SETUP.md for the
+# full reasoning and dashboard steps.
 #
 # F-ARCH fix: the WebSocket path is /socket.io/, NOT /api/socket.io/ as
 # originally assumed. Verified against the actual code:

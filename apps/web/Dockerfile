@@ -1,5 +1,9 @@
+# syntax=docker/dockerfile:1
 # ── apps/web/Dockerfile  (Next.js 16 — Turborepo monorepo)
 # Build context باید  monorepo root  بێت  (context: .)
+# PROMPT 3: syntax directive above is required for --mount=type=secret
+# (BuildKit secret mount, used below for SENTRY_AUTH_TOKEN) to work reliably
+# across Docker versions.
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: install dependencies ─────────────────────────────────────────────
@@ -42,8 +46,33 @@ ARG NEXT_PUBLIC_WS_URL=
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 
+# PROMPT 3: error tracking (Sentry) build-time config.
+#
+# NEXT_PUBLIC_SENTRY_DSN / NEXT_PUBLIC_APP_VERSION follow the exact same
+# "must be a build ARG, not a runtime env var" reasoning as
+# NEXT_PUBLIC_API_URL right above — see that comment.
+#
+# SENTRY_AUTH_TOKEN is different: it's a real secret (scoped to upload
+# source maps to your Sentry org) that must NOT end up in a Docker image
+# layer or build cache the way a plain ARG would (`docker history` can leak
+# ARG values baked in earlier layers even if a later layer overwrites them).
+# It's passed via BuildKit's --mount=type=secret instead, which is never
+# persisted to any layer — see apps/k8s/README.md / this repo's CI for how
+# `docker/build-push-action`'s `secrets:` input wires this up
+# (DOCKER_BUILDKIT=1 / buildx is required either way).
+ARG NEXT_PUBLIC_SENTRY_DSN=
+ARG NEXT_PUBLIC_APP_VERSION=
+ARG SENTRY_ORG=
+ARG SENTRY_PROJECT=
+ENV NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+ENV SENTRY_ORG=${SENTRY_ORG}
+ENV SENTRY_PROJECT=${SENTRY_PROJECT}
+
 WORKDIR /app/apps/web
-RUN npm run build
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+    npm run build
 
 # ── Stage 3: production image ──────────────────────────────────────────────────
 FROM node:20-alpine AS production

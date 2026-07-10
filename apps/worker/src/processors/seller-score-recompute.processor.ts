@@ -16,12 +16,13 @@
 // until they're active again — same "swept later" reasoning used
 // elsewhere in this codebase, e.g. AiChatSession.expiresAt).
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { SellerScoreRecomputeService } from '../modules/analytics/seller-score-recompute.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 const ACTIVITY_WINDOW_HOURS = 24;
 
@@ -34,6 +35,7 @@ export class SellerScoreRecomputeProcessor extends WorkerHost implements OnModul
     private readonly prisma: PrismaService,
     private readonly recompute: SellerScoreRecomputeService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -90,5 +92,16 @@ export class SellerScoreRecomputeProcessor extends WorkerHost implements OnModul
     }
 
     this.logger.log(`Seller-score recompute complete — ${processed} scored, ${failed} failed`);
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'SellerScoreRecomputeProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

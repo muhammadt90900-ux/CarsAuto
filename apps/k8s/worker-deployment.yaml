@@ -8,10 +8,6 @@
 # `restartPolicy: Always` (implicit for Deployments) restarts it. Adding a
 # synthetic exec probe on top of that would just be re-implementing what
 # the container runtime already provides.
-#
-# TODO: apps/worker has no CI image build step yet (.github/workflows/ci.yml
-# only builds API_IMAGE and WEB_IMAGE) — add a WORKER_IMAGE build/push step
-# there before this manifest will have an image to actually pull.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -9,6 +9,7 @@
 // what's broken. Keep this dependency-free and inline-styled.
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 
 export default function GlobalError({
   error,
@@ -20,6 +21,11 @@ export default function GlobalError({
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[global-error]', error);
+    // PROMPT 3: this boundary only fires for errors the rest of the
+    // component tree (route-segment error.tsx boundaries) never sees — see
+    // this file's header — so it needs its own explicit report call, same
+    // as every other error.tsx boundary in this app.
+    reportError(error, 'global-error');
   }, [error]);
 
   return (

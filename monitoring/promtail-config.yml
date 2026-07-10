@@ -1,0 +1,67 @@
+# monitoring/promtail-config.yml
+#
+# PROMPT 4: ships every container's stdout/stderr to Loki. Uses
+# `docker_sd_configs` (Docker service discovery via the socket mounted in
+# docker-compose.yml's `promtail` service) instead of a static per-service
+# target list — new containers are picked up automatically, nothing here
+# needs updating when a service is added/renamed.
+#
+# The `json` pipeline stage below parses api/worker's structured JSON log
+# lines (see apps/api/src/common/logger/logger.service.ts /
+# apps/worker/src/common/logger/logger.service.ts — both emit valid JSON
+# per line when NODE_ENV=production) and promotes `level`/`service` to
+# actual Loki labels, and `request_id`/`trace_id` to per-line fields
+# queryable without being full index labels (see note below on why they're
+# NOT also promoted to labels). Containers that don't log JSON (postgres,
+# redis, web's dev-mode Next.js output, etc.) just get the raw line under
+# `message` with no extra fields — nothing breaks, you just get less
+# structure to query on for those.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Container name, minus Docker's leading slash — e.g. "cars_auto_api".
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      # Compose project/service labels, when present, give a friendlier
+      # name than the container name above for services scaled to >1
+      # replica in the future.
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+    pipeline_stages:
+      # Only promote LOG LEVEL to a Loki label here (low cardinality — 5
+      # fixed values, exactly what labels are meant for: fast
+      # `{container="cars_auto_api", level="error"}` filtering without a
+      # full log-line scan). Deliberately does NOT use an `output` stage to
+      # replace the stored line with just the extracted message — that
+      # would discard the original JSON, and this prompt specifically needs
+      # `request_id` to stay queryable. request_id/trace_id are
+      # per-request UUIDs (HIGH cardinality); promoting them to LABELS
+      # instead of leaving them in the stored line would create a new
+      # index stream per unique value, silently degrading Loki's ingestion/
+      # query performance as real traffic accumulates. Keeping the full raw
+      # JSON line in Loki means LogQL's `| json` parses it AT QUERY TIME
+      # instead: `{container="cars_auto_api"} | json | requestId="<uuid>"`
+      # — see monitoring/grafana/dashboards/logs-overview.json's log panel,
+      # which uses exactly this query pattern.
+      - json:
+          expressions:
+            level: level
+      - labels:
+          level:

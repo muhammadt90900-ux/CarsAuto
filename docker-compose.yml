@@ -1,8 +1,21 @@
-# docker-compose.yml — PRODUCTION HARDENED
-# Changes from original:
+# docker-compose.yml
+#
+# ⚠️ LOCAL DEVELOPMENT AND STAGING ONLY. This file is NOT used to deploy
+# production. Production deploys go through apps/k8s/ via the `deploy` job
+# in .github/workflows/ci.yml (kubectl apply -k apps/k8s/, image digests
+# substituted by kustomize, rollout status as the health gate). See
+# PRODUCTION.md's "Production Deployment" section and apps/k8s/README.md.
+#
+# This stack is still fully production-shaped (Postgres primary + 2 read
+# replicas, Redis auth, resource limits, Prometheus/Grafana, daily backups)
+# specifically so local dev and staging exercise the same topology as
+# production without needing real cloud credentials.
+#
+# Historical changes from the original bare-bones compose file:
 #   + Redis password authentication
 #   + Resource limits (memory/CPU) on all services
 #   + Prometheus + Grafana for metrics & dashboards
+#   + Loki + Promtail for centralized log search across services (PROMPT 4)
 #   + pg_dump backup service (daily, retained 7 days)
 #   + api/web pass all required env vars (not just a subset)
 #   + Explicit network isolation (internal vs public)
@@ -28,6 +41,7 @@ volumes:
   meilisearch_data:
   prometheus_data:
   grafana_data:
+  loki_data:
   backup_data:
 
 services:
@@ -514,6 +528,71 @@ services:
     deploy:
       resources:
         limits: { memory: 256m, cpus: '0.5' }
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  # ── Loki ──────────────────────────────────────────────────────────────────
+  # PROMPT 4: log aggregation backend. Container logs previously only lived
+  # on whatever Docker host produced them (json-file driver + rotation —
+  # see this file's own logging: blocks), unsearchable once a container was
+  # replaced and impossible to correlate across services. Loki + Promtail
+  # (below) fix that; Grafana already runs in this stack, so it's the
+  # natural query surface (see monitoring/grafana/provisioning/datasources/
+  # loki.yml) — no new dashboard tool to operate.
+  #
+  # Filesystem storage (not S3/GCS) — appropriate for local dev/staging,
+  # where this compose file's Postgres/Redis are also self-hosted rather
+  # than managed. If you promote this exact instance to a long-lived
+  # staging environment (not just ephemeral local dev), consider the same
+  # tradeoff apps/k8s/promtail-daemonset.yaml documents for production: an
+  # object-storage backend survives volume loss and scales retention
+  # independently of local disk. See monitoring/loki-config.yml's header
+  # for the exact retention/storage settings and how to switch backends.
+  #
+  # Version pinned to the same 2.9.x line as `promtail` below (Loki and
+  # Promtail are versioned in lockstep upstream, and 2.9.x is the last
+  # stable line confirmed compatible with Grafana 10.4.0's built-in Loki
+  # datasource — check for a newer compatible pair before bumping either
+  # image independently of the other).
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: cars_auto_loki
+    restart: unless-stopped
+    networks: [internal, public]
+    ports:
+      - '${LOKI_PORT:-3100}:3100'
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    deploy:
+      resources:
+        limits: { memory: 512m, cpus: '0.5' }
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  # ── Promtail ──────────────────────────────────────────────────────────────
+  # Tails every other container's logs via the Docker socket
+  # (docker_sd_configs in monitoring/promtail-config.yml — auto-discovers
+  # new containers, no per-service config needed here) and ships them to
+  # Loki above. Read-only socket mount: Promtail only needs to list
+  # containers and read their log files, never control them.
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: cars_auto_promtail
+    restart: unless-stopped
+    networks: [internal, public]
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on: [loki]
+    deploy:
+      resources:
+        limits: { memory: 128m, cpus: '0.25' }
     logging:
       driver: json-file
       options: { max-size: "20m", max-file: "3" }

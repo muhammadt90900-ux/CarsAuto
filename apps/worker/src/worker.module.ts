@@ -38,6 +38,7 @@ import { SellerScoreNarrativeService } from './modules/analytics/seller-score-na
 import { SellerScoreRecomputeService } from './modules/analytics/seller-score-recompute.service';
 import { PriceCurveRecomputeProcessor } from './processors/price-curve-recompute.processor';
 import { MeilisearchService } from './common/search-index/meilisearch.service';
+import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { MeilisearchService } from './common/search-index/meilisearch.service';
     EmailService,
     NotificationsService,
     MeilisearchService,
+    ErrorTrackerService,
     TranslationProcessor,
     EmailNotificationProcessor,
     PartitionMaintenanceProcessor,

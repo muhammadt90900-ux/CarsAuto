@@ -7,7 +7,9 @@
 #   build         → Docker multi-stage build verification (API + Web)
 #   security      → Trivy image scan + npm audit + CodeQL SAST
 #   e2e           → Playwright critical-workflow smoke tests (main only)
-#   deploy        → SSH rolling deploy to production (main only, after all gates)
+#   deploy        → Kubernetes rollout to production via kustomize (main only,
+#                   after all gates) — see apps/k8s/ for manifests. Docker
+#                   Compose is local/staging only; it is not deployed by CI.
 
 name: CI / CD
 
@@ -27,6 +29,7 @@ env:
   REGISTRY:        ghcr.io
   API_IMAGE:       ghcr.io/${{ github.repository }}/api
   WEB_IMAGE:       ghcr.io/${{ github.repository }}/web
+  WORKER_IMAGE:    ghcr.io/${{ github.repository }}/worker
   NODE_VERSION:    '20'
   # Lightweight CI DB — avoids real credentials in test runs
   DATABASE_URL:    postgresql://carsauto:carsauto@localhost:5432/carsauto_test
@@ -259,10 +262,12 @@ jobs:
       packages: write
 
     outputs:
-      api_digest:  ${{ steps.build-api.outputs.digest }}
-      web_digest:  ${{ steps.build-web.outputs.digest }}
-      api_tag:     ${{ steps.meta-api.outputs.version }}
-      web_tag:     ${{ steps.meta-web.outputs.version }}
+      api_digest:    ${{ steps.build-api.outputs.digest }}
+      web_digest:    ${{ steps.build-web.outputs.digest }}
+      worker_digest: ${{ steps.build-worker.outputs.digest }}
+      api_tag:       ${{ steps.meta-api.outputs.version }}
+      web_tag:       ${{ steps.meta-web.outputs.version }}
+      worker_tag:    ${{ steps.meta-worker.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -328,7 +333,13 @@ jobs:
         id: build-web
         uses: docker/build-push-action@v5
         with:
-          context:    apps/web
+          # F-INFRA fix (found while wiring Sentry in PROMPT 3): this was
+          # `apps/web`, but apps/web/Dockerfile's own header comment says
+          # the build context MUST be the monorepo root — its deps stage
+          # does `COPY packages/types/package.json ./packages/types/` etc,
+          # paths that don't exist relative to apps/web. Matches the API
+          # image's context (`.`) above.
+          context:    .
           file:       apps/web/Dockerfile
           target:     production
           push:       ${{ github.event_name == 'push' }}
@@ -340,15 +351,61 @@ jobs:
           sbom:       true
           build-args: |
             NEXT_OUTPUT=standalone
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
+          # BuildKit secret — never persisted to an image layer, unlike a
+          # plain build-arg (see apps/web/Dockerfile's comment on this).
+          # Requires a SENTRY_AUTH_TOKEN repo secret; if unset this resolves
+          # to an empty string and the Dockerfile's RUN step just skips
+          # source map upload (build still succeeds — see next.config.js's
+          # withSentryConfig comment).
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      # ── Worker image ───────────────────────────────────────────────────────
+      # F-INFRA fix (Prompt 1): apps/worker previously had no CI image build
+      # step at all, so worker-deployment.yaml had nothing to pull. Mirrors
+      # the API/Web steps above exactly; build context is the monorepo root
+      # (context: .) because the worker Dockerfile copies packages/types and
+      # packages/config from outside apps/worker — see apps/worker/Dockerfile
+      # header comment.
+      - name: Extract metadata — Worker
+        id: meta-worker
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.WORKER_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build & Push — Worker
+        id: build-worker
+        uses: docker/build-push-action@v5
+        with:
+          context:    .
+          file:       apps/worker/Dockerfile
+          target:     production
+          push:       ${{ github.event_name == 'push' }}
+          tags:       ${{ steps.meta-worker.outputs.tags }}
+          labels:     ${{ steps.meta-worker.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+          provenance: true
+          sbom:       true
 
       # ── Build summary ──────────────────────────────────────────────────────
       - name: Build summary
         run: |
           echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | Tag | Digest |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| API   | \`${{ steps.meta-api.outputs.version }}\` | \`${{ steps.build-api.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Web   | \`${{ steps.meta-web.outputs.version }}\` | \`${{ steps.build-web.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image  | Tag | Digest |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API    | \`${{ steps.meta-api.outputs.version }}\` | \`${{ steps.build-api.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web    | \`${{ steps.meta-web.outputs.version }}\` | \`${{ steps.build-web.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Worker | \`${{ steps.meta-worker.outputs.version }}\` | \`${{ steps.build-worker.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
 
 # ─────────────────────────────────────────────────────────────────────────────
 # JOB 4 — Security Scanning
@@ -595,10 +652,49 @@ jobs:
           retention-days: 7
 
 # ─────────────────────────────────────────────────────────────────────────────
-# JOB 6 — Deployment Validation + Production Deploy
+# JOB 6 — Deployment Validation + Production Deploy (Kubernetes)
 # ─────────────────────────────────────────────────────────────────────────────
+# F-INFRA fix (Prompt 1): the repo previously shipped three competing deploy
+# paths (Render.com, this SSH+docker-compose job, and an unused apps/k8s/
+# manifest set). Kubernetes is now the single production target — Docker
+# Compose remains local/dev + staging only (see docker-compose.yml's header
+# comment). This job builds the real image digests from the `build` job into
+# apps/k8s/ via kustomize, applies the manifest set, and waits on rollout
+# status as the actual health gate (replacing the old "sleep 10 then curl"
+# pattern — the readiness/liveness probes already in api-deployment.yaml /
+# web-deployment.yaml / worker-deployment.yaml do the real health checking).
+#
+# Required GitHub repo secrets for this job:
+#   KUBE_CONFIG           — base64-encoded kubeconfig for the target cluster
+#                           (base64 -w0 ~/.kube/config | pbcopy, then paste
+#                           as the secret value)
+#   CLOUDFLARE_API_TOKEN  — PROMPT 5: scoped to "Zone.Cache Purge" only for
+#                           the carsauto.iq zone — used solely to purge the
+#                           CDN cache after a successful web rollout (see
+#                           "Purge Cloudflare cache" step below). Does not
+#                           need DNS/Zone-settings write access; create it
+#                           with the narrowest Cloudflare API Token template
+#                           that allows POST /zones/{id}/purge_cache.
+#   CLOUDFLARE_ZONE_ID    — the carsauto.iq zone's ID (Cloudflare dashboard
+#                           → carsauto.iq → Overview → API section, right
+#                           sidebar). Not sensitive on its own, but stored
+#                           as a secret anyway to keep zone-identifying
+#                           config out of a public repo.
+#
+# See docs/CDN-SETUP.md for the full Cloudflare setup this job's cache-purge
+# step depends on (DNS proxying, cache rules) — this job only purges an
+# already-configured CDN's cache, it does not configure the CDN itself.
+#
+# The purge step is gated behind a `CDN_ENABLED` GitHub Actions repo
+# VARIABLE (Settings → Secrets and variables → Actions → Variables — not a
+# secret, it's just "true"/unset), defaulting to skipped. carsauto.iq isn't
+# registered yet as of this writing (see docs/CDN-SETUP.md's status note),
+# so there is no real Cloudflare zone to purge — this avoids every deploy
+# failing on missing CLOUDFLARE_* secrets until the domain and CDN are
+# actually set up. Set `CDN_ENABLED=true` once docs/CDN-SETUP.md's DNS
+# cutover is complete.
   deploy:
-    name: 🚀 Deploy to Production
+    name: 🚀 Deploy to Production (Kubernetes)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [build, security, e2e]
@@ -617,102 +713,175 @@ jobs:
         run: |
           API_DIGEST="${{ needs.build.outputs.api_digest }}"
           WEB_DIGEST="${{ needs.build.outputs.web_digest }}"
-          if [[ -z "$API_DIGEST" || -z "$WEB_DIGEST" ]]; then
-            echo "❌ Missing image digests from build job" >&2
+          WORKER_DIGEST="${{ needs.build.outputs.worker_digest }}"
+          if [[ -z "$API_DIGEST" || -z "$WEB_DIGEST" || -z "$WORKER_DIGEST" ]]; then
+            echo "❌ Missing image digest(s) from build job" >&2
             exit 1
           fi
-          echo "✅ API digest: $API_DIGEST"
-          echo "✅ Web digest: $WEB_DIGEST"
+          echo "✅ API digest:    $API_DIGEST"
+          echo "✅ Web digest:    $WEB_DIGEST"
+          echo "✅ Worker digest: $WORKER_DIGEST"
 
-      # ── Rolling deploy via SSH ─────────────────────────────────────────────
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host:     ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key:      ${{ secrets.DEPLOY_SSH_KEY }}
-          port:     ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            set -euo pipefail
-            cd /opt/cars-auto
+      # ── Cluster auth ────────────────────────────────────────────────────────
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
 
-            echo "▶ Deploy started at $(date) — SHA ${{ github.sha }}"
+      - name: Set up kustomize
+        uses: imranismail/setup-kustomize@v2
 
-            # Pull images pinned by digest (not mutable :latest tag)
-            docker pull ${{ env.API_IMAGE }}@${{ needs.build.outputs.api_digest }}
-            docker pull ${{ env.WEB_IMAGE }}@${{ needs.build.outputs.web_digest }}
+      - name: Configure kubeconfig
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          # Fail fast if the secret was empty/malformed rather than getting a
+          # confusing error deep inside `kubectl apply` below.
+          kubectl cluster-info
 
-            # Re-tag as :latest locally so compose can reference them
-            docker tag ${{ env.API_IMAGE }}@${{ needs.build.outputs.api_digest }} ${{ env.API_IMAGE }}:latest
-            docker tag ${{ env.WEB_IMAGE }}@${{ needs.build.outputs.web_digest }} ${{ env.WEB_IMAGE }}:latest
+      # ── Substitute release version for Sentry (PROMPT 3) ────────────────────
+      # Lightweight sed on the checked-out (ephemeral) working copy — never
+      # touches the actual repo. Not a kustomize `images` transformer target
+      # since this isn't an `image:` field; see configmap.yaml's comment on
+      # this same placeholder for why sed is used here instead.
+      - name: Set release version in configmap
+        run: |
+          set -euo pipefail
+          sed -i "s/{{GIT_SHA}}/${{ github.sha }}/" apps/k8s/configmap.yaml
+          grep APP_VERSION apps/k8s/configmap.yaml
 
-            # Run DB migrations (safe to run on every deploy)
-            echo "▶ Running Prisma migrations..."
-            docker run --rm \
-              --env-file .env.production \
-              ${{ env.API_IMAGE }}:latest \
-              npx prisma migrate deploy
-            echo "✅ Migrations complete"
+      # ── Substitute image digests via kustomize ─────────────────────────────
+      # Pin by digest (immutable), not by the mutable :latest / :sha-<short>
+      # tags — a digest can never be re-pushed to point at different bytes.
+      #
+      # IMPORTANT: the left-hand side of each mapping below is the literal
+      # `ghcr.io/REPLACE_ORG/REPLACE_REPO/...` placeholder that is still
+      # present in api-deployment.yaml/web-deployment.yaml/
+      # worker-deployment.yaml (see apps/k8s/README.md) — kustomize matches
+      # images by exact name, so this must stay a literal string, NOT
+      # ${{ github.repository }}, even though the right-hand side (the real
+      # image we're substituting in) correctly uses ${{ github.repository }}.
+      # This also means nobody needs to hand-edit REPLACE_ORG/REPLACE_REPO in
+      # the deployment manifests themselves — CI does the substitution on
+      # every deploy.
+      - name: Set image digests in kustomization
+        run: |
+          set -euo pipefail
+          cd apps/k8s
+          kustomize edit set image \
+            ghcr.io/REPLACE_ORG/REPLACE_REPO/api=ghcr.io/${{ github.repository }}/api@${{ needs.build.outputs.api_digest }} \
+            ghcr.io/REPLACE_ORG/REPLACE_REPO/web=ghcr.io/${{ github.repository }}/web@${{ needs.build.outputs.web_digest }} \
+            ghcr.io/REPLACE_ORG/REPLACE_REPO/worker=ghcr.io/${{ github.repository }}/worker@${{ needs.build.outputs.worker_digest }}
+          echo "── Resulting kustomization.yaml ──"
+          cat kustomization.yaml
 
-            # Rolling restart — replace api then web, no downtime
-            echo "▶ Restarting API container..."
-            docker compose --env-file .env.production up -d --no-deps --remove-orphans api
-            sleep 10
+      - name: Preview rendered manifests
+        run: kustomize build apps/k8s/
 
-            echo "▶ Restarting Web container..."
-            docker compose --env-file .env.production up -d --no-deps --remove-orphans web
-            sleep 10
+      # ── Apply ───────────────────────────────────────────────────────────────
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          echo "▶ Running Prisma migrations via a one-off Pod..."
+          # F-INFRA note: `prisma migrate deploy` reads DATABASE_URL (see
+          # apps/api/prisma/schema.prisma's datasource block) — but in this
+          # namespace DATABASE_URL (from carsauto-secrets, via envFrom below)
+          # points at PgBouncer, whose transaction-pooling mode does not
+          # reliably support DDL (see apps/k8s/README.md item 7). So this
+          # Pod pulls in the normal secretRef/configMapRef like every other
+          # workload, then explicitly overrides DATABASE_URL with the value
+          # of DATABASE_DIRECT_URL (a straight-to-Postgres connection) for
+          # this one migration run only — env entries win over envFrom
+          # entries of the same name.
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: carsauto-migrate-${{ github.sha }}
+            namespace: carsauto
+            labels:
+              app: carsauto-migrate
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: migrate
+                image: ghcr.io/${{ github.repository }}/api@${{ needs.build.outputs.api_digest }}
+                command: ["npx", "prisma", "migrate", "deploy"]
+                envFrom:
+                  - configMapRef:
+                      name: carsauto-config
+                  - secretRef:
+                      name: carsauto-secrets
+                env:
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: carsauto-secrets
+                        key: DATABASE_DIRECT_URL
+          EOF
+          kubectl -n carsauto wait --for=jsonpath='{.status.phase}'=Succeeded \
+            --timeout=180s "pod/carsauto-migrate-${{ github.sha }}"
+          echo "✅ Migrations complete"
+          kubectl -n carsauto logs "pod/carsauto-migrate-${{ github.sha }}"
+          kubectl -n carsauto delete pod "carsauto-migrate-${{ github.sha }}" --ignore-not-found
 
-            # Prune dangling images to free disk space
-            docker image prune -f --filter "until=24h" || true
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -k apps/k8s/
 
-            echo "✅ Containers restarted"
+      # ── Health gate: real rollout status, not sleep+curl ───────────────────
+      - name: Wait for rollout — API
+        id: rollout-api
+        run: kubectl rollout status deployment/carsauto-api -n carsauto --timeout=300s
 
-      # ── Post-deploy health validation ──────────────────────────────────────
-      - name: Post-deploy health checks
-        uses: appleboy/ssh-action@v1
-        with:
-          host:     ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key:      ${{ secrets.DEPLOY_SSH_KEY }}
-          port:     ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            set -euo pipefail
-            echo "▶ Running post-deploy health checks..."
+      - name: Wait for rollout — Web
+        id: rollout-web
+        run: kubectl rollout status deployment/carsauto-web -n carsauto --timeout=300s
 
-            # API health
-            for i in 1 2 3 4 5; do
-              STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:4000/health || echo "000")
-              if [[ "$STATUS" == "200" ]]; then
-                echo "✅ API healthy (HTTP $STATUS) — attempt $i"
-                break
-              fi
-              echo "⏳ API not ready (HTTP $STATUS) — attempt $i/5, waiting 10s..."
-              sleep 10
-              if [[ $i -eq 5 ]]; then
-                echo "❌ API health check failed after 5 attempts"
-                docker compose logs api --tail=100
-                exit 1
-              fi
-            done
+      - name: Wait for rollout — Worker
+        id: rollout-worker
+        run: kubectl rollout status deployment/carsauto-worker -n carsauto --timeout=300s
 
-            # Web health
-            for i in 1 2 3 4 5; do
-              STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000/ || echo "000")
-              if [[ "$STATUS" -lt 500 ]]; then
-                echo "✅ Web healthy (HTTP $STATUS) — attempt $i"
-                break
-              fi
-              echo "⏳ Web not ready (HTTP $STATUS) — attempt $i/5, waiting 10s..."
-              sleep 10
-              if [[ $i -eq 5 ]]; then
-                echo "❌ Web health check failed after 5 attempts"
-                docker compose logs web --tail=100
-                exit 1
-              fi
-            done
+      # ── CDN cache purge (PROMPT 5) ───────────────────────────────────────────
+      # Only reached if all three rollouts above succeeded (GitHub Actions
+      # skips a step with no `if:` once a prior step in the job fails) — a
+      # failed/rolled-back deploy has nothing new worth purging the edge
+      # cache for. Purges `/` (the HTML shell, which references hashed
+      # /_next/static/ asset URLs baked in at build time) so the CDN can't
+      # keep serving a cached HTML page that points at asset hashes from
+      # the PREVIOUS deploy after this one's rollout completes — the hashed
+      # assets themselves (immutable, 1-year cache — see
+      # apps/web/next.config.js's headers()) never need purging; a new
+      # deploy produces new hashes and the old ones simply age out.
+      # See docs/CDN-SETUP.md's "Deploy-time cache purge" section for why
+      # `/` alone is sufficient rather than a full zone purge.
+      - name: Purge Cloudflare cache
+        if: vars.CDN_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          response=$(curl -sS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://carsauto.iq/"]}')
+          echo "$response" | grep -q '"success":true' && echo "✅ Cloudflare cache purged for /" \
+            || { echo "❌ Cloudflare cache purge failed: $response" >&2; exit 1; }
 
-            echo "✅ All health checks passed — deploy complete at $(date)"
+      # ── Automatic rollback on any failed rollout ───────────────────────────
+      - name: Roll back failed deployment(s)
+        if: failure() && (steps.rollout-api.outcome == 'failure' || steps.rollout-web.outcome == 'failure' || steps.rollout-worker.outcome == 'failure')
+        run: |
+          set +e
+          echo "▶ Rolling back failed deployment(s)..."
+          if [[ "${{ steps.rollout-api.outcome }}" == "failure" ]]; then
+            kubectl rollout undo deployment/carsauto-api -n carsauto
+          fi
+          if [[ "${{ steps.rollout-web.outcome }}" == "failure" ]]; then
+            kubectl rollout undo deployment/carsauto-web -n carsauto
+          fi
+          if [[ "${{ steps.rollout-worker.outcome }}" == "failure" ]]; then
+            kubectl rollout undo deployment/carsauto-worker -n carsauto
+          fi
+          echo "✅ Rollback issued — verify cluster state manually before re-running CI"
 
       # ── Deployment summary ─────────────────────────────────────────────────
       - name: Deployment summary
@@ -721,11 +890,12 @@ jobs:
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "| | |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Status**  | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          echo "| **SHA**     | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **API tag** | \`${{ needs.build.outputs.api_tag }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Web tag** | \`${{ needs.build.outputs.web_tag }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Time**    | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status**     | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA**        | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API tag**    | \`${{ needs.build.outputs.api_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Web tag**    | \`${{ needs.build.outputs.web_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Worker tag** | \`${{ needs.build.outputs.worker_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Time**       | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
 
       # ── Notify on failure ──────────────────────────────────────────────────
       - name: Create failure issue
@@ -743,6 +913,9 @@ jobs:
                 `**SHA:** \`${context.sha}\``,
                 `**Branch:** \`${context.ref}\``,
                 `**Triggered by:** @${context.actor}`,
+                '',
+                'If a rollout failed, an automatic `kubectl rollout undo` was',
+                'attempted — verify cluster state before re-running CI.',
                 '',
                 `[View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
               ].join('\n'),

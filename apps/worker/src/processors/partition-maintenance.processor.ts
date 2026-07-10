@@ -2,9 +2,11 @@
 //
 // Phase 2 / Prompt 2.3 — pg_cron fallback.
 //
-// This environment's managed Postgres (Railway/Render — see railway.json /
-// render.yaml at the repo root) does not have the pg_cron extension
-// available, so "never let us run out of partitions" is implemented as a
+// This environment's managed Postgres does not have the pg_cron extension
+// available (true of Railway today, and true of AWS RDS for Postgres unless
+// explicitly enabled via a parameter group — see docs/DATABASE-OPERATIONS.md
+// for which provider production actually uses), so "never let us run out of
+// partitions" is implemented as a
 // BullMQ repeatable job instead of a pg_cron scheduled SQL job.
 //
 // Runs monthly (see the repeat pattern registered in registerRepeatingJob()
@@ -20,11 +22,12 @@
 // running it against a non-partitioned table is a harmless no-op error
 // that gets logged and retried, not a crash.
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 // How far ahead to keep partitions created. 3 matches the "next 3 months"
 // starting window from the manual migrations — keeping the same margin
@@ -42,6 +45,7 @@ export class PartitionMaintenanceProcessor extends WorkerHost implements OnModul
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -110,5 +114,21 @@ export class PartitionMaintenanceProcessor extends WorkerHost implements OnModul
     `);
 
     this.logger.log(`Ensured partitions exist for "${table}" through +${MONTHS_AHEAD} months`);
+  }
+
+  // PROMPT 3: this job failing repeatedly is a genuine "we're about to run
+  // out of partitions" risk (see this file's header) — job name/id only,
+  // no payload (job.data here is just a table name/month, not PII, but
+  // kept consistent with every other processor's handler regardless).
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'PartitionMaintenanceProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      level:   'fatal', // running out of partitions breaks inserts entirely
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

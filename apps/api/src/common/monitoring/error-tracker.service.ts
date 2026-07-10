@@ -106,6 +106,7 @@ export class ErrorTrackerService {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Sentry = require('@sentry/node');
       Sentry.withScope((scope: any) => {
+        scope.setTag('service', 'api');
         if (meta.userId)    scope.setUser({ id: meta.userId as string });
         if (meta.traceId)   scope.setTag('traceId', meta.traceId as string);
         if (event.tags)     Object.entries(event.tags!).forEach(([k, v]) => scope.setTag(k, v));

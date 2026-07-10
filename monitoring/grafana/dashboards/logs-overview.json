@@ -1,0 +1,69 @@
+{
+  "title": "CarsAuto — Logs",
+  "uid": "carsauto-logs",
+  "tags": ["carsauto", "logs"],
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "templating": {
+    "list": [
+      {
+        "name": "request_id",
+        "type": "textbox",
+        "label": "Request ID",
+        "description": "Filter the log panel below to a single request_id (from a StructuredLogger entry's requestId field, or the x-request-id response header — see apps/api/src/common/logger/logger.service.ts). Leave as .* to show everything.",
+        "current": { "text": ".*", "value": ".*" },
+        "query": ".*"
+      },
+      {
+        "name": "container",
+        "type": "custom",
+        "label": "Container",
+        "description": "Matches docker-compose container names / apps/k8s deployment `app` labels — see monitoring/promtail-config.yml and apps/k8s/promtail-daemonset.yaml for how this label is set.",
+        "query": ".+,cars_auto_api,cars_auto_web,cars_auto_worker",
+        "current": { "text": "All", "value": ".+" },
+        "options": [
+          { "text": "All", "value": ".+" },
+          { "text": "api", "value": "cars_auto_api" },
+          { "text": "web", "value": "cars_auto_web" },
+          { "text": "worker", "value": "cars_auto_worker" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Error-level log volume by service",
+      "description": "count_over_time of level=\"error\" lines, split by container. A sustained rise here is a leading indicator worth checking against monitoring/grafana/dashboards/carsauto-overview.json's error-rate panel and Sentry (docs/ERROR-TRACKING.md) — this shows EVERY error-level log line (including ones a 4xx-excluding Sentry filter would never see), that dashboard shows request-level 5xx rate.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (container) (count_over_time({container=~\"$container\", level=\"error\"}[$__interval]))",
+          "legendFormat": "{{container}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "Logs (filter by Request ID above)",
+      "description": "Full structured log lines. Use the Request ID variable above to trace every log line a single HTTP request produced across api/worker — the x-request-id response header on any API call is the value to paste in. See apps/api/src/common/logger/logger.service.ts's requestMiddleware() for how request_id is generated and propagated.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 14 },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{container=~\"$container\"} | json | requestId=~\"$request_id\""
+        }
+      ]
+    }
+  ]
+}

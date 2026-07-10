@@ -1,0 +1,25 @@
+# monitoring/grafana/provisioning/datasources/loki.yml
+#
+# PROMPT 4: provisions Loki as a Grafana datasource automatically on
+# startup — mirrors prometheus.yml right next to this file, same
+# provisioning mechanism, so there's no manual "Add data source" click
+# required after `docker compose up` (or, in Kubernetes, after Grafana
+# picks up this same directory — see apps/k8s/README.md if/when Grafana
+# gets a k8s manifest of its own; it doesn't have one yet, same
+# "documented but not this prompt's scope" pattern as Postgres/Redis).
+apiVersion: 1
+datasources:
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: false
+    jsonData:
+      # Lets a trace-adjacent Explore workflow jump from a log line's
+      # traceId field straight into... nothing yet, since this repo has no
+      # tracing backend (Tempo/Jaeger) — left here as a documented no-op
+      # rather than omitted, so wiring one up later is a one-line addition
+      # instead of rediscovering this option exists.
+      derivedFields: []

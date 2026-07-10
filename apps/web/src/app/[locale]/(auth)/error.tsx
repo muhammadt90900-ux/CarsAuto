@@ -7,6 +7,7 @@
 // only needs to fill that card rather than the whole viewport.
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 import { useTranslations } from 'next-intl';
 
 export default function AuthError({
@@ -21,6 +22,7 @@ export default function AuthError({
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[auth] page error:', error);
+    reportError(error, 'auth');
   }, [error]);
 
   return (

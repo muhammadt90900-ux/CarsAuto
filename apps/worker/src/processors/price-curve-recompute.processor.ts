@@ -21,11 +21,12 @@
 // year is already a natural, reasonably-sized granularity for this
 // market; no need to bucket into ranges on top of it.
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 interface CurveRow {
   brandId: string;
@@ -44,6 +45,7 @@ export class PriceCurveRecomputeProcessor extends WorkerHost implements OnModule
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -127,5 +129,16 @@ export class PriceCurveRecomputeProcessor extends WorkerHost implements OnModule
     }
 
     this.logger.log(`Price-curve recompute complete — ${upserted} bucket(s) upserted, ${failed} failed`);
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'PriceCurveRecomputeProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

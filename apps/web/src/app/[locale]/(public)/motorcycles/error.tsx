@@ -2,11 +2,13 @@
 // apps/web/src/app/[locale]/(public)/motorcycles/error.tsx
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 
 export default function MotorcyclesError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[motorcycles] page error:', error);
+    reportError(error, 'motorcycles');
   }, [error]);
 
   return (

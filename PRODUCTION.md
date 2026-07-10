@@ -1,5 +1,19 @@
 # CarsAuto — Production Deployment Runbook
 
+## Production Deployment
+
+Production runs on **Kubernetes** (`apps/k8s/`), deployed by the `deploy`
+job in `.github/workflows/ci.yml`. This is the single production deploy
+path — Render.com is not used, and the SSH/docker-compose rolling-deploy
+approach previously used here has been replaced. See "CI/CD" below and
+`apps/k8s/README.md` for the manifest set.
+
+## Local Development
+
+Everything below this point describing `docker compose up -d` refers to
+**local development and staging only**. Docker Compose is not used to
+deploy production — see `docker-compose.yml`'s header comment.
+
 ## Architecture
 
 ```
@@ -67,22 +81,31 @@ The GitHub Actions pipeline (`.github/workflows/ci.yml`) runs automatically:
 |---------|------|
 | Any PR  | lint, type-check |
 | Push to `develop` | lint → build images → push to GHCR |
-| Push to `main` | lint → build → security scan → **deploy** |
+| Push to `main` | lint → build → security scan → e2e → **deploy (Kubernetes)** |
 
 ### Required GitHub secrets
 
 | Secret | Description |
 |--------|-------------|
-| `DEPLOY_HOST` | SSH host for production server |
-| `DEPLOY_USER` | SSH username |
-| `DEPLOY_SSH_KEY` | Private SSH key (ed25519) |
+| `KUBE_CONFIG` | Base64-encoded kubeconfig for the target cluster |
 
 ### Deployment flow
 
-1. Images built and tagged `sha-<commit>` + `latest`
+1. Images (`api`, `web`, `worker`) built and tagged `sha-<commit>` + `latest`,
+   pushed to GHCR
 2. Trivy scans for CRITICAL/HIGH CVEs — fails the pipeline if found
-3. SSH into production: pull images → run migrations → rolling restart
-4. Health check — rolls back automatically on failure
+3. Playwright e2e smoke tests run against the built images
+4. `kustomize edit set image` substitutes the real, just-built image
+   **digests** (not mutable tags) into `apps/k8s/`
+5. `kubectl apply -k apps/k8s/` applies the manifest set to the cluster
+6. Prisma migrations run as a one-off Kubernetes Pod against
+   `DATABASE_DIRECT_URL`
+7. `kubectl rollout status` on each of `carsauto-api`, `carsauto-web`,
+   `carsauto-worker` is the real health gate — the existing
+   readiness/liveness probes in `apps/k8s/*-deployment.yaml` do the actual
+   health verification
+8. On rollout failure, `kubectl rollout undo` runs automatically for the
+   failed deployment(s) before the job fails
 
 ---
 

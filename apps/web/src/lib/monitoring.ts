@@ -1,6 +1,11 @@
 // apps/web/src/lib/monitoring.ts
 // Client-side error tracking and performance monitoring for Next.js.
-// Sends errors to the API's audit endpoint; optional Sentry integration.
+// Sends errors to the API's audit endpoint AND to Sentry (see
+// sentry.client.config.ts for init — this file assumes Sentry.init() has
+// already run, which withSentryConfig() guarantees happens before any
+// component code executes).
+
+import * as Sentry from '@sentry/nextjs';
 
 export interface ClientError {
   message:    string;
@@ -32,10 +37,15 @@ export function reportError(error: Error, context?: string): void {
     traceId:   getTraceId(),
   };
 
-  // Forward to Sentry if loaded
-  if ((window as any).__sentry) {
-    try { (window as any).__sentry.captureException(error); } catch {}
-  }
+  // PROMPT 3: previously looked for `window.__sentry`, a global that
+  // nothing in this codebase ever actually set — meaning every error.tsx
+  // boundary that called this function silently never reached Sentry.
+  // Now that @sentry/nextjs is installed and initialized (see
+  // sentry.client.config.ts), call it directly.
+  Sentry.withScope((scope) => {
+    if (context) scope.setTag('page', context);
+    Sentry.captureException(error);
+  });
 
   // Send to API (non-blocking, best-effort)
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';

@@ -8,11 +8,12 @@
  * On permanent failure: leaves translated fields empty; frontend falls back to Kurdish.
  */
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { OpenAiService } from '../common/ai/openai.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 export interface TranslationJobData {
   listingId: string;
@@ -27,6 +28,7 @@ export class TranslationProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly openai: OpenAiService,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -57,5 +59,20 @@ export class TranslationProcessor extends WorkerHost {
     });
 
     this.logger.log(`Listing ${listingId} translated successfully`);
+  }
+
+  // PROMPT 3: fires once BullMQ has given up on this job (after all retry
+  // attempts are exhausted — see this file's header, 3 attempts). Job NAME
+  // and ID only, never `job.data` (listing title/description text) — see
+  // docs/ERROR-TRACKING.md for why job payloads are never forwarded.
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<TranslationJobData> | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'TranslationProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

@@ -6,6 +6,7 @@
 // more reassuring than the generic boundary.
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 import { useTranslations } from 'next-intl';
 
 export default function SellError({
@@ -20,6 +21,7 @@ export default function SellError({
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[sell] page error:', error);
+    reportError(error, 'sell');
   }, [error]);
 
   return (

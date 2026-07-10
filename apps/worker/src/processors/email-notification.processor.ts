@@ -1,9 +1,10 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { NotificationsService } from '../modules/notifications/notifications.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 interface DeliverPayload {
   notificationId: string;
@@ -30,6 +31,7 @@ export class EmailNotificationProcessor extends WorkerHost {
     private notificationsService: NotificationsService,
     private prisma: PrismaService,
     private emailService: EmailService,   // injected — no inline transporter
+    private errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -66,5 +68,19 @@ export class EmailNotificationProcessor extends WorkerHost {
     if (prefs.pushEnabled) {
       await this.notificationsService.sendWebPush(userId, { title, body, data });
     }
+  }
+
+  // PROMPT 3: job name/id only — `job.data` includes a notification title/
+  // body that may echo user-entered content (offer messages etc.), so it's
+  // deliberately excluded.
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<DeliverPayload> | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'EmailNotificationProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

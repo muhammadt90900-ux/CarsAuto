@@ -1,0 +1,67 @@
+# monitoring/loki-config.yml
+#
+# PROMPT 4: local/staging Loki config, used by docker-compose.yml's `loki`
+# service. Filesystem storage (BoltDB shipper + local chunks), single
+# binary, no clustering — appropriate for this environment the same way
+# this repo's self-hosted Postgres/Redis in docker-compose.yml are (see
+# that file's own header comment on the same tradeoff).
+#
+# For real production (Kubernetes): see apps/k8s/promtail-daemonset.yaml's
+# header for the explicit assumption that production Loki is either (a)
+# this same instance reused as a shared staging/production log sink, which
+# does NOT scale past small deployments and has no HA, or (b) — the
+# actually-recommended path — Loki deployed as its own Helm-chart-managed
+# StatefulSet with an object-storage backend (S3/GCS/Azure Blob) via
+# Loki's `storage_config.aws`/`gcs`/`azure` block instead of the
+# `filesystem` block below. That's a deliberate follow-up decision (which
+# object store, which region, retention budget) that this pass documents
+# rather than guesses at — swapping the storage backend is a config-only
+# change, nothing in Promtail or the Grafana datasource needs to change.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Guardrails matching this repo's "generous safety net, not a live
+  # constraint" philosophy (see apps/k8s/resource-quota.yaml's comment) —
+  # loose enough that normal traffic never hits them, tight enough that a
+  # runaway log loop in one service can't take down the whole Loki instance.
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  per_stream_rate_limit: 8MB
+  per_stream_rate_limit_burst: 16MB
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h # 7 days
+  max_query_series: 10000
+  retention_period: 168h # 7 days — local/staging only; see header comment for production
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  delete_request_store: filesystem

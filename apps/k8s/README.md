@@ -2,19 +2,27 @@
 
 ## Before applying
 
-1. Replace every `REPLACE_ORG/REPLACE_REPO` and `{{IMAGE_TAG}}` placeholder
-   in `api-deployment.yaml`, `web-deployment.yaml`, and
-   `worker-deployment.yaml` — `{{IMAGE_TAG}}` is meant to be substituted by
-   your CI pipeline (a git SHA or release tag), not applied literally.
+1. Nothing to do here anymore for a CI-driven deploy: the `ghcr.io/
+   REPLACE_ORG/REPLACE_REPO/...:{{IMAGE_TAG}}` placeholders in
+   `api-deployment.yaml`, `web-deployment.yaml`, and `worker-deployment.yaml`
+   are matched and substituted automatically by the `deploy` job in
+   `.github/workflows/ci.yml` (`kustomize edit set image`, pinning by the
+   real, just-built image digest — see that job's comments). The literal
+   placeholder text is expected to remain in these files at rest; do not
+   hand-edit it. If you ever need to `kubectl apply -k apps/k8s/` manually
+   outside of CI, run the same `kustomize edit set image` command from that
+   job first, substituting your own real image references.
 2. Replace the placeholder domains in `configmap.yaml` and `ingress.yaml`
    (`carsauto.iq` / `api.carsauto.iq`) with your real domain(s).
 3. Fill in `secrets.yaml` with real values — and read its header comment
    about NOT committing real secrets in plain YAML. Use Sealed Secrets,
    External Secrets Operator, or SOPS for anything beyond a local/throwaway
    cluster.
-4. `apps/worker` has no CI image-build step yet (`.github/workflows/ci.yml`
-   only builds `API_IMAGE`/`WEB_IMAGE`) — add a `WORKER_IMAGE` build/push
-   step before `worker-deployment.yaml` has an image to pull.
+4. ~~`apps/worker` has no CI image-build step yet~~ — resolved: the `build`
+   job in `.github/workflows/ci.yml` now builds and pushes `WORKER_IMAGE`
+   alongside `API_IMAGE`/`WEB_IMAGE`, using `apps/worker/Dockerfile` (note:
+   renamed from the old lowercase `dockerfile` for consistency with the
+   other two apps).
 5. Meilisearch itself isn't included here as a manifest — `configmap.yaml`
    assumes a Service named `meilisearch` exists in this namespace. Run it
    as a StatefulSet with a PersistentVolumeClaim (same shape as
@@ -47,25 +55,66 @@
    rule merged into its config — see that file's header for exact steps.
    The HPA still works on CPU alone if you skip this, just without the
    latency-based trigger.
+9. **F-SEC fix (Prompt 6):** `network-policies.yaml` default-denies all
+   ingress traffic in this namespace, then allows back exactly the paths
+   this app actually uses — see that file's header comment for the full
+   traffic map and, importantly, for two assumptions you need to verify
+   against your real cluster: the ingress controller's namespace is assumed
+   to be literally named `ingress-nginx`, and Prometheus's namespace is
+   assumed to be literally named `monitoring`. If either differs, update the
+   corresponding `namespaceSelector` in `network-policies.yaml` before
+   applying, or every request through your ingress (or every Prometheus
+   scrape) will be silently dropped. `pdb.yaml` and `resource-quota.yaml`
+   need no per-cluster edits — they're sized directly from replica counts
+   and resource requests/limits already in this directory (see each file's
+   header for the arithmetic).
+10. **Centralized logging (Prompt 4):** `promtail-daemonset.yaml` ships
+    every pod's stdout/stderr to Loki, same as `network-policies.yaml`'s
+    Postgres/Redis/Meilisearch pattern — it assumes a Loki instance
+    reachable at `http://loki:3100` in this namespace, which this manifest
+    set doesn't provide a Deployment for. See that file's header for the
+    real decision you need to make (reuse docker-compose's Loki instance
+    vs. a proper object-storage-backed Loki deployment) before this is
+    production-ready — it's not something this pass can pick for you.
 
 ## Apply order
+
+**Production (via CI):** `kubectl apply -k apps/k8s/` — this is what the
+`deploy` job in `.github/workflows/ci.yml` runs, after `kustomization.yaml`
+(in this directory) has had real image digests substituted in via
+`kustomize edit set image`. You should not need to run this by hand for a
+normal deploy.
+
+**Manual / first-time-cluster-setup**, applying each file individually in
+an order that avoids retry churn on first apply (Kubernetes will retry pods
+that reference not-yet-created ConfigMaps/Secrets either way, so this order
+is a convenience, not a hard requirement):
 
 ```bash
 kubectl apply -f namespace.yaml
 kubectl apply -f configmap.yaml
 kubectl apply -f secrets.yaml       # after filling in real values
+kubectl apply -f resource-quota.yaml
 kubectl apply -f pgbouncer-deployment.yaml
 kubectl apply -f api-deployment.yaml
 kubectl apply -f web-deployment.yaml
 kubectl apply -f worker-deployment.yaml
 kubectl apply -f services.yaml
 kubectl apply -f hpa.yaml
+kubectl apply -f pdb.yaml
+kubectl apply -f promtail-daemonset.yaml
 kubectl apply -f ingress.yaml
+kubectl apply -f network-policies.yaml   # apply LAST — see note below
 ```
 
-Or just `kubectl apply -f k8s/` — apply order mostly doesn't matter since
-Kubernetes will retry pods that reference not-yet-created ConfigMaps/Secrets,
-but doing it in the order above avoids the retry churn on first apply.
+⚠️ **Apply `network-policies.yaml` last**, after every other resource in
+this list — its `default-deny-ingress` policy takes effect immediately on
+apply, so applying it before, say, `carsauto-web` exists doesn't cause an
+error, but applying it before you've verified the ingress-controller/
+Prometheus namespace assumptions above (item 9) means you'd find out about
+a wrong assumption via a production outage instead of during setup. Test
+with `kubectl apply --dry-run=client -f network-policies.yaml` first either
+way.
 
 ## Notes on deviations from the original plan
 
@@ -77,3 +126,10 @@ but doing it in the order above avoids the retry churn on first apply.
 - **WebSocket ingress path** is `/socket.io/`, not `/api/socket.io/` —
   verified against `chat.gateway.ts` and `main.ts`; see `ingress.yaml`'s
   header comment for the full reasoning.
+- **Blast-radius hardening (Prompt 6):** `network-policies.yaml`, `pdb.yaml`,
+  and `resource-quota.yaml` are additive — they were verified against every
+  existing manifest's actual service dependencies (envFrom secrets/config,
+  DNS names in `configmap.yaml`/`secrets.yaml`, `ingress.yaml`'s backends)
+  before being written, specifically so they lock down what's NOT currently
+  used without breaking what is. See `network-policies.yaml`'s header for
+  the full traffic map that was checked.

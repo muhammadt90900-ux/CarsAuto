@@ -2,12 +2,14 @@
 // apps/web/src/app/[locale]/(public)/dealers/[slug]/error.tsx
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 import Link from 'next/link';
 
 export default function DealerShowroomError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[dealers/[slug]] page error:', error);
+    reportError(error, 'dealers/[slug]');
   }, [error]);
 
   return (

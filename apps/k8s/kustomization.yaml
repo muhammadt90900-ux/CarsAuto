@@ -1,0 +1,60 @@
+# apps/k8s/kustomization.yaml
+#
+# F-INFRA fix (Prompt 1): makes `kubectl apply -k apps/k8s/` and
+# `kustomize edit set image ...` work as the single production deploy path
+# (see .github/workflows/ci.yml's `deploy` job). Lists every manifest in
+# this directory that is actually meant to be applied to the cluster.
+#
+# Deliberately NOT listed here (see apps/k8s/README.md for why):
+#   - prometheus-adapter-rules.yaml — not a standalone applyable manifest,
+#     it documents values to merge into an externally-installed Prometheus
+#     Adapter Helm release instead.
+#
+# Resource ordering below follows this repo's documented apply order in
+# apps/k8s/README.md ("Apply order" section) — kustomize doesn't strictly
+# require this since it resolves dependencies itself, but keeping the same
+# order here avoids the file drifting out of sync with that doc.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: carsauto
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - pgbouncer-deployment.yaml
+  - api-deployment.yaml
+  - web-deployment.yaml
+  - worker-deployment.yaml
+  - services.yaml
+  - hpa.yaml
+  - ingress.yaml
+  - network-policies.yaml
+  - pdb.yaml
+  - resource-quota.yaml
+  - promtail-daemonset.yaml
+
+# ── Image substitution ────────────────────────────────────────────────────────
+# CI overwrites these at deploy time via:
+#   kustomize edit set image ghcr.io/<org>/<repo>/api@sha256:...
+#                            ghcr.io/<org>/<repo>/web@sha256:...
+#                            ghcr.io/<org>/<repo>/worker@sha256:...
+# (see .github/workflows/ci.yml's "Set image digests in kustomization" step).
+# The `newName`/`newTag` values below are placeholders so `kustomize build`
+# and `kubectl apply --dry-run=client -k .` succeed even before CI has ever
+# run `kustomize edit set image` — they are never applied to a real cluster
+# as-is, since the deploy job always overwrites them first with a real
+# digest. Local `kubectl apply -k apps/k8s/` without going through CI will
+# fail to pull these placeholder images, which is intentional: real deploys
+# only ever go through the CI job.
+images:
+  - name: ghcr.io/REPLACE_ORG/REPLACE_REPO/api
+    newName: ghcr.io/REPLACE_ORG/REPLACE_REPO/api
+    newTag: placeholder
+  - name: ghcr.io/REPLACE_ORG/REPLACE_REPO/web
+    newName: ghcr.io/REPLACE_ORG/REPLACE_REPO/web
+    newTag: placeholder
+  - name: ghcr.io/REPLACE_ORG/REPLACE_REPO/worker
+    newName: ghcr.io/REPLACE_ORG/REPLACE_REPO/worker
+    newTag: placeholder

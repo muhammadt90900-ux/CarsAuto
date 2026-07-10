@@ -12,12 +12,13 @@
 // is no shared package yet, so the literal 'search-index' queue name and
 // the { action, listingId } shape are duplicated here. Keep both in sync.
 
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { MeilisearchService, ListingDocument } from '../common/search-index/meilisearch.service';
 import { computeRankingScore, CTR_WINDOW_DAYS } from '../common/ranking/ranking-formula';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 // Exported so ranking-recompute.processor.ts (Search Architecture Phase 4)
 // can reuse the exact same job shape when it bulk-enqueues re-index jobs
@@ -72,6 +73,7 @@ export class SearchIndexProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly meilisearch: MeilisearchService,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -185,5 +187,18 @@ export class SearchIndexProcessor extends WorkerHost {
 
     await this.meilisearch.upsertDocument(doc);
     this.logger.log(`Indexed listing ${listingId} into Meilisearch`);
+  }
+
+  // PROMPT 3: job.data is only {action, listingId} — no listing content —
+  // but still kept out for consistency with every other processor's handler.
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<SearchIndexJobData> | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'SearchIndexProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade, action: job?.data?.action },
+    });
   }
 }

@@ -1,6 +1,7 @@
 // apps/web/next.config.js — PERFORMANCE OPTIMISED
 const path = require('path');
 const withNextIntl = require('next-intl/plugin')('./src/i18n/request.ts');
+const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -173,5 +174,34 @@ function withOptionalBundleAnalyzer(config) {
   }
 }
 
-module.exports = withOptionalBundleAnalyzer(withNextIntl(nextConfig));
+module.exports = withSentryConfig(
+  withOptionalBundleAnalyzer(withNextIntl(nextConfig)),
+  {
+    // ── Sentry build-time (source map upload) options ──────────────────────
+    // PROMPT 3: these only take effect when SENTRY_AUTH_TOKEN is present at
+    // build time (see apps/web/Dockerfile's --mount=type=secret) — without
+    // it, withSentryConfig logs a warning and skips upload, the build still
+    // succeeds, and error events just report minified stack traces instead
+    // of source-mapped ones. Safe default for local dev / forks without a
+    // Sentry account.
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: !process.env.CI,
+    // Upload source maps, then delete them from the final build output —
+    // they're only needed by Sentry's servers to de-minify stack traces,
+    // and shipping them in the production image would let anyone with
+    // access to the container's filesystem read de-minified source.
+    widenClientFileUpload: true,
+    sourcemaps: { deleteSourcemapsAfterUpload: true },
+    // Disables the automatic "/monitoring" tunnel route Sentry otherwise
+    // adds to work around ad-blockers — this repo doesn't currently need
+    // it, and it would need its own entry in ingress.yaml/next.config
+    // rewrites to actually work through the ingress. Revisit if ad-blocker
+    // interference with error reporting turns out to be significant.
+    tunnelRoute: undefined,
+    disableLogger: true,
+    automaticVercelMonitors: false, // not deployed on Vercel — see PROMPT 1
+  },
+);
 

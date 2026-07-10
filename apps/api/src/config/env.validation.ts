@@ -47,6 +47,12 @@ export interface EnvConfig {
   SLOW_QUERY_THRESHOLD_MS?: number;
   CACHE_MAX_ENTRIES?: number;
   LOG_LEVEL?: string;
+
+  // PROMPT 3: error tracking (Sentry) — all optional, error-tracker.service.ts
+  // and sentry.init.ts degrade gracefully (no-op client) when SENTRY_DSN is unset.
+  SENTRY_DSN?: string;
+  APP_VERSION?: string;
+  SENTRY_TRACES_SAMPLE_RATE?: string;
 }
 
 /** Known insecure placeholder values that must never reach production. */
@@ -192,6 +198,16 @@ function validateEnv(): void {
     if (!hasVapid) {
       warnings.push(
         'VAPID keys not configured — push notification feature will be disabled',
+      );
+    }
+
+    // PROMPT 3: warning, not a hard error — the app must still start
+    // without error tracking configured (e.g. first deploy before Sentry
+    // project setup), but a payments-handling production app running with
+    // zero exception visibility is worth flagging loudly.
+    if (!process.env.SENTRY_DSN) {
+      warnings.push(
+        'SENTRY_DSN is not set — running in production with no error tracking. See docs/ERROR-TRACKING.md.',
       );
     }
   }

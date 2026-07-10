@@ -14,7 +14,7 @@
 // rather than drifting from Postgres until some unrelated event happens
 // to re-index that listing.
 
-import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
+import { Processor, WorkerHost, InjectQueue, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -23,6 +23,7 @@ import {
   CTR_WINDOW_DAYS,
 } from '../common/ranking/ranking-formula';
 import { SearchIndexJobData } from './search-index.processor';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 const BATCH_SIZE = 500;
 
@@ -40,6 +41,7 @@ export class RankingRecomputeProcessor extends WorkerHost implements OnModuleIni
     private readonly prisma: PrismaService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
     @InjectQueue('search-index') private readonly searchIndexQueue: Queue<SearchIndexJobData>,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -179,5 +181,16 @@ export class RankingRecomputeProcessor extends WorkerHost implements OnModuleIni
       FROM (VALUES ${values}) AS c(id, score)
       WHERE l.id = c.id
     `);
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'RankingRecomputeProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

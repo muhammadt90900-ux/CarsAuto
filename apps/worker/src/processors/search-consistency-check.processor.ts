@@ -24,13 +24,14 @@
 // and additionally emails ADMIN_ALERT_EMAIL if that env var is set
 // (best-effort — a failed alert email is logged, never thrown).
 
-import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
+import { Processor, WorkerHost, InjectQueue, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { MeilisearchService } from '../common/search-index/meilisearch.service';
 import { EmailService } from '../common/email/email.service';
+import { ErrorTrackerService } from '../common/monitoring/error-tracker.service';
 
 // Count drift beyond this fraction of the Postgres count triggers an alert.
 // 2% is a starting guess — some transient drift is expected (indexing
@@ -59,6 +60,7 @@ export class SearchConsistencyCheckProcessor extends WorkerHost implements OnMod
     private readonly email: EmailService,
     private readonly config: ConfigService,
     @InjectQueue('maintenance') private readonly maintenanceQueue: Queue,
+    private readonly errorTracker: ErrorTrackerService,
   ) {
     super();
   }
@@ -169,5 +171,16 @@ export class SearchConsistencyCheckProcessor extends WorkerHost implements OnMod
     } catch (err) {
       this.logger.error(`Failed to send search-drift alert email: ${(err as Error).message}`);
     }
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error): void {
+    this.errorTracker.capture({
+      error,
+      context: 'SearchConsistencyCheckProcessor',
+      jobName: job?.name,
+      jobId:   job?.id,
+      extra:   { attemptsMade: job?.attemptsMade },
+    });
   }
 }

@@ -2,12 +2,14 @@
 // apps/web/src/app/[locale]/(public)/cars/[id]/error.tsx
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/monitoring';
 import Link from 'next/link';
 
 export default function CarDetailError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[cars/[id]] page error:', error);
+    reportError(error, 'cars/[id]');
   }, [error]);
 
   return (
