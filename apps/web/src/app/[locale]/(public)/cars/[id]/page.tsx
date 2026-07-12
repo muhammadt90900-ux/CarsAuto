@@ -5,7 +5,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Script from "next/script";
 import { CarDetailClient } from "@/components/features/cars/CarDetailClient";
 import { locales, hreflangMap, type Locale } from "@/i18n/config";
 import { serverFetch } from "@/lib/server-api";
@@ -152,18 +151,28 @@ export default async function CarDetailPage({
 
   return (
     <>
-      {/* safeJsonLd (not JSON.stringify) — vehicleJsonLd embeds listing.titleEn/descriptionEn/dealer.nameEn (user-controlled); unescaped "</script>" would break out of this tag and execute attacker HTML (stored XSS) */}
-      <Script
+      {/*
+        Plain <script> tags (NOT next/script) — JSON-LD is inert structured
+        data, it never executes, so next/script's load-strategy machinery
+        (beforeInteractive/afterInteractive) doesn't apply here and was
+        triggering React's "script tag will never execute on the client"
+        console error. A raw <script type="application/ld+json"> is the
+        standard Next.js App Router pattern for this.
+
+        safeJsonLd (not JSON.stringify) — vehicleJsonLd embeds
+        listing.titleEn/descriptionEn (user-controlled); unescaped
+        "</script>" would break out of this tag and execute attacker HTML
+        (stored XSS).
+      */}
+      <script
         id="jsonld-vehicle"
         type="application/ld+json"
-        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(vehicleJsonLd) }}
       />
       {/* safeJsonLd (not JSON.stringify) — breadcrumbJsonLd also embeds the user-controlled listing title */}
-      <Script
+      <script
         id="jsonld-breadcrumb"
         type="application/ld+json"
-        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <Suspense fallback={null}>

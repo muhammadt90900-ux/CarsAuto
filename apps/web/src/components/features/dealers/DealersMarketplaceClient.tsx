@@ -22,6 +22,22 @@ const TIER_LABELS: Record<string, string> = {
   Verified: '✅ Verified',
 };
 
+// dealersApi.getAll() can come back in several shapes depending on how the
+// backend wraps its response — a raw array, { data: [...] } (the paginated
+// shape used by ListingListResponsePaged), or an extra-nested
+// { success, data: { data: [...], total } } wrapper. Previously
+// `(data as any)?.data ?? data ?? []` only handled the first two: if
+// `data.data` resolved to a truthy *object* (the nested-paginated case)
+// instead of an array, that object was used as-is and `dealers.map(...)`
+// crashed with "dealers.map is not a function". This walks the possible
+// shapes in order and guarantees an array (or []) no matter what comes back.
+function normalizeDealers(data: any): any[] {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.data?.data)) return data.data.data;
+  return [];
+}
+
 function DealerCard({ dealer, locale, view }: { dealer: any; locale: string; view: 'grid' | 'list' }) {
   const color = TIER_COLORS[dealer.tier];
 
@@ -121,7 +137,7 @@ export function DealersMarketplaceClient({
     ...(matchesServerFetch && initialData ? { initialData } : {}),
   });
 
-  const allDealers: any[] = (data as any)?.data ?? data ?? [];
+  const allDealers: any[] = normalizeDealers(data);
   // Client-side filter for specialty (no backend param yet)
   const dealers = spec
     ? allDealers.filter((d: any) =>

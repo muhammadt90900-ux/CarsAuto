@@ -72,6 +72,37 @@ function timeAgo(createdAt?: string | Date): string | null {
 }
 
 
+// car.images can be an array of plain URL strings OR an array of objects
+// shaped like { url, isCover } (that's the shape the API actually returns —
+// see listing.images?.map(i => i.url) in cars/[id]/page.tsx). CarCard was
+// reading car.images?.[0] directly, which — when images are objects — hands
+// a whole object to <Image src>, not a URL string. Next.js can't resolve a
+// src from that and ends up rendering src="" on the underlying <img>,
+// triggering React's "empty string passed to src" warning. This helper
+// normalizes both shapes and guards against empty/blank url strings too.
+function getCoverImage(car: any): string {
+  const images = car?.images;
+  if (!Array.isArray(images) || images.length === 0) return '/placeholder-car.jpg';
+  const cover = images.find((img: any) => img?.isCover) ?? images[0];
+  const url = typeof cover === 'string' ? cover : cover?.url;
+  return typeof url === 'string' && url.trim() !== '' ? url : '/placeholder-car.jpg';
+}
+
+// Same problem as getCoverImage: car.title isn't a field the API actually
+// returns (listings use titleEn/titleKu/etc — see titleKey lookup in
+// cars/[id]/page.tsx), so `alt={car.title}` was resolving to `undefined`.
+// React/Next.js treats alt={undefined} as if the prop were never passed,
+// which is why <Image> flagged it as missing entirely. Falls back through
+// a plain title field, then make+model+year, then a generic description —
+// never lets alt end up empty or undefined.
+function getCarAlt(car: any): string {
+  if (typeof car?.title === 'string' && car.title.trim() !== '') return car.title;
+  if (typeof car?.titleEn === 'string' && car.titleEn.trim() !== '') return car.titleEn;
+  const parts = [car?.year, car?.make, car?.model].filter(Boolean);
+  if (parts.length > 0) return parts.join(' ');
+  return 'Car listing photo';
+}
+
 /* ── Skeleton ───────────────────────────────────────────────────── */
 function SkeletonCard() {
   return (
@@ -124,8 +155,8 @@ const CarCard = memo(function CarCard({
                style={{ width: 'clamp(96px, 25vw, 160px)', height: 'clamp(72px, 18vw, 112px)' }}>
             {!imgError ? (
               <Image
-                src={car.images?.[0] || '/placeholder-car.jpg'}
-                alt={car.title}
+                src={getCoverImage(car)}
+                alt={getCarAlt(car)}
                 fill
                 sizes="160px"
                 // PERF: priority on visible-above-fold cards only
@@ -184,8 +215,8 @@ const CarCard = memo(function CarCard({
         <div className="relative overflow-hidden aspect-[16/10] bg-slate-100 dark:bg-[var(--ink-700)]">
           {!imgError ? (
             <Image
-              src={car.images?.[0] || '/placeholder-car.jpg'}
-              alt={car.title}
+              src={getCoverImage(car)}
+              alt={getCarAlt(car)}
               fill
               // PERF: correct srcset — 3-column desktop, 2-col tablet, 1-col mobile
               sizes="(min-width:1280px) 25vw, (min-width:768px) 33vw, 50vw"
@@ -672,4 +703,3 @@ export function CarsMarketplaceClient({
     </div>
   );
 }
-
