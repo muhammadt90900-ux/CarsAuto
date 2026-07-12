@@ -9,9 +9,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { NotImplementedException } from '@nestjs/common';
-import { AlipayGateway } from '../../../modules/payments/gateways/alipay.gateway';
-import { WechatPayGateway } from '../../../modules/payments/gateways/wechatpay.gateway';
-import type { GatewayChargeParams } from '../../../modules/payments/gateways/gateway.interface';
+import { AlipayGateway } from '../../modules/payments/gateways/alipay.gateway';
+import { WechatPayGateway } from '../../modules/payments/gateways/wechatpay.gateway';
+import type { GatewayChargeParams } from '../../modules/payments/gateways/gateway.interface';
 
 const MOCK_CHARGE_PARAMS: GatewayChargeParams = {
   amount: 99900,

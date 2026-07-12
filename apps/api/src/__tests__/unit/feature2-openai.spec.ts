@@ -11,8 +11,6 @@ import { OpenAiService } from '../../common/ai/openai.service';
 import { AiService } from '../../modules/ai/ai.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { TranslationService } from '../../modules/ai/translation/translation.service';
-import { describe } from 'node:test';
-import { expect } from '@playwright/test';
 
 // ── Mock OpenAI SDK ────────────────────────────────────────────────────────────
 const mockEmbeddingsCreate = jest.fn();

@@ -56,7 +56,13 @@ export default async function CarsPage({ params, searchParams }: Props) {
   // would fetch on first mount (same filter params, page 1) — so React
   // Query's `initialData` lines up with the query it actually runs, and
   // the browser never re-fetches what the server already rendered.
-  const initialData = await serverFetch("/listings", {
+  const initialData = await serverFetch<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>("/listings", {
     revalidate: 30,
     tags: ["listings-list"],
     searchParams: { type: "CAR", make: search.make, city: search.city, q: search.q, limit: 24, page: 1 },

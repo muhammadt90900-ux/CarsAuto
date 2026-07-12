@@ -26,6 +26,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AiService } from '../ai/ai.service';
@@ -108,7 +109,7 @@ export class SuspiciousActivityService {
     metadata: Record<string, unknown>,
   ): Promise<void> {
     await this.prisma.suspiciousActivityEvent.create({
-      data: { userId, eventType, severity, metadata },
+      data: { userId, eventType, severity, metadata: metadata as Prisma.InputJsonValue },
     });
     await this.notifyAdminsIfSevere(eventType, severity, { userId, ...metadata });
   }

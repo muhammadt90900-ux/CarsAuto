@@ -18,6 +18,7 @@ import {
   Zap, Shield, ArrowUpDown, Filter,
 } from 'lucide-react';
 import { listingsApi } from '@/lib/api';
+import type { ListingListResponsePaged } from '@cars-auto/types';
 import { queryKeys } from '@/lib/queryKeys';
 import { formatCurrency } from '@cars-auto/utils';
 import { isRTL } from '@/i18n/config';
@@ -333,7 +334,7 @@ export function CarsMarketplaceClient({
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.listings.list({ type: 'CAR', make, city, q: query, page }),
-    queryFn:  () => listingsApi.getAll({ type: 'CAR', make, city, q: query, limit: 24, page }),
+    queryFn:  () => listingsApi.getAll({ type: 'CAR', make, city, q: query, limit: 24, page }) as Promise<ListingListResponsePaged>,
     placeholderData: (prev) => prev,
     ...(matchesServerFetch && initialData ? { initialData } : {}),
   });
@@ -671,3 +672,4 @@ export function CarsMarketplaceClient({
     </div>
   );
 }
+

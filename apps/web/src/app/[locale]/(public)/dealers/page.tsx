@@ -27,7 +27,7 @@ export default async function DealersPage({ params }: Props) {
 
   // F-PERF fix: matches DealersMarketplaceClient's own first-mount query
   // exactly — no filters (query/city/tier all start empty there).
-  const initialData = await serverFetch('/dealers', {
+  const initialData = await serverFetch<{ data: any[]; total: number }>('/dealers', {
     revalidate: 60,
     tags: ['dealers-list'],
   });

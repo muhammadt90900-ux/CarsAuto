@@ -11,7 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockPrisma = {
+const mockPrisma: any = {
   dealer: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -24,7 +24,14 @@ const mockPrisma = {
     findMany: jest.fn(),
     count: jest.fn(),
   },
+  listing: {
+    findUnique: jest.fn(),
+  },
 };
+// notifyFollowersOfNewListing() reads via `this.prisma.db('read')` — route it
+// back to the same mock object so `mockPrisma.dealer/listing/dealerFollower`
+// mocks above are what the service actually hits.
+mockPrisma.db = jest.fn(() => mockPrisma);
 
 const mockCache = {
   getOrSet: jest.fn((_key: string, factory: () => Promise<unknown>) => factory()),
@@ -33,6 +40,7 @@ const mockCache = {
 
 const mockNotifications = {
   create: jest.fn().mockResolvedValue({}),
+  createManyForUsers: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockEventEmitter = {
@@ -179,28 +187,40 @@ describe('DealersService — Follower System (Feature 9)', () => {
       mockPrisma.dealer.findUnique.mockResolvedValue({
         nameKu: 'پریمیئەم مۆتۆرز', nameEn: 'Premium Motors', slug: 'premium-motors',
       });
+      mockPrisma.listing.findUnique.mockResolvedValue({
+        titleKu: 'تویۆتا کامری 2024', titleEn: 'Toyota Camry 2024',
+      });
       mockPrisma.dealerFollower.findMany.mockResolvedValue([
         { userId: 'u1' }, { userId: 'u2' },
       ]);
 
-      await service.notifyFollowersOfNewListing('dealer-1', 'listing-1', 'Toyota Camry 2024');
+      await service.notifyFollowersOfNewListing('dealer-1', 'listing-1');
 
-      expect(mockNotifications.create).toHaveBeenCalledTimes(2);
+      expect(mockNotifications.createManyForUsers).toHaveBeenCalledTimes(1);
+      expect(mockNotifications.createManyForUsers).toHaveBeenCalledWith(
+        ['u1', 'u2'],
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(Object),
+      );
     });
 
     it('does nothing when dealer has no followers', async () => {
       mockPrisma.dealer.findUnique.mockResolvedValue({
         nameKu: 'x', nameEn: 'x', slug: 'x',
       });
+      mockPrisma.listing.findUnique.mockResolvedValue({ titleKu: 'x', titleEn: 'x' });
       mockPrisma.dealerFollower.findMany.mockResolvedValue([]);
 
-      await service.notifyFollowersOfNewListing('dealer-1', 'listing-1', 'Title');
-      expect(mockNotifications.create).not.toHaveBeenCalled();
+      await service.notifyFollowersOfNewListing('dealer-1', 'listing-1');
+      expect(mockNotifications.createManyForUsers).not.toHaveBeenCalled();
     });
 
     it('does nothing when dealer does not exist', async () => {
       mockPrisma.dealer.findUnique.mockResolvedValue(null);
-      await service.notifyFollowersOfNewListing('dealer-x', 'listing-1', 'Title');
+      mockPrisma.listing.findUnique.mockResolvedValue({ titleKu: 'x', titleEn: 'x' });
+      await service.notifyFollowersOfNewListing('dealer-x', 'listing-1');
       expect(mockPrisma.dealerFollower.findMany).not.toHaveBeenCalled();
     });
   });
