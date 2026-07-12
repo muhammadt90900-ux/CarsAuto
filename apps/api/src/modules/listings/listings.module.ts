@@ -9,6 +9,7 @@ import { EmailVerifiedGuard } from '../../common/guards/email-verified.guard';
 import { PermissionsModule } from '../../common/permissions/permissions.module';
 import { AiModule } from '../ai/ai.module';
 import { SearchModule } from '../search/search.module';
+import { TrustModule } from '../../common/trust/trust.module';
 
 // F-ARCH fix: DealersModule import (via forwardRef — a circular-dependency
 // workaround) removed. ListingsService no longer injects DealersService at
@@ -29,6 +30,7 @@ import { SearchModule } from '../search/search.module';
     PermissionsModule,
     AiModule,
     SearchModule,
+    TrustModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EmailVerifiedGuard, ViewFlushTask],

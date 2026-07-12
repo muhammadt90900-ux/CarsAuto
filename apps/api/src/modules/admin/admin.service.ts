@@ -637,8 +637,21 @@ export class AdminService {
     const skip = (validPage - 1) * validLimit;
 
     const where: any = {};
-    where.status = status && ['PENDING', 'RESOLVED', 'DISMISSED'].includes(status) ? status : 'PENDING';
-    if (targetType && ['LISTING', 'USER', 'DEALER', 'MESSAGE'].includes(targetType)) {
+    // BUG FIX (Trust & Safety Prompt 7 frontend wiring): previously this
+    // defaulted to 'PENDING' whenever `status` was falsy, with no way to
+    // request "no status filter" at all — the admin Reports page's "All"
+    // tab (which sends no `status` param on purpose) silently got PENDING
+    // back regardless. Now an explicit, recognized status filters; anything
+    // else (undefined, or the frontend's 'ALL' sentinel) means unfiltered.
+    if (status && ['PENDING', 'RESOLVED', 'DISMISSED'].includes(status)) {
+      where.status = status;
+    }
+    // ADDED (Trust & Safety Prompt 7): 'REVIEW' added to this whitelist —
+    // matches create-report.dto.ts's REPORT_TARGET_TYPES exactly, which is
+    // now the single source of truth for valid targetType values (this
+    // service didn't have one before Prompt 7 added the submission
+    // endpoint that dto belongs to).
+    if (targetType && ['LISTING', 'USER', 'DEALER', 'MESSAGE', 'REVIEW'].includes(targetType)) {
       where.targetType = targetType;
     }
 
@@ -664,23 +677,39 @@ export class AdminService {
       // Report.targetId is polymorphic (no FK), so we resolve per-type.
       const listingIds = data.filter((r: any) => r.targetType === 'LISTING').map((r: any) => r.targetId);
       const userIds     = data.filter((r: any) => r.targetType === 'USER').map((r: any) => r.targetId);
+      // ADDED (Trust & Safety Prompt 7)
+      const reviewIds   = data.filter((r: any) => r.targetType === 'REVIEW').map((r: any) => r.targetId);
 
-      const [listings, users] = await Promise.all([
+      const [listings, users, reviews] = await Promise.all([
         listingIds.length
           ? db.listing.findMany({ where: { id: { in: listingIds } }, select: { id: true, titleEn: true, titleKu: true } })
           : Promise.resolve([]),
         userIds.length
           ? db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
           : Promise.resolve([]),
+        reviewIds.length
+          ? db.review.findMany({
+              where: { id: { in: reviewIds } },
+              select: {
+                id: true,
+                rating: true,
+                comment: true,
+                reviewer: { select: { id: true, name: true } },
+                reviewee: { select: { id: true, name: true } },
+              },
+            })
+          : Promise.resolve([]),
       ]);
       const listingMap = new Map(listings.map((l: any) => [l.id, l]));
       const userMap     = new Map(users.map((u: any) => [u.id, u]));
+      const reviewMap   = new Map(reviews.map((r: any) => [r.id, r]));
 
       const enriched = data.map((r: any) => ({
         ...r,
         target:
           r.targetType === 'LISTING' ? listingMap.get(r.targetId) ?? null :
           r.targetType === 'USER'    ? userMap.get(r.targetId) ?? null :
+          r.targetType === 'REVIEW'  ? reviewMap.get(r.targetId) ?? null :
           null,
       }));
 

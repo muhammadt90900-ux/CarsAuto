@@ -273,7 +273,15 @@ model User {
   banned              Boolean   @default(false)
   suspendedUntil      DateTime?
   suspendedReason     String?   @db.VarChar(255)
-  
+
+  // ADDED (Trust & Safety Prompt 1): ID/selfie verification completion time,
+  // distinct from `verified` above (which is email-only). A buyer-facing
+  // "Verified" badge needs to know WHICH kind of verification it's showing —
+  // mirrors Dubizzle's phone-verified vs ID-verified distinction. Null =
+  // never submitted or not yet approved; set by the admin approval flow in
+  // the verification module (Prompt 2), never by the user directly.
+  identityVerifiedAt DateTime?
+
   listings               Listing[]
   chatsAsBuyer           Chat[]                  @relation("BuyerChats")
   chatsAsSeller          Chat[]                  @relation("SellerChats")
@@ -303,6 +311,11 @@ model User {
   aiChatSessions         AiChatSession[]
   fraudScore             FraudScore?
   sellerScore            SellerScore?
+
+  // ADDED (Trust & Safety Prompt 1)
+  idVerification          IdVerification?
+  suspiciousActivityEvents SuspiciousActivityEvent[]
+  badges                  UserBadge[]
 
   // role index for admin queries; partial indexes on banned/locked/deleted handled in migration
   @@index([role])
@@ -540,6 +553,114 @@ model FraudScore {
   // Admin fraud queue: "show me the riskiest accounts first"
   @@index([overallRisk(sort: Desc)])
   @@map("fraud_scores")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ID VERIFICATION
+// ADDED (Trust & Safety Prompt 1 / built out in Prompt 2): private-seller
+// KYC. Dealers already have Dealer.status/verifiedAt/verifiedBy — this is
+// the equivalent path for individuals, who previously had no identity
+// verification at all (User.verified is email-only). 1:1 with User: a
+// re-submission after REJECTED/EXPIRED overwrites this row rather than
+// appending a new one — same "current state, not history" reasoning as
+// FraudScore/SellerScore above. status is a plain VarChar, not a Prisma
+// enum, matching Image.tag's precedent (see that field's comment) rather
+// than risking another TS2719-class mirrored-enum bug.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model IdVerification {
+  id               String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId           String    @unique @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType     String    @db.VarChar(30) // NATIONAL_ID | PASSPORT | DRIVING_LICENSE
+  documentFrontUrl String
+  documentBackUrl  String?
+  selfieUrl        String
+  status           String    @default("PENDING") @db.VarChar(20) // PENDING | APPROVED | REJECTED | EXPIRED
+  rejectionReason  String?   @db.VarChar(255)
+  reviewedBy       String?   @db.Uuid
+  reviewedAt       DateTime?
+  submittedAt      DateTime  @default(now())
+  expiresAt        DateTime? // re-verify after N years, mirrors real ID expiry
+
+  // Admin verification queue: "show me PENDING first, oldest first"
+  @@index([status, submittedAt])
+  @@map("id_verifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DUPLICATE LISTING FLAG
+// ADDED (Trust & Safety Prompt 1 / built out in Prompt 3): output of the
+// three-tier duplicate/fake-listing detector (VIN cross-check, image pHash,
+// text embedding similarity). Append-only — a listing can accumulate
+// multiple flags from different match types/matches over time, unlike the
+// overwritten FraudScore/SellerScore rows above, because each flag records
+// a distinct matched listing, not a recomputed aggregate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DuplicateListingFlag {
+  id               String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  listingId        String   @db.Uuid
+  listing          Listing  @relation("DuplicateFlagSource", fields: [listingId], references: [id], onDelete: Cascade)
+  matchedListingId String   @db.Uuid
+  matchedListing   Listing  @relation("DuplicateFlagMatch", fields: [matchedListingId], references: [id], onDelete: Cascade)
+  matchType        String   @db.VarChar(20) // VIN | IMAGE_HASH | TEXT_EMBEDDING
+  confidence       Int      // 0-100
+  createdAt        DateTime @default(now())
+
+  // Admin fraud queue: all flags for a given listing
+  @@index([listingId])
+  // Highest-confidence flags first, most recent within a type
+  @@index([matchType, confidence(sort: Desc)])
+  @@map("duplicate_listing_flags")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUSPICIOUS ACTIVITY EVENT
+// ADDED (Trust & Safety Prompt 1 / built out in Prompt 5): real-time event
+// log feeding admin alerts, separate from the nightly-batch FraudScore
+// above — severity >= threshold pushes a Notification immediately instead
+// of waiting for the next nightly recompute. Append-only by design (an
+// audit trail of what tripped, not a current-state row).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SuspiciousActivityEvent {
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType String   @db.VarChar(50) // RAPID_RELIST | VIN_CLASH | IMAGE_REUSE | TEXT_DUPLICATE | PRICE_OUTLIER | OFFPLATFORM_PAYMENT_ASK | MESSAGE_VELOCITY_SPIKE
+  severity  Int      // 0-100
+  metadata  Json
+  createdAt DateTime @default(now())
+
+  // Per-user activity timeline, most recent first
+  @@index([userId, createdAt(sort: Desc)])
+  // Admin alert feed: highest severity, most recent first
+  @@index([severity(sort: Desc), createdAt(sort: Desc)])
+  @@map("suspicious_activity_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER BADGE
+// ADDED (Trust & Safety Prompt 1 / built out in Prompt 6): mirrors
+// DealerBadge (dealer_badges), currently dealer-only — this is the
+// individual-seller equivalent, awarded by a scheduled job reading
+// IdVerification.status, SellerScore, and Review aggregates. code is a
+// plain VarChar (ID_VERIFIED | PHONE_VERIFIED | TOP_RATED | FAST_RESPONDER |
+// TRUSTED_SELLER), same reasoning as IdVerification.status above.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserBadge {
+  id        String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String    @db.VarChar(30) // ID_VERIFIED | PHONE_VERIFIED | TOP_RATED | FAST_RESPONDER | TRUSTED_SELLER
+  awardedAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  // Profile page loads all active badges for a user
+  @@index([userId, expiresAt])
+  @@map("user_badges")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -899,6 +1020,14 @@ model Listing {
   chats             Chat[]
   favorites         Favorite[]
 
+  // ADDED (Trust & Safety Prompt 1): two relation directions on the same
+  // self-referential model — this listing as the flagged one, and this
+  // listing as the one it was matched against — named like Chat's
+  // BuyerChats/SellerChats split above for the same reason (one FK field
+  // per direction on the same target model needs a relation name).
+  duplicateFlagsAsSource  DuplicateListingFlag[] @relation("DuplicateFlagSource")
+  duplicateFlagsAsMatch   DuplicateListingFlag[] @relation("DuplicateFlagMatch")
+
   // ── Composite indexes ordered by selectivity ──────────────────────────────
 
   // Primary browse: status + type + createdAt (most pages filter by both)
@@ -976,8 +1105,17 @@ model Image {
   // common/prisma/enums.ts.
   tag       String  @default("standard") @db.VarChar(20)
 
+  // ADDED (Trust & Safety Prompt 1): perceptual hash for near-duplicate
+  // image detection (stolen/reused listing photos). Computed on upload,
+  // nullable since it's backfilled going forward, not for historic images.
+  // Plain string, not enum — see Image.tag comment above for why.
+  phash     String? @db.VarChar(16)
+
   // CHANGE: composite — fetch all images for a listing sorted by order
   @@index([listingId, order])
+  // ADDED (Trust & Safety Prompt 1): near-duplicate lookup scans recent
+  // phashes from OTHER users' listings — indexed for that scan.
+  @@index([phash])
   @@map("images")
 }
 
@@ -1048,6 +1186,12 @@ model Chat {
   messages  Message[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ADDED (Trust & Safety Prompt 1): back-relation for Review.chatId —
+  // a review can optionally reference the chat it grew out of, for the
+  // "Verified Interaction" label (Prompt 7). onDelete: SetNull on the
+  // Review side, so a deleted chat doesn't take the review with it.
+  reviews   Review[]
 
   // CHANGE: prevent duplicate chats between same buyer+listing
   @@unique([listingId, buyerId])
@@ -1148,10 +1292,21 @@ model Review {
   comment    String   @db.Text
   createdAt  DateTime @default(now())
 
+  // ADDED (Trust & Safety Prompt 1 / used by Prompt 7): if this review's
+  // reviewer/reviewee pair has prior chat history, this links to it so the
+  // frontend can label it "Verified Interaction". Nullable and NOT required
+  // at write time — reviews without a prior chat are still allowed, just
+  // unlabeled (avoids killing review volume). SetNull (not Cascade): a
+  // deleted chat shouldn't delete the review, just unlink it.
+  chatId     String?  @db.Uuid
+  chat       Chat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+
   // CHANGE: prevent duplicate reviews; reviewer per reviewee
   @@unique([reviewerId, revieweeId])
   // CHANGE: composite for average rating queries
   @@index([revieweeId, rating])
+  // ADDED (Trust & Safety Prompt 1): lookup reviews tied to a given chat
+  @@index([chatId])
   @@map("reviews")
 }
 

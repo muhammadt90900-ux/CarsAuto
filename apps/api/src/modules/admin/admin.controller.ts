@@ -191,11 +191,24 @@ export class AdminController {
   }
 
   // ── Reports ────────────────────────────────────────────────────────────
+  // BUG FIX (found while wiring Trust & Safety Prompt 7's REVIEW targetType
+  // into the frontend): this endpoint declared status/targetType filtering
+  // in AdminService.getReports()'s signature but never actually read the
+  // corresponding query params, so every call silently fell back to
+  // AdminService's own default (status='PENDING', no targetType filter) —
+  // the admin Reports page's status tabs and type filter dropdown were
+  // wired to query params this endpoint threw away. Pre-existing, not
+  // introduced by any Trust & Safety prompt.
   @Get('reports')
-  getReports(@Query('page') page: string, @Query('limit') limit: string) {
+  getReports(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('status') status?: string,
+    @Query('targetType') targetType?: string,
+  ) {
     const p = Math.max(1, Number(page ?? 1));
     const l = Math.min(100, Math.max(1, Number(limit ?? 20)));
-    return this.adminService.getReports(p, l);
+    return this.adminService.getReports(p, l, status, targetType);
   }
 
   @Patch('reports/:id/resolve')

@@ -1,21 +1,29 @@
 'use client';
 // apps/web/src/app/[locale]/admin/reports/page.tsx
-// Admin: user-submitted reports — listings, dealers, and content flags.
+// Admin: user-submitted reports — listings, dealers, users, messages, reviews.
 // Maps directly onto the real Report model (Report.status is
-// 'pending' | 'resolved' | 'dismissed'; targetType/targetId are polymorphic
-// with no FK, enriched server-side by GET /admin/reports into `target`).
+// 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'DISMISSED'; targetType/targetId are
+// polymorphic with no FK, enriched server-side by GET /admin/reports into `target`).
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   Flag, Search, CheckCircle2, XCircle, Loader2,
   AlertTriangle, MessageSquare, Car, Store, ChevronLeft,
-  ChevronRight, Clock,
+  ChevronRight, Clock, Star,
 } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
 import { api } from '@/lib/api';
 
-type ReportType   = 'LISTING' | 'DEALER' | 'USER' | 'MESSAGE';
-type ReportStatus = 'pending' | 'resolved' | 'dismissed';
+// BUG FIX (Trust & Safety Prompt 7): this page's ReportType/ReportStatus
+// were lowercase/incomplete and didn't match what the API actually sends —
+// Prisma's ReportStatus enum is 'PENDING' | 'REVIEWING' | 'RESOLVED' |
+// 'DISMISSED' (uppercase), and Report.targetType values are 'LISTING' |
+// 'USER' | 'DEALER' | 'MESSAGE' | 'REVIEW' (uppercase — REVIEW added by
+// Prompt 7). The lowercase values below never matched a real API response,
+// so every status tab/badge/filter on this page was silently broken
+// (always empty) before this fix — pre-existing, not introduced here.
+type ReportType   = 'LISTING' | 'DEALER' | 'USER' | 'MESSAGE' | 'REVIEW';
+type ReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'DISMISSED';
 
 interface Report {
   id: string;
@@ -25,7 +33,18 @@ interface Report {
   status: ReportStatus;
   createdAt: string;
   reporter?: { id: string; name: string; email: string } | null;
-  target?: { id: string; titleEn?: string; titleKu?: string; name?: string; email?: string } | null;
+  target?: {
+    id: string;
+    titleEn?: string;
+    titleKu?: string;
+    name?: string;
+    email?: string;
+    // REVIEW target preview shape — matches admin.service.ts's enrichment
+    rating?: number;
+    comment?: string;
+    reviewer?: { id: string; name: string };
+    reviewee?: { id: string; name: string };
+  } | null;
 }
 
 const TYPE_STYLES: Record<ReportType, { label: string; icon: any; color: string }> = {
@@ -33,17 +52,24 @@ const TYPE_STYLES: Record<ReportType, { label: string; icon: any; color: string 
   DEALER:  { label: 'Dealer',   icon: Store,         color: 'var(--gold)' },
   USER:    { label: 'User',     icon: AlertTriangle, color: '#f59e0b' },
   MESSAGE: { label: 'Message',  icon: MessageSquare, color: '#8b5cf6' },
+  REVIEW:  { label: 'Review',   icon: Star,          color: '#ec4899' },
 };
 
 const STATUS_STYLES: Record<ReportStatus, { label: string; text: string; bg: string; dot: string }> = {
-  pending:   { label: 'Pending',   text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
-  resolved:  { label: 'Resolved',  text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
-  dismissed: { label: 'Dismissed', text: 'text-white/30',    bg: 'bg-white/[0.05]',   dot: 'bg-white/20'    },
+  PENDING:   { label: 'Pending',   text: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
+  REVIEWING: { label: 'Reviewing', text: 'text-blue-400',    bg: 'bg-blue-400/10',    dot: 'bg-blue-400'    },
+  RESOLVED:  { label: 'Resolved',  text: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
+  DISMISSED: { label: 'Dismissed', text: 'text-white/30',    bg: 'bg-white/[0.05]',   dot: 'bg-white/20'    },
 };
 
 function targetLabel(report: Report): string {
   if (!report.target) return `#${report.targetId.slice(0, 8)}`;
   if (report.targetType === 'LISTING') return report.target.titleEn || report.target.titleKu || 'Untitled listing';
+  if (report.targetType === 'REVIEW') {
+    const stars = report.target.rating ? `${report.target.rating}★` : '';
+    const who = report.target.reviewee?.name ?? '—';
+    return `${stars} review of ${who}`.trim();
+  }
   return report.target.name || report.target.email || `#${report.targetId.slice(0, 8)}`;
 }
 
@@ -56,7 +82,7 @@ export default function AdminReportsPage() {
   const [total, setTotal]                   = useState(0);
   const [search, setSearch]                 = useState('');
   const [typeFilter, setTypeFilter]         = useState<ReportType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter]     = useState<ReportStatus | 'ALL'>('pending');
+  const [statusFilter, setStatusFilter]     = useState<ReportStatus | 'ALL'>('PENDING');
   const [page, setPage]                     = useState(1);
   const [detail, setDetail]                 = useState<Report | null>(null);
   const [acting, setActing]                 = useState<string | null>(null);
@@ -69,7 +95,7 @@ export default function AdminReportsPage() {
     params.set('page', String(page));
     params.set('limit', String(PAGE_SIZE));
     if (statusFilter !== 'ALL') params.set('status', statusFilter);
-    if (typeFilter   !== 'ALL') params.set('type',   typeFilter);
+    if (typeFilter   !== 'ALL') params.set('targetType', typeFilter);
 
     api.get(`/admin/reports?${params.toString()}`)
       .then(r => {
@@ -102,7 +128,7 @@ export default function AdminReportsPage() {
       })
     : reports;
 
-  const resolve = async (id: string, action: 'resolved' | 'dismissed') => {
+  const resolve = async (id: string, action: 'RESOLVED' | 'DISMISSED') => {
     setActing(id);
     try {
       await api.patch(`/admin/reports/${id}/resolve`, { action });
@@ -115,9 +141,9 @@ export default function AdminReportsPage() {
     }
   };
 
-  const pendingCount   = statusFilter === 'pending'   ? total : reports.filter(r => r.status === 'pending').length;
-  const resolvedCount  = statusFilter === 'resolved'  ? total : reports.filter(r => r.status === 'resolved').length;
-  const dismissedCount = statusFilter === 'dismissed' ? total : reports.filter(r => r.status === 'dismissed').length;
+  const pendingCount   = statusFilter === 'PENDING'   ? total : reports.filter(r => r.status === 'PENDING').length;
+  const resolvedCount  = statusFilter === 'RESOLVED'  ? total : reports.filter(r => r.status === 'RESOLVED').length;
+  const dismissedCount = statusFilter === 'DISMISSED' ? total : reports.filter(r => r.status === 'DISMISSED').length;
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -128,7 +154,7 @@ export default function AdminReportsPage() {
           <h1 className="font-display font-black text-white text-2xl tracking-tight">Reports</h1>
           <p className="text-white/40 text-sm mt-0.5">Review and action user-submitted reports</p>
         </div>
-        {statusFilter === 'pending' && total > 0 && (
+        {statusFilter === 'PENDING' && total > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-400/10 border border-red-400/20">
             <AlertTriangle className="w-4 h-4 text-red-400" />
             <span className="text-sm font-semibold text-red-400">{total} pending reports</span>
@@ -140,9 +166,9 @@ export default function AdminReportsPage() {
       <div className="flex items-center gap-2 flex-wrap">
         {([
           ['ALL',       'All',       null],
-          ['pending',   'Pending',   pendingCount],
-          ['resolved',  'Resolved',  resolvedCount],
-          ['dismissed', 'Dismissed', dismissedCount],
+          ['PENDING',   'Pending',   pendingCount],
+          ['RESOLVED',  'Resolved',  resolvedCount],
+          ['DISMISSED', 'Dismissed', dismissedCount],
         ] as [string, string, number | null][]).map(([val, label, count]) => (
           <button
             key={val}
@@ -177,7 +203,7 @@ export default function AdminReportsPage() {
           />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
-          {(['ALL', 'LISTING', 'DEALER', 'USER', 'MESSAGE'] as const).map(t => (
+          {(['ALL', 'LISTING', 'DEALER', 'USER', 'MESSAGE', 'REVIEW'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTypeFilter(t)}
@@ -230,10 +256,10 @@ export default function AdminReportsPage() {
             <tbody>
               {visibleReports.map((report, i) => {
                 const typeStyle   = TYPE_STYLES[report.targetType] ?? TYPE_STYLES.LISTING;
-                const statusStyle = STATUS_STYLES[report.status]   ?? STATUS_STYLES.pending;
+                const statusStyle = STATUS_STYLES[report.status]   ?? STATUS_STYLES.PENDING;
                 const TypeIcon    = typeStyle.icon;
                 const isActing    = acting === report.id;
-                const isOpen      = report.status === 'pending';
+                const isOpen      = report.status === 'PENDING';
 
                 return (
                   <tr
@@ -273,7 +299,7 @@ export default function AdminReportsPage() {
                       {isOpen && (
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => resolve(report.id, 'resolved')}
+                            onClick={() => resolve(report.id, 'RESOLVED')}
                             disabled={isActing}
                             className="p-1.5 rounded-lg bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/20 transition-all disabled:opacity-40"
                             title="Resolve"
@@ -281,7 +307,7 @@ export default function AdminReportsPage() {
                             {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                           </button>
                           <button
-                            onClick={() => resolve(report.id, 'dismissed')}
+                            onClick={() => resolve(report.id, 'DISMISSED')}
                             disabled={isActing}
                             className="p-1.5 rounded-lg bg-white/[0.05] border border-white/[0.09] text-white/40 hover:text-white/70 transition-all disabled:opacity-40"
                             title="Dismiss"
@@ -357,17 +383,17 @@ export default function AdminReportsPage() {
                 ))}
               </div>
 
-              {detail.status === 'pending' && (
+              {detail.status === 'PENDING' && (
                 <div className="flex gap-3">
                   <button
-                    onClick={() => resolve(detail.id, 'resolved')}
+                    onClick={() => resolve(detail.id, 'RESOLVED')}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-400/15 border border-emerald-400/25 text-emerald-400 text-sm font-semibold hover:bg-emerald-400/25 transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Resolve
                   </button>
                   <button
-                    onClick={() => resolve(detail.id, 'dismissed')}
+                    onClick={() => resolve(detail.id, 'DISMISSED')}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09] text-white/50 text-sm font-semibold hover:bg-white/[0.08] transition-all"
                   >
                     <XCircle className="w-4 h-4" />

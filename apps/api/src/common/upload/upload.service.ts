@@ -29,8 +29,13 @@ import {
   UploadApiErrorResponse,
 } from 'cloudinary';
 
-/** Cloudinary folder / transformation profile. 'avatars' also covers dealer logos. */
-export type UploadFolderType = 'listings' | 'avatars';
+/**
+ * Cloudinary folder / transformation profile. 'avatars' also covers dealer
+ * logos. 'verification' ADDED (Trust & Safety Prompt 2) — ID/selfie photos
+ * for KYC, uploaded via the private uploadPrivateImage() path below, NOT
+ * through UploadController — see that method's comment for why.
+ */
+export type UploadFolderType = 'listings' | 'avatars' | 'verification';
 
 export interface UploadedFileInfo {
   /** Cloudinary public_id, e.g. "carsauto/listings/<uuid>" — stored as the DB ownership key. */
@@ -93,12 +98,24 @@ const DANGEROUS_PATTERNS = [
 // - "listings": marketplace photos — constrained to a sane max width,
 //   format/quality auto-negotiated per requesting browser.
 // - "avatars":  profile photos / dealer logos — fixed square thumbnail crop.
+// ADDED (Trust & Safety Prompt 2): 'verification' caps width higher than
+// avatars/listings (2000, not 400-1200) — ID card and passport text needs
+// to stay legible for admin review, unlike a marketplace thumbnail.
 const CLOUDINARY_TRANSFORMATIONS: Record<UploadFolderType, Record<string, unknown>> = {
-  listings: { quality: 'auto', fetch_format: 'auto', width: 1200, crop: 'limit' },
-  avatars:  { quality: 'auto', fetch_format: 'auto', width: 400, height: 400, crop: 'fill', gravity: 'auto' },
+  listings:     { quality: 'auto', fetch_format: 'auto', width: 1200, crop: 'limit' },
+  avatars:      { quality: 'auto', fetch_format: 'auto', width: 400, height: 400, crop: 'fill', gravity: 'auto' },
+  verification: { quality: 'auto', fetch_format: 'auto', width: 2000, crop: 'limit' },
 };
 
-const PUBLIC_ID_PATTERN = /^carsauto\/(listings|avatars)\/[a-f0-9-]+$/;
+const PUBLIC_ID_PATTERN = /^carsauto\/(listings|avatars|verification)\/[a-f0-9-]+$/;
+
+// ADDED (Trust & Safety Prompt 2): folders whose contents must NEVER be
+// publicly readable off a guessable URL — national ID / passport / selfie
+// photos. Cloudinary's default delivery `type` is 'upload' (publicly
+// readable at a predictable URL once you know the public_id). For these
+// folders we upload with type: 'authenticated' instead, which requires a
+// signed URL to view — see uploadToCloudinary()'s branch below.
+const PRIVATE_FOLDER_TYPES: ReadonlySet<UploadFolderType> = new Set(['verification']);
 
 @Injectable()
 export class UploadService {
@@ -128,6 +145,20 @@ export class UploadService {
     }
   }
 
+  /**
+   * Two entry paths call this:
+   *  1. UploadController (POST /upload/image|images) — the public-facing
+   *     route, gated to DEALER/ADMIN only (buyers/USER role can't upload
+   *     listing photos or avatars there).
+   *  2. VerificationService, DIRECTLY, for KYC document uploads — deliberately
+   *     bypassing UploadController. Private sellers submitting ID
+   *     verification ARE role USER, exactly the role UploadController
+   *     blocks, and that block is a correct business rule for
+   *     listings/avatars that must not be relaxed just to let this feature
+   *     through. This method itself has no role opinion — validation/
+   *     optimisation/storage only — so it's safe to call from both places;
+   *     the role decision belongs to (and stays in) each caller.
+   */
   async processImageUpload(
     file: RawUploadedFile,
     type: UploadFolderType = 'listings',
@@ -158,6 +189,13 @@ export class UploadService {
    * (e.g. "carsauto/listings/<uuid>") — this is exactly what's stored as
    * `UploadedFile.filename` in the DB, so callers (the controller) should
    * pass that value straight through.
+   *
+   * NOTE (Trust & Safety Prompt 2): NOT currently called for 'verification'
+   * uploads — there's no delete-my-verification-doc or admin-purge-doc
+   * feature yet. If one is added, `cloudinary.uploader.destroy` needs an
+   * explicit `type: 'authenticated'` for those assets, or it looks in the
+   * wrong bucket and silently no-ops. Flagging so this isn't rediscovered
+   * the hard way later.
    */
   async deleteFile(publicId: string): Promise<void> {
     if (!PUBLIC_ID_PATTERN.test(publicId)) {
@@ -250,12 +288,19 @@ export class UploadService {
     }
 
     const uuid = crypto.randomUUID();
+    const isPrivate = PRIVATE_FOLDER_TYPES.has(type);
+
     const options: UploadApiOptions = {
       folder:        `carsauto/${type}`,
       public_id:     uuid,
       resource_type: 'image',
       overwrite:     false,
       transformation: [CLOUDINARY_TRANSFORMATIONS[type]],
+      // ADDED (Trust & Safety Prompt 2): 'authenticated' delivery type means
+      // the asset is NOT servable from a plain guessable URL — every
+      // request must carry Cloudinary's signature. Default ('upload') is
+      // public, correct for listing/avatar photos, wrong for ID documents.
+      ...(isPrivate ? { type: 'authenticated' as const, access_mode: 'authenticated' as const } : {}),
     };
 
     return new Promise<UploadedFileInfo>((resolve, reject) => {
@@ -267,12 +312,26 @@ export class UploadService {
             reject(new BadRequestException('Image upload failed'));
             return;
           }
+          // ADDED (Trust & Safety Prompt 2): for authenticated assets,
+          // `result.secure_url` from the upload response is NOT a working
+          // delivery URL on its own (401 without a signature) — we build
+          // and store the signed URL ourselves so downstream code (the
+          // verification module, admin review) can just use `.url` as-is.
+          const deliveryUrl = isPrivate
+            ? cloudinary.url(result.public_id, {
+                type: 'authenticated',
+                sign_url: true,
+                secure: true,
+                resource_type: 'image',
+              })
+            : result.secure_url;
+
           resolve({
             filename:     result.public_id,
             originalName,
             mimeType:     'image/webp',
             size:         result.bytes ?? buffer.length,
-            url:          result.secure_url,
+            url:          deliveryUrl,
             width:        result.width  ?? imgInfo.width  ?? undefined,
             height:       result.height ?? imgInfo.height ?? undefined,
           });

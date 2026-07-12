@@ -39,6 +39,8 @@ import { SellerScoreRecomputeService } from './modules/analytics/seller-score-re
 import { PriceCurveRecomputeProcessor } from './processors/price-curve-recompute.processor';
 import { MeilisearchService } from './common/search-index/meilisearch.service';
 import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
+import { BadgeAwardProcessor } from './processors/badge-award.processor';
+import { BadgeAwardService } from './modules/badges/badge-award.service';
 
 @Module({
   imports: [
@@ -94,6 +96,8 @@ import { ErrorTrackerService } from './common/monitoring/error-tracker.service';
     SellerScoreNarrativeService,
     SellerScoreRecomputeService,
     PriceCurveRecomputeProcessor,
+    BadgeAwardProcessor,
+    BadgeAwardService,
   ],
 })
 export class WorkerModule {}

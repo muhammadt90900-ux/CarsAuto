@@ -5,6 +5,15 @@ export enum UserRole {
   ADMIN = 'ADMIN',
 }
 
+// ADDED (Trust & Safety Prompt 6/7 frontend wiring): mirrors UserBadge
+// (Prompt 1 schema) — distinct from DealerBadge below (that one has
+// label/icon columns; UserBadge only has a `code`, so the frontend maps
+// code → label/icon itself, see components/trust/badges.ts).
+export interface UserBadge {
+  code: string;
+  awardedAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -15,6 +24,14 @@ export interface User {
   verified: boolean;
   locale: 'ku' | 'ar' | 'en' | 'zh';
   createdAt: Date;
+  // ADDED (Trust & Safety Prompt 2/6) — present on profile/listing-detail
+  // responses (TrustProfileService), absent elsewhere. Optional because
+  // most User-shaped API responses in this app (auth/me, admin user list,
+  // etc.) don't attach these — only the two endpoints that call
+  // TrustProfileService do.
+  identityVerifiedAt?: string | null;
+  trustScore?: number;
+  badges?: UserBadge[];
 }
 
 export interface Review {
@@ -24,6 +41,24 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: Date;
+  // ADDED (Trust & Safety Prompt 7): non-null → "Verified Interaction" —
+  // this pair had a real chat before the review was left. See
+  // ReviewsService.create()'s comment for the lookup logic.
+  chatId?: string | null;
+  // Present on GET /users/:userId/reviews (ReviewsService.findByReviewee());
+  // absent on other shapes reusing this interface (e.g. DealerProfile.reviews,
+  // which is actually DealerReview under the hood — different model, this
+  // interface predates Prompt 7 and is reused loosely across both).
+  reviewer?: { id: string; name: string; avatar?: string | null };
+}
+
+/** GET /users/:userId/reviews */
+export interface UserReviewListResponse {
+  data: Review[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // ─── Dealers ────────────────────────────────────────────────────────────────

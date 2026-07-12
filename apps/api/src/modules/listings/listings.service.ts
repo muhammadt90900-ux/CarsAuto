@@ -15,11 +15,13 @@ import { AuditLogService, AuditAction } from '../../common/monitoring/audit-log.
 import { ListingType } from '@/common/prisma/enums';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MeilisearchSearchStrategy } from '../search/meilisearch-search.strategy';
+import { TrustProfileService } from '../../common/trust/trust-profile.service';
 import {
   ListingCreatedEvent,
   ListingSoldEvent,
   ListingDeletedEvent,
   ListingUpdatedEvent,
+  ListingSavedEvent,
 } from '../../common/events';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -233,6 +235,8 @@ export class ListingsService {
     // Search Architecture Phase 3: powers getFacets() only — findAll()
     // above is completely unaffected by this dependency.
     private readonly meilisearchStrategy: MeilisearchSearchStrategy,
+    // ADDED (Trust & Safety Prompt 6)
+    private readonly trustProfile: TrustProfileService,
   ) {}
 
   // ── Pagination helpers ──────────────────────────────────────────────────────
@@ -468,7 +472,7 @@ export class ListingsService {
           images:   { orderBy: { order: 'asc' } },
           location: true,
           user: {
-            select: { id: true, name: true, avatar: true, verified: true, phone: true },
+            select: { id: true, name: true, avatar: true, verified: true, phone: true, identityVerifiedAt: true },
           },
           vehicleSpec: {
             include: {
@@ -509,16 +513,33 @@ export class ListingsService {
               : listing.user,
           };
 
+      // ADDED (Trust & Safety Prompt 6): trustScore + badges attached to
+      // `user` here, computed fresh on every non-cached call — see
+      // TrustProfileService's header for why FraudScore.overallRisk itself
+      // is deliberately NOT anywhere in this object, only the single
+      // rolled-up 0-100 number. Cached alongside the rest of `finalResult`
+      // below (same 2-minute CACHE_TTL_DETAIL as everything else on this
+      // response — trust score doesn't need tighter freshness than that).
+      const finalResult = result.user
+        ? {
+            ...result,
+            user: {
+              ...result.user,
+              ...(await this.trustProfile.getTrustProfile(result.user.id, !!result.user.identityVerifiedAt)),
+            },
+          }
+        : result;
+
       // Only cache ACTIVE listings — non-ACTIVE results must not be served
       // to unauthenticated callers after a future status change to ACTIVE.
       if (listing.status === 'ACTIVE') {
-        await this.cache.set(cacheKey, result, CACHE_TTL_DETAIL);
+        await this.cache.set(cacheKey, finalResult, CACHE_TTL_DETAIL);
       }
 
       // Batch view increment — buffered in Redis, flushed to DB by ViewFlushTask
       await this.cache.incrBy(`views:${id}`, 1);
 
-      return result;
+      return finalResult;
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
       this.logger.error(`Failed to fetch listing ${id}: ${err instanceof Error ? err.message : 'unknown error'}`);
@@ -737,6 +758,12 @@ export class ListingsService {
         }
       }
 
+      // ADDED (Trust & Safety Prompt 3): unconditional — see ListingSavedEvent's
+      // doc comment (common/events/listing.events.ts) for why this is a
+      // separate event from ListingCreatedEvent above rather than reusing it.
+      // Fire-and-forget, same contract as every other listener on these events.
+      this.eventEmitter.emit('listing.saved', new ListingSavedEvent(listing.id, data.userId));
+
       return listing;
     } catch (err) {
       this.logger.error(`Failed to create listing: ${err instanceof Error ? err.message : 'unknown error'}`);
@@ -874,6 +901,14 @@ export class ListingsService {
       } catch {
         // Best-effort — never block the update response on this.
       }
+
+      // ADDED (Trust & Safety Prompt 3): unconditional, mirrors the emit
+      // added at the end of create() above — same ListingSavedEvent, same
+      // single consumer (DuplicateDetectionListener). update() is the only
+      // place VIN/title/description/price can change post-creation, so this
+      // re-runs all three duplicate-detection tiers on every edit, not just
+      // on first save.
+      this.eventEmitter.emit('listing.saved', new ListingSavedEvent(id, userId, false));
 
       return updated;
     } catch (err) {

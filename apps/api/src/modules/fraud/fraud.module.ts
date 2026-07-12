@@ -11,11 +11,12 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { AiModule } from '../ai/ai.module';
 import { FraudScoringService } from './fraud-scoring.service';
 import { FraudController } from './fraud.controller';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, AiModule],
   controllers: [FraudController],
   providers: [FraudScoringService],
   exports: [FraudScoringService],

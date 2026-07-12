@@ -23,14 +23,18 @@ import { PrismaModule }             from './common/prisma/prisma.module';
 import { AppCacheModule }           from './common/cache/cache.module';
 import { CurrencyModule }           from './common/currency/currency.module';
 import { DealersModule }            from './modules/dealers/dealers.module';
-import { TokenCleanupTask }         from './common/tasks/token-cleanup.task';
-import { EmbeddingSyncTask }        from './common/tasks/embedding-sync.task';
+import { TasksModule }              from './common/tasks/tasks.module';
 import { UploadModule }             from './common/upload/upload.module';
 import { OpenAiModule }            from './common/ai/openai.module';
 import { SubscriptionsModule }      from './modules/subscriptions/subscriptions.module';
 import { SearchIndexCommonModule }  from './common/search-index/search-index.module';
 import { SearchIndexingModule }     from './modules/search-indexing/search-index.module';
 import { FraudModule }              from './modules/fraud/fraud.module';
+import { VerificationModule }       from './modules/verification/verification.module';
+import { DuplicateDetectionModule } from './modules/duplicate-detection/duplicate-detection.module';
+import { SuspiciousActivityModule } from './modules/suspicious-activity/suspicious-activity.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -95,8 +99,13 @@ import { FraudModule }              from './modules/fraud/fraud.module';
     SubscriptionsModule,
     CurrencyModule,
     FraudModule,
+    VerificationModule,
+    TasksModule,
+    DuplicateDetectionModule,
+    SuspiciousActivityModule,
+    ReviewsModule,
+    ReportsModule,
   ],
-  providers: [TokenCleanupTask, EmbeddingSyncTask],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

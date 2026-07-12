@@ -152,7 +152,10 @@ export interface ListingImage {
 }
 
 /** Minimal seller/poster info attached to a single-listing detail response. */
-export type ListingUser = Pick<User, 'id' | 'name' | 'avatar' | 'phone' | 'verified'>;
+export type ListingUser = Pick<
+  User,
+  'id' | 'name' | 'avatar' | 'phone' | 'verified' | 'identityVerifiedAt' | 'trustScore' | 'badges'
+>;
 
 /** GET /listings/:id — full listing with images and poster details. */
 export type ListingDetailResponse = Listing & {

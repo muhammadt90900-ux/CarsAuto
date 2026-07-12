@@ -24,7 +24,12 @@ export type NotificationType =
   | 'LISTING_APPROVED'
   | 'LISTING_REJECTED'
   | 'DEALER_VERIFIED'
-  | 'PAYMENT_RECEIVED';
+  | 'PAYMENT_RECEIVED'
+  // ADDED (Trust & Safety Prompt 2)
+  | 'IDENTITY_VERIFIED'
+  | 'IDENTITY_REJECTED'
+  // ADDED (Trust & Safety Prompt 5)
+  | 'SUSPICIOUS_ACTIVITY_ALERT';
 
 export interface PushNotificationPayload {
   title: string;

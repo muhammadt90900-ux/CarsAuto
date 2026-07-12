@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TrustProfileService } from '../../common/trust/trust-profile.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private trustProfile: TrustProfileService,
+  ) {}
 
   // FIX: Public profile — never exposes email or phone to unauthenticated callers
   async findByIdPublic(id: string) {
@@ -16,6 +20,7 @@ export class UsersService {
         role: true,
         verified: true,
         createdAt: true,
+        identityVerifiedAt: true,
         // email and phone intentionally excluded from public profile
         listings: {
           where: { status: 'ACTIVE', deletedAt: null },
@@ -34,7 +39,11 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+
+    // ADDED (Trust & Safety Prompt 6) — identical attachment to
+    // listings.service.ts's findOne(); see TrustProfileService's header.
+    const trustProfile = await this.trustProfile.getTrustProfile(user.id, !!user.identityVerifiedAt);
+    return { ...user, ...trustProfile };
   }
 
   async updateProfile(

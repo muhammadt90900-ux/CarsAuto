@@ -23,6 +23,8 @@ import { cn } from '@cars-auto/utils';
 import { ImageGallery } from './ImageGallery';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CarBrandLogo } from '@/components/shared/CarBrandLogo';
+import { BadgeRow } from '@/components/trust/BadgeRow';
+import { TrustScoreChip } from '@/components/trust/TrustScoreChip';
 
 // PERF: hoisted Intl instances — created once per module, not per render/card
 const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -39,7 +41,7 @@ const FinancingSection = lazy(() =>
   (import('./FinancingSection').then(m => ({ default: m.FinancingSection })).catch(() => ({ default: () => null })) as Promise<{ default: React.ComponentType<{ price: number }> }>)
 );
 const ReportModal = lazy(() =>
-  Promise.resolve({ default: ReportModalInline })
+  import('@/components/reports/ReportModal').then(m => ({ default: m.ReportModal }))
 );
 
 /* ── SpecRow ──────────────────────────────────────────────────── */
@@ -106,37 +108,9 @@ const ShareModal = memo(function ShareModal({ url, title, onClose }: { url: stri
   );
 });
 
-/* ── ReportModal (inline — lazy wrapper above) ─────────────────── */
-function ReportModalInline({ onClose }: { onClose: () => void }) {
-  const [reason, setReason] = useState('');
-  const reasons = ['Incorrect information','Fraudulent listing','Already sold','Duplicate listing','Wrong price','Other'];
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-3xl bg-[var(--ink-750)] border border-white/[0.08] shadow-[0_32px_80px_rgba(0,0,0,0.8)] p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
-            <Flag className="w-5 h-5 text-red-400" />
-          </div>
-          <h3 className="font-display font-bold text-white text-lg">Report Listing</h3>
-        </div>
-        <div className="space-y-2">
-          {reasons.map(r => (
-            <button key={r} onClick={() => setReason(r)}
-              className={cn('w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all duration-150',
-                reason === r ? 'bg-red-500/20 border border-red-500/40 text-red-300' : 'bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.07]')}>
-              {r}
-            </button>
-          ))}
-        </div>
-        <button disabled={!reason} className="w-full py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-red-600 transition-all">
-          Submit Report
-        </button>
-        <button onClick={onClose} className="w-full py-2 text-white/40 text-sm hover:text-white/60 transition-colors">Cancel</button>
-      </div>
-    </div>
-  );
-}
+/* ── ReportModal — was a local dead-button mockup (ReportModalInline),
+   replaced with the real, shared, API-wired component. See
+   components/reports/ReportModal.tsx's header comment. ── */
 
 /* ── LocationMap ──────────────────────────────────────────────── */
 const LocationMap = memo(function LocationMap({ location }: { location: any }) {
@@ -168,6 +142,15 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
   const togglePhone = useCallback(() => setShowPhone(v => !v), []);
   if (!user) return null;
 
+  // FIX (Trust & Safety Prompt 6/7): `user.verified` is email verification,
+  // not identity verification — this card previously used it for the
+  // green checkmark + "Verified Seller" label, which overstates what was
+  // actually confirmed. `identityVerifiedAt` (Prompt 2's KYC flow) is the
+  // real signal for that; ID_VERIFIED also shows up in `user.badges` (via
+  // BadgeRow below), so this checkmark now reflects ID verification
+  // specifically, not email.
+  const identityVerified = !!user.identityVerifiedAt;
+
   return (
     <div className="rounded-3xl bg-[var(--ink-750)] border border-white/[0.07] overflow-hidden">
       <div className="relative p-5 pb-4">
@@ -183,7 +166,7 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
                 <span className="text-[var(--gold)] text-xl font-bold">{user.name?.[0]}</span>
               </div>
             )}
-            {user.verified && (
+            {identityVerified && (
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[var(--ink-750)] flex items-center justify-center">
                 <CheckCircle2 className="w-2.5 h-2.5 text-white fill-current" />
               </div>
@@ -191,19 +174,18 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display font-bold text-white text-base truncate">{user.name}</p>
-            {user.verified && (
+            {identityVerified && (
               <div className="flex items-center gap-1 mt-0.5">
                 <Shield className="w-3 h-3 text-emerald-400" />
-                <span className="text-xs text-emerald-400 font-semibold">Verified Seller</span>
+                <span className="text-xs text-emerald-400 font-semibold">ID Verified Seller</span>
               </div>
             )}
-            <div className="flex items-center gap-3 mt-1.5">
-              <div className="flex items-center gap-0.5">
-                {[1,2,3,4,5].map(s => (
-                  <Star key={s} className={cn('w-2.5 h-2.5', s <= 4 ? 'text-[var(--gold)] fill-[var(--gold)]' : 'text-white/20')} />
-                ))}
-              </div>
-              <span className="text-[10px] text-white/30">(4.8) · 38 listings</span>
+            {/* FIX: was a hardcoded "(4.8) · 38 listings" with always-4-filled
+                stars — no real data behind it at all. Replaced with the real
+                trust tier + earned badges from TrustProfileService. */}
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <TrustScoreChip trustScore={user.trustScore} />
+              <BadgeRow badges={user.badges} />
             </div>
           </div>
         </div>
@@ -410,11 +392,18 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                         <Zap className="w-3 h-3" /> New
                       </span>
                     )}
+                    {/* FIX (Trust & Safety Prompt 6/7): this was `listing.user?.verified`
+                        — that field is EMAIL verification, not ID verification, and was
+                        being shown here labeled just "Verified" which reads as an identity
+                        claim. Kept as-is for email but relabeled, and added the real
+                        ID_VERIFIED badge (from user.badges) + trust tier alongside it so
+                        buyers see accurate signals, not one overloaded checkmark. */}
                     {listing.user?.verified && (
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
-                        <Shield className="w-3 h-3" /> Verified
+                        <Shield className="w-3 h-3" /> Email Verified
                       </span>
                     )}
+                    <TrustScoreChip trustScore={listing.user?.trustScore} size="md" />
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={toggleFavorite} aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"} aria-pressed={isFavorite}
@@ -611,7 +600,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
       {/* PERF: lazy-loaded — only downloaded when user clicks "Report" */}
       {showReport && (
         <Suspense fallback={null}>
-          <ReportModal onClose={closeReport} />
+          <ReportModal targetType="LISTING" targetId={listing.id} onClose={closeReport} />
         </Suspense>
       )}
     </>

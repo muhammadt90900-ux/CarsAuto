@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException,
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatStatus } from '../../common/prisma/enums';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MessageSentEvent } from '../../common/events';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,7 @@ export class ChatService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // ─── Helper: assert membership ──────────────────────────────────────────────
@@ -213,6 +216,14 @@ export class ChatService {
     this.sendMessagePushToRecipient(chatId, senderId, content, safeType).catch((err) =>
       this.logger.warn(`Push for message in chat ${chatId} failed: ${err.message}`),
     );
+
+    // ADDED (Trust & Safety Prompt 5): unconditional emit (like
+    // ListingSavedEvent) — SuspiciousActivityListener decides what to do
+    // with it (message-velocity spike + off-platform payment language,
+    // both text-content checks, so it filters to messageType 'text'
+    // itself rather than this method pre-filtering and hiding the signal
+    // from any other future listener on this same event).
+    this.eventEmitter.emit('message.sent', new MessageSentEvent(chatId, senderId, content, safeType));
 
     return msg;
   }

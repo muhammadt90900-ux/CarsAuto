@@ -102,6 +102,24 @@ const SPAM_PRESSURE_WORDS = [
   'hurry', 'limited', 'act now', 'exclusive offer', 'best deal',
 ];
 
+// ADDED (Trust & Safety Prompt 4, signal `offPlatformPaymentRequests`):
+// wire-transfer / hawala / pay-before-view redirect language — the classic
+// advance-fee-fraud pattern of pushing a buyer to pay outside the platform
+// (no chat record, no dispute path) before ever showing the item. Four
+// languages per this platform's locales (ku/ar/en/zh) — SPAM_PRESSURE_WORDS
+// above only ever covered ku/ar/en, so zh is new territory here, not an
+// existing gap being copied forward.
+const OFFPLATFORM_PAYMENT_TERMS = [
+  // Kurdish — hawala/wire transfer, pay-before-view
+  'حەواڵە', 'گەشتیار حەواڵە', 'یاری بکە پێش بینین', 'پارە بنێرە پێش', 'ژمارەی هەژمار',
+  // Arabic — hawala/wire transfer, pay-before-view, wire/bank transfer
+  'حوالة', 'حوالة مالية', 'ادفع قبل المعاينة', 'رقم الحساب', 'تحويل بنكي',
+  // English
+  'wire transfer', 'western union', 'hawala', 'pay before you see', 'pay first', 'send deposit before', 'bank transfer only', 'no cash on delivery',
+  // Chinese (Simplified) — wire transfer / hawala-equivalent underground remittance / pay first
+  '电汇', '先付款', '汇款', '地下钱庄', '银行转账',
+];
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -421,6 +439,21 @@ Respond with JSON only:
   }
 
   /**
+   * ADDED (Trust & Safety Prompt 4). Pure heuristic keyword match, NO
+   * OpenAI call — deliberately separate from detectSpamFull() so
+   * FraudScoringService (nightly batch, cost-sensitive — see that file's
+   * header comment) can call this alone without paying for a moderation
+   * API round-trip per message. detectSpamFull() below also calls this,
+   * as one of its scoring categories, so listing content gets the same
+   * check for free as a side effect.
+   */
+  detectOffPlatformPaymentLanguage(text: string): { matched: boolean; hits: string[] } {
+    const lower = text.toLowerCase();
+    const hits = OFFPLATFORM_PAYMENT_TERMS.filter((term) => lower.includes(term.toLowerCase()));
+    return { matched: hits.length > 0, hits };
+  }
+
+  /**
    * Spam detection:
    *  1. OpenAI moderation API (free, fast) — flagged content = instant spam
    *  2. Heuristic scoring on pattern matches
@@ -477,6 +510,16 @@ Respond with JSON only:
     if (/(.)\1{4,}/.test(text)) {
       score += 5;
       reasons.push('repeated_characters');
+    }
+
+    // ADDED (Trust & Safety Prompt 4): off-platform payment redirect
+    // language (wire transfer / hawala / pay-before-view) — weighted
+    // heavier than pressure words (+20 vs +8) since this is a stronger,
+    // more specific fraud indicator than generic urgency language.
+    const offPlatform = this.detectOffPlatformPaymentLanguage(text);
+    if (offPlatform.matched) {
+      score += 20;
+      reasons.push(`offplatform_payment_language_${offPlatform.hits.length}`);
     }
 
     return {

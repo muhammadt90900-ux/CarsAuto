@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Car,
   BarChart3, ShieldCheck, ChevronRight,
   Star, FileWarning, Store, Bell, ClipboardList,
-  Shield, Receipt, Crown,
+  Shield, Receipt, Crown, AlertOctagon, BadgeCheck,
 } from 'lucide-react';
 
 // Badge counts — in production these would come from a real-time API call
@@ -56,6 +56,8 @@ export function AdminSidebar({ className }: { className?: string }) {
       items: [
         { href: `/${locale}/admin/moderation`,    label: 'Moderation',   icon: ShieldCheck,    badge: BADGE_COUNTS.moderation   },
         { href: `/${locale}/admin/reports`,       label: 'Reports',      icon: FileWarning,    badge: BADGE_COUNTS.reports      },
+        { href: `/${locale}/admin/suspicious-activity`, label: 'Suspicious Activity', icon: AlertOctagon },
+        { href: `/${locale}/admin/verification`,  label: 'Verification', icon: BadgeCheck      },
         { href: `/${locale}/admin/audit-logs`,    label: 'Audit Logs',   icon: ClipboardList   },
       ],
     },
