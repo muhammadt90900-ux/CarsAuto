@@ -25,7 +25,7 @@ interface AuthState {
   isLoading:       boolean;
   isHydrated:      boolean;
 
-  login:          (email: string, password: string) => Promise<void>;
+  login:          (email: string, password: string) => Promise<AuthUser>;
   register:       (name: string, email: string, password: string, role?: string, phone?: string) => Promise<void>;
   logout:         () => Promise<void>;
   loadUser:       () => Promise<void>;
@@ -60,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('_dev_token', res.access_token);
           }
+          return res.user;
         } finally {
           set({ isLoading: false });
         }

@@ -9,7 +9,7 @@ import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
   Bell, User, Star, CreditCard, ChevronRight,
-  Plus, TrendingUp, Settings, LogOut,
+  Plus, TrendingUp, Settings, LogOut, Shield,
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -124,7 +124,9 @@ export function Sidebar({ className }: { className?: string }) {
             <p className="text-[.82rem] font-display font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
               CarsAuto<span className="text-[var(--gold)]">Pro</span>
             </p>
-            <p className="text-[10px] text-slate-400 dark:text-white/30">Seller Dashboard</p>
+            <p className="text-[10px] text-slate-400 dark:text-white/30">
+              {user?.role === 'ADMIN' ? 'Admin Account' : user?.role === 'DEALER' ? 'Dealer Dashboard' : 'Seller Dashboard'}
+            </p>
           </div>
         </Link>
       </div>
@@ -157,6 +159,29 @@ export function Sidebar({ className }: { className?: string }) {
         {accountItems.map(item => (
           <NavItem key={item.href} {...item} active={isActive(item.href)} />
         ))}
+
+        {/*
+          BUG FIX: this Sidebar is the only nav a signed-in user ever sees
+          (hardcoded "Seller Dashboard" below), and it never linked to
+          /admin regardless of role. An ADMIN account had no discoverable
+          way from here into the admin panel — they'd have to already know
+          the URL and type it manually. requireAdmin() on the /admin route
+          itself was always correct; this was purely a missing link.
+        */}
+        {user?.role === 'ADMIN' && (
+          <>
+            <p className="px-3 mt-4 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-white/20">
+              Admin
+            </p>
+            <NavItem
+              href={`/${locale}/admin`}
+              label="Admin Panel"
+              icon={Shield}
+              badge={null}
+              active={pathname.startsWith(`/${locale}/admin`)}
+            />
+          </>
+        )}
       </nav>
 
       {/* User card at bottom */}

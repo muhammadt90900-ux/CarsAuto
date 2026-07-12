@@ -31,11 +31,24 @@ export function LoginForm({ locale = 'en' }: { locale?: string }) {
   const onSubmit = async (data: LoginFormValues) => {
     setError('');
     try {
-      await login(data.email, data.password);
+      const user = await login(data.email, data.password);
       setSuccess(true);
       setTimeout(() => {
         const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-        router.push(returnTo || "/");
+        // BUG FIX: previously always pushed to returnTo || "/" regardless of
+        // role, so an ADMIN logging in normally landed on the public
+        // homepage with no visible way into /admin (the seller Sidebar
+        // never links there either). If the user wasn't sent here via an
+        // explicit returnTo (e.g. from requireAdmin() bouncing them to
+        // /login?next=/admin — handled by returnTo above already), admins
+        // now land on their own panel instead of the buyer/seller homepage.
+        if (returnTo) {
+          router.push(returnTo);
+        } else if (user.role === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       }, 600);
     } catch (err: any) {
       const msg =

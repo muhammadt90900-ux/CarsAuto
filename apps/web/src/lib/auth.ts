@@ -14,7 +14,11 @@ export async function requireAdmin(): Promise<void> {
   const refreshToken = cookieStore.get('refresh_token')?.value;
 
   if (!refreshToken) {
-    redirect('/en/login?next=/en/admin');
+    // BUG FIX: was `?next=/en/admin` — but LoginForm.tsx (and every other
+    // caller: AuthGuard.tsx, BottomNav.tsx) reads `?returnTo=`. With the
+    // wrong param name here, a logged-out admin bounced off /admin would
+    // land back on the homepage after logging in instead of back at /admin.
+    redirect('/en/login?returnTo=/en/admin');
   }
 
   // BUG FIX: this code runs on the Next.js *server* (inside the Docker
@@ -55,6 +59,6 @@ export async function requireAdmin(): Promise<void> {
   // a special NEXT_REDIRECT error that Next.js intercepts. Throwing it
   // inside our own try/catch above would get swallowed as a normal error.
   if (!isAdmin) {
-    redirect('/en/login?next=/en/admin');
+    redirect('/en/login?returnTo=/en/admin');
   }
 }
