@@ -8,7 +8,7 @@
 //   5. Image: priority=true on first card above the fold
 //   6. Pagination: real page state drives queryKey
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, Fragment } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
@@ -17,15 +17,18 @@ import {
   MapPin, Gauge, Fuel, Heart, ChevronDown, ChevronUp,
   Zap, Shield, ArrowUpDown, Filter,
 } from 'lucide-react';
-import { listingsApi } from '@/lib/api';
-import type { ListingListResponsePaged } from '@cars-auto/types';
+import { listingsApi, vehiclesApi } from '@/lib/api';
+import { MobileCarCard } from '@/components/mobile/MobileCarCard';
+import type { ListingListResponsePaged, Listing } from '@cars-auto/types';
 import { queryKeys } from '@/lib/queryKeys';
 import { formatCurrency } from '@cars-auto/utils';
 import { isRTL } from '@/i18n/config';
+import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
 
 /* ── Static filter data ─────────────────────────────────────────── */
-const MAKES = ['Toyota','KIA','Hyundai','BMW','Mercedes-Benz','Lexus','Honda',
-               'Nissan','Mitsubishi','Ford','BYD','Geely','Chery','Haval','Audi','Volkswagen'];
+// MAKES (a hardcoded ~16-brand list) used to live here and drove the
+// "Make / Brand" filter — removed along with the fake `make` filter it
+// powered; brands now come from the real vehiclesApi.getBrands() call.
 const BODY_TYPES = ['Sedan','SUV','Pickup','Coupe','Hatchback','Wagon','Convertible','Van'];
 const FUEL_TYPES = ['Petrol','Diesel','Hybrid','Electric','Plug-in Hybrid','LPG'];
 const TRANSMISSIONS = ['Automatic','Manual','CVT','Semi-Auto'];
@@ -103,6 +106,29 @@ function getCarAlt(car: any): string {
   return 'Car listing photo';
 }
 
+// Adapter for <MobileCarCard>, which expects a lighter, pre-formatted
+// display shape rather than the raw API listing object CarCard works
+// with directly. Reuses the same getCoverImage/getCarAlt/fmtPrice helpers
+// above so both card variants show identical data.
+function toMobileCarCardProps(car: any) {
+  const rawImages = Array.isArray(car?.images) ? car.images : [];
+  const images = rawImages
+    .map((img: any) => (typeof img === 'string' ? img : img?.url))
+    .filter((url: any) => typeof url === 'string' && url.trim() !== '');
+  return {
+    id: car.id,
+    title: getCarAlt(car),
+    price: fmtPrice(car),
+    year: car.year,
+    city: car.city,
+    mileage: car.mileage != null ? `${fmtNum.format(car.mileage)} km` : undefined,
+    fuel: car.fuelType,
+    images: images.length > 0 ? images : [getCoverImage(car)],
+    featured: !!car.featured,
+    condition: car.condition === 'New' ? ('new' as const) : ('used' as const),
+  };
+}
+
 /* ── Skeleton ───────────────────────────────────────────────────── */
 function SkeletonCard() {
   return (
@@ -139,13 +165,18 @@ const CarCard = memo(function CarCard({
   view: 'grid' | 'list';
   priority?: boolean;
 }) {
-  const [liked, setLiked] = useState(false);
+  // Previously: `const [liked, setLiked] = useState(false)` — a purely
+  // local toggle with no backend call at all, so "saving" a car here reset
+  // on every navigation/refresh and never showed up in Saved Cars or
+  // /dashboard/favorites. Now backed by the real favorites API.
+  const isSaved = useIsFavorited(car.id);
+  const { toggle } = useToggleFavorite();
   const [imgError, setImgError] = useState(false);
 
   const toggleLike = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setLiked(v => !v);
-  }, []);
+    toggle(car as Listing, !isSaved);
+  }, [car, isSaved, toggle]);
 
   if (view === 'list') {
     return (
@@ -198,11 +229,13 @@ const CarCard = memo(function CarCard({
           </div>
           <button
             onClick={toggleLike}
+            aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
+            aria-pressed={isSaved}
             className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center
                        bg-[var(--surface-100)] hover:bg-red-50 dark:bg-white/[0.06] dark:hover:bg-red-900/20
                        transition-colors self-center"
           >
-            <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-[var(--text-faint)]'}`} />
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : 'text-[var(--text-faint)]'}`} />
           </button>
         </article>
       </Link>
@@ -248,7 +281,7 @@ const CarCard = memo(function CarCard({
                        bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors"
             aria-label="Save listing"
           >
-            <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : 'text-white'}`} />
           </button>
           {timeAgo(car.createdAt) && (
             <div className="absolute bottom-3 start-3">
@@ -332,7 +365,7 @@ export function CarsMarketplaceClient({
   /**
    * F-PERF fix: server-fetched first page (cars/page.tsx), passed straight
    * into useQuery's initialData below. Only valid for queryKey
-   * { type: 'CAR', make, city, q, page: 1 } with the page-1 default filter
+   * { type: 'CAR', brandId, city, q, page: 1 } with the page-1 default filter
    * values — which is exactly what this component's own state defaults to
    * on mount, so there's no key mismatch. As soon as the user changes a
    * filter or page, React Query naturally falls through to a real client
@@ -341,7 +374,14 @@ export function CarsMarketplaceClient({
   initialData?: { data: any[]; total: number; page: number; limit: number; totalPages: number };
 }) {
   const [query,        setQuery]      = useState(initialSearch.q            ?? '');
-  const [make,         setMake]       = useState(initialSearch.make         ?? '');
+  // BUG FIX: was `const [make, setMake] = useState(...)`, sending a plain
+  // brand-name string as a `make` query param — a field the backend DTO
+  // (ListingQueryDto) doesn't declare at all, so it was silently dropped
+  // and this entire "Make / Brand" filter did nothing. Replaced with the
+  // same real cascading brandId/modelId approach MotorcyclesClient.tsx
+  // already uses correctly.
+  const [brandId,      setBrandId]    = useState(initialSearch.brandId      ?? '');
+  const [modelId,      setModelId]    = useState(initialSearch.modelId      ?? '');
   const [bodyType,     setBodyType]   = useState(initialSearch.bodyType     ?? '');
   const [fuelType,     setFuelType]   = useState(initialSearch.fuelType     ?? '');
   const [transmission, setTrans]      = useState(initialSearch.transmission ?? '');
@@ -361,29 +401,49 @@ export function CarsMarketplaceClient({
   // changing a filter before the real fetch resolves could briefly show
   // the page-1/unfiltered server data under the new filter's cache key.
   const matchesServerFetch =
-    page === 1 && make === (initialSearch.make ?? '') && city === (initialSearch.city ?? '') && query === (initialSearch.q ?? '');
+    page === 1 && brandId === (initialSearch.brandId ?? '') && city === (initialSearch.city ?? '') && query === (initialSearch.q ?? '');
 
   const { data, isLoading } = useQuery({
-    queryKey: queryKeys.listings.list({ type: 'CAR', make, city, q: query, page }),
-    queryFn:  () => listingsApi.getAll({ type: 'CAR', make, city, q: query, limit: 24, page }) as Promise<ListingListResponsePaged>,
+    queryKey: queryKeys.listings.list({ type: 'CAR', brandId, modelId, city, q: query, page }),
+    queryFn:  () => listingsApi.getAll({ type: 'CAR', brandId: brandId || undefined, modelId: modelId || undefined, city, q: query, limit: 24, page }) as Promise<ListingListResponsePaged>,
     placeholderData: (prev) => prev,
     ...(matchesServerFetch && initialData ? { initialData } : {}),
+  });
+
+  const { data: brands } = useQuery({
+    queryKey: queryKeys.vehicles.brands(),
+    queryFn: () => vehiclesApi.getBrands(),
+    staleTime: 60 * 60 * 1000,
+  });
+  const { data: models } = useQuery({
+    queryKey: queryKeys.vehicles.models(brandId),
+    queryFn: () => vehiclesApi.getModels(brandId),
+    enabled: !!brandId,
+    staleTime: 60 * 60 * 1000,
   });
 
   const cars = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
 
-  const activeCount = [make, bodyType, fuelType, transmission, condition, city, priceRange, colorFilter]
+  const activeCount = [brandId, modelId, bodyType, fuelType, transmission, condition, city, priceRange, colorFilter]
     .filter(Boolean).length;
 
   // PERF: stable callbacks — won't cause FilterSection/CarCard re-renders
   const resetAll = useCallback(() => {
-    setMake(''); setBodyType(''); setFuelType(''); setTrans('');
+    setBrandId(''); setModelId(''); setBodyType(''); setFuelType(''); setTrans('');
     setCondition(''); setCity(''); setPriceRange(''); setColor('');
     setPage(1);
   }, []);
 
-  const handleMake   = useCallback((m: string) => { setMake(v => v === m ? '' : m); setPage(1); }, []);
+  const selectBrand = useCallback((id: string) => {
+    setBrandId((cur) => (cur === id ? '' : id));
+    setModelId('');
+    setPage(1);
+  }, []);
+  const selectModel = useCallback((id: string) => {
+    setModelId((cur) => (cur === id ? '' : id));
+    setPage(1);
+  }, []);
   const handleBody   = useCallback((b: string) => { setBodyType(v => v === b ? '' : b); setPage(1); }, []);
   const handleFuel   = useCallback((f: string) => { setFuelType(v => v === f ? '' : f); setPage(1); }, []);
   const handleTrans  = useCallback((t: string) => { setTrans(v => v === t ? '' : t); setPage(1); }, []);
@@ -407,15 +467,32 @@ export function CarsMarketplaceClient({
 
       <FilterSection title="Make / Brand">
         <div className="space-y-1.5">
-          {MAKES.map(m => (
-            <label key={m} className="flex items-center gap-2.5 cursor-pointer group">
-              <input type="checkbox" checked={make === m} onChange={() => handleMake(m)}
-                className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--gold)]" />
-              <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{m}</span>
+          {(brands ?? []).map(b => (
+            <label key={b.id} className="flex items-center gap-2.5 cursor-pointer group">
+              <input type="radio" name="brand" checked={brandId === b.id} onChange={() => selectBrand(b.id)}
+                className="w-4 h-4 accent-[var(--gold)]" />
+              <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{b.name?.en ?? b.name}</span>
             </label>
           ))}
         </div>
       </FilterSection>
+
+      {brandId && (
+        <FilterSection title="Model">
+          <div className="space-y-1.5">
+            {(models ?? []).map(m => (
+              <label key={m.id} className="flex items-center gap-2.5 cursor-pointer group">
+                <input type="radio" name="model" checked={modelId === m.id} onChange={() => selectModel(m.id)}
+                  className="w-4 h-4 accent-[var(--gold)]" />
+                <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{m.name?.en ?? m.name}</span>
+              </label>
+            ))}
+            {models && models.length === 0 && (
+              <p className="text-xs text-[var(--text-faint)]">No models found for this brand</p>
+            )}
+          </div>
+        </FilterSection>
+      )}
 
       <FilterSection title="Body Type">
         <div className="flex flex-wrap gap-2">
@@ -580,10 +657,12 @@ export function CarsMarketplaceClient({
                 </div>
                 <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   <button onClick={() => setView('grid')}
+                    aria-label="Grid view" aria-pressed={view === 'grid'}
                     className={`p-2 transition-all duration-200 ${view==='grid' ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <Grid3X3 className="w-4 h-4"/>
                   </button>
                   <button onClick={() => setView('list')}
+                    aria-label="List view" aria-pressed={view === 'list'}
                     className={`p-2 transition-all duration-200 ${view==='list' ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                     <List className="w-4 h-4"/>
                   </button>
@@ -594,24 +673,24 @@ export function CarsMarketplaceClient({
             {/* Active filter chips */}
             {activeCount > 0 && (
               <div className="filter-chips-row flex gap-2 mb-5 pb-1">
-                {[make, bodyType, fuelType, transmission, condition, city, priceRange, colorFilter]
-                  .filter(Boolean)
-                  .map(v => (
-                    <span key={v}
+                {[
+                  { key: 'brand',    label: brands?.find(b => b.id === brandId)?.name?.en ?? (brands?.find(b => b.id === brandId)?.name as any), value: brandId, clear: () => { setBrandId(''); setModelId(''); } },
+                  { key: 'model',    label: models?.find(m => m.id === modelId)?.name?.en ?? (models?.find(m => m.id === modelId)?.name as any), value: modelId, clear: () => setModelId('') },
+                  { key: 'bodyType', label: bodyType,     value: bodyType,     clear: () => setBodyType('') },
+                  { key: 'fuelType', label: fuelType,     value: fuelType,     clear: () => setFuelType('') },
+                  { key: 'trans',    label: transmission, value: transmission, clear: () => setTrans('') },
+                  { key: 'cond',     label: condition,    value: condition,    clear: () => setCondition('') },
+                  { key: 'city',     label: city,         value: city,         clear: () => setCity('') },
+                  { key: 'price',    label: priceRange,   value: priceRange,   clear: () => setPriceRange('') },
+                  { key: 'color',    label: colorFilter,  value: colorFilter,  clear: () => setColor('') },
+                ]
+                  .filter(c => Boolean(c.value))
+                  .map(chip => (
+                    <span key={chip.key}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs
                                  bg-[var(--gold-subtle)] text-[var(--gold)] border border-[var(--border-gold)]">
-                      {v}
-                      <button onClick={() => {
-                        if (v === make)         setMake('');
-                        else if (v === bodyType)   setBodyType('');
-                        else if (v === fuelType)   setFuelType('');
-                        else if (v === transmission) setTrans('');
-                        else if (v === condition)  setCondition('');
-                        else if (v === city)       setCity('');
-                        else if (v === priceRange) setPriceRange('');
-                        else if (v === colorFilter) setColor('');
-                        setPage(1);
-                      }} className="hover:text-red-400 transition-colors">
+                      {chip.label}
+                      <button onClick={() => { chip.clear(); setPage(1); }} className="hover:text-red-400 transition-colors">
                         <X className="w-3 h-3"/>
                       </button>
                     </span>
@@ -655,8 +734,25 @@ export function CarsMarketplaceClient({
                 ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5'
                 : 'flex flex-col gap-3'}>
                 {cars.map((car: any, idx: number) => (
-                  // PERF: first 3 cards get priority=true for LCP
-                  <CarCard key={car.id} car={car} locale={locale} view={view} priority={idx < 3} />
+                  <Fragment key={car.id}>
+                    {/* Below `sm:` in grid view, the touch-optimized card
+                        (swipe-to-save, image carousel, long-press) takes
+                        over — CarCard remains untouched for list view and
+                        `sm:` and up. Both render server-side (no
+                        hydration risk); only one is visible per
+                        breakpoint via CSS, matching the same `sm:`
+                        breakpoint the grid itself already changes column
+                        count at. */}
+                    {view === 'grid' && (
+                      <div className="sm:hidden">
+                        <MobileCarCard car={toMobileCarCardProps(car)} locale={locale} rawListing={car} />
+                      </div>
+                    )}
+                    <div className={view === 'grid' ? 'hidden sm:block' : undefined}>
+                      {/* PERF: first 3 cards get priority=true for LCP */}
+                      <CarCard car={car} locale={locale} view={view} priority={idx < 3} />
+                    </div>
+                  </Fragment>
                 ))}
               </div>
             )}
@@ -692,6 +788,7 @@ export function CarsMarketplaceClient({
                 <Filter className="w-4 h-4 text-[var(--gold)]"/>Filters
               </h2>
               <button onClick={() => setSidebar(false)}
+                aria-label="Close filters"
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)] transition-colors">
                 <X className="w-4 h-4 text-[var(--text-muted)]"/>
               </button>

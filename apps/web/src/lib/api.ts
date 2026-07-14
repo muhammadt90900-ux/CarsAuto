@@ -392,6 +392,31 @@ export const adminApi = {
       `/admin/users/${id}/suspend`,
       { until, reason }
     ).then(r => r.data),
+
+  /**
+   * Sidebar badge counts. Previously hardcoded (`BADGE_COUNTS` in
+   * components/admin/Sidebar.tsx, with its own comment admitting
+   * "in production these would come from a real-time API call").
+   *
+   * Note on the reports count: /admin/reports has a pre-existing backend
+   * bug (see admin.controller.ts) where the status/targetType query params
+   * are declared but never actually forwarded to the service, so the
+   * service's own default (status='PENDING') always applies regardless of
+   * what we pass here. That default happens to be exactly what we want for
+   * a "needs attention" badge, so this works correctly today — but if that
+   * controller bug is ever fixed, this call needs to explicitly pass
+   * `status=PENDING` to keep meaning the same thing.
+   */
+  getBadgeCounts: async (): Promise<{ moderation: number; reports: number }> => {
+    const [moderationRes, reportsRes] = await Promise.all([
+      getApi().get<{ total: number }>('/admin/listings', { params: { status: 'PENDING', limit: 1 } }),
+      getApi().get<{ total: number }>('/admin/reports', { params: { limit: 1 } }),
+    ]);
+    return {
+      moderation: moderationRes.data.total ?? 0,
+      reports: reportsRes.data.total ?? 0,
+    };
+  },
 };
 
 // ── Users API ─────────────────────────────────────────────────────────────────
@@ -416,6 +441,9 @@ export const usersApi = {
 export const notificationsApi = {
   getAll: () =>
     api.get<{ data: NotificationItem[] }>('/notifications').then((r) => r.data),
+
+  getUnreadCount: () =>
+    api.get<{ count: number }>('/notifications/unread-count').then((r) => r.data),
 
   markRead: (id: string) =>
     api.patch<NotificationItem>(`/notifications/${id}/read`).then((r) => r.data),
@@ -471,5 +499,24 @@ export interface PermissionStatus {
   subscriptionEnd?:     string; // ISO date string from JSON
   plan?:                string;
 }
+
+// ── Public Stats API ─────────────────────────────────────────────────────
+// Backs the footer trust-signal stats (listings/dealers/cities/rating),
+// which were previously hardcoded fake numbers with no data source.
+export interface PublicStats {
+  activeListings: number;
+  verifiedDealers: number;
+  cities: number;
+  averageRating: number;
+}
+export const publicApi = {
+  getStats: () => cachedGet<PublicStats>('/public/stats', undefined, 10 * 60_000),
+};
+
+// ── Newsletter API ────────────────────────────────────────────────────────
+export const newsletterApi = {
+  subscribe: (email: string, locale?: string) =>
+    getApi().post<{ subscribed: true }>('/marketing/newsletter', { email, locale }).then(r => r.data),
+};
 
 export default api;

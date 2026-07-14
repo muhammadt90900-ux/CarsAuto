@@ -40,6 +40,8 @@ import {
 import { listingsApi, vehiclesApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
+import type { Listing } from '@cars-auto/types';
 
 // Search Architecture Phase 3: small helper so a facet count can be
 // rendered next to a filter option without every render site repeating
@@ -74,7 +76,10 @@ const MotoCard = memo(function MotoCard({
   view: 'grid' | 'list';
   priority?: boolean;
 }) {
-  const [liked, setLiked] = useState(false);
+  // Previously a purely local `useState(false)` toggle with no backend
+  // call — see the same fix in CarsMarketplaceClient's CarCard.
+  const isSaved = useIsFavorited(listing.id);
+  const { toggle } = useToggleFavorite();
   const [imgError, setImgError] = useState(false);
   const spec = listing.vehicleSpec ?? {};
   const title = listing.titleEn ?? listing.title?.en ?? '';
@@ -82,8 +87,8 @@ const MotoCard = memo(function MotoCard({
 
   const toggleLike = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setLiked((v) => !v);
-  }, []);
+    toggle(listing as Listing, !isSaved);
+  }, [listing, isSaved, toggle]);
 
   const metaChips = (
     <>
@@ -123,10 +128,12 @@ const MotoCard = memo(function MotoCard({
             </div>
           </div>
           <button onClick={toggleLike}
+                  aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
+                  aria-pressed={isSaved}
                   className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center
                              bg-[var(--surface-100)] hover:bg-red-50 dark:bg-white/[0.06] dark:hover:bg-red-900/20
                              transition-colors self-center">
-            <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-[var(--text-faint)]'}`} />
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : 'text-[var(--text-faint)]'}`} />
           </button>
         </article>
       </Link>
@@ -146,9 +153,11 @@ const MotoCard = memo(function MotoCard({
           )}
           {spec.condition === 'NEW' && <span className="absolute top-2 left-2 badge badge-green">New</span>}
           <button onClick={toggleLike}
+                  aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
+                  aria-pressed={isSaved}
                   className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center
                              bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors">
-            <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : 'text-white'}`} />
           </button>
         </div>
         <div className="p-4 flex flex-col flex-1">
@@ -504,7 +513,9 @@ export function MotorcyclesClient({
                 </select>
                 <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   {(['grid', 'list'] as const).map((v) => (
-                    <button key={v} onClick={() => setView(v)} className={`p-2 transition-colors ${view === v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
+                    <button key={v} onClick={() => setView(v)}
+                      aria-label={v === 'grid' ? 'Grid view' : 'List view'} aria-pressed={view === v}
+                      className={`p-2 transition-colors ${view === v ? 'bg-[var(--gold-subtle)] text-[var(--gold)]' : 'text-[var(--text-muted)] hover:text-[var(--gold)]'}`}>
                       {v === 'grid' ? <Grid3X3 className="w-4 h-4" /> : <List className="w-4 h-4" />}
                     </button>
                   ))}
@@ -551,7 +562,7 @@ export function MotorcyclesClient({
           <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
-              <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]"><X className="w-4 h-4" /></button>
+              <button onClick={() => setSidebarOpen(false)} aria-label="Close filters" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-5"><SidebarContent /></div>
           </div>

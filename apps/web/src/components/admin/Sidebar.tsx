@@ -2,6 +2,7 @@
 // components/admin/Sidebar.tsx — Full-featured admin sidebar with all 7 sections
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, Users, Car,
@@ -9,18 +10,36 @@ import {
   Star, FileWarning, Store, Bell, ClipboardList,
   Shield, Receipt, Crown, AlertOctagon, BadgeCheck,
 } from 'lucide-react';
-
-// Badge counts — in production these would come from a real-time API call
-const BADGE_COUNTS: Record<string, number> = {
-  moderation: 14,
-  reports: 23,
-  notifications: 3,
-};
+import { adminApi, notificationsApi } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 
 export function AdminSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const params   = useParams();
   const locale   = Array.isArray(params.locale) ? params.locale[0] : (params.locale ?? 'ku');
+
+  // Previously hardcoded (`BADGE_COUNTS = { moderation: 14, reports: 23,
+  // notifications: 3 }`, permanently, regardless of the real numbers — the
+  // component's own comment admitted this). Now sourced from the real
+  // moderation queue / reports / unread-notifications endpoints.
+  const { data: adminCounts } = useQuery({
+    queryKey: queryKeys.admin.badgeCounts(),
+    queryFn: () => adminApi.getBadgeCounts(),
+    staleTime: 30_000,
+    refetchInterval: 60_000, // admin queues change frequently; keep badges reasonably fresh
+  });
+  const { data: unread } = useQuery({
+    queryKey: queryKeys.notifications.unreadCount(),
+    queryFn: () => notificationsApi.getUnreadCount(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const BADGE_COUNTS = {
+    moderation: adminCounts?.moderation,
+    reports: adminCounts?.reports,
+    notifications: unread?.count,
+  };
 
   const groups = [
     {

@@ -25,6 +25,8 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CarBrandLogo } from '@/components/shared/CarBrandLogo';
 import { BadgeRow } from '@/components/trust/BadgeRow';
 import { TrustScoreChip } from '@/components/trust/TrustScoreChip';
+import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
+import { CarStickyActions } from '@/components/mobile/StickyAction';
 
 // PERF: hoisted Intl instances — created once per module, not per render/card
 const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -276,7 +278,15 @@ export interface CarDetailClientProps {
 }
 
 export function CarDetailClient({ listing, similarCars, locale }: CarDetailClientProps) {
-  const [isFavorite,    setIsFavorite]    = useState(false);
+  // Previously: `const [isFavorite, setIsFavorite] = useState(false)` — a
+  // purely local toggle repeated across 3 buttons in this file (compact
+  // header, mobile section, desktop sidebar), none of them backed by the
+  // real favorites API — the same bug already fixed on the /cars and
+  // /motorcycles list pages this session, just also present here on the
+  // detail page itself (arguably the single most important place to save
+  // a car from).
+  const isFavorite = useIsFavorited(listing.id);
+  const { toggle: toggleFavoriteApi } = useToggleFavorite();
   const [showShare,     setShowShare]     = useState(false);
   const [showReport,    setShowReport]    = useState(false);
   const [descExpanded,  setDescExpanded]  = useState(false);
@@ -296,7 +306,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
   // PERF: currentUrl derived client-side only (SSR safe)
   useEffect(() => { setCurrentUrl(window.location.href); }, []);
 
-  const toggleFavorite = useCallback(() => setIsFavorite(v => !v), []);
+  const toggleFavorite = useCallback(() => toggleFavoriteApi(listing as any, !isFavorite), [listing, isFavorite, toggleFavoriteApi]);
   const openShare      = useCallback(() => setShowShare(true), []);
   const closeShare     = useCallback(() => setShowShare(false), []);
   const openReport     = useCallback(() => setShowReport(true), []);
@@ -334,8 +344,12 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
 
   return (
     <>
-      {/* Sticky bar — improved visibility & CTA */}
-      <div className={cn('fixed top-0 inset-x-0 z-40 transition-all duration-300',
+      {/* Sticky bar — improved visibility & CTA.
+          Desktop-only (`hidden md:block`): on mobile, CarStickyActions
+          (a bottom-anchored bar — the standard mobile convention, within
+          thumb reach) takes over this job instead of stacking a second
+          fixed bar on top of an already-small screen. */}
+      <div className={cn('hidden md:block fixed top-0 inset-x-0 z-40 transition-all duration-300',
         stickyVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none')}>
         <div className="bg-[#070d18]/98 backdrop-blur-2xl border-b border-[rgba(201,168,76,0.2)] shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
@@ -603,6 +617,23 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
           <ReportModal targetType="LISTING" targetId={listing.id} onClose={closeReport} />
         </Suspense>
       )}
+
+      {/* Mobile bottom action bar — see the `hidden md:block` note on the
+          top sticky bar above for why this replaces it on small screens
+          instead of stacking alongside it. */}
+      <CarStickyActions
+        price={`${fmtPrice(listing.price, listing.currency)}`}
+        saved={isFavorite}
+        onSave={toggleFavorite}
+        onShare={openShare}
+        onContact={() => window.open(
+          `https://wa.me/${(listing.user?.phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent("Hi, I'm interested in: " + title)}`,
+          '_blank',
+        )}
+        onCall={() => {
+          if (listing.user?.phone) window.location.href = `tel:${listing.user.phone}`;
+        }}
+      />
     </>
   );
 }

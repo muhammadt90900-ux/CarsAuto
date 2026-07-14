@@ -18,6 +18,7 @@ import { useParams } from 'next/navigation';
 import { useQuery }  from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { listingsApi, api } from '@/lib/api';
+import { useFavorites, useToggleFavorite } from '@/hooks/useFavorites';
 import {
   Heart, MessageSquare, Car, Search,
   Plus, ChevronRight, Eye, Clock,
@@ -253,12 +254,12 @@ export default function BuyerDashboardHome() {
     staleTime: 60_000,
   });
 
-  // Fetch favorites
-  const { data: favorites = [], isLoading: favsLoading } = useQuery({
-    queryKey: ['favorites'],
-    queryFn:  () => api.get('/favorites').then(r => r.data),
-    staleTime: 60_000,
-  });
+  // Favorites — previously called a mismatched /favorites endpoint via an
+  // ad-hoc useQuery; now uses the shared hook (usersApi.getFavorites →
+  // /users/me/favorites), the same source of truth the heart button and
+  // the /dashboard/favorites page use, so counts and toggles stay in sync.
+  const { data: favorites = [], isLoading: favsLoading } = useFavorites();
+  const { toggle: toggleFavorite } = useToggleFavorite();
 
   // Monthly used count (client-side calculation from listings)
   const monthStart = startOfCurrentMonth();
@@ -463,25 +464,32 @@ export default function BuyerDashboardHome() {
                 (favorites as any[]).slice(0, 4).map((fav: any) => (
                   <Link
                     key={fav.id}
-                    href={`/${locale}/cars/${fav.listing?.id ?? fav.id}`}
+                    href={`/${locale}/cars/${fav.id}`}
                     className="flex items-center gap-3 px-4 py-3
                                hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
                   >
                     <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 flex-shrink-0
                                     overflow-hidden">
-                      {fav.listing?.coverImage
-                        ? <img src={fav.listing.coverImage} alt="" className="w-full h-full object-cover" />
+                      {fav.images?.[0]?.url
+                        ? <img src={fav.images[0].url} alt="" className="w-full h-full object-cover" />
                         : <Car className="w-4 h-4 text-gray-400 m-auto mt-3" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                        {fav.listing?.titleKu ?? fav.listing?.titleEn ?? 'Car'}
+                        {fav.title?.[locale] ?? fav.title?.en ?? 'Car'}
                       </p>
                       <p className="text-[10px] text-[#9e6e1e] dark:text-[#d4b45a] font-bold mt-0.5">
-                        {fav.listing?.price ? `$${Number(fav.listing.price).toLocaleString()}` : 'Ask'}
+                        {fav.price ? `$${Number(fav.price).toLocaleString()}` : 'Ask'}
                       </p>
                     </div>
-                    <Heart className="w-3.5 h-3.5 text-rose-400 fill-current flex-shrink-0" aria-hidden />
+                    <button
+                      type="button"
+                      aria-label="Remove from saved"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(fav, false); }}
+                      className="flex-shrink-0"
+                    >
+                      <Heart className="w-3.5 h-3.5 text-rose-400 fill-current" aria-hidden />
+                    </button>
                   </Link>
                 ))
               ) : (

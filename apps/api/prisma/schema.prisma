@@ -2023,3 +2023,22 @@ model SearchClick {
   @@index([listingId, createdAt])
   @@map("search_clicks")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEWSLETTER SUBSCRIBER
+// ─────────────────────────────────────────────────────────────────────────────
+// Backs the footer newsletter signup form (components/shared/Footer.tsx),
+// which previously had no backend at all — the form set local component
+// state to look successful without ever persisting anything. Deliberately
+// not tied to a User: anonymous visitors can subscribe without an
+// account, same as any marketing email capture form.
+model NewsletterSubscriber {
+  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  email        String    @unique
+  locale       String?   // which locale they were browsing in when they subscribed
+  subscribedAt DateTime  @default(now()) @map("subscribed_at")
+  unsubscribedAt DateTime? @map("unsubscribed_at")
+
+  @@index([email])
+  @@map("newsletter_subscribers")
+}

@@ -65,7 +65,14 @@ export default async function CarsPage({ params, searchParams }: Props) {
   }>("/listings", {
     revalidate: 30,
     tags: ["listings-list"],
-    searchParams: { type: "CAR", make: search.make, city: search.city, q: search.q, limit: 24, page: 1 },
+    // BUG FIX: was sending `make: search.make` — the listings DTO
+    // (apps/api/.../listings.controller.ts ListingQueryDto) has no `make`
+    // field at all, only `brandId`/`modelId` (UUIDs), so this was silently
+    // ignored server-side. No internal link ever generated a `?make=`
+    // URL, so impact was limited to a deep-linked/bookmarked URL, but the
+    // client-side filter sidebar had the exact same bug — see the fix in
+    // CarsMarketplaceClient.tsx.
+    searchParams: { type: "CAR", brandId: search.brandId, city: search.city, q: search.q, limit: 24, page: 1 },
   });
 
   return <CarsMarketplaceClient locale={locale} initialSearch={search} initialData={initialData ?? undefined} />;

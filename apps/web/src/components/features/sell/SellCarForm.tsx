@@ -29,8 +29,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { subscriptionApi, type PermissionStatus } from '@/lib/api';
+import { subscriptionApi, listingsApi, type PermissionStatus } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { SellProgress } from './SellProgress';
 import { UpgradePrompt } from './UpgradePrompt';
 import { goldBtn, ghostBtn, draftBtn } from './SellFormUI';
@@ -39,36 +41,100 @@ import { Step1BasicInfo } from './steps/Step1BasicInfo';
 import { Step2Details } from './steps/Step2Details';
 import { Step3Photos } from './steps/Step3Photos';
 
-export function SellCarForm() {
+export function SellCarForm({ listingId }: { listingId?: string } = {}) {
   const router = useRouter();
   const { user, isHydrated } = useAuthStore((s) => ({ user: s.user, isHydrated: s.isHydrated }));
+  const isEditMode = !!listingId;
+
+  // In edit mode, fetch the existing listing to pre-fill the form and to
+  // verify (client-side, in addition to the backend's own ownership check
+  // on PATCH) that the current user is actually the owner before showing
+  // the form as editable.
+  const { data: existingListing, isLoading: listingLoading, isError: listingError } = useQuery({
+    queryKey: queryKeys.listings.detail(listingId ?? ''),
+    queryFn: () => listingsApi.getById(listingId as string),
+    enabled: isEditMode,
+    staleTime: 0, // always fetch fresh — this is an edit form, not a browse view
+  });
 
   // Subscription/permission gating — whether to show the form at all.
   // Deliberately NOT inside useSellForm: this is access control, a
   // different concern from the form's own field state/validation.
+  //
+  // Skipped entirely in edit mode: trial/limit/dealer-only gating governs
+  // whether you can POST a new listing, not whether you can fix a typo or
+  // update the price on one you already have live. Gating edit access the
+  // same way would let a lapsed subscription hold a seller's own existing
+  // inventory hostage.
   const [permStatus,  setPermStatus]  = useState<PermissionStatus | null>(null);
-  const [permLoading, setPermLoading] = useState(true);
+  const [permLoading, setPermLoading] = useState(!isEditMode);
 
   useEffect(() => {
-    if (!isHydrated || !user) return;
+    if (!isHydrated || !user || isEditMode) return;
     setPermLoading(true);
     subscriptionApi
       .getStatus()
       .then(setPermStatus)
       .catch(() => setPermStatus({ canPost: false, reason: 'NOT_DEALER' }))
       .finally(() => setPermLoading(false));
-  }, [isHydrated, user]);
+  }, [isHydrated, user, isEditMode]);
 
-  const form = useSellForm(user);
+  // Only pass the fetched listing into the form once it has actually
+  // loaded — before that, useSellForm falls back to its normal blank
+  // INITIAL_VALUES, which is fine since we gate rendering on
+  // listingLoading below anyway.
+  const form = useSellForm(user, isEditMode ? existingListing : undefined);
   const { step, goNext, goBack, submitting, submitError, draftSaved, draftRestored, saveDraftNow, handleSubmit } = form;
 
   // ── Early returns (after all hooks) ───────────────────────────────────────
-  if (!isHydrated || permLoading) {
+  if (!isHydrated || permLoading || (isEditMode && listingLoading)) {
     return (
       <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-[var(--gold)] border-t-transparent rounded-full animate-spin" />
           <p className="text-[var(--text-faint)] text-sm">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditMode && (listingError || !existingListing)) {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}>
+          <div className="text-5xl mb-4">🔍</div>
+          <h2 className="text-xl font-bold text-white mb-1">Listing not found</h2>
+          <p className="text-[var(--text-faint)] text-sm mb-6">
+            This listing may have been removed, or you may not have permission to edit it.
+          </p>
+          <button onClick={() => router.push('/dashboard/listings')}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
+                       bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
+                       hover:from-[var(--gold-light)] hover:to-[var(--gold)] transition-all duration-200">
+            Back to My Listings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditMode && existingListing && user && existingListing.userId && existingListing.userId !== user.id) {
+    return (
+      <div className="min-h-screen bg-[var(--ink-950)] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-[rgba(255,255,255,0.08)] p-8 text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}>
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-xl font-bold text-white mb-1">Not your listing</h2>
+          <p className="text-[var(--text-faint)] text-sm mb-6">
+            You can only edit listings you own. (The server enforces this too — this is just a friendlier message than the API error.)
+          </p>
+          <button onClick={() => router.push('/dashboard/listings')}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl font-bold text-sm
+                       bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
+                       hover:from-[var(--gold-light)] hover:to-[var(--gold)] transition-all duration-200">
+            Back to My Listings
+          </button>
         </div>
       </div>
     );
@@ -139,11 +205,13 @@ export function SellCarForm() {
                           bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.2)]
                           text-[var(--gold)] text-xs font-semibold tracking-widest uppercase mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse" />
-            New Listing / ئیلانی نوێ
+            {isEditMode ? 'Edit Listing / دەستکاریکردنی ئیلان' : 'New Listing / ئیلانی نوێ'}
           </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Sell on CarsAuto</h1>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
+            {isEditMode ? 'Edit Your Listing' : 'Sell on CarsAuto'}
+          </h1>
           <p className="text-[var(--text-faint)] text-sm">
-            Cars · Accessories · Services — Kurdistan & Iraq
+            {isEditMode ? 'Update details, price, or photos — changes go live immediately' : 'Cars · Accessories · Services — Kurdistan & Iraq'}
           </p>
         </div>
 
@@ -174,9 +242,11 @@ export function SellCarForm() {
               {step > 1 ? (
                 <button onClick={goBack} className={ghostBtn}>← Back</button>
               ) : <div />}
-              <button type="button" onClick={saveDraftNow} className={draftBtn} dir="auto">
-                💾 دراف پاراستن · حفظ كمسودة · Save Draft
-              </button>
+              {!isEditMode && (
+                <button type="button" onClick={saveDraftNow} className={draftBtn} dir="auto">
+                  💾 دراف پاراستن · حفظ كمسودة · Save Draft
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-3">
               {draftSaved && (
@@ -191,9 +261,9 @@ export function SellCarForm() {
                   {submitting ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-[var(--ink-900)] border-t-transparent rounded-full animate-spin" />
-                      Publishing…
+                      {isEditMode ? 'Saving…' : 'Publishing…'}
                     </span>
-                  ) : '🚀 Publish Listing'}
+                  ) : (isEditMode ? '💾 Save Changes' : '🚀 Publish Listing')}
                 </button>
               )}
             </div>

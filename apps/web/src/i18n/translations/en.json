@@ -57,7 +57,10 @@
     "myListings": "My Listings",
     "notifications": "Notifications",
     "settings": "Settings",
-    "SellYourCar": "Sell Your Car"
+    "SellYourCar": "Sell Your Car",
+    "account": "Account",
+    "sellShort": "Sell",
+    "postNewListing": "Post new listing"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -275,7 +278,12 @@
     "upgradeNow": "Upgrade Now",
     "postYourCar": "Post Your Car",
     "sellerDashboard": "Seller Dashboard",
-    "monthlyListingsUsed": "{used} of {limit} listings used this month"
+    "monthlyListingsUsed": "{used} of {limit} listings used this month",
+    "noFollowedDealers": "You're not following any dealers yet",
+    "noFollowedDealersDesc": "Follow your favorite dealers to see their latest cars",
+    "latestListing": "Latest listing",
+    "noActiveListings": "No active listings",
+    "browseListings": "Browse listings"
   },
   "notifications": {
     "title": "Notifications",
@@ -455,5 +463,229 @@
         "noActiveListings": "No active listings"
       }
     }
+  },
+  "footer": {
+    "ourMarkets": "Our Markets",
+    "marketIraq": "Iraq & Kurdistan",
+    "marketIraqDetail": "Baghdad · Erbil · Sulaymaniyah · Duhok · Kirkuk",
+    "marketUae": "UAE",
+    "marketUaeDetail": "Dubai · Sharjah · Abu Dhabi",
+    "marketChina": "China",
+    "marketChinaDetail": "Import & Export Partner",
+    "stayAheadBadge": "Stay ahead of the market",
+    "newsletterTitle": "Get new listings before anyone else",
+    "newsletterDesc": "Weekly digest of the best deals, price drops, and new arrivals in Iraq, Kurdistan & UAE.",
+    "trustVerified": "Verified Listings",
+    "trustRated": "4.9★ Rated",
+    "trustInstant": "Instant Alerts",
+    "subscribedTitle": "You're in!",
+    "subscribedDesc": "First alert lands in your inbox soon.",
+    "newsletterFormLabel": "Newsletter subscription",
+    "emailSrLabel": "Email address for newsletter",
+    "emailPlaceholder": "your@email.com",
+    "subscribeBtn": "Subscribe",
+    "subscribing": "Subscribing...",
+    "subscribeAriaLabel": "Subscribe to newsletter",
+    "subscribeError": "Something went wrong. Please try again.",
+    "noSpam": "No spam. Unsubscribe anytime. 12,000+ subscribers.",
+    "premiumMarketplace": "Premium Marketplace",
+    "tagline": "The #1 automotive marketplace in Iraq, Kurdistan & the Gulf region.",
+    "statsListings": "Listings",
+    "statsListingsValue": "24k+",
+    "statsDealers": "Dealers",
+    "statsDealersValue": "1.2k+",
+    "statsCities": "Cities",
+    "statsCitiesValue": "8",
+    "statsRating": "Rating",
+    "statsRatingValue": "4.9★",
+    "headings": {
+      "browse": "Browse",
+      "services": "Services",
+      "cities": "Cities",
+      "company": "Company"
+    },
+    "links": {
+      "allCars": "All Cars",
+      "suvs4x4": "SUVs & 4×4",
+      "electric": "Electric",
+      "spareParts": "Spare Parts",
+      "motorcycles": "Motorcycles",
+      "newListings": "New Listings",
+      "sellYourCar": "Sell Your Car",
+      "becomeDealer": "Become a Dealer",
+      "dealerPortal": "Dealer Portal",
+      "premiumListing": "Premium Listing",
+      "erbil": "Erbil",
+      "sulaymaniyah": "Sulaymaniyah",
+      "duhok": "Duhok",
+      "kirkuk": "Kirkuk",
+      "baghdad": "Baghdad",
+      "basra": "Basra",
+      "dubai": "Dubai",
+      "sharjah": "Sharjah",
+      "aboutUs": "About Us",
+      "contact": "Contact",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfUse": "Terms of Use",
+      "cookiePolicy": "Cookie Policy",
+      "sitemap": "Sitemap"
+    },
+    "allRightsReserved": "All rights reserved. Iraq · Kurdistan · UAE"
+  },
+  "legal": {
+    "about": {
+      "title": "About CarsAuto",
+      "intro": "CarsAuto is the leading multilingual vehicle marketplace connecting buyers, sellers, and dealers across Iraq, Kurdistan, and the UAE.",
+      "missionTitle": "Our Mission",
+      "missionBody": "We're building the most trusted place to buy and sell cars, motorcycles, spare parts, and vehicle services in the region — with verified listings, transparent pricing, and tools that make the process safer for everyone involved.",
+      "offerTitle": "What We Offer",
+      "offerItems": [
+        "A verified marketplace for cars, motorcycles, spare parts, and vehicle accessories",
+        "A dedicated dealer portal with lead management, analytics, and subscription plans",
+        "Buyer protection tools including seller verification and fraud monitoring",
+        "AI-assisted listing tools, including smart pricing guidance and photo enhancement"
+      ],
+      "marketsTitle": "Where We Operate",
+      "marketsBody": "CarsAuto currently serves Baghdad, Erbil, Sulaymaniyah, Duhok, Kirkuk, and Basra in Iraq and Kurdistan, along with Dubai and Sharjah in the UAE.",
+      "contactCta": "Have a question or partnership inquiry? We'd love to hear from you."
+    },
+    "contact": {
+      "title": "Contact Us",
+      "intro": "We're here to help with anything from account questions to dealer partnerships.",
+      "generalTitle": "General Support",
+      "generalEmail": "support@carsauto.com",
+      "dealersTitle": "Dealer & Business Inquiries",
+      "dealersBody": "Interested in listing your dealership on CarsAuto? Get started through our dealer registration page.",
+      "dealersLinkLabel": "Register as a Dealer",
+      "trustTitle": "Report an Issue",
+      "trustBody": "If you've encountered a suspicious listing, a fraudulent seller, or a safety concern, please report it so our trust & safety team can review it.",
+      "trustEmail": "trust@carsauto.com",
+      "responseNote": "We aim to respond to all inquiries within 1–2 business days."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated: July 2026",
+      "intro": "This Privacy Policy explains how CarsAuto collects, uses, and protects your information when you use our marketplace.",
+      "sections": [
+        {
+          "heading": "1. Information We Collect",
+          "body": "We collect information you provide directly, such as your name, phone number, email address, and listing details, as well as information collected automatically, such as device data and usage patterns, to operate and improve the marketplace."
+        },
+        {
+          "heading": "2. How We Use Your Information",
+          "body": "We use your information to operate the marketplace, connect buyers and sellers, process payments and subscriptions, detect and prevent fraud, and communicate important updates about your account or listings."
+        },
+        {
+          "heading": "3. Cookies & Tracking",
+          "body": "We use cookies and similar technologies to keep you signed in, remember your preferences (such as language and currency), and understand how the marketplace is used so we can improve it. You can control cookies through your browser settings."
+        },
+        {
+          "heading": "4. How We Share Information",
+          "body": "We share information with dealers or sellers you contact directly, with service providers who help us operate the platform (such as payment processors), and with authorities where required by law. We do not sell your personal information to advertisers."
+        },
+        {
+          "heading": "5. Data Security",
+          "body": "We use industry-standard safeguards to protect your information, including encrypted connections and access controls. No system is perfectly secure, and we encourage you to use a strong, unique password."
+        },
+        {
+          "heading": "6. Your Rights",
+          "body": "You can access, correct, or request deletion of your personal information at any time through your account settings, or by contacting us directly."
+        },
+        {
+          "heading": "7. Data Retention",
+          "body": "We retain your information for as long as your account is active or as needed to provide our services, comply with legal obligations, and resolve disputes."
+        },
+        {
+          "heading": "8. Children's Privacy",
+          "body": "CarsAuto is not intended for use by anyone under 18. We do not knowingly collect information from minors."
+        },
+        {
+          "heading": "9. Changes to This Policy",
+          "body": "We may update this policy from time to time. We'll notify you of significant changes through the platform or by email."
+        }
+      ],
+      "cookiesAnchorTitle": "Cookie Policy",
+      "cookiesAnchorBody": "See Section 3 above for details on how we use cookies. Essential cookies (required for login and core functionality) cannot be disabled. Optional analytics cookies can be managed through your browser settings.",
+      "contactTitle": "Contact Us",
+      "contactBody": "Questions about this policy? Reach us at"
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "lastUpdated": "Last updated: July 2026",
+      "intro": "These Terms of Use govern your access to and use of the CarsAuto marketplace. By creating an account or using the platform, you agree to these terms.",
+      "sections": [
+        {
+          "heading": "1. Eligibility",
+          "body": "You must be at least 18 years old and able to form a legally binding contract to use CarsAuto."
+        },
+        {
+          "heading": "2. Your Account",
+          "body": "You're responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. Notify us immediately of any unauthorized use."
+        },
+        {
+          "heading": "3. Listings & Content",
+          "body": "Sellers are responsible for the accuracy of their listings, including vehicle condition, pricing, and photos. Listings must not be fraudulent, misleading, or for items you don't have the right to sell."
+        },
+        {
+          "heading": "4. Prohibited Conduct",
+          "body": "You may not use CarsAuto to post stolen or misrepresented vehicles, harass other users, manipulate rankings or reviews, or attempt to circumvent our fraud detection systems."
+        },
+        {
+          "heading": "5. Fees & Subscriptions",
+          "body": "Certain features, including dealer subscriptions and premium/featured listings, require payment. Fees are disclosed before purchase and are generally non-refundable except as required by law."
+        },
+        {
+          "heading": "6. Buyer & Seller Responsibility",
+          "body": "CarsAuto is a marketplace that connects buyers and sellers — we are not a party to transactions between them. Buyers are responsible for inspecting vehicles before purchase; sellers are responsible for honoring listed terms."
+        },
+        {
+          "heading": "7. Limitation of Liability",
+          "body": "CarsAuto provides the platform \"as is\" and is not liable for disputes, losses, or damages arising from transactions between users, to the maximum extent permitted by law."
+        },
+        {
+          "heading": "8. Suspension & Termination",
+          "body": "We may suspend or terminate accounts that violate these terms, engage in fraud, or pose a risk to other users, at our discretion."
+        },
+        {
+          "heading": "9. Governing Law",
+          "body": "These terms are governed by the laws of the jurisdictions in which CarsAuto operates, without regard to conflict-of-law principles."
+        },
+        {
+          "heading": "10. Changes to These Terms",
+          "body": "We may update these terms from time to time. Continued use of CarsAuto after changes take effect constitutes acceptance of the updated terms."
+        }
+      ],
+      "contactTitle": "Questions?",
+      "contactBody": "Reach us at"
+    },
+    "common": {
+      "backHome": "Back to Home",
+      "email": "Email"
+    }
+  },
+  "chat": {
+    "voiceNote": "Voice note",
+    "voiceNoteRecording": "Recording…",
+    "voiceNoteSending": "Sending voice note…",
+    "voiceNoteError": "Voice note failed to send",
+    "voiceNoteTooLong": "2 minute maximum",
+    "voiceNoteTooLarge": "File too large (2MB max)",
+    "voiceNoteRetry": "Retry",
+    "voiceNoteCancel": "Cancel",
+    "voiceNoteStop": "Stop recording",
+    "voiceNoteSend": "Send voice note",
+    "voiceNotePlay": "Play",
+    "voiceNotePause": "Pause",
+    "microphonePermission": "Microphone access denied. Check your browser settings.",
+    "rateLimit": "Sending voice notes too fast — please wait",
+    "inputPlaceholder": "Type a message…",
+    "noMessages": "Start the conversation"
+  },
+  "dealers": {
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followers": "Followers",
+    "followingSuccess": "You're now following this dealer",
+    "unfollowSuccess": "You've unfollowed this dealer"
   }
 }

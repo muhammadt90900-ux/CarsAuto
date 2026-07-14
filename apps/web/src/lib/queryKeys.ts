@@ -25,4 +25,16 @@ export const queryKeys = {
   auth: {
     me: () => ['auth', 'me'] as const,
   },
+  favorites: {
+    all: () => ['favorites'] as const,
+  },
+  admin: {
+    badgeCounts: () => ['admin', 'badge-counts'] as const,
+  },
+  notifications: {
+    unreadCount: () => ['notifications', 'unread-count'] as const,
+  },
+  public: {
+    stats: () => ['public', 'stats'] as const,
+  },
 } as const;

@@ -57,7 +57,10 @@
     "myListings": "我的列表",
     "notifications": "通知",
     "settings": "设置",
-    "SellYourCar": "出售您的汽车"
+    "SellYourCar": "出售您的汽车",
+    "account": "我的",
+    "sellShort": "卖车",
+    "postNewListing": "发布新车源"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -253,7 +256,14 @@
     "currentPlanBadge": "当前",
     "noFavorites": "暂无收藏",
     "noFavoritesDesc": "保存您喜欢的列表以在此处查看",
-    "title": "控制台"
+    "title": "控制台",
+    "savedListings": "已保存车源",
+    "followedDealers": "已关注经销商",
+    "noFollowedDealers": "您尚未关注任何经销商",
+    "noFollowedDealersDesc": "关注您喜爱的经销商以查看其最新车源",
+    "latestListing": "最新车源",
+    "noActiveListings": "暂无在售车源",
+    "browseListings": "浏览车源"
   },
   "notifications": {
     "newMessage": "来自{name}的新消息",
@@ -497,5 +507,204 @@
     "followers": "关注者",
     "followingSuccess": "关注成功",
     "unfollowSuccess": "已取消关注"
+  },
+  "footer": {
+    "ourMarkets": "我们的市场",
+    "marketIraq": "伊拉克与库尔德斯坦",
+    "marketIraqDetail": "巴格达 · 埃尔比勒 · 苏莱曼尼亚 · 杜霍克 · 基尔库克",
+    "marketUae": "阿联酋",
+    "marketUaeDetail": "迪拜 · 沙迦 · 阿布扎比",
+    "marketChina": "中国",
+    "marketChinaDetail": "进出口合作伙伴",
+    "stayAheadBadge": "抢先掌握市场动态",
+    "newsletterTitle": "抢先获取最新车源信息",
+    "newsletterDesc": "每周精选伊拉克、库尔德斯坦和阿联酋地区的优惠车源、降价信息和新上架车辆。",
+    "trustVerified": "已验证车源",
+    "trustRated": "4.9★ 评分",
+    "trustInstant": "即时提醒",
+    "subscribedTitle": "订阅成功！",
+    "subscribedDesc": "首条提醒即将发送至您的邮箱。",
+    "newsletterFormLabel": "订阅通讯",
+    "emailSrLabel": "订阅通讯的电子邮箱地址",
+    "emailPlaceholder": "your@email.com",
+    "subscribeBtn": "订阅",
+    "subscribing": "提交中...",
+    "subscribeAriaLabel": "订阅通讯",
+    "subscribeError": "出现问题，请重试。",
+    "noSpam": "绝无垃圾邮件，随时可取消订阅。已有12,000+订阅者。",
+    "premiumMarketplace": "高端市场平台",
+    "tagline": "伊拉克、库尔德斯坦及海湾地区排名第一的汽车交易平台。",
+    "statsListings": "车源",
+    "statsListingsValue": "24k+",
+    "statsDealers": "经销商",
+    "statsDealersValue": "1.2k+",
+    "statsCities": "城市",
+    "statsCitiesValue": "8",
+    "statsRating": "评分",
+    "statsRatingValue": "4.9★",
+    "headings": {
+      "browse": "浏览",
+      "services": "服务",
+      "cities": "城市",
+      "company": "公司"
+    },
+    "links": {
+      "allCars": "全部车辆",
+      "suvs4x4": "SUV与四驱",
+      "electric": "电动车",
+      "spareParts": "零配件",
+      "motorcycles": "摩托车",
+      "newListings": "最新车源",
+      "sellYourCar": "出售我的车",
+      "becomeDealer": "成为经销商",
+      "dealerPortal": "经销商入口",
+      "premiumListing": "精选推广",
+      "erbil": "埃尔比勒",
+      "sulaymaniyah": "苏莱曼尼亚",
+      "duhok": "杜霍克",
+      "kirkuk": "基尔库克",
+      "baghdad": "巴格达",
+      "basra": "巴士拉",
+      "dubai": "迪拜",
+      "sharjah": "沙迦",
+      "aboutUs": "关于我们",
+      "contact": "联系我们",
+      "privacyPolicy": "隐私政策",
+      "termsOfUse": "使用条款",
+      "cookiePolicy": "Cookie政策",
+      "sitemap": "网站地图"
+    },
+    "allRightsReserved": "版权所有。伊拉克 · 库尔德斯坦 · 阿联酋"
+  },
+  "legal": {
+    "about": {
+      "title": "关于 CarsAuto",
+      "intro": "CarsAuto 是连接伊拉克、库尔德斯坦和阿联酋买家、卖家与经销商的领先多语言汽车交易平台。",
+      "missionTitle": "我们的使命",
+      "missionBody": "我们致力于打造该地区最值得信赖的汽车、摩托车、零配件及汽车服务交易平台——提供经过验证的车源、透明的定价，以及让交易各方更安全的工具。",
+      "offerTitle": "我们提供什么",
+      "offerItems": [
+        "经过验证的汽车、摩托车、零配件及汽车配件交易市场",
+        "专为经销商打造的门户，包含客户线索管理、数据分析及订阅方案",
+        "买家保护工具，包括卖家验证和欺诈监测",
+        "AI 辅助的车源工具，包括智能定价指导和照片优化"
+      ],
+      "marketsTitle": "我们的服务范围",
+      "marketsBody": "CarsAuto 目前服务于伊拉克和库尔德斯坦的巴格达、埃尔比勒、苏莱曼尼亚、杜霍克、基尔库克和巴士拉，以及阿联酋的迪拜和沙迦。",
+      "contactCta": "有问题或合作意向？欢迎与我们联系。"
+    },
+    "contact": {
+      "title": "联系我们",
+      "intro": "无论是账户问题还是经销商合作，我们随时为您提供帮助。",
+      "generalTitle": "常规支持",
+      "generalEmail": "support@carsauto.com",
+      "dealersTitle": "经销商及商务合作",
+      "dealersBody": "想将您的经销商入驻 CarsAuto？请通过经销商注册页面开始。",
+      "dealersLinkLabel": "注册成为经销商",
+      "trustTitle": "举报问题",
+      "trustBody": "如果您发现可疑车源、欺诈性卖家或安全隐患，请告知我们，以便信任与安全团队进行审核。",
+      "trustEmail": "trust@carsauto.com",
+      "responseNote": "我们力争在1-2个工作日内回复所有咨询。"
+    },
+    "privacy": {
+      "title": "隐私政策",
+      "lastUpdated": "最后更新：2026年7月",
+      "intro": "本隐私政策说明了 CarsAuto 在您使用我们平台时如何收集、使用和保护您的信息。",
+      "sections": [
+        {
+          "heading": "1. 我们收集的信息",
+          "body": "我们收集您直接提供的信息，如姓名、电话号码、电子邮箱和车源详情，以及自动收集的信息，如设备数据和使用模式，用于运营和改进平台。"
+        },
+        {
+          "heading": "2. 我们如何使用您的信息",
+          "body": "我们使用您的信息来运营平台、连接买卖双方、处理付款和订阅、识别和防止欺诈，并就您的账户或车源发送重要通知。"
+        },
+        {
+          "heading": "3. Cookie 与跟踪技术",
+          "body": "我们使用 Cookie 及类似技术来保持您的登录状态、记住您的偏好设置（如语言和货币），并了解平台的使用情况以便改进。您可以通过浏览器设置控制 Cookie。"
+        },
+        {
+          "heading": "4. 我们如何共享信息",
+          "body": "我们会与您直接联系的卖家、协助我们运营平台的服务提供商（如支付处理机构）以及法律要求下的相关部门共享信息。我们不会将您的个人信息出售给广告商。"
+        },
+        {
+          "heading": "5. 数据安全",
+          "body": "我们采用行业标准的安全措施保护您的信息，包括加密连接和访问控制。没有系统是绝对安全的，建议您使用强且唯一的密码。"
+        },
+        {
+          "heading": "6. 您的权利",
+          "body": "您可以随时通过账户设置访问、更正或请求删除您的个人信息，或直接与我们联系。"
+        },
+        {
+          "heading": "7. 数据保留",
+          "body": "我们会在您的账户处于活跃状态期间，或在提供服务、履行法律义务及解决争议所需的期限内保留您的信息。"
+        },
+        {
+          "heading": "8. 儿童隐私",
+          "body": "CarsAuto 不面向18岁以下人群。我们不会在知情的情况下收集未成年人的信息。"
+        },
+        {
+          "heading": "9. 本政策的变更",
+          "body": "我们可能会不时更新本政策。重大变更将通过平台或电子邮件通知您。"
+        }
+      ],
+      "cookiesAnchorTitle": "Cookie 政策",
+      "cookiesAnchorBody": "关于我们如何使用 Cookie 的详情，请参见上方第3节。必要性 Cookie（登录及核心功能所需）无法禁用。可选的分析类 Cookie 可通过浏览器设置进行管理。",
+      "contactTitle": "联系我们",
+      "contactBody": "对本政策有疑问？请联系"
+    },
+    "terms": {
+      "title": "使用条款",
+      "lastUpdated": "最后更新：2026年7月",
+      "intro": "本使用条款规范您对 CarsAuto 平台的访问和使用。创建账户或使用本平台即表示您同意本条款。",
+      "sections": [
+        {
+          "heading": "1. 资格要求",
+          "body": "您必须年满18岁并具备订立具有法律约束力合同的能力方可使用 CarsAuto。"
+        },
+        {
+          "heading": "2. 您的账户",
+          "body": "您有责任对账户凭证保密，并对账户下发生的所有活动负责。如发现未经授权的使用，请立即通知我们。"
+        },
+        {
+          "heading": "3. 车源与内容",
+          "body": "卖家须对其车源信息的准确性负责，包括车况、价格和照片。车源不得存在欺诈、误导，或涉及无权出售的物品。"
+        },
+        {
+          "heading": "4. 禁止行为",
+          "body": "您不得利用 CarsAuto 发布被盗或虚假描述的车辆、骚扰其他用户、操纵排名或评价，或试图规避我们的欺诈检测系统。"
+        },
+        {
+          "heading": "5. 费用与订阅",
+          "body": "部分功能，包括经销商订阅及精选/推广车源，需要付费。费用在购买前会予以披露，除法律另有规定外一般不予退还。"
+        },
+        {
+          "heading": "6. 买卖双方责任",
+          "body": "CarsAuto 是连接买卖双方的平台——我们并非交易双方的当事方。买家有责任在购买前检查车辆；卖家有责任履行已公布的条款。"
+        },
+        {
+          "heading": "7. 责任限制",
+          "body": "CarsAuto 按“现状”提供平台，在法律允许的最大范围内，对用户间交易引起的纠纷、损失或损害不承担责任。"
+        },
+        {
+          "heading": "8. 暂停与终止",
+          "body": "对于违反本条款、涉及欺诈或对其他用户构成风险的账户，我们可自行决定暂停或终止。"
+        },
+        {
+          "heading": "9. 适用法律",
+          "body": "本条款受 CarsAuto 运营所在司法辖区的法律管辖。"
+        },
+        {
+          "heading": "10. 条款变更",
+          "body": "我们可能会不时更新本条款。条款变更生效后继续使用 CarsAuto 即表示接受更新后的条款。"
+        }
+      ],
+      "contactTitle": "还有疑问？",
+      "contactBody": "请联系"
+    },
+    "common": {
+      "backHome": "返回首页",
+      "email": "电子邮箱"
+    }
   }
 }

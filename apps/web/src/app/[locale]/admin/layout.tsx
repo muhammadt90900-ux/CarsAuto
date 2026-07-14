@@ -1,6 +1,13 @@
 // apps/web/src/app/[locale]/admin/layout.tsx
+import type { Metadata } from 'next';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
 import { requireAdmin } from '@/lib/auth';
+
+// Previously no robots directive at all — admin tooling was crawlable
+// with nothing telling search engines to stay out.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 type Props = {
   children: React.ReactNode;

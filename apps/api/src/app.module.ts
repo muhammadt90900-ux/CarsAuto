@@ -35,6 +35,8 @@ import { DuplicateDetectionModule } from './modules/duplicate-detection/duplicat
 import { SuspiciousActivityModule } from './modules/suspicious-activity/suspicious-activity.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -105,6 +107,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     SuspiciousActivityModule,
     ReviewsModule,
     ReportsModule,
+    StatsModule,
+    NewsletterModule,
   ],
 })
 export class AppModule implements NestModule {

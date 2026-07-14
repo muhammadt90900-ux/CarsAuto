@@ -15,6 +15,7 @@ import { ArrowRight } from 'lucide-react';
 import { listingsApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ListingCard, ListingCardGrid } from '@/components/shared/ListingCard';
+import { useFavorites, useToggleFavorite } from '@/hooks/useFavorites';
 import { ListingType, ListingStatus, ListingCondition, Currency, type Listing } from '@cars-auto/types';
 
 /**
@@ -88,6 +89,9 @@ function toListingCardProps(car: any, locale?: string) {
 /* ── Featured Cars Section ────────────────────────────────────── */
 export function FeaturedCars({ locale }: { locale?: string }) {
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'deals'>('featured');
+  const { data: favorites } = useFavorites();
+  const { toggle } = useToggleFavorite();
+  const favoritedIds = new Set((favorites ?? []).map((f) => f.id));
 
   // BUG FIX: Removed `featured: true` filter.
   // All new listings have featured=false by default (schema: `featured Boolean @default(false)`).
@@ -192,9 +196,17 @@ export function FeaturedCars({ locale }: { locale?: string }) {
             aria-labelledby={`tab-${activeTab}`}
           >
             <ListingCardGrid>
-              {cars.map((car: any) => (
-                <ListingCard key={car.id} {...toListingCardProps(car, locale)} />
-              ))}
+              {cars.map((car: any) => {
+                const cardProps = toListingCardProps(car, locale);
+                return (
+                  <ListingCard
+                    key={car.id}
+                    {...cardProps}
+                    saved={favoritedIds.has(car.id)}
+                    onToggleSave={(id, next) => toggle(cardProps.listing, next)}
+                  />
+                );
+              })}
             </ListingCardGrid>
           </div>
         ) : (

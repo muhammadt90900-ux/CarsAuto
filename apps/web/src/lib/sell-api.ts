@@ -86,6 +86,19 @@ export const sellApi = {
   },
 
   /**
+   * PATCH /listings/:id
+   * Updates a listing owned by the current user. The backend endpoint
+   * (listings.controller.ts) already existed and accepts a Partial of the
+   * same DTO create uses — this was simply never called from the frontend,
+   * since there was no edit UI wired up to it.
+   */
+  updateListing: async (id: string, payload: Partial<CreateListingPayload>): Promise<ListingCreatedResponse> => {
+    const res = await api.patch<ListingCreatedResponse>(`/listings/${id}`, payload);
+    invalidateListingsCache();
+    return res.data;
+  },
+
+  /**
    * POST /upload/image
    * Uploads the file as multipart/form-data and returns the public CDN URL
    * returned by the backend.

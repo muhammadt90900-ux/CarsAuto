@@ -101,7 +101,7 @@ export default function ReviewsPage() {
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
                       {review.reviewer?.avatar ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={review.reviewer.avatar} alt="" className="w-full h-full object-cover" />
+                        <img src={review.reviewer.avatar} alt={review.reviewer?.name ? `${review.reviewer.name}'s avatar` : 'Reviewer avatar'} className="w-full h-full object-cover" />
                       ) : (
                         review.reviewer?.name?.slice(0, 2).toUpperCase() ?? '??'
                       )}

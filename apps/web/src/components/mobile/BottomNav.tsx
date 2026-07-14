@@ -1,8 +1,15 @@
 'use client';
 // BottomNav — UX-Improved: active indicator bar, sell FAB with label, haptic feedback hint
+//
+// Previously hardcoded English labels ("Home", "Cars", "Parts", "Dealers",
+// "Account", "Sell") regardless of locale — every Kurdish/Arabic/Chinese
+// user saw English tab labels. Now driven by the same `common` namespace
+// keys the desktop Navbar already uses, so labels match the rest of the
+// site's language.
 
 import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
 import { Home, Car, Package, Store, User, Plus } from 'lucide-react';
 
@@ -15,6 +22,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
   const router   = useRouter();
   const user        = useAuthStore((s) => s.user);
   const isHydrated  = useAuthStore((s) => s.isHydrated);
+  const t = useTranslations('common');
 
   const handleSell = (e: React.MouseEvent) => {
     if (!isHydrated || !user) {
@@ -24,11 +32,11 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
   };
 
   const NAV_ITEMS = [
-    { href: `/${locale}`,             icon: Home,    label: 'Home'    },
-    { href: `/${locale}/cars`,        icon: Car,     label: 'Cars'    },
-    { href: `/${locale}/spare-parts`, icon: Package, label: 'Parts'   },
-    { href: `/${locale}/dealers`,     icon: Store,   label: 'Dealers' },
-    { href: `/${locale}/dashboard`,   icon: User,    label: 'Account' },
+    { href: `/${locale}`,             icon: Home,    label: t('home') },
+    { href: `/${locale}/cars`,        icon: Car,     label: t('cars') },
+    { href: `/${locale}/spare-parts`, icon: Package, label: t('spareParts') },
+    { href: `/${locale}/dealers`,     icon: Store,   label: t('dealers') },
+    { href: `/${locale}/dashboard`,   icon: User,    label: t('account') },
   ];
 
   const isActive = (href: string) =>
@@ -48,10 +56,10 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
           right: '1rem',
         }}
         onClick={handleSell}
-        aria-label="Post new listing"
+        aria-label={t('postNewListing')}
       >
         <Plus className="w-5 h-5 flex-shrink-0" />
-        <span className="text-[13px]">Sell</span>
+        <span className="text-[13px]">{t('sellShort')}</span>
       </Link>
 
       <nav

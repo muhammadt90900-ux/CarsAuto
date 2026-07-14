@@ -5,7 +5,11 @@
 import { Suspense } from 'react';
 import { VerifyEmailForm } from '@/components/features/auth/VerifyEmailForm';
 
-export const metadata = { title: 'Verify Email — CarsAuto' };
+export const metadata = {
+  title: 'Verify Email — CarsAuto',
+  // Token-bearing transactional page (?token=...) — shouldn't be indexed.
+  robots: { index: false, follow: false },
+};
 
 export default async function VerifyEmailPage({
   params,

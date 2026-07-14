@@ -3,6 +3,7 @@
 // Context-aware sticky action bars for mobile
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@cars-auto/utils';
 import { Heart, Share2, MessageCircle, Phone } from 'lucide-react';
 
@@ -13,16 +14,18 @@ const haptic = (ms = 15) => {
 
 /* ── Press-scale button ───────────────────────────────────────── */
 function PressButton({
-  children, onClick, className, variant = 'ghost', disabled = false
+  children, onClick, className, variant = 'ghost', disabled = false, 'aria-label': ariaLabel
 }: {
   children: React.ReactNode; onClick?: () => void;
   className?: string; variant?: 'ghost' | 'gold' | 'outline'; disabled?: boolean;
+  'aria-label'?: string;
 }) {
   const [pressed, setPressed] = useState(false);
 
   return (
     <button
       disabled={disabled}
+      aria-label={ariaLabel}
       onPointerDown={() => { setPressed(true); haptic(); }}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
@@ -59,14 +62,20 @@ function PressButton({
 
 /* ── Car listing action bar ───────────────────────────────────── */
 export function CarStickyActions({
-  price, onContact, onCall, onSave, saved = false, className
+  price, onContact, onCall, onSave, onShare, saved = false, className
 }: {
   price: string; onContact?: () => void; onCall?: () => void;
-  onSave?: () => void; saved?: boolean; className?: string;
+  onSave?: () => void; onShare?: () => void; saved?: boolean; className?: string;
 }) {
   const [isSaved, setIsSaved] = useState(saved);
   const [visible, setVisible] = useState(true);
   const lastScroll = useRef(0);
+  const t = useTranslations('listing');
+
+  // Previously only read `saved` as an initial value — if the listing was
+  // (un)saved from elsewhere on the page (e.g. the sidebar's own heart
+  // button), this bar's icon would silently fall out of sync with it.
+  useEffect(() => { setIsSaved(saved); }, [saved]);
 
   useEffect(() => {
     const fn = () => {
@@ -92,12 +101,15 @@ export function CarStickyActions({
       <div className="flex items-center gap-3 px-4 pt-3 pb-4">
         {/* Price */}
         <div className="flex-1 min-w-0">
-          <p className="text-[0.7rem] text-white/40 font-medium uppercase tracking-widest">Price</p>
+          <p className="text-[0.7rem] text-white/40 font-medium uppercase tracking-widest">{t('price')}</p>
           <p className="text-xl font-display font-extrabold text-[var(--gold)] leading-tight">{price}</p>
         </div>
 
         {/* Save */}
-        <PressButton onClick={() => { setIsSaved(v => !v); onSave?.(); haptic(isSaved ? 10 : 25); }}>
+        <PressButton
+          onClick={() => { setIsSaved(v => !v); onSave?.(); haptic(isSaved ? 10 : 25); }}
+          aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
+        >
           <Heart
             className={cn('w-5 h-5 transition-all duration-200',
               isSaved ? 'fill-[#e94560] stroke-[#e94560]' : 'stroke-white/50'
@@ -106,18 +118,18 @@ export function CarStickyActions({
         </PressButton>
 
         {/* Share */}
-        <PressButton>
+        <PressButton onClick={onShare} aria-label="Share this listing">
           <Share2 className="w-5 h-5 stroke-white/50" />
         </PressButton>
 
         {/* Contact */}
         <PressButton variant="gold" onClick={onContact} className="flex-1 max-w-[140px]">
           <MessageCircle className="w-4 h-4" />
-          <span>Contact</span>
+          <span>{t('contactSeller')}</span>
         </PressButton>
 
         {/* Call */}
-        <PressButton variant="outline" onClick={onCall}>
+        <PressButton variant="outline" onClick={onCall} aria-label="Call seller">
           <Phone className="w-5 h-5" />
         </PressButton>
       </div>

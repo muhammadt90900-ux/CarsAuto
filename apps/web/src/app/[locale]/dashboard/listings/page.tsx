@@ -29,8 +29,6 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: React.El
   EXPIRED: { label: 'Expired', cls: 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400',                icon: XCircle },
 };
 
-// Mock listings for when API returns nothing
-
 export default function MyListingsPage() {
   const t  = useTranslations('dashboard');
   const params = useParams();

@@ -16,6 +16,10 @@ const STATIC_ROUTES = [
   '/services',
   '/dealers',
   '/dealers/register',
+  '/about',
+  '/contact',
+  '/privacy-policy',
+  '/terms-of-use',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

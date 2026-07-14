@@ -2,11 +2,12 @@
 // components/mobile/MobileCarCard.tsx
 // Touch-optimized car card with swipe-to-save, press feedback, image carousel
 
-import { useState, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
+import { Link } from '@/i18n/navigation';
 import { Heart, MapPin, Gauge, Fuel, Star, Share2, Zap } from 'lucide-react';
 import { cn } from '@cars-auto/utils';
 import { useLongPress, useSwipe } from '@/hooks/useMobileGestures';
+import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
 
 const haptic = (ms = 15) => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(ms);
@@ -38,18 +39,46 @@ interface MobileCarCardProps {
     rating?: number;
   };
   locale: string;
+  /** Real persisted saved state from a parent (e.g. useIsFavorited). If
+   * omitted, the card sources this itself via useIsFavorited(car.id). */
+  saved?: boolean;
   onSave?: (id: string) => void;
+  /** The full raw listing object (as returned by the listings API), used
+   * for the optimistic favorites-cache insert when saving. `car` above is
+   * a display-formatted DTO (price as a pre-formatted string, etc.) that
+   * isn't shaped right for that cache — if omitted, saving still works
+   * (dedupes correctly by id) but the optimistic entry will be minimal
+   * until the next real refetch. */
+  rawListing?: any;
   className?: string;
 }
 
-export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardProps) {
-  const [saved, setSaved] = useState(false);
+export function MobileCarCard({ car, locale, saved: savedProp, onSave, rawListing, className }: MobileCarCardProps) {
+  // Self-sufficient by default (mirrors CarCard/MotoCard on the desktop
+  // grid) — a parent can still override via the `saved`/`onSave` props
+  // above if it wants to manage the state itself instead.
+  const isFavoritedReal = useIsFavorited(car.id);
+  const { toggle } = useToggleFavorite();
+  const [saved, setSaved] = useState(savedProp ?? isFavoritedReal);
   const [imgIdx, setImgIdx] = useState(0);
   const [cardDx, setCardDx] = useState(0);
   const [pressing, setPressing] = useState(false);
   const [showSwipe, setShowSwipe] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
+
+  useEffect(() => {
+    setSaved(savedProp ?? isFavoritedReal);
+  }, [savedProp, isFavoritedReal]);
+
+  const commitSave = (next: boolean) => {
+    setSaved(next);
+    if (onSave) {
+      onSave(car.id);
+    } else {
+      toggle(rawListing ?? { id: car.id }, next);
+    }
+  };
 
   const images = car.images?.length ? car.images : ['/placeholder.jpg'];
   const threshold = 80;
@@ -81,8 +110,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
   const onTouchEnd = () => {
     dragging.current = false;
     if (cardDx >= threshold) {
-      setSaved(v => !v);
-      onSave?.(car.id);
+      commitSave(!saved);
       haptic(30);
     }
     setCardDx(0);
@@ -104,7 +132,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
     >
       <SaveIndicator visible={showSwipe} />
 
-      <Link href="/cars/${car.id}">
+      <Link href={`/cars/${car.id}`}>
         <article
           className={cn(
             'relative card-interactive',
@@ -179,8 +207,7 @@ export function MobileCarCard({ car, locale, onSave, className }: MobileCarCardP
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setSaved(v => !v);
-                onSave?.(car.id);
+                commitSave(!saved);
                 haptic(saved ? 10 : 25);
               }}
               aria-label={saved ? 'Remove from saved' : 'Save listing'}
