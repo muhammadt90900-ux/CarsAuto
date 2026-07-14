@@ -20,6 +20,8 @@ const FOOTER_LINKS: Record<string, { key: string; href: string }[]> = {
     { key: 'suvs4x4',      href: '/cars?bodyType=SUV' },
     { key: 'electric',     href: '/cars?fuelType=Electric' },
     { key: 'spareParts',   href: '/spare-parts' },
+    { key: 'accessories',  href: '/accessories' },
+    { key: 'carServices',  href: '/services' },
     { key: 'motorcycles',  href: '/motorcycles' },
     { key: 'newListings',  href: '/cars?sort=newest' },
   ],

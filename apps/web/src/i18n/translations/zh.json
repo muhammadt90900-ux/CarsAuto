@@ -60,7 +60,9 @@
     "SellYourCar": "出售您的汽车",
     "account": "我的",
     "sellShort": "卖车",
-    "postNewListing": "发布新车源"
+    "postNewListing": "发布新车源",
+    "accessories": "配件",
+    "services": "服务"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -572,7 +574,9 @@
       "privacyPolicy": "隐私政策",
       "termsOfUse": "使用条款",
       "cookiePolicy": "Cookie政策",
-      "sitemap": "网站地图"
+      "sitemap": "网站地图",
+      "accessories": "汽车配件",
+      "carServices": "汽车服务"
     },
     "allRightsReserved": "版权所有。伊拉克 · 库尔德斯坦 · 阿联酋"
   },

@@ -60,7 +60,9 @@
     "SellYourCar": "بيع سيارتك",
     "account": "الحساب",
     "sellShort": "بيع",
-    "postNewListing": "نشر إعلان جديد"
+    "postNewListing": "نشر إعلان جديد",
+    "accessories": "إكسسوارات",
+    "services": "الخدمات"
   },
   "home": {
     "heroTitle": "ابحث عن سيارات ودراجات وقطع غيار",
@@ -347,7 +349,33 @@
       "convertedNote": "بسعر الصرف الحالي"
     },
     "china": "الصين",
-    "payments": "المدفوعات"
+    "payments": "المدفوعات",
+    "sell360": {
+      "sectionTitle": "مجموعة صور 360°",
+      "optional": "اختياري",
+      "emptyHint": "أضف ١٨-٣٦ صورة للسيارة، كل ١٠° حولها",
+      "readyHint": "{count} إطار جاهز — تم تفعيل عرض 360°",
+      "progressHint": "تم رفع {count}/١٨ إطاراً — يلزم {remaining} إطاراً إضافياً",
+      "instructions": "دُر حول السيارة والتقط صورة كل ١٠°، ابدأ من الزاوية الأمامية اليسرى واتجه باتجاه عقارب الساعة. يلزم ١٨ صورة على الأقل.",
+      "bulkUpload": "رفع الإطارات دفعة واحدة",
+      "viewerReady": "عرض 360° جاهز — يمكن للمشترين تدوير السيارة",
+      "removeFrame": "حذف الإطار {n}",
+      "uploadFrame": "رفع الإطار {n} ({angle}°)"
+    },
+    "viewer360": {
+      "tabLabel": "عرض 360°",
+      "tabPhotos": "الصور",
+      "dragHint": "اسحب للتدوير",
+      "autoRotate": "تدوير تلقائي",
+      "stopRotate": "إيقاف التدوير",
+      "fullscreen": "ملء الشاشة",
+      "exitFullscreen": "الخروج من ملء الشاشة",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "loading": "جارٍ تحميل عرض 360°...",
+      "frameCounter": "{current} / {total}",
+      "badge": "360°"
+    }
   },
   "currency": {
     "converting": "جارٍ تحويل السعر...",
@@ -530,7 +558,9 @@
       "privacyPolicy": "سياسة الخصوصية",
       "termsOfUse": "شروط الاستخدام",
       "cookiePolicy": "سياسة ملفات تعريف الارتباط",
-      "sitemap": "خريطة الموقع"
+      "sitemap": "خريطة الموقع",
+      "accessories": "إكسسوارات السيارات",
+      "carServices": "خدمات السيارات"
     },
     "allRightsReserved": "جميع الحقوق محفوظة. العراق · كردستان · الإمارات"
   },

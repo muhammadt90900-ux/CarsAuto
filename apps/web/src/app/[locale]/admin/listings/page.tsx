@@ -53,6 +53,12 @@ export default function AdminListingsPage() {
   const [page, setPage]             = useState(1);
   const [acting, setActing]         = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ListingRow | null>(null);
+  // Approve/reject/toggleFeatured/delete below previously had no catch
+  // block at all — a failed action silently did nothing, with zero
+  // feedback to the admin about why. This surfaces real errors without
+  // replacing the whole list (see `error` above, which does that for the
+  // initial fetch).
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchListings = useCallback(() => {
     setLoading(true);
@@ -82,9 +88,12 @@ export default function AdminListingsPage() {
 
   const approve = async (id: string) => {
     setActing(id);
+    setActionError(null);
     try {
       await api.patch(`/admin/listings/${id}/approve`);
       fetchListings();
+    } catch (err: any) {
+      setActionError(err?.response?.data?.message ?? 'Failed to approve listing — please try again.');
     } finally {
       setActing(null);
     }
@@ -92,9 +101,12 @@ export default function AdminListingsPage() {
 
   const reject = async (id: string) => {
     setActing(id);
+    setActionError(null);
     try {
       await api.patch(`/admin/listings/${id}/reject`);
       fetchListings();
+    } catch (err: any) {
+      setActionError(err?.response?.data?.message ?? 'Failed to reject listing — please try again.');
     } finally {
       setActing(null);
     }
@@ -102,9 +114,12 @@ export default function AdminListingsPage() {
 
   const toggleFeatured = async (listing: ListingRow) => {
     setActing(listing.id);
+    setActionError(null);
     try {
       await api.patch(`/admin/listings/${listing.id}/featured`, { featured: !listing.featured });
       fetchListings();
+    } catch (err: any) {
+      setActionError(err?.response?.data?.message ?? 'Failed to update featured status — please try again.');
     } finally {
       setActing(null);
     }
@@ -113,10 +128,14 @@ export default function AdminListingsPage() {
   const deleteListing = async () => {
     if (!confirmDelete) return;
     setActing(confirmDelete.id);
+    setActionError(null);
     try {
       await api.delete(`/admin/listings/${confirmDelete.id}`);
       setConfirmDelete(null);
       fetchListings();
+    } catch (err: any) {
+      setActionError(err?.response?.data?.message ?? 'Failed to delete listing — please try again.');
+      setConfirmDelete(null);
     } finally {
       setActing(null);
     }
@@ -151,6 +170,16 @@ export default function AdminListingsPage() {
           )}
         </div>
       </div>
+
+      {actionError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400/60 hover:text-red-400 transition-colors">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

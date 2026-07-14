@@ -354,6 +354,8 @@ export function Navbar({ locale }: NavbarProps) {
     { href: '/cars',        label: t('cars') },
     { href: '/motorcycles', label: t('motorcycles') },
     { href: '/spare-parts', label: t('spareParts') },
+    { href: '/accessories', label: t('accessories') },
+    { href: '/services',    label: t('services') },
     { href: '/dealers',     label: t('dealers') },
   ];
 

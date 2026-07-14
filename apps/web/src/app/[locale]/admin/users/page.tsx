@@ -93,6 +93,12 @@ export default function AdminUsersPage() {
   const [page, setPage]                 = useState(1);
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [actionMenu, setActionMenu]     = useState<string | null>(null);
+  // doBan/doSuspend/doRoleChange below were reusing `error` (which
+  // replaces the entire user table with a full-page error state) for
+  // action failures too — meaning a failed ban/suspend/role-change wiped
+  // out the whole table the admin was working in. Separate toast for
+  // action failures instead.
+  const [actionError, setActionError]   = useState<string | null>(null);
   const [modal, setModal]               = useState<{ type: 'ban' | 'suspend' | 'role'; user: User } | null>(null);
   const [submitting, setSubmitting]     = useState(false);
   const [suspendDays, setSuspendDays]   = useState(7);
@@ -146,13 +152,14 @@ export default function AdminUsersPage() {
 
   const doBan = async (userId: string, banned: boolean) => {
     setSubmitting(true);
+    setActionError(null);
     try {
       await adminApi.banUser(userId, banned);
       setActionMenu(null);
       setModal(null);
       fetchUsers();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to update ban status');
+      setActionError(err?.response?.data?.message ?? 'Failed to update ban status');
     } finally {
       setSubmitting(false);
     }
@@ -160,6 +167,7 @@ export default function AdminUsersPage() {
 
   const doSuspend = async (userId: string, days: number, reason: string) => {
     setSubmitting(true);
+    setActionError(null);
     try {
       const until = new Date(Date.now() + days * 86_400_000).toISOString();
       await adminApi.suspendUser(userId, until, reason || undefined);
@@ -167,7 +175,7 @@ export default function AdminUsersPage() {
       setModal(null);
       fetchUsers();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to suspend user');
+      setActionError(err?.response?.data?.message ?? 'Failed to suspend user');
     } finally {
       setSubmitting(false);
     }
@@ -175,10 +183,15 @@ export default function AdminUsersPage() {
 
   const liftSuspension = async (userId: string) => {
     setSubmitting(true);
+    setActionError(null);
     try {
       await adminApi.suspendUser(userId, null);
       setActionMenu(null);
       fetchUsers();
+    } catch (err: any) {
+      // BUG FIX: previously had no catch at all — a failed unsuspend
+      // silently did nothing, with zero feedback.
+      setActionError(err?.response?.data?.message ?? 'Failed to lift suspension');
     } finally {
       setSubmitting(false);
     }
@@ -186,12 +199,13 @@ export default function AdminUsersPage() {
 
   const doRoleChange = async (userId: string, role: Role) => {
     setSubmitting(true);
+    setActionError(null);
     try {
       await adminApi.setUserRole(userId, role);
       setModal(null);
       fetchUsers();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Failed to change role');
+      setActionError(err?.response?.data?.message ?? 'Failed to change role');
     } finally {
       setSubmitting(false);
     }
@@ -234,6 +248,16 @@ export default function AdminUsersPage() {
           );
         })}
       </div>
+
+      {actionError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400/60 hover:text-red-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -283,7 +307,21 @@ export default function AdminUsersPage() {
           <span className="text-sm font-semibold text-[var(--gold)]">{selected.size} selected</span>
           <div className="h-4 w-px bg-[rgba(201,168,76,0.3)]" />
           <button
-            onClick={() => Promise.all(Array.from(selected).map(id => adminApi.banUser(id, true))).then(() => { setSelected(new Set()); fetchUsers(); })}
+            onClick={() => {
+              setActionError(null);
+              // Promise.allSettled (not .all): if one ban fails, the
+              // others should still go through instead of Promise.all's
+              // all-or-nothing rejection — and we can tell the admin
+              // exactly how many succeeded vs failed.
+              Promise.allSettled(Array.from(selected).map(id => adminApi.banUser(id, true))).then((results) => {
+                const failed = results.filter(r => r.status === 'rejected').length;
+                if (failed > 0) {
+                  setActionError(`${failed} of ${results.length} users could not be banned — please try again.`);
+                }
+                setSelected(new Set());
+                fetchUsers();
+              });
+            }}
             className="text-xs font-semibold text-white/60 hover:text-red-400 transition-colors"
           >
             Ban All

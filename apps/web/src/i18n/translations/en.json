@@ -60,7 +60,9 @@
     "SellYourCar": "Sell Your Car",
     "account": "Account",
     "sellShort": "Sell",
-    "postNewListing": "Post new listing"
+    "postNewListing": "Post new listing",
+    "accessories": "Accessories",
+    "services": "Services"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -462,6 +464,32 @@
         "latestListing": "Latest Listing",
         "noActiveListings": "No active listings"
       }
+    },
+    "sell360": {
+      "sectionTitle": "360° Photo Set",
+      "optional": "Optional",
+      "emptyHint": "Add 18–36 photos of the vehicle, one every 10° around it",
+      "readyHint": "{count} frames ready — 360° view enabled",
+      "progressHint": "{count}/18 frames uploaded — {remaining} more needed",
+      "instructions": "Walk around the vehicle taking a photo every 10°, starting from the front-left corner and moving clockwise. At least 18 photos required.",
+      "bulkUpload": "Bulk upload frames",
+      "viewerReady": "360° view ready — buyers can rotate the vehicle",
+      "removeFrame": "Remove frame {n}",
+      "uploadFrame": "Upload frame {n} ({angle}°)"
+    },
+    "viewer360": {
+      "tabLabel": "360° View",
+      "tabPhotos": "Photos",
+      "dragHint": "Drag to rotate",
+      "autoRotate": "Auto-rotate",
+      "stopRotate": "Stop rotating",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "loading": "Loading 360° view…",
+      "frameCounter": "{current} / {total}",
+      "badge": "360°"
     }
   },
   "footer": {
@@ -528,7 +556,9 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfUse": "Terms of Use",
       "cookiePolicy": "Cookie Policy",
-      "sitemap": "Sitemap"
+      "sitemap": "Sitemap",
+      "accessories": "Car Accessories",
+      "carServices": "Car Services"
     },
     "allRightsReserved": "All rights reserved. Iraq · Kurdistan · UAE"
   },

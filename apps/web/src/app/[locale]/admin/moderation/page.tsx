@@ -45,6 +45,11 @@ export default function AdminModerationPage() {
   const [page, setPage]             = useState(1);
   const [acting, setActing]         = useState<string | null>(null);
   const [preview, setPreview]       = useState<ListingRow | null>(null);
+  // Separate from `error` above (which replaces the whole queue view) —
+  // this is a small, non-disruptive toast specifically for action
+  // (approve/reject) failures, so a failed action doesn't hide the list
+  // the admin was just looking at.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchQueue = useCallback(() => {
     setLoading(true);
@@ -75,13 +80,18 @@ export default function AdminModerationPage() {
 
   const act = async (id: string, action: 'approve' | 'reject') => {
     setActing(id);
+    setActionError(null);
     try {
       await api.patch(`/admin/listings/${id}/${action}`);
       fetchQueue();
-    } catch {
-      setItems(prev => prev.map(item =>
-        item.id === id ? { ...item, status: action === 'approve' ? 'ACTIVE' : 'REJECTED' } : item
-      ));
+    } catch (err: any) {
+      // BUG FIX: this used to optimistically set the item's status to
+      // ACTIVE/REJECTED *in the catch block* — i.e. on failure, it told
+      // the admin the action succeeded anyway, with the real backend
+      // state never actually changing. An admin could believe they'd
+      // approved or rejected a listing when nothing happened. Now shows
+      // a real error and leaves the item's displayed status untouched.
+      setActionError(err?.response?.data?.message ?? `Failed to ${action} listing — please try again.`);
     } finally {
       setActing(null);
       setPreview(null);
@@ -149,6 +159,16 @@ export default function AdminModerationPage() {
           ))}
         </div>
       </div>
+
+      {actionError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400/60 hover:text-red-400 transition-colors">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
