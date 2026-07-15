@@ -7,6 +7,7 @@
 // POST /admin/verification/:id/reject.
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import {
   ShieldCheck, Loader2, AlertTriangle, ChevronLeft, ChevronRight,
   CheckCircle2, XCircle, FileText, Clock,
@@ -125,11 +126,17 @@ export default function AdminVerificationPage() {
                 Submitted {new Date(item.submittedAt).toLocaleDateString()}
               </div>
               <div className="grid grid-cols-3 gap-1.5">
-                <img src={item.documentFrontUrl} alt="Document front" className="w-full h-16 object-cover rounded-lg border border-white/[0.08]" />
+                <div className="relative w-full h-16 rounded-lg overflow-hidden border border-white/[0.08]">
+                  <Image src={item.documentFrontUrl} alt="Document front" fill sizes="120px" className="object-cover" />
+                </div>
                 {item.documentBackUrl && (
-                  <img src={item.documentBackUrl} alt="Document back" className="w-full h-16 object-cover rounded-lg border border-white/[0.08]" />
+                  <div className="relative w-full h-16 rounded-lg overflow-hidden border border-white/[0.08]">
+                    <Image src={item.documentBackUrl} alt="Document back" fill sizes="120px" className="object-cover" />
+                  </div>
                 )}
-                <img src={item.selfieUrl} alt="Selfie" className="w-full h-16 object-cover rounded-lg border border-white/[0.08]" />
+                <div className="relative w-full h-16 rounded-lg overflow-hidden border border-white/[0.08]">
+                  <Image src={item.selfieUrl} alt="Selfie" fill sizes="120px" className="object-cover" />
+                </div>
               </div>
             </button>
           ))}
@@ -168,24 +175,32 @@ export default function AdminVerificationPage() {
                 <p className="text-xs text-white/40 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> {detail.documentType.replace('_', ' ')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <a href={detail.documentFrontUrl} target="_blank" rel="noopener noreferrer">
-                    <img src={detail.documentFrontUrl} alt="Document front" className="w-full h-40 object-cover rounded-xl border border-white/[0.08]" />
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.08]">
+                      <Image src={detail.documentFrontUrl} alt="Document front" fill sizes="240px" className="object-cover" />
+                    </div>
                     <p className="text-[0.65rem] text-white/30 mt-1 text-center">Front</p>
                   </a>
                   {detail.documentBackUrl ? (
                     <a href={detail.documentBackUrl} target="_blank" rel="noopener noreferrer">
-                      <img src={detail.documentBackUrl} alt="Document back" className="w-full h-40 object-cover rounded-xl border border-white/[0.08]" />
+                      <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.08]">
+                        <Image src={detail.documentBackUrl} alt="Document back" fill sizes="240px" className="object-cover" />
+                      </div>
                       <p className="text-[0.65rem] text-white/30 mt-1 text-center">Back</p>
                     </a>
                   ) : (
                     <a href={detail.selfieUrl} target="_blank" rel="noopener noreferrer">
-                      <img src={detail.selfieUrl} alt="Selfie" className="w-full h-40 object-cover rounded-xl border border-white/[0.08]" />
+                      <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.08]">
+                        <Image src={detail.selfieUrl} alt="Selfie" fill sizes="240px" className="object-cover" />
+                      </div>
                       <p className="text-[0.65rem] text-white/30 mt-1 text-center">Selfie</p>
                     </a>
                   )}
                 </div>
                 {detail.documentBackUrl && (
                   <a href={detail.selfieUrl} target="_blank" rel="noopener noreferrer" className="block">
-                    <img src={detail.selfieUrl} alt="Selfie" className="w-full h-40 object-cover rounded-xl border border-white/[0.08]" />
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.08]">
+                      <Image src={detail.selfieUrl} alt="Selfie" fill sizes="480px" className="object-cover" />
+                    </div>
                     <p className="text-[0.65rem] text-white/30 mt-1 text-center">Selfie</p>
                   </a>
                 )}

@@ -11,6 +11,7 @@
 // before the review was left (see ReviewsService.create()'s comment).
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Star, Loader2, ShieldCheck, MessageSquareOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -98,10 +99,9 @@ export default function ReviewsPage() {
               <div key={review.id} className="rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-[#0f0f1a]/80 p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                    <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
                       {review.reviewer?.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={review.reviewer.avatar} alt={review.reviewer?.name ? `${review.reviewer.name}'s avatar` : 'Reviewer avatar'} className="w-full h-full object-cover" />
+                        <Image src={review.reviewer.avatar} alt={review.reviewer?.name ? `${review.reviewer.name}'s avatar` : 'Reviewer avatar'} fill sizes="36px" className="object-cover" />
                       ) : (
                         review.reviewer?.name?.slice(0, 2).toUpperCase() ?? '??'
                       )}

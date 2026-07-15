@@ -14,6 +14,7 @@
 // unused file, now driven by the real favorites API via useFavorites().
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Heart, Store, Star, MapPin } from 'lucide-react';
@@ -162,8 +163,7 @@ export default function FavoritesPage() {
                   {latestListing ? (
                     <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-white/[0.03] group-hover:bg-amber-50 dark:group-hover:bg-amber-500/[0.06] transition-colors">
                       {latestListing.images?.[0]?.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={latestListing.images[0].url} alt={listingTitle ?? ''} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        <Image src={latestListing.images[0].url} alt={listingTitle ?? ''} width={40} height={40} className="rounded-lg object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-white/10 flex items-center justify-center text-lg flex-shrink-0">🚗</div>
                       )}

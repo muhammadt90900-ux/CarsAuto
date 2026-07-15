@@ -13,6 +13,7 @@
 //   7. Upsell footer — "become a professional seller"
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery }  from '@tanstack/react-query';
@@ -200,10 +201,10 @@ function ListingCard({ listing, locale }: { listing: any; locale: string }) {
                     border border-slate-100 dark:border-white/[0.05]
                     hover:border-[rgba(201,168,76,0.3)] dark:hover:border-[rgba(201,168,76,0.2)]
                     transition-all duration-200">
-      <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 flex-shrink-0
-                      flex items-center justify-center">
+      <div className="relative w-12 h-12 rounded-xl bg-slate-200 dark:bg-white/10 flex-shrink-0
+                      flex items-center justify-center overflow-hidden">
         {listing.coverImage
-          ? <img src={listing.coverImage} alt="" className="w-full h-full object-cover rounded-xl" />
+          ? <Image src={listing.coverImage} alt={listing.titleKu ?? listing.titleEn ?? 'Listing'} fill sizes="48px" className="object-cover rounded-xl" />
           : <Car className="w-5 h-5 text-gray-400" aria-hidden />
         }
       </div>
@@ -468,10 +469,10 @@ export default function BuyerDashboardHome() {
                     className="flex items-center gap-3 px-4 py-3
                                hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 flex-shrink-0
+                    <div className="relative w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 flex-shrink-0
                                     overflow-hidden">
                       {fav.images?.[0]?.url
-                        ? <img src={fav.images[0].url} alt="" className="w-full h-full object-cover" />
+                        ? <Image src={fav.images[0].url} alt={fav.title?.[locale] ?? fav.title?.en ?? 'Car'} fill sizes="40px" className="object-cover" />
                         : <Car className="w-4 h-4 text-gray-400 m-auto mt-3" />}
                     </div>
                     <div className="flex-1 min-w-0">

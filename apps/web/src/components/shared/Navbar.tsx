@@ -1,6 +1,7 @@
 'use client';
 // components/shared/Navbar.tsx
 
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
@@ -427,8 +428,7 @@ export function Navbar({ locale }: NavbarProps) {
                                transition-all duration-300
                                group-hover:shadow-[0_0_24px_rgba(201,168,76,0.60)]
                                group-hover:scale-[1.06]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icons/icon-96x96.png" alt="CarsAuto" className="w-full h-full object-cover" />
+                <Image src="/icons/icon-96x96.png" alt="CarsAuto" width={36} height={36} priority className="w-full h-full object-cover" />
               </span>
               <span className="text-[1.1rem] font-display font-extrabold tracking-tight leading-none">
                 <span className="text-gold">Cars</span>
