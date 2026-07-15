@@ -108,7 +108,7 @@ export function LanguageSwitcher({
               onClick={() => switchLocale(loc)}
               className={`
                 w-full flex items-center gap-2.5 px-4 py-2.5
-                text-sm transition-colors duration-150 text-left
+                text-sm transition-colors duration-150 text-start
                 ${
                   loc === locale
                     ? 'bg-[rgba(201,168,76,0.15)] text-[var(--gold-light)] font-semibold'

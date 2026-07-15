@@ -265,7 +265,27 @@
     "noFollowedDealersDesc": "关注您喜爱的经销商以查看其最新车源",
     "latestListing": "最新车源",
     "noActiveListings": "暂无在售车源",
-    "browseListings": "浏览车源"
+    "browseListings": "浏览车源",
+    "browseToSave": "浏览商品并收藏您喜欢的",
+    "browsingHistory": "浏览历史",
+    "buyerAccount": "买家账户",
+    "buyerDashboard": "买家控制台",
+    "buyerPlan": "买家套餐",
+    "buyerPlanDesc": "每月最多可发布2辆汽车",
+    "buyerPlanPrice": "$2.99/月",
+    "exploreListings": "开始浏览以在此查看您的历史记录",
+    "listingQuota": "发布配额",
+    "monthlyListingsUsed": "本月已使用 {used} / {limit} 个发布名额",
+    "noBrowsingHistory": "暂无浏览记录",
+    "noSavedCars": "暂无收藏的汽车",
+    "postCar": "发布汽车",
+    "postYourCar": "发布您的汽车",
+    "postsThisMonth": "本月发布数",
+    "recentlyViewed": "最近浏览",
+    "sellerDashboard": "卖家控制台",
+    "upgradeNow": "立即升级",
+    "upgradeToSeller": "升级为卖家",
+    "upgradeToSellerDesc": "升级为经销商账户，享受无限发布"
   },
   "notifications": {
     "newMessage": "来自{name}的新消息",
@@ -334,7 +354,8 @@
     "sparePartsTitle": "零配件",
     "dashboardTitle": "仪表板",
     "loginTitle": "登录",
-    "registerTitle": "创建账户"
+    "registerTitle": "创建账户",
+    "carsDesc": "查找伊拉克和库尔德斯坦地区在售的汽车"
   },
   "ai": {
     "price_suggestion": {
@@ -383,6 +404,65 @@
       "wechatpay": {
         "name": "微信支付",
         "hint": "即将推出 — 需要获批商家账户"
+      },
+      "chat": {
+        "inputPlaceholder": "输入消息…",
+        "microphonePermission": "麦克风访问被拒绝。请检查浏览器设置。",
+        "noMessages": "开始对话",
+        "rateLimit": "语音留言过多，请稍等片刻",
+        "voiceNote": "语音留言",
+        "voiceNoteCancel": "取消",
+        "voiceNoteError": "语音留言失败",
+        "voiceNotePause": "暂停",
+        "voiceNotePlay": "播放",
+        "voiceNoteRecording": "正在录音…",
+        "voiceNoteRetry": "重试",
+        "voiceNoteSend": "发送语音留言",
+        "voiceNoteSending": "正在发送语音留言…",
+        "voiceNoteStop": "停止录音",
+        "voiceNoteTooLarge": "文件过大（最大 2 MB）",
+        "voiceNoteTooLong": "最长2分钟"
+      },
+      "dashboard": {
+        "followedDealers": "已关注的经销商",
+        "latestListing": "最新商品",
+        "noActiveListings": "暂无在售商品",
+        "noFollowedDealers": "您还没有关注任何经销商",
+        "noFollowedDealersDesc": "关注您喜欢的经销商，查看他们的最新商品",
+        "savedListings": "收藏的商品"
+      },
+      "dealers": {
+        "follow": "关注",
+        "followers": "关注者",
+        "followingSuccess": "您已关注该经销商",
+        "unfollow": "取消关注",
+        "unfollowSuccess": "您已取消关注该经销商"
+      },
+      "sell360": {
+        "bulkUpload": "批量上传多张照片",
+        "emptyHint": "每隔10°拍摄一张，共添加18–36张照片",
+        "instructions": "围绕车辆每隔10°拍摄一张照片，以获得完整的360°视图。从左前方开始，按顺时针方向旋转。至少需要18张照片。",
+        "optional": "可选",
+        "progressHint": "已上传 {count}/18 张 — 还需 {remaining} 张",
+        "readyHint": "{count} 张已就绪 — 360°视图已启用",
+        "removeFrame": "移除第 {n} 张",
+        "sectionTitle": "360°照片组",
+        "uploadFrame": "上传第 {n} 张（{angle}°）",
+        "viewerReady": "360°视图已就绪 — 买家可以旋转查看车辆"
+      },
+      "viewer360": {
+        "autoRotate": "自动旋转",
+        "badge": "360°",
+        "dragHint": "拖动以旋转",
+        "exitFullscreen": "退出全屏",
+        "frameCounter": "{current} / {total}",
+        "fullscreen": "全屏",
+        "loading": "正在加载360°视图…",
+        "stopRotate": "停止旋转",
+        "tabLabel": "360°视图",
+        "tabPhotos": "照片",
+        "zoomIn": "放大",
+        "zoomOut": "缩小"
       }
     },
     "viewer360": {

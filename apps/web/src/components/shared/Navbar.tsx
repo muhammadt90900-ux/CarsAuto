@@ -102,7 +102,7 @@ function AuthSection() {
       </button>
 
       {userMenuOpen && (
-        <div className="absolute top-full right-0 mt-2 w-52 rounded-2xl
+        <div className="absolute top-full end-0 mt-2 w-52 rounded-2xl
                         bg-[var(--ink-750)] border border-white/[0.08]
                         shadow-[0_16px_48px_rgba(0,0,0,0.7)]
                         overflow-hidden z-50">
@@ -140,7 +140,7 @@ function AuthSection() {
             <button
               onClick={() => { logout(); setUserMenuOpen(false); }}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs
-                         text-red-400 hover:bg-red-500/10 transition-all text-left"
+                         text-red-400 hover:bg-red-500/10 transition-all text-start"
             >
               {t('signOut')}
             </button>
@@ -255,7 +255,7 @@ function CountrySwitcher() {
         <div
           role="listbox"
           aria-label="Select region"
-          className="absolute top-full right-0 mt-2 w-52 rounded-xl overflow-hidden z-50
+          className="absolute top-full end-0 mt-2 w-52 rounded-xl overflow-hidden z-50
                      bg-[#060d1a]/99 backdrop-blur-2xl
                      border border-[rgba(201,168,76,0.15)]
                      shadow-[0_20px_56px_rgba(0,0,0,0.80),0_0_0_1px_rgba(201,168,76,0.06)]"
@@ -272,7 +272,7 @@ function CountrySwitcher() {
                 role="option"
                 aria-selected={selected.code === country.code}
                 onClick={() => { setSelected(country); setOpen(false); }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-start
                             transition-all duration-150
                             ${selected.code === country.code
                               ? 'bg-[var(--gold-subtle)] text-[var(--gold)]'
@@ -450,7 +450,7 @@ export function Navbar({ locale }: NavbarProps) {
                   className={`absolute top-1/2 -translate-y-1/2 w-[15px] h-[15px]
                               text-white/35 transition-colors duration-200
                               group-focus-within:text-gold
-                              ${isRTL ? 'right-3' : 'left-3'}`}
+                              start-3`}
                 />
                 <input
                   type="search"
@@ -464,7 +464,7 @@ export function Navbar({ locale }: NavbarProps) {
                               focus:border-gold/50
                               focus:shadow-[0_0_0_3px_rgba(201,168,76,0.12)]
                               transition-all duration-200
-                              ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
+                              ps-9 pe-3 text-start`}
                 />
               </div>
             </div>
@@ -536,7 +536,7 @@ export function Navbar({ locale }: NavbarProps) {
           <div className="px-4 pb-3 pt-1 border-t border-white/[0.07]">
             <div className="relative">
               <Search className={`absolute top-1/2 -translate-y-1/2 w-[14px] h-[14px] text-white/35
-                                  ${isRTL ? 'right-3' : 'left-3'}`} />
+                                  start-3`} />
               <input
                 ref={searchRef}
                 type="search"
@@ -548,7 +548,7 @@ export function Navbar({ locale }: NavbarProps) {
                             rounded-xl placeholder:text-white/30 focus:outline-none
                             focus:border-gold/40 focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)]
                             transition-all duration-200
-                            ${isRTL ? 'pr-9 pl-3 text-right' : 'pl-9 pr-3'}`}
+                            ps-9 pe-3 text-start`}
               />
             </div>
           </div>

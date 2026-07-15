@@ -315,7 +315,8 @@
     "sparePartsTitle": "قطع الغيار",
     "dashboardTitle": "لوحة التحكم",
     "loginTitle": "تسجيل الدخول",
-    "registerTitle": "إنشاء حساب"
+    "registerTitle": "إنشاء حساب",
+    "carsDesc": "ابحث عن سيارات للبيع في جميع أنحاء العراق وكردستان"
   },
   "ai": {
     "price_suggestion": {
@@ -348,8 +349,83 @@
       "thousandsIqd": "{{amount}} ألف دينار",
       "convertedNote": "بسعر الصرف الحالي"
     },
-    "china": "الصين",
-    "payments": "المدفوعات",
+    "china": {
+      "comingSoon": "قريباً",
+      "evBrands": "العلامات التجارية الصينية للسيارات الكهربائية",
+      "marketTitle": "السوق الصيني"
+    },
+    "payments": {
+      "alipay": {
+        "hint": "قريباً — يتطلب حساب تاجر معتمد",
+        "name": "علي باي"
+      },
+      "chat": {
+        "inputPlaceholder": "اكتب رسالة…",
+        "microphonePermission": "تم رفض الوصول إلى الميكروفون. تحقق من إعدادات متصفحك.",
+        "noMessages": "ابدأ المحادثة",
+        "rateLimit": "عدد كبير جداً من الملاحظات الصوتية — الرجاء الانتظار قليلاً",
+        "voiceNote": "ملاحظة صوتية",
+        "voiceNoteCancel": "إلغاء",
+        "voiceNoteError": "فشلت الملاحظة الصوتية",
+        "voiceNotePause": "إيقاف مؤقت",
+        "voiceNotePlay": "تشغيل",
+        "voiceNoteRecording": "جارٍ التسجيل…",
+        "voiceNoteRetry": "إعادة المحاولة",
+        "voiceNoteSend": "إرسال الملاحظة الصوتية",
+        "voiceNoteSending": "جارٍ إرسال الملاحظة الصوتية…",
+        "voiceNoteStop": "إيقاف التسجيل",
+        "voiceNoteTooLarge": "الملف كبير جداً (الحد الأقصى 2 ميغابايت)",
+        "voiceNoteTooLong": "الحد الأقصى دقيقتان"
+      },
+      "comingSoon": "قريباً",
+      "comingSoonHint": "طريقة الدفع هذه ستكون متاحة قريباً",
+      "dashboard": {
+        "followedDealers": "التجار المتابَعون",
+        "latestListing": "أحدث إعلان",
+        "noActiveListings": "لا توجد إعلانات نشطة",
+        "noFollowedDealers": "أنت لا تتابع أي تجار بعد",
+        "noFollowedDealersDesc": "تابع تجارك المفضلين لمشاهدة أحدث إعلاناتهم",
+        "savedListings": "الإعلانات المحفوظة"
+      },
+      "dealers": {
+        "follow": "متابعة",
+        "followers": "المتابعون",
+        "followingSuccess": "أنت الآن تتابع هذا التاجر",
+        "unfollow": "إلغاء المتابعة",
+        "unfollowSuccess": "ألغيت متابعة هذا التاجر"
+      },
+      "methodSelector": "اختر طريقة الدفع",
+      "sell360": {
+        "bulkUpload": "رفع عدة صور دفعة واحدة",
+        "emptyHint": "أضف من 18 إلى 36 صورة تُلتقط كل 10 درجات حول السيارة",
+        "instructions": "التقط صوراً كل 10 درجات حول السيارة للحصول على عرض كامل 360°. ابدأ من الأمام يساراً ودُر باتجاه عقارب الساعة. الحد الأدنى 18 صورة.",
+        "optional": "اختياري",
+        "progressHint": "تم رفع {count}/18 صورة — يلزم {remaining} صورة إضافية",
+        "readyHint": "{count} صورة جاهزة — تم تفعيل عرض 360°",
+        "removeFrame": "إزالة الإطار {n}",
+        "sectionTitle": "مجموعة صور 360°",
+        "uploadFrame": "رفع الإطار {n} ({angle}°)",
+        "viewerReady": "عرض 360° جاهز — يمكن للمشترين تدوير السيارة"
+      },
+      "viewer360": {
+        "autoRotate": "دوران تلقائي",
+        "badge": "360°",
+        "dragHint": "اسحب للتدوير",
+        "exitFullscreen": "الخروج من ملء الشاشة",
+        "frameCounter": "{current} / {total}",
+        "fullscreen": "ملء الشاشة",
+        "loading": "جارٍ تحميل عرض 360°…",
+        "stopRotate": "إيقاف الدوران",
+        "tabLabel": "عرض 360°",
+        "tabPhotos": "الصور",
+        "zoomIn": "تكبير",
+        "zoomOut": "تصغير"
+      },
+      "wechatpay": {
+        "hint": "قريباً — يتطلب حساب تاجر معتمد",
+        "name": "وي تشات باي"
+      }
+    },
     "sell360": {
       "sectionTitle": "مجموعة صور 360°",
       "optional": "اختياري",
@@ -491,7 +567,14 @@
     "errors": {
       "titleRequired": "العنوان مطلوب",
       "priceRequired": "السعر مطلوب",
-      "imageRequired": "صورة واحدة على الأقل مطلوبة"
+      "imageRequired": "صورة واحدة على الأقل مطلوبة",
+      "conditionRequired": "اختر الحالة",
+      "imagesRequired": "قم برفع صورة واحدة على الأقل",
+      "priceInvalid": "أدخل سعراً صحيحاً",
+      "titleEnRequired": "العنوان بالإنجليزية مطلوب",
+      "titleKuRequired": "العنوان بالكردية مطلوب",
+      "titleTooShort": "يجب أن يتكون العنوان من 5 أحرف على الأقل",
+      "typeRequired": "اختر نوع الإعلان"
     }
   },
   "footer": {

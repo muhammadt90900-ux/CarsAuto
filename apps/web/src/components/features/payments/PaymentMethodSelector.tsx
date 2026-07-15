@@ -117,6 +117,18 @@ const WechatLogo = ({ opacity = 1 }: { opacity?: number }) => (
   </svg>
 );
 
+// AUDIT FIX (M4): the "Coming Soon" i18n object previously appeared three
+// times (once per Alipay badge, once per WeChat Pay badge, once as the
+// standalone comingSoonLabel used for the pill text) — copy drift risk if
+// one occurrence gets edited during a wording pass and the others don't.
+// Single shared constant now; all three usages reference it.
+const COMING_SOON_LABEL: Record<string, string> = {
+  ku: 'بەزووی دێت',
+  ar: 'قريباً',
+  en: 'Coming Soon',
+  zh: '即将推出',
+};
+
 const OPTIONS: Option[] = [
   // ── Iraqi gateways ──────────────────────────────────────────────────────────
   {
@@ -188,7 +200,7 @@ const OPTIONS: Option[] = [
     id: 'alipay',
     label: { ku: 'ئەلیپەی', ar: 'علي باي', en: 'Alipay', zh: '支付宝' },
     badge: {
-      label: { ku: 'بەزووی دێت', ar: 'قريباً', en: 'Coming Soon', zh: '即将推出' },
+      label: COMING_SOON_LABEL,
       color: 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400',
     },
     time: { ku: 'بەزووی', ar: 'قريباً', en: 'Coming soon', zh: '即将开放' },
@@ -199,7 +211,7 @@ const OPTIONS: Option[] = [
     id: 'wechatpay',
     label: { ku: 'ویچات پەی', ar: 'ويتشات باي', en: 'WeChat Pay', zh: '微信支付' },
     badge: {
-      label: { ku: 'بەزووی دێت', ar: 'قريباً', en: 'Coming Soon', zh: '即将推出' },
+      label: COMING_SOON_LABEL,
       color: 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400',
     },
     time: { ku: 'بەزووی', ar: 'قريباً', en: 'Coming soon', zh: '即将开放' },
@@ -239,12 +251,7 @@ export function PaymentMethodSelector({ country, selected, onSelect }: Props) {
     zh: '支付方式',
   };
 
-  const comingSoonLabel: Record<string, string> = {
-    ku: 'بەزووی دێت',
-    ar: 'قريباً',
-    en: 'Coming Soon',
-    zh: '即将推出',
-  };
+  const comingSoonLabel = COMING_SOON_LABEL;
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="space-y-2">

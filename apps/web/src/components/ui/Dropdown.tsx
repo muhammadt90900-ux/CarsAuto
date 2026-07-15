@@ -167,7 +167,7 @@ function DropdownMenuItem({ item, onClose }: { item: DropdownItem; onClose: () =
       onClick={handleClick}
       tabIndex={-1}
       className={cn(
-        'dropdown-item w-full text-left',
+        'dropdown-item w-full text-start',
         item.danger   && 'danger',
         item.disabled && 'opacity-40 pointer-events-none',
       )}
