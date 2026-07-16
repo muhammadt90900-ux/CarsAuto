@@ -27,6 +27,72 @@ export class SubscriptionsService {
     private readonly permissionService: ListingPermissionService,
   ) {}
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ADMIN FIX: the admin/subscriptions frontend page called GET
+  // /admin/subscriptions/dealers and GET /admin/subscriptions/users, but no
+  // controller in the API mounted anything at that path. Every load of the
+  // admin subscriptions page 404'd. These two methods back a new
+  // AdminSubscriptionsController.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async adminListDealerSubscriptions(params: {
+    page?: number; limit?: number; plan?: string; status?: string;
+  }) {
+    const page  = params.page  && params.page  > 0 ? params.page  : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    const where: Record<string, unknown> = {};
+    if (params.plan)   where.plan   = params.plan;
+    if (params.status) where.status = params.status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.dealerSubscription.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          dealer: {
+            select: {
+              id: true, slug: true, nameEn: true,
+              user: { select: { name: true, email: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.dealerSubscription.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
+  async adminListUserSubscriptions(params: {
+    page?: number; limit?: number; status?: string;
+  }) {
+    const page  = params.page  && params.page  > 0 ? params.page  : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    // NOTE: Subscription.status is a lowercase convention
+    // (active/past_due/cancelled/trialing/inactive), unlike
+    // DealerSubscription.status above which is the uppercase
+    // SubscriptionStatus enum — see schema.prisma comments on both models.
+    const where: Record<string, unknown> = {};
+    if (params.status) where.status = params.status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { user: { select: { id: true, name: true, email: true, role: true } } },
+      }),
+      this.prisma.subscription.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
   // ── POST /api/subscriptions ───────────────────────────────────────────────
   // Creates a Stripe PaymentIntent and returns the clientSecret to the frontend.
 

@@ -8,7 +8,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
 import { Link, usePathname } from '@/i18n/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Plus, ChevronDown, Globe } from 'lucide-react';
+import { Search, X, Plus, ChevronDown, Globe, MessageCircle } from 'lucide-react';
 
 /* ── Logo SVG ────────────────────────────────────────────────── */
 const CarLogoIcon = () => (
@@ -503,6 +503,19 @@ export function Navbar({ locale }: NavbarProps) {
                 </Link>
               )}
 
+              {/* Messages / Chat — logged-in users only */}
+              {navMounted && navUser && (
+                <Link
+                  href="/dashboard/messages"
+                  aria-label={t('messages')}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl
+                             text-white/50 hover:text-gold hover:bg-white/[0.08]
+                             transition-all duration-200"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </Link>
+              )}
+
               {/* Auth — isolated component, no SSR mismatch */}
               <AuthSection />
 
@@ -601,6 +614,20 @@ export function Navbar({ locale }: NavbarProps) {
               {label}
             </Link>
           ))}
+
+          {navMounted && navUser && (
+            <Link
+              href="/dashboard/messages"
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-sm font-semibold transition-all duration-200
+                          text-white/65 hover:text-white hover:bg-white/[0.07]
+                          ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              <MessageCircle className="w-4 h-4 flex-shrink-0" />
+              {t('messages')}
+            </Link>
+          )}
 
           <div className="my-3 border-t border-white/[0.08]" />
 

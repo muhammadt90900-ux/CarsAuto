@@ -16,6 +16,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ServiceUnavailableException,
   Logger,
   ConflictException,
 } from '@nestjs/common';
@@ -154,6 +155,69 @@ export class PaymentsService {
 
   async getMySubscription(userId: string) {
     return this.prisma.subscription.findUnique({ where: { userId } });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ADMIN FIX: the admin/transactions frontend page called GET
+  // /admin/transactions and GET /admin/transactions/:id, but no controller in
+  // the API mounted anything at that path — PaymentsController only exposes
+  // /payments/*, all scoped to the requesting user. Every load of the admin
+  // transactions page 404'd. These two methods back a new AdminPaymentsController.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async adminListTransactions(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    gateway?: string;
+    search?: string;
+  }) {
+    const page  = params.page  && params.page  > 0 ? params.page  : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    const where: Record<string, unknown> = {};
+    if (params.status)  where.status  = params.status;
+    if (params.gateway)  where.gateway = params.gateway;
+    if (params.search) {
+      where.OR = [
+        { gatewayId: { contains: params.search, mode: 'insensitive' } },
+        { user: { is: { email: { contains: params.search, mode: 'insensitive' } } } },
+        { user: { is: { name:  { contains: params.search, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [data, total, revenueAgg] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { user: { select: { id: true, name: true, email: true } } },
+      }),
+      this.prisma.payment.count({ where }),
+      // Revenue total intentionally ignores the current filters/pagination —
+      // it's "total completed revenue platform-wide", a KPI header, not a
+      // sum of the current page.
+      this.prisma.payment.aggregate({
+        where: { status: PaymentStatus.COMPLETED },
+        _sum: { amountUsd: true, amount: true },
+      }),
+    ]);
+
+    const totalRevenue = revenueAgg._sum.amountUsd ?? revenueAgg._sum.amount ?? 0;
+    return { data, total, totalRevenue, page, limit };
+  }
+
+  async adminGetTransaction(id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: {
+        transactionLogs: { orderBy: { createdAt: 'asc' } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+    if (!payment) throw new NotFoundException('Payment not found');
+    return payment;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -296,9 +360,26 @@ export class PaymentsService {
     const amount = this.resolveAmountIQD(dto.plan);
     await this.cancelStalePending(userId, dto.plan, 'asiahawala');
 
-    const result = await this.asiaHawala.initiateCharge({
-      phone: dto.phone, amount, userId, planId: dto.plan,
-    });
+    // FIX (Bug #2 — "OTP doesn't work"): this call used to be unguarded, so
+    // any failure here (most commonly ASIA_HAWALA_API_KEY / MERCHANT_ID not
+    // being set in the environment — see asiahawala.gateway.ts's creds())
+    // propagated as a plain Error. NestJS's default filter turns an
+    // un-caught plain Error into a generic 500 "Internal server error" —
+    // the actually useful message ("AsiaHawala not configured") only ever
+    // reached the server logs, never the person tapping "Send OTP". Now it's
+    // surfaced as a proper 503 with a clear, actionable message instead.
+    let result: Awaited<ReturnType<typeof this.asiaHawala.initiateCharge>>;
+    try {
+      result = await this.asiaHawala.initiateCharge({
+        phone: dto.phone, amount, userId, planId: dto.plan,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`AsiaHawala initiate failed for user=${userId}: ${msg}`);
+      throw new ServiceUnavailableException(
+        'AsiaHawala payment is temporarily unavailable. Please try another payment method or contact support.',
+      );
+    }
 
     const payment = await (this.prisma.payment as any).create({
       data: {

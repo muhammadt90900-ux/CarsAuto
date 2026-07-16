@@ -133,6 +133,8 @@ export class AuthService {
     email: string,
     password: string,
     name: string,
+    role?: 'USER' | 'DEALER',
+    phone?: string,
     ctx?: RequestContext,
   ) {
     if (!email || !password || !name) {
@@ -153,8 +155,22 @@ export class AuthService {
     // BUG #1 + #2 + #7 FIX: async scrypt with per-user random salt
     const hashedPassword = await this.hashPassword(password);
 
+    // FIX (role dropped on register): `role` and `phone` used to be validated
+    // and transformed by RegisterDto but then silently discarded by the
+    // controller before ever reaching this method — every signup landed as
+    // the schema default (USER) no matter what the person picked on the
+    // register form. RegisterDto already restricts `role` to 'USER' | 'DEALER'
+    // (BUYER is normalised to USER there, and ADMIN can never be
+    // self-assigned), so it's safe to pass straight through to Prisma here.
     const user = await this.prisma.user.create({
-      data: { email, password: hashedPassword, name, verified: false },
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        verified: false,
+        ...(role ? { role } : {}),
+        ...(phone ? { phone } : {}),
+      },
     });
 
     await this.sendVerificationEmail(user.id, email, name);

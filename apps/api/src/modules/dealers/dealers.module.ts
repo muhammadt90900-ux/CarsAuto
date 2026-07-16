@@ -3,6 +3,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { DealersController } from './dealers.controller';
+import { AdminDealersController } from './admin-dealers.controller';
 import { DealersService } from './dealers.service';
 import { DealerListeners } from './dealer.listeners';
 import { PrismaModule } from '@/common/prisma/prisma.module';
@@ -20,7 +21,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     AnalyticsModule,
     BullModule.registerQueue({ name: DEALER_RECONCILIATION_QUEUE }),
   ],
-  controllers: [DealersController],
+  controllers: [DealersController, AdminDealersController],
   providers: [
     DealersService,
     EmailVerifiedGuard,

@@ -162,6 +162,94 @@ export class NotificationsService {
    *      BullMQ's batched job-add API, a single Redis round-trip instead of
    *      one `.add()` await per user.
    */
+  // ─────────────────────────────────────────────────────────────────────────
+  // ADMIN BROADCAST NOTIFICATIONS
+  // ADDED: backs the admin/notifications page. Was previously entirely
+  // missing (no data model, no endpoint) — the page called GET
+  // /admin/notifications and POST /admin/notifications/send, both 404.
+  // "Sending" a broadcast resolves the target audience to a list of user
+  // ids and reuses the existing createManyForUsers() fan-out (chunked
+  // createMany + bulk queue enqueue) rather than duplicating that logic.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async adminListNotifications(params: { page?: number; limit?: number; status?: string }) {
+    const page  = params.page  && params.page  > 0 ? params.page  : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    const where: Record<string, unknown> = {};
+    if (params.status) where.status = params.status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.adminNotification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { createdBy: { select: { id: true, name: true, email: true } } },
+      }),
+      this.prisma.adminNotification.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
+  private async resolveAudienceUserIds(audience: 'ALL' | 'USERS' | 'DEALERS' | 'PREMIUM'): Promise<string[]> {
+    if (audience === 'ALL') {
+      const users = await this.prisma.user.findMany({ select: { id: true } });
+      return users.map((u) => u.id);
+    }
+    if (audience === 'USERS') {
+      const users = await this.prisma.user.findMany({ where: { role: 'USER' }, select: { id: true } });
+      return users.map((u) => u.id);
+    }
+    if (audience === 'DEALERS') {
+      const dealers = await this.prisma.dealer.findMany({ select: { userId: true } });
+      return dealers.map((d) => d.userId);
+    }
+    // PREMIUM: dealers on GOLD or PLATINUM tier. Adjust here if "premium" is
+    // later redefined (e.g. tied to an active DealerSubscription instead).
+    const premiumDealers = await this.prisma.dealer.findMany({
+      where: { tier: { in: ['GOLD', 'PLATINUM'] } },
+      select: { userId: true },
+    });
+    return premiumDealers.map((d) => d.userId);
+  }
+
+  async adminSendNotification(
+    adminUserId: string,
+    dto: { title: string; body: string; type: string; audience: 'ALL' | 'USERS' | 'DEALERS' | 'PREMIUM' },
+  ) {
+    const campaign = await this.prisma.adminNotification.create({
+      data: {
+        title: dto.title,
+        body: dto.body,
+        type: dto.type as any,
+        audience: dto.audience as any,
+        status: 'DRAFT',
+        createdById: adminUserId,
+      },
+    });
+
+    try {
+      const userIds = await this.resolveAudienceUserIds(dto.audience);
+      await this.createManyForUsers(userIds, 'system', dto.title, dto.body, {
+        adminNotificationId: campaign.id,
+      });
+
+      return this.prisma.adminNotification.update({
+        where: { id: campaign.id },
+        data: { status: 'SENT', sentCount: userIds.length, sentAt: new Date() },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Admin broadcast ${campaign.id} failed: ${msg}`);
+      return this.prisma.adminNotification.update({
+        where: { id: campaign.id },
+        data: { status: 'FAILED', errorMessage: msg },
+      });
+    }
+  }
+
   async createManyForUsers(
     userIds: string[],
     type: NotificationType,

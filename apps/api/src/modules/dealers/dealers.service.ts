@@ -638,6 +638,49 @@ export class DealersService {
     return d;
   }
 
+  /** ADMIN FIX: was missing entirely — admin/dealers page's "reject" action
+   *  had no backend route to call (PATCH /admin/dealers/:id/reject 404'd). */
+  async reject(dealerId: string) {
+    const d = await this.prisma.dealer.update({
+      where: { id: dealerId },
+      data:  { status: DealerStatus.REJECTED },
+    });
+    this.cache.del('dealers:list:');
+    return d;
+  }
+
+  /** ADMIN FIX: backing query for GET /admin/dealers — was missing entirely,
+   *  so the admin dealers page always 404'd on load. Deliberately not routed
+   *  through CacheService: admins need to see the true current state
+   *  (a just-submitted dealer must appear in the PENDING queue immediately). */
+  async adminList(params: { status?: string; search?: string; page?: number; limit?: number }) {
+    const page  = params.page  && params.page  > 0 ? params.page  : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+
+    const where: Record<string, unknown> = {};
+    if (params.status) where.status = params.status;
+    if (params.search) {
+      where.OR = [
+        { nameEn: { contains: params.search, mode: 'insensitive' } },
+        { nameAr: { contains: params.search, mode: 'insensitive' } },
+        { user:   { is: { email: { contains: params.search, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.dealer.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { user: { select: { id: true, name: true, email: true } } },
+      }),
+      this.prisma.dealer.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
   // ── Private helpers ────────────────────────────────────────────────────────
 
   private async recomputeRating(dealerId: string) {

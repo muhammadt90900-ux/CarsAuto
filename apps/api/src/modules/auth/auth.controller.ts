@@ -72,7 +72,19 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(dto.email, dto.password, dto.name, this.ctx(req));
+    // FIX: dto.role and dto.phone were previously never forwarded here, so
+    // every registration silently fell back to the Prisma schema default
+    // role (USER) regardless of what the person selected on the register
+    // form (e.g. "Seller / Dealer"). Both are now passed through —
+    // RegisterDto has already validated/normalised them.
+    const result = await this.authService.register(
+      dto.email,
+      dto.password,
+      dto.name,
+      dto.role,
+      dto.phone,
+      this.ctx(req),
+    );
     this.setRefreshCookie(res, result.refreshToken);
     return { access_token: result.accessToken, user: result.user };
   }
