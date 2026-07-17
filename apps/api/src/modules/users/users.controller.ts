@@ -13,9 +13,20 @@ class UpdateProfileDto {
   @Transform(({ value }) => value?.trim())
   name?: string;
 
+  // FIX: empty string ('' — the frontend's default value when a user has no
+  // phone saved yet) was reaching @Matches and failing validation, because
+  // @IsOptional() only skips checks for `undefined`/`null`, not ''. That made
+  // profile save fail (400) for any user who didn't already have a phone
+  // number, or who tried to clear it. Normalize '' (and whitespace-only
+  // input) to undefined *before* validation so @IsOptional() actually takes
+  // effect, while still enforcing the phone format when a real value is sent.
   @IsOptional()
   @IsString()
   @MaxLength(20)
+  @Transform(({ value }) => {
+    const trimmed = typeof value === 'string' ? value.trim() : value;
+    return trimmed === '' ? undefined : trimmed;
+  })
   @Matches(/^[+\d\s\-()\u0660-\u0669]{7,20}$/, { message: 'Invalid phone number' })
   phone?: string;
 
