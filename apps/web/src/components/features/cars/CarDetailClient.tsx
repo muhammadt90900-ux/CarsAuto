@@ -26,6 +26,7 @@ import { CarBrandLogo } from '@/components/shared/CarBrandLogo';
 import { BadgeRow } from '@/components/trust/BadgeRow';
 import { TrustScoreChip } from '@/components/trust/TrustScoreChip';
 import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
+import { useStartChat } from '@/hooks/useStartChat';
 import { CarStickyActions } from '@/components/mobile/StickyAction';
 
 // PERF: hoisted Intl instances — created once per module, not per render/card
@@ -139,9 +140,10 @@ const LocationMap = memo(function LocationMap({ location }: { location: any }) {
 });
 
 /* ── SellerCard ───────────────────────────────────────────────── */
-const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?: string; locale?: string }) {
+const SellerCard = memo(function SellerCard({ user, phone, listingId }: { user: any; phone?: string; locale?: string; listingId: string }) {
   const [showPhone, setShowPhone] = useState(false);
   const togglePhone = useCallback(() => setShowPhone(v => !v), []);
+  const { startChat, loading: chatLoading, error: chatError } = useStartChat();
   if (!user) return null;
 
   // FIX (Trust & Safety Prompt 6/7): `user.verified` is email verification,
@@ -193,6 +195,21 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
         </div>
       </div>
       <div className="px-5 pb-5 space-y-2.5">
+        {/* FIX: in-app "Chat" button was entirely missing — only WhatsApp
+            (external, requires the buyer's own WhatsApp) and phone reveal
+            existed, so a buyer without WhatsApp had no way to message the
+            seller through the platform's own chat system at all. */}
+        <button
+          onClick={() => startChat(listingId)}
+          disabled={chatLoading}
+          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.3)] text-[var(--gold)] font-bold text-sm hover:bg-[rgba(201,168,76,0.25)] disabled:opacity-60 transition-all duration-200"
+        >
+          <MessageCircle className="w-4 h-4" />
+          {chatLoading ? 'Opening chat...' : 'Chat with Seller'}
+        </button>
+        {chatError && (
+          <p className="text-red-400 text-xs text-center">{chatError}</p>
+        )}
         <a href={`https://wa.me/${(phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent('Hi, I am interested in this car listing.')}`}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-[#25D366] hover:bg-[#1fb659] text-white font-bold text-sm transition-all duration-200 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] hover:-translate-y-0.5 active:translate-y-0">
@@ -585,7 +602,7 @@ export function CarDetailClient({ listing, similarCars, locale }: CarDetailClien
                 </div>
               </div>
 
-              <SellerCard user={listing.user} phone={listing.user?.phone} locale={locale} />
+              <SellerCard user={listing.user} phone={listing.user?.phone} locale={locale} listingId={listing.id} />
 
               <div className="rounded-2xl bg-amber-500/[0.07] border border-amber-500/20 p-4">
                 <div className="flex items-center gap-2 mb-2">

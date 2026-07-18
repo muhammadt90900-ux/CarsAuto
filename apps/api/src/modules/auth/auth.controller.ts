@@ -159,7 +159,10 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@Req() req: Request) {
-    return (req as any).user;
+    // FIX: was `return (req as any).user`, i.e. the bare JWT-strategy stub
+    // { userId, email, role } — no name/phone/avatar/bio/verified/id. See
+    // AuthService.getFullProfile for the full explanation.
+    return this.authService.getFullProfile((req as any).user.userId);
   }
 
   // ── Verify Email ──────────────────────────────────────────────────────────

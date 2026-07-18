@@ -421,11 +421,31 @@ export const adminApi = {
 
 // ── Users API ─────────────────────────────────────────────────────────────────
 export const usersApi = {
+  // FIX: '/users/me' isn't a real route — it fell through to `GET /users/:id`
+  // with id="me", which 400s on ParseUUIDPipe. There's no GET /users/me on
+  // the backend; /auth/me (now fixed to return the full profile) is the
+  // correct endpoint for "get my own profile".
   getMe: () =>
-    api.get<AuthUser>('/users/me').then((r) => r.data),
+    api.get<AuthUser>('/auth/me').then((r) => r.data),
 
   updateMe: (data: Record<string, unknown>) =>
     api.patch<AuthUser>('/users/profile', data).then((r) => r.data),  // FIX: was /users/me (404)
+
+  /**
+   * POST /upload/image (type=avatars)
+   * Uploads a profile photo as multipart/form-data and returns the Cloudinary
+   * CDN URL. Backend already supported an 'avatars' folder/transform (see
+   * upload.controller.ts / upload.service.ts) — it just had no caller from
+   * the profile page. Mirrors sellApi.uploadImage's axios/FormData handling
+   * (no manual Content-Type — axios sets the multipart boundary itself).
+   */
+  uploadAvatar: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'avatars');
+    const res = await api.post<{ url: string }>('/upload/image', formData);
+    return res.data.url;
+  },
 
   getFavorites: () =>
     api.get<{ data: Listing[] }>('/users/me/favorites').then((r) => r.data),
@@ -460,6 +480,16 @@ export const chatApi = {
   getConversations: () =>
     api.get<ChatConversation[]>('/chats').then((r) => r.data),
 
+  // FIX: was completely missing. The backend has always had
+  // POST /chats/:listingId (ChatController.getOrCreate → getOrCreateChat),
+  // which finds an existing buyer↔seller conversation for a listing or
+  // creates one — but no frontend function ever called it, so no "Chat"
+  // button on any listing detail page had anything to call. This is what
+  // the seller-contact "Chat" buttons on Car/Listing/Motorcycle detail
+  // pages call before routing to /dashboard/messages?chatId=<id>.
+  startChat: (listingId: string) =>
+    api.post<ChatConversation>(`/chats/${listingId}`).then((r) => r.data),
+
   getMessages: (conversationId: string) =>
     api
       .get<{ data: Message[] }>(`/chats/${conversationId}/messages`)
@@ -488,6 +518,7 @@ export interface AuthUser {
   phone:    string | null;
   role:     'USER' | 'DEALER' | 'ADMIN';
   verified: boolean;
+  avatar?:  string | null; // FIX: was missing — backend already returns/accepts it
 }
 
 export interface PermissionStatus {

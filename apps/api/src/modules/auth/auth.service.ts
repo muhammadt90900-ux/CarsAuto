@@ -433,6 +433,32 @@ export class AuthService {
     await this.cache.set(key, Date.now(), TOKEN_FLOOR_TTL_MS);
   }
 
+  // FIX: GET /auth/me was returning the raw JWT-strategy payload
+  // ({ userId, email, role } — note the key is `userId`, not `id`, and
+  // name/phone/avatar/bio/verified are entirely absent). Every consumer of
+  // this endpoint (auth.store.ts's loadUser(), called on every app load/
+  // refresh, and the profile page's initial fetch) overwrote the full user
+  // object in the store/form with that stub, wiping name/phone/avatar back
+  // to blank each time. This returns the full private profile instead, so
+  // the frontend always has real data to show and edit.
+  async getFullProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id:       true,
+        email:    true,
+        name:     true,
+        phone:    true,
+        avatar:   true,
+        bio:      true,
+        role:     true,
+        verified: true,
+      },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    return user;
+  }
+
   // ── Verify Email ─────────────────────────────────────────────────────────────
 
   async verifyEmail(token: string) {

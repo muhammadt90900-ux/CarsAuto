@@ -34,6 +34,7 @@ import { cn } from '@cars-auto/utils';
 import { ImageGallery } from '../cars/ImageGallery';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { CarBrandLogo } from '@/components/shared/CarBrandLogo';
+import { useStartChat } from '@/hooks/useStartChat';
 
 const _fmtPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const _fmtNum = new Intl.NumberFormat('en-US');
@@ -161,9 +162,10 @@ const LocationMap = memo(function LocationMap({ location }: { location: any }) {
   );
 });
 
-const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?: string; locale?: string }) {
+const SellerCard = memo(function SellerCard({ user, phone, listingId }: { user: any; phone?: string; locale?: string; listingId: string }) {
   const [showPhone, setShowPhone] = useState(false);
   const togglePhone = useCallback(() => setShowPhone(v => !v), []);
+  const { startChat, loading: chatLoading, error: chatError } = useStartChat();
   if (!user) return null;
   return (
     <div className="rounded-3xl bg-[var(--ink-750)] border border-white/[0.06] p-5">
@@ -179,6 +181,20 @@ const SellerCard = memo(function SellerCard({ user, phone }: { user: any; phone?
           <p className="text-xs text-white/35">Seller</p>
         </div>
       </div>
+      {/* FIX: in-app "Chat" button was entirely missing from this card —
+          only a phone-reveal button existed, no way to message the seller
+          through the platform itself. */}
+      <button
+        onClick={() => startChat(listingId)}
+        disabled={chatLoading}
+        className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.3)] text-[var(--gold)] font-bold text-sm hover:bg-[rgba(201,168,76,0.25)] disabled:opacity-60 transition-all duration-200 mb-2.5"
+      >
+        <MessageCircle className="w-4 h-4" />
+        {chatLoading ? 'Opening chat...' : 'Chat with Seller'}
+      </button>
+      {chatError && (
+        <p className="text-red-400 text-xs text-center mb-2.5">{chatError}</p>
+      )}
       <button onClick={togglePhone} className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white font-bold text-sm hover:bg-white/[0.10] transition-all duration-200">
         <Phone className="w-4 h-4" />
         {showPhone && phone ? phone : 'Show Phone Number'}
@@ -503,7 +519,7 @@ export function MotorcycleDetailClient({ listing, similarMotorcycles, locale }: 
                 </div>
               </div>
 
-              <SellerCard user={listing.user} phone={listing.user?.phone} locale={locale} />
+              <SellerCard user={listing.user} phone={listing.user?.phone} locale={locale} listingId={listing.id} />
 
               <div className="rounded-2xl bg-amber-500/[0.07] border border-amber-500/20 p-4">
                 <div className="flex items-center gap-2 mb-2">

@@ -17,11 +17,12 @@
 import { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, Phone, Shield, CheckCircle2, MapPin, Heart } from 'lucide-react';
+import { ChevronLeft, Phone, Shield, CheckCircle2, MapPin, Heart, MessageCircle } from 'lucide-react';
 import { ImageGallery } from '@/components/features/cars/ImageGallery';
 import { TrustScoreChip } from '@/components/trust/TrustScoreChip';
 import { BadgeRow } from '@/components/trust/BadgeRow';
 import { useIsFavorited, useToggleFavorite } from '@/hooks/useFavorites';
+import { useStartChat } from '@/hooks/useStartChat';
 
 export interface DetailSpecField {
   key: string;
@@ -71,9 +72,10 @@ function formatSpecValue(v: unknown): string | null {
 }
 
 /* ── SellerCard ───────────────────────────────────────────────── */
-const SellerCard = memo(function SellerCard({ user, title }: { user: any; title: string }) {
+const SellerCard = memo(function SellerCard({ user, title, listingId }: { user: any; title: string; listingId: string }) {
   const [showPhone, setShowPhone] = useState(false);
   const togglePhone = useCallback(() => setShowPhone((v) => !v), []);
+  const { startChat, loading: chatLoading, error: chatError } = useStartChat();
   if (!user) return null;
 
   const identityVerified = !!user.identityVerifiedAt;
@@ -114,6 +116,19 @@ const SellerCard = memo(function SellerCard({ user, title }: { user: any; title:
         </div>
       </div>
       <div className="px-5 pb-5 space-y-2.5">
+        {/* FIX: in-app "Chat" button was entirely missing — only WhatsApp
+            and phone reveal existed. */}
+        <button
+          onClick={() => startChat(listingId)}
+          disabled={chatLoading}
+          className="flex items-center justify-center gap-2.5 w-full h-12 rounded-2xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.3)] text-[var(--gold)] font-bold text-sm hover:bg-[rgba(201,168,76,0.25)] disabled:opacity-60 transition-all duration-200"
+        >
+          <MessageCircle className="w-4 h-4" />
+          {chatLoading ? 'Opening chat...' : 'Chat with Seller'}
+        </button>
+        {chatError && (
+          <p className="text-red-400 text-xs text-center">{chatError}</p>
+        )}
         <a
           href={`https://wa.me/${(phone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in: ${title}`)}`}
           target="_blank"
@@ -302,7 +317,7 @@ export function ListingDetailClient({
           </div>
 
           <div className="xl:sticky xl:top-[calc(var(--navbar-h)+1.5rem)] xl:self-start">
-            <SellerCard user={listing.user} title={title} />
+            <SellerCard user={listing.user} title={title} listingId={listing.id} />
           </div>
         </div>
 
