@@ -29,14 +29,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         >
           {label}
           {props.required && (
-            <span className="ml-1 text-[#ef4444]" aria-hidden="true">*</span>
+            <span className="ms-1 text-[#ef4444]" aria-hidden="true">*</span>
           )}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
           <span
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"
+            className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"
             aria-hidden="true"
           >
             {leftIcon}
@@ -50,8 +50,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-required={props.required}
           className={cn(
             'input-base w-full',
-            !!leftIcon  && 'pl-10',
-            !!rightIcon && 'pr-10',
+            !!leftIcon  && 'ps-10',
+            !!rightIcon && 'pe-10',
             !!error     && 'border-[rgba(220,38,38,0.55)] focus:border-[rgba(220,38,38,0.75)] focus:shadow-[0_0_0_3px_rgba(220,38,38,0.10)]',
             className
           )}
@@ -59,7 +59,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         />
         {rightIcon && (
           <span
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
             aria-hidden="true"
           >
             {rightIcon}

@@ -138,7 +138,7 @@ export default function NotificationsPage() {
                 <button
                   onClick={(e) => { e.stopPropagation(); remove(n.id); }}
                   aria-label="Remove notification"
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-gray-400
+                  className="opacity-50 group-hover:opacity-100 p-1 rounded-lg text-gray-400
                              hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10
                              transition-all duration-200 flex-shrink-0"
                 >

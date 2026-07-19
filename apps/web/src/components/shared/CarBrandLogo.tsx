@@ -229,7 +229,7 @@ export function BrandPill({
           type="button"
           onClick={onRemove}
           className="w-3.5 h-3.5 rounded-full flex items-center justify-center
-                     hover:bg-[rgba(201,168,76,0.2)] transition-colors ml-0.5"
+                     hover:bg-[rgba(201,168,76,0.2)] transition-colors ms-0.5"
           aria-label={`Remove ${name}`}
         >
           ×

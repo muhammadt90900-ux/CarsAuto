@@ -137,7 +137,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
             <div className="relative">
               <Mail
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
               <input
                 id="fp-email"
@@ -146,7 +146,7 @@ export function ForgotPasswordForm({ locale = 'en' }: { locale?: string }) {
                 required
                 {...register('email')}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm
+                className="w-full ps-10 pe-4 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
                            text-[var(--text-primary)] placeholder-[var(--text-muted)]
                            focus:outline-none focus:border-[var(--accent-gold)]

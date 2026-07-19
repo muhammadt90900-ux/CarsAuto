@@ -163,7 +163,7 @@ export default function DealerSubscriptionPage() {
             >
               {b}
               {b === 'yearly' && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[0.6rem] font-bold">
+                <span className="ms-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[0.6rem] font-bold">
                   -20%
                 </span>
               )}
@@ -190,11 +190,11 @@ export default function DealerSubscriptionPage() {
               )}
             >
               {plan.highlight && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--gold)] to-transparent" />
+                <div className="absolute top-0 start-0 end-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--gold)] to-transparent" />
               )}
 
               {plan.highlight && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] rounded-b-lg text-[0.62rem] font-black text-[#0d1b2e] uppercase tracking-wider">
+                <div className="absolute -top-px start-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] rounded-b-lg text-[0.62rem] font-black text-[#0d1b2e] uppercase tracking-wider">
                   Most Popular
                 </div>
               )}
@@ -216,7 +216,7 @@ export default function DealerSubscriptionPage() {
                   <span className="text-3xl font-black text-white">${price}</span>
                   <span className="text-sm text-white/40 mb-1">{plan.interval}</span>
                   {billing === 'yearly' && plan.price > 0 && (
-                    <span className="text-xs text-white/30 line-through mb-1 ml-1">${plan.price}</span>
+                    <span className="text-xs text-white/30 line-through mb-1 ms-1">${plan.price}</span>
                   )}
                 </div>
 

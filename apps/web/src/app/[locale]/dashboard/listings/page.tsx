@@ -151,13 +151,13 @@ export default function MyListingsPage() {
       {/* ── Search + status tabs ──────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden />
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search listings…"
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl
+            className="w-full ps-9 pe-4 py-2.5 text-sm rounded-xl
                        border border-gray-200 dark:border-white/10
                        bg-white dark:bg-white/5 text-gray-900 dark:text-white
                        placeholder-gray-400 outline-none
@@ -177,7 +177,7 @@ export default function MyListingsPage() {
             >
               {label}
               {key !== 'ALL' && counts[key] ? (
-                <span className="ml-1 text-[9px] text-gray-400 dark:text-white/30">
+                <span className="ms-1 text-[9px] text-gray-400 dark:text-white/30">
                   ({counts[key]})
                 </span>
               ) : null}
@@ -241,11 +241,11 @@ export default function MyListingsPage() {
                   {/* Select checkbox */}
                   <button
                     onClick={() => toggleSelect(listing.id)}
-                    className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-2 flex items-center justify-center
+                    className={`absolute top-2 start-2 w-6 h-6 rounded-lg border-2 flex items-center justify-center
                                 transition-all duration-150
                                 ${isSelected
                                   ? 'bg-[var(--gold)] border-[var(--gold)]'
-                                  : 'bg-black/30 border-white/40 opacity-0 group-hover:opacity-100'}`}
+                                  : 'bg-black/30 border-white/40 opacity-60 group-hover:opacity-100'}`}
                     aria-label="Select listing"
                   >
                     {isSelected && (
@@ -256,7 +256,7 @@ export default function MyListingsPage() {
                   </button>
 
                   {/* Status badge */}
-                  <span className={`absolute top-2 right-2 inline-flex items-center gap-1
+                  <span className={`absolute top-2 end-2 inline-flex items-center gap-1
                                    text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.cls}`}>
                     <StatusIcon className="w-2.5 h-2.5" aria-hidden />
                     {cfg.label}

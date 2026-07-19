@@ -194,7 +194,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
             <div className="relative">
               <Lock
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
               <input
                 id="rp-password"
@@ -205,7 +205,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
                 required
                 {...register('password')}
                 placeholder="Min 8 characters"
-                className="w-full pl-10 pr-10 py-3 rounded-xl text-sm
+                className="w-full ps-10 pe-10 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
                            text-[var(--text-primary)] placeholder-[var(--text-muted)]
                            focus:outline-none focus:border-[var(--accent-gold)]
@@ -214,7 +214,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]
                            hover:text-[var(--text-secondary)] transition-colors"
                 aria-label={showPw ? 'Hide password' : 'Show password'}
               >
@@ -257,7 +257,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
             <div className="relative">
               <Lock
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
               <input
                 id="rp-confirm"
@@ -267,7 +267,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
                 required
                 {...register('confirmPassword')}
                 placeholder="Repeat new password"
-                className="w-full pl-10 pr-10 py-3 rounded-xl text-sm
+                className="w-full ps-10 pe-10 py-3 rounded-xl text-sm
                            bg-[var(--input-bg,#0f1724)] border border-[var(--border)]
                            text-[var(--text-primary)] placeholder-[var(--text-muted)]
                            focus:outline-none focus:border-[var(--accent-gold)]
@@ -276,7 +276,7 @@ export function ResetPasswordForm({ locale = 'en' }: { locale?: string }) {
               <button
                 type="button"
                 onClick={() => setShowCfm((v) => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]
                            hover:text-[var(--text-secondary)] transition-colors"
                 aria-label={showCfm ? 'Hide password' : 'Show password'}
               >

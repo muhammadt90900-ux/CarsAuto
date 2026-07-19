@@ -135,7 +135,7 @@ const AICarCard = memo(function AICarCard({
 
   return (
     <Link
-      href="/cars/${listing.id}"
+      href={`/cars/${listing.id}`}
       prefetch={false}
       className="group block"
     >
@@ -173,7 +173,7 @@ const AICarCard = memo(function AICarCard({
           <button
             onClick={(e) => { e.preventDefault(); setLiked(v => !v); }}
             className={cn(
-              'absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center',
+              'absolute top-3 end-3 w-8 h-8 rounded-full flex items-center justify-center',
               'backdrop-blur-md border border-white/10 transition-all duration-200',
               liked
                 ? 'bg-rose-500/30 border-rose-500/40'
@@ -189,7 +189,7 @@ const AICarCard = memo(function AICarCard({
           </button>
 
           {/* Score ring */}
-          <div className="absolute bottom-3 right-3">
+          <div className="absolute bottom-3 end-3">
             <ScoreRing score={score} />
           </div>
         </div>
@@ -277,7 +277,7 @@ function BudgetInput({
   return (
     <div className="flex items-center gap-3 mb-5">
       <div className="relative flex-1">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-bold pointer-events-none">
+        <span className="absolute start-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-bold pointer-events-none">
           $
         </span>
         <input
@@ -288,7 +288,7 @@ function BudgetInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder="25000"
           className={cn(
-            'w-full pl-8 pr-4 py-3 rounded-xl text-sm font-semibold text-white',
+            'w-full ps-8 pe-4 py-3 rounded-xl text-sm font-semibold text-white',
             'bg-white/[0.05] border border-white/[0.08] outline-none',
             'focus:border-[rgba(201,168,76,0.5)] focus:bg-white/[0.07]',
             'placeholder:text-white/25 transition-all duration-200',

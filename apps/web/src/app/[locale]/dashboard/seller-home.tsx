@@ -204,7 +204,7 @@ export default function SellerDashboardHome() {
             <Icon className="w-5 h-5" aria-hidden />
             {label}
             {badge && (
-              <span className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center
+              <span className="absolute top-2 end-2 w-5 h-5 flex items-center justify-center
                                text-[10px] font-bold rounded-full bg-[#e94560] text-white">
                 {badge}
               </span>
@@ -266,7 +266,7 @@ export default function SellerDashboardHome() {
                         <Eye className="w-3 h-3" aria-hidden />
                         {listing.views} views
                         {listing.daysLeft !== null && (
-                          <span className={`ml-2 font-semibold ${urgentRenew ? 'text-amber-500' : 'text-gray-400'}`}>
+                          <span className={`ms-2 font-semibold ${urgentRenew ? 'text-amber-500' : 'text-gray-400'}`}>
                             · {listing.daysLeft}d left
                           </span>
                         )}

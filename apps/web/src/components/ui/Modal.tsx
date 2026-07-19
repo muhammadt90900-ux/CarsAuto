@@ -128,7 +128,7 @@ export function Modal({ open, onClose, title, description, size = 'md', children
           <button
             ref={closeRef}
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-xl
+            className="absolute top-4 end-4 z-10 w-8 h-8 flex items-center justify-center rounded-xl
                        text-[var(--text-muted)] hover:text-[var(--text-primary)]
                        bg-[var(--surface-100)] hover:bg-[var(--surface-200)]
                        transition-all duration-150

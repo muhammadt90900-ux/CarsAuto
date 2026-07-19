@@ -103,7 +103,7 @@ export function VoiceNotePlayer({ audioUrl, duration, isSender, className }: Voi
           className="relative h-1.5 rounded-full bg-current/20 cursor-pointer"
         >
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-current transition-all"
+            className="absolute inset-y-0 start-0 rounded-full bg-current transition-all"
             style={{ width: `${progress * 100}%` }}
           />
         </div>

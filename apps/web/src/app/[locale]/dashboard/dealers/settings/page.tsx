@@ -47,7 +47,7 @@ function Input({
   return (
     <div className="relative flex items-center">
       {prefix && (
-        <span className="absolute left-3.5 text-xs text-white/30 pointer-events-none select-none">{prefix}</span>
+        <span className="absolute start-3.5 text-xs text-white/30 pointer-events-none select-none">{prefix}</span>
       )}
       <input
         type={type}
@@ -58,7 +58,7 @@ function Input({
           'w-full py-3 rounded-xl bg-white/[0.05] border border-white/[0.09]',
           'text-white text-sm placeholder:text-white/25',
           'focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors',
-          prefix ? 'pl-16 pr-4' : 'px-4',
+          prefix ? 'ps-16 pe-4' : 'px-4',
         )}
       />
     </div>

@@ -102,7 +102,7 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 left-0 right-0 z-50
+        <div className="absolute top-full mt-2 start-0 end-0 z-50
                         bg-[rgba(11,21,37,0.98)] backdrop-blur-2xl
                         border border-[rgba(201,168,76,0.2)] rounded-xl
                         shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
@@ -291,13 +291,13 @@ export function HeroSearch() {
         <div className="absolute inset-0 opacity-[0.025]"
           style={{ backgroundImage:'radial-gradient(circle, rgba(201,168,76,0.8) 1px, transparent 1px)', backgroundSize:'40px 40px' }} />
         {/* Central glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] rounded-full"
+        <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] rounded-full"
           style={{ background:'radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 65%)', filter:'blur(40px)' }} />
         {/* Top-right accent */}
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full"
+        <div className="absolute -top-40 -end-40 w-[600px] h-[600px] rounded-full"
           style={{ background:'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 60%)', filter:'blur(80px)' }} />
         {/* Bottom-left blue */}
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full"
+        <div className="absolute -bottom-40 -start-40 w-[500px] h-[500px] rounded-full"
           style={{ background:'radial-gradient(circle, rgba(14,60,120,0.12) 0%, transparent 60%)', filter:'blur(80px)' }} />
         {/* Moving sweep shimmer */}
         <div className="absolute inset-0 opacity-[0.015]"
@@ -357,7 +357,7 @@ export function HeroSearch() {
             دۆزینەوەی{' '}
             <span className="relative" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               ئۆتۆمبێلی
-              <svg className="absolute -bottom-1 left-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
+              <svg className="absolute -bottom-1 start-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
                 <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.5"/>
               </svg>
             </span>
@@ -439,7 +439,7 @@ export function HeroSearch() {
 
             {/* Suggestion / History / Trending panel */}
             {showSuggestionPanel && (
-              <div className="dropdown-anim absolute top-full left-0 right-0 z-50 mt-1
+              <div className="dropdown-anim absolute top-full start-0 end-0 z-50 mt-1
                               bg-[rgba(11,21,37,0.98)] backdrop-blur-2xl border border-[rgba(201,168,76,0.2)]
                               rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
 

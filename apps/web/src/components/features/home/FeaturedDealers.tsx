@@ -49,7 +49,7 @@ const DealerCard = memo(function DealerCard({
 
   return (
     <Link
-      href="/dealers/${dealer.slug}"
+      href={`/dealers/${dealer.slug}`}
       className="group flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
                  bg-[#0d1b2e] border border-white/[0.07]
                  hover:border-[rgba(201,168,76,0.32)] transition-all duration-350
@@ -81,7 +81,7 @@ const DealerCard = memo(function DealerCard({
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2e] to-transparent" />
 
         {/* Logo */}
-        <div className="absolute -bottom-4 left-3 w-10 h-10 rounded-xl border-2
+        <div className="absolute -bottom-4 start-3 w-10 h-10 rounded-xl border-2
                         border-[#0d1b2e] overflow-hidden bg-[#0d1b2e]
                         flex items-center justify-center shadow-lg">
           {dealer.logoUrl ? (
@@ -194,8 +194,8 @@ export function FeaturedDealers({ locale = 'en' }: { locale?: string }) {
         </div>
 
         <div className="relative">
-          <div className="absolute left-0 top-0 bottom-3 w-8 z-10 pointer-events-none bg-gradient-to-r from-[var(--ink-900)] to-transparent hidden lg:block" />
-          <div className="absolute right-0 top-0 bottom-3 w-16 z-10 pointer-events-none bg-gradient-to-l from-[var(--ink-900)] to-transparent" />
+          <div className="absolute start-0 top-0 bottom-3 w-8 z-10 pointer-events-none bg-gradient-to-r from-[var(--ink-900)] to-transparent hidden lg:block" />
+          <div className="absolute end-0 top-0 bottom-3 w-16 z-10 pointer-events-none bg-gradient-to-l from-[var(--ink-900)] to-transparent" />
           <div
             ref={scrollRef}
             className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"

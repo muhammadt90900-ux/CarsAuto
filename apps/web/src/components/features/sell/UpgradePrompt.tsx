@@ -164,7 +164,7 @@ export function UpgradePrompt({ reason }: UpgradePromptProps) {
           >
             {/* Popular badge */}
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full
+              <div className="absolute -top-3 start-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full
                               bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e]
                               text-[var(--ink-900)] text-[10px] font-black tracking-wider uppercase whitespace-nowrap">
                 ⭐ پێشنیارکراو / Recommended

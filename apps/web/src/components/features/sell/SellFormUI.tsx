@@ -178,7 +178,7 @@ export function Upload360Section({
                         className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full
                                    bg-[#ef4444] text-white text-xs font-bold
                                    flex items-center justify-center
-                                   opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                                   opacity-90 group-hover:opacity-100 transition-opacity duration-150
                                    shadow-lg z-10"
                         aria-label={`Remove frame ${i + 1}`}
                       >

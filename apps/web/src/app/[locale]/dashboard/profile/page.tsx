@@ -160,7 +160,7 @@ export default function ProfilePage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={avatarUploading}
             aria-label="گۆڕینی وێنەی پرۆفایل"
-            className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-[var(--gold)] text-[var(--ink-900)]
+            className="absolute -bottom-1 -start-1 w-6 h-6 rounded-full bg-[var(--gold)] text-[var(--ink-900)]
                        flex items-center justify-center border-2 border-[var(--ink-900)]
                        hover:bg-[#d4b45a] disabled:opacity-60 transition-all duration-200"
           >
@@ -192,7 +192,7 @@ export default function ProfilePage() {
           <div key={field}>
             <label className="block text-white/60 text-sm mb-1.5">{label}</label>
             <div className="relative">
-              <Icon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30
+              <Icon className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30
                                pointer-events-none" />
               <input
                 type={type}
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                 onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.value }))}
                 placeholder={placeholder}
                 className="w-full bg-white/5 border border-white/10 rounded-xl
-                           px-4 pr-10 py-2.5 text-white placeholder:text-white/25
+                           px-4 pe-10 py-2.5 text-white placeholder:text-white/25
                            text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]
                            focus:ring-1 focus:ring-[rgba(201,168,76,0.2)] transition-all duration-200"
               />

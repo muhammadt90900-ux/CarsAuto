@@ -130,7 +130,7 @@ export function Dropdown({ trigger, items, align = 'left', className, label }: D
           onKeyDown={handleMenuKeyDown}
           className={cn(
             'dropdown',
-            align === 'right' ? 'right-0' : 'left-0',
+            align === 'right' ? 'end-0' : 'start-0',
             'top-full mt-2',
           )}
         >

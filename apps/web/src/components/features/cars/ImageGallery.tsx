@@ -73,7 +73,7 @@ function Lightbox({
       {/* Close */}
       <button
         onClick={onClose}
-        className="absolute top-5 right-5 z-10 flex items-center justify-center
+        className="absolute top-5 end-5 z-10 flex items-center justify-center
                    w-11 h-11 rounded-2xl bg-white/[0.08] border border-white/10
                    text-white/60 hover:text-white hover:bg-white/[0.14]
                    transition-all duration-200"
@@ -83,7 +83,7 @@ function Lightbox({
       </button>
 
       {/* Counter */}
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10
+      <div className="absolute top-5 start-1/2 -translate-x-1/2 z-10
                       px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md
                       text-xs font-bold tracking-widest text-white/50 tabular-nums"
            aria-live="polite">
@@ -93,7 +93,7 @@ function Lightbox({
       {/* Prev */}
       <button
         onClick={onPrev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10
+        className="absolute start-4 top-1/2 -translate-y-1/2 z-10
                    flex items-center justify-center w-12 h-12 rounded-2xl
                    bg-white/[0.07] border border-white/10
                    text-white/60 hover:text-white hover:bg-white/[0.13]
@@ -121,7 +121,7 @@ function Lightbox({
       {/* Next */}
       <button
         onClick={onNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10
+        className="absolute end-4 top-1/2 -translate-y-1/2 z-10
                    flex items-center justify-center w-12 h-12 rounded-2xl
                    bg-white/[0.07] border border-white/10
                    text-white/60 hover:text-white hover:bg-white/[0.13]
@@ -132,7 +132,7 @@ function Lightbox({
       </button>
 
       {/* Thumbnail strip */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10
+      <div className="absolute bottom-6 start-1/2 -translate-x-1/2 z-10
                       flex items-center gap-2 px-4 py-3
                       rounded-2xl bg-black/70 backdrop-blur-xl
                       border border-white/[0.08] max-w-[90vw] overflow-x-auto">
@@ -276,10 +276,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2
+                className="absolute start-3 top-1/2 -translate-y-1/2
                            w-10 h-10 rounded-xl flex items-center justify-center
                            bg-black/50 backdrop-blur-sm border border-white/10
-                           text-white opacity-0 group-hover:opacity-100
+                           text-white opacity-70 group-hover:opacity-100
                            transition-all duration-200 hover:bg-black/70"
                 aria-label="Previous image"
               >
@@ -287,10 +287,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2
+                className="absolute end-3 top-1/2 -translate-y-1/2
                            w-10 h-10 rounded-xl flex items-center justify-center
                            bg-black/50 backdrop-blur-sm border border-white/10
-                           text-white opacity-0 group-hover:opacity-100
+                           text-white opacity-70 group-hover:opacity-100
                            transition-all duration-200 hover:bg-black/70"
                 aria-label="Next image"
               >
@@ -302,7 +302,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
           {/* Photo count */}
           <button
             onClick={(e) => { e.stopPropagation(); setShowGrid(v => !v); }}
-            className="absolute bottom-4 right-4
+            className="absolute bottom-4 end-4
                        flex items-center gap-1.5 px-3 py-1.5 rounded-xl
                        bg-black/60 backdrop-blur-md border border-white/10
                        text-xs text-white/80 font-semibold
@@ -314,7 +314,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title }: ImageG
 
           {/* Dot indicators */}
           {totalImages > 1 && totalImages <= 8 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <div className="absolute bottom-4 start-1/2 -translate-x-1/2 flex gap-1.5">
               {sorted.map((_, i) => (
                 <button
                   key={i}

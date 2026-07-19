@@ -89,7 +89,7 @@ export function AvatarGroup({ avatars, max = 4, size = 'sm', className }: Avatar
           alt={a.alt}
           initials={a.initials}
           size={size}
-          className="-ml-2 first:ml-0 ring-2 ring-[var(--surface-0)]"
+          className="-ms-2 first:ms-0 ring-2 ring-[var(--surface-0)]"
         />
       ))}
       {overflow > 0 && (
@@ -97,7 +97,7 @@ export function AvatarGroup({ avatars, max = 4, size = 'sm', className }: Avatar
           className={cn(
             'avatar',
             sizeClasses[size],
-            '-ml-2 ring-2 ring-[var(--surface-0)] bg-[var(--ink-600)] text-[var(--text-muted)]',
+            '-ms-2 ring-2 ring-[var(--surface-0)] bg-[var(--ink-600)] text-[var(--text-muted)]',
           )}
           aria-label={`${overflow} more`}
         >

@@ -270,7 +270,7 @@ export default function AdminAnalyticsPage() {
                         <span className="text-xs font-semibold whitespace-nowrap" style={{ color: step.color }}>{step.step}</span>
                       </div>
                     </div>
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-white/60">
+                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold text-white/60">
                       {step.value.toLocaleString()}
                     </span>
                   </div>

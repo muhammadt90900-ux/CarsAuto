@@ -17,7 +17,7 @@ const haptic = (ms = 15) => {
 function SaveIndicator({ visible }: { visible: boolean }) {
   return (
     <div className={cn(
-      'absolute inset-y-0 right-0 w-24 flex items-center justify-center',
+      'absolute inset-y-0 end-0 w-24 flex items-center justify-center',
       'bg-gradient-to-l from-[#e94560] to-transparent rounded-r-2xl z-10',
       'transition-opacity duration-200',
       visible ? 'opacity-100' : 'opacity-0'
@@ -170,7 +170,7 @@ export function MobileCarCard({ car, locale, saved: savedProp, onSave, rawListin
 
             {/* Image dots */}
             {images.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              <div className="absolute bottom-2 start-1/2 -translate-x-1/2 flex gap-1">
                 {images.map((_, i) => (
                   <div key={i} className={cn(
                     'h-1 rounded-full transition-all duration-200',
@@ -181,7 +181,7 @@ export function MobileCarCard({ car, locale, saved: savedProp, onSave, rawListin
             )}
 
             {/* Badges */}
-            <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+            <div className="absolute top-2.5 start-2.5 flex gap-1.5">
               {car.featured && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full
                                   bg-[var(--gold)] text-[#1a0e00] text-[9px] font-bold uppercase tracking-wide">
@@ -200,7 +200,7 @@ export function MobileCarCard({ car, locale, saved: savedProp, onSave, rawListin
 
             {/* Save button */}
             <button
-              className="absolute top-2.5 right-2.5 w-9 h-9 rounded-xl
+              className="absolute top-2.5 end-2.5 w-9 h-9 rounded-xl
                           flex items-center justify-center
                           bg-black/40 backdrop-blur-sm
                           active:scale-90 transition-transform duration-100"

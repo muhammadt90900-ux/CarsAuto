@@ -239,12 +239,12 @@ export function ListingTypeClient({
   const SidebarContent = () => (
     <div className="text-sm">
       <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
         <input
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
           placeholder={`Search ${config.titleEn.toLowerCase()}…`}
-          className="input-base pl-9 h-10"
+          className="input-base ps-9 h-10"
         />
       </div>
 
@@ -414,7 +414,7 @@ export function ListingTypeClient({
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
+          <div className="fixed inset-y-0 start-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
               <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]">

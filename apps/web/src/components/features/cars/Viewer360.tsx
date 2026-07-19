@@ -292,7 +292,7 @@ export const Viewer360 = memo(function Viewer360({
 
       {/* Frame indicator */}
       {isReady && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10
+        <div className="absolute top-4 start-1/2 -translate-x-1/2 z-10
                         px-3 py-1 rounded-full bg-black/60 backdrop-blur-md
                         text-[10px] font-bold tracking-widest text-white/40 tabular-nums
                         pointer-events-none">

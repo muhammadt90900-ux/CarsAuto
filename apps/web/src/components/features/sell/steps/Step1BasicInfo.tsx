@@ -79,7 +79,7 @@ export function Step1BasicInfo({ form }: Step1Props) {
             <span onClick={() => setValues((v) => ({ ...v, negotiable: !v.negotiable }))}
               className={`relative inline-flex h-6 w-11 rounded-full transition-colors duration-200 cursor-pointer border
                 ${values.negotiable ? 'bg-[var(--gold)] border-[var(--gold)]' : 'bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.12)]'}`}>
-              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200
+              <span className={`absolute top-0.5 start-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200
                 ${values.negotiable ? 'translate-x-5' : 'translate-x-0'}`} />
             </span>
             <span className="text-[var(--text-secondary)] text-sm">Yes</span>

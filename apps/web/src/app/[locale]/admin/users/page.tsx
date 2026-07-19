@@ -263,12 +263,12 @@ export default function AdminUsersPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />
         </div>
 
@@ -450,7 +450,7 @@ export default function AdminUsersPage() {
                           <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                         {actionMenu === user.id && (
-                          <div className="absolute right-0 top-8 z-50 w-48 rounded-xl bg-[#0d1b2e] border border-white/[0.12] shadow-2xl overflow-hidden py-1">
+                          <div className="absolute end-0 top-8 z-50 w-48 rounded-xl bg-[#0d1b2e] border border-white/[0.12] shadow-2xl overflow-hidden py-1">
                             {[
                               { label: 'View Profile', icon: Eye,    action: () => setActionMenu(null) },
                               { label: 'Change Role',  icon: Shield, action: () => { setModal({ type: 'role', user }); setActionMenu(null); } },

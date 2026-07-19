@@ -157,7 +157,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               Full Name <span className="text-[#ef4444]" aria-hidden="true">*</span>
             </label>
             <div className="relative">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
+              <User className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 id={nameId}
                 type="text"
@@ -167,7 +167,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
                 minLength={2} maxLength={80}
                 autoComplete="name"
                 placeholder="Ahmad Al-Rashidi"
-                className="input-base pl-11 h-12"
+                className="input-base ps-11 h-12"
               />
             </div>
           </div>
@@ -178,7 +178,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               Email <span className="text-[#ef4444]" aria-hidden="true">*</span>
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
+              <Mail className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 id={emailId}
                 type="email"
@@ -187,7 +187,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
                 aria-required="true"
                 autoComplete="email"
                 placeholder="your@email.com"
-                className="input-base pl-11 h-12"
+                className="input-base ps-11 h-12"
               />
             </div>
           </div>
@@ -198,7 +198,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               Password <span className="text-[#ef4444]" aria-hidden="true">*</span>
             </label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
+              <Lock className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 id={passwordId}
                 type={showPw ? 'text' : 'password'}
@@ -209,14 +209,14 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
                 minLength={8}
                 autoComplete="new-password"
                 placeholder="Min. 8 chars — uppercase, lowercase, number"
-                className="input-base pl-11 pr-11 h-12"
+                className="input-base ps-11 pe-11 h-12"
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
                 aria-label={showPw ? 'Hide password' : 'Show password'}
                 aria-controls={passwordId}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold)] transition-colors
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] rounded"
               >
                 {showPw ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
@@ -245,14 +245,14 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
               Phone <span className="font-normal normal-case opacity-60">(optional)</span>
             </label>
             <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
+              <Phone className="absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
               <input
                 id={phoneId}
                 type="tel"
                 {...registerField('phone')}
                 autoComplete="tel"
                 placeholder="+964 750 000 0000"
-                className="input-base pl-11 h-12"
+                className="input-base ps-11 h-12"
               />
             </div>
           </div>

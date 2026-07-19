@@ -34,7 +34,15 @@ export const queryKeys = {
   notifications: {
     unreadCount: () => ['notifications', 'unread-count'] as const,
   },
+  chat: {
+    unreadCount: () => ['chat', 'unread-count'] as const,
+  },
   public: {
     stats: () => ['public', 'stats'] as const,
+    categoryStats: () => ['public', 'stats', 'categories'] as const,
+    brandStats: () => ['public', 'stats', 'brands'] as const,
+  },
+  reviews: {
+    featured: (limit: number) => ['reviews', 'featured', limit] as const,
   },
 } as const;

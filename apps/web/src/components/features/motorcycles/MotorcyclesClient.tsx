@@ -115,7 +115,7 @@ const MotoCard = memo(function MotoCard({
             ) : (
               <div className="w-full h-full flex items-center justify-center text-4xl">🏍️</div>
             )}
-            {spec.condition === 'NEW' && <span className="absolute top-2 left-2 badge badge-green">New</span>}
+            {spec.condition === 'NEW' && <span className="absolute top-2 start-2 badge badge-green">New</span>}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -151,11 +151,11 @@ const MotoCard = memo(function MotoCard({
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl">🏍️</div>
           )}
-          {spec.condition === 'NEW' && <span className="absolute top-2 left-2 badge badge-green">New</span>}
+          {spec.condition === 'NEW' && <span className="absolute top-2 start-2 badge badge-green">New</span>}
           <button onClick={toggleLike}
                   aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
                   aria-pressed={isSaved}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center
+                  className="absolute top-2 end-2 w-8 h-8 rounded-full flex items-center justify-center
                              bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors">
             <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : 'text-white'}`} />
           </button>
@@ -345,9 +345,9 @@ export function MotorcyclesClient({
   const SidebarContent = () => (
     <div className="text-sm">
       <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
         <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-               placeholder="Search motorcycles…" className="input-base pl-9 h-10" />
+               placeholder="Search motorcycles…" className="input-base ps-9 h-10" />
       </div>
 
       <FilterSection title="Brand">
@@ -559,7 +559,7 @@ export function MotorcyclesClient({
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden">
+          <div className="fixed inset-y-0 start-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)] shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)]">Filters</h2>
               <button onClick={() => setSidebarOpen(false)} aria-label="Close filters" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-100)]"><X className="w-4 h-4" /></button>

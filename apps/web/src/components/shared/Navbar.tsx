@@ -31,7 +31,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active?
                  ${active ? 'text-gold' : 'text-white/65 hover:text-white'}`}
     >
       {label}
-      <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full
+      <span className={`absolute bottom-0 start-1/2 -translate-x-1/2 h-[2px] rounded-full
                        bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)]
                        transition-all duration-300
                        ${active ? 'w-4/5' : 'w-0 group-hover:w-4/5'}`} />
@@ -371,7 +371,7 @@ export function Navbar({ locale }: NavbarProps) {
       {/* Skip to main content */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999]
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:start-2 focus:z-[9999]
                    focus:px-4 focus:py-2 focus:rounded-xl focus:bg-gold focus:text-[var(--ink-900)]
                    focus:font-bold focus:text-sm focus:shadow-lg"
       >

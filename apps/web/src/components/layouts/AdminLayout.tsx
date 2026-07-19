@@ -56,7 +56,7 @@ export function AdminLayout({ children, locale }: AdminLayoutProps) {
                         border-b border-slate-100 dark:border-white/[0.07]">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="touch-target text-[var(--text-muted)] hover:text-[var(--gold)] -ml-1"
+            className="touch-target text-[var(--text-muted)] hover:text-[var(--gold)] -ms-1"
             aria-label="Open admin sidebar menu"
             aria-expanded={drawerOpen}
             aria-controls="admin-sidebar"

@@ -499,6 +499,11 @@ export const chatApi = {
     api
       .post<Message>(`/chats/${conversationId}/messages`, { content })
       .then((r) => r.data),
+
+  // Total unread message count across all of the user's conversations.
+  // Backend: GET /chats/unread/count (ChatController.getUnreadCount).
+  getUnreadCount: () =>
+    api.get<{ count: number }>('/chats/unread/count').then((r) => r.data),
 };
 
 // ── Cache invalidation ────────────────────────────────────────────────────────
@@ -540,8 +545,43 @@ export interface PublicStats {
   cities: number;
   averageRating: number;
 }
+
+// Backs the homepage "Browse by Category" tile counts, which were
+// previously hardcoded strings like "4,200+" with no data source.
+// "luxury" is intentionally absent — see stats.service.ts for why.
+export interface CategoryStats {
+  sedan: number;
+  suv: number;
+  electric: number;
+  pickup: number;
+  parts: number;
+}
+
+// Backs the homepage "Trending Brands" tile counts, keyed by brand's
+// English name (same key the UI already renders as the brand label).
+export type BrandStats = Record<string, number>;
+
 export const publicApi = {
   getStats: () => cachedGet<PublicStats>('/public/stats', undefined, 10 * 60_000),
+  getCategoryStats: () => cachedGet<CategoryStats>('/public/stats/categories', undefined, 10 * 60_000),
+  getBrandStats: () => cachedGet<BrandStats>('/public/stats/brands', undefined, 10 * 60_000),
+};
+
+// Backs the homepage testimonials section (real reviews — see
+// reviews.service.ts's findFeatured for selection criteria). Replaces what
+// used to be three fabricated named-customer quotes hardcoded on the page.
+export interface FeaturedReview {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  verified: boolean;
+  reviewer: { name: string | null; avatar: string | null };
+}
+
+export const reviewsApi = {
+  getFeatured: (limit = 6) =>
+    cachedGet<FeaturedReview[]>('/reviews/featured', { limit }, 5 * 60_000),
 };
 
 // ── Newsletter API ────────────────────────────────────────────────────────

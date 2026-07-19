@@ -51,7 +51,7 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
 
   return (
     <Link
-      href="/dealers/${dealer.slug}"
+      href={`/dealers/${dealer.slug}`}
       className={cn(
         'group relative flex flex-col rounded-2xl overflow-hidden',
         'bg-[#0d1b2e] border border-white/[0.07]',
@@ -72,7 +72,7 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
         {/* Tier badge */}
         {dealer.tier !== 'BASIC' && (
           <div className={cn(
-            'absolute top-2.5 right-2.5 flex items-center gap-1 px-2.5 py-1 rounded-full',
+            'absolute top-2.5 end-2.5 flex items-center gap-1 px-2.5 py-1 rounded-full',
             'text-[0.65rem] font-bold tracking-wide',
             'bg-gradient-to-r', tier.color, tier.textColor,
           )}>
@@ -82,7 +82,7 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
         )}
 
         {/* Logo */}
-        <div className="absolute -bottom-5 left-4 w-12 h-12 rounded-xl border-2 border-[#0d1b2e] overflow-hidden bg-[#0d1b2e] flex items-center justify-center shadow-lg">
+        <div className="absolute -bottom-5 start-4 w-12 h-12 rounded-xl border-2 border-[#0d1b2e] overflow-hidden bg-[#0d1b2e] flex items-center justify-center shadow-lg">
           {dealer.logoUrl ? (
             <Image src={dealer.logoUrl} alt={name} width={48} height={48} className="object-contain" />
           ) : (

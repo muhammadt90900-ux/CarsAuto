@@ -86,7 +86,7 @@ export function VoiceRecorderButton({ onSend, disabled, className }: VoiceRecord
         {/* Cancel */}
         <button
           onClick={cancelRecording}
-          className="ml-1 p-1 rounded-full hover:bg-white/10 text-muted-foreground"
+          className="ms-1 p-1 rounded-full hover:bg-white/10 text-muted-foreground"
           title="Cancel"
         >
           <X size={16} />

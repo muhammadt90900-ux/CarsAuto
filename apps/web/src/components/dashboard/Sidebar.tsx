@@ -4,7 +4,10 @@
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
+import { chatApi, notificationsApi } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
@@ -70,7 +73,7 @@ export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const t = useTranslations('dashboard');
   const params = useParams();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
   const locale = Array.isArray(params.locale)
     ? params.locale[0]
     : (params.locale ?? 'ku');
@@ -78,12 +81,33 @@ export function Sidebar({ className }: { className?: string }) {
   const isActive = (href: string) =>
     pathname === href || (href !== `/${locale}/dashboard` && pathname.startsWith(href));
 
+  // Previously hardcoded (`badge: '3'` / `badge: '5'`), permanently, for every
+  // user regardless of whether they had any unread messages or notifications.
+  // Now sourced from the real endpoints, same pattern as the admin sidebar.
+  const { data: unreadMessages } = useQuery({
+    queryKey: queryKeys.chat.unreadCount(),
+    queryFn: () => chatApi.getUnreadCount(),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const { data: unreadNotifications } = useQuery({
+    queryKey: queryKeys.notifications.unreadCount(),
+    queryFn: () => notificationsApi.getUnreadCount(),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const messagesBadge = unreadMessages?.count ? String(unreadMessages.count) : null;
+  const notificationsBadge = unreadNotifications?.count ? String(unreadNotifications.count) : null;
+
   const mainItems = [
     { href: `/${locale}/dashboard`,              label: t('overview'),      icon: LayoutDashboard, badge: null },
     { href: `/${locale}/dashboard/listings`,      label: t('myListings'),   icon: ListChecks,      badge: null },
-    { href: `/${locale}/dashboard/messages`,      label: t('messages'),     icon: MessageSquare,   badge: '3'  },
+    { href: `/${locale}/dashboard/messages`,      label: t('messages'),     icon: MessageSquare,   badge: messagesBadge },
     { href: `/${locale}/dashboard/favorites`,     label: t('favorites'),    icon: Heart,           badge: null },
-    { href: `/${locale}/dashboard/notifications`, label: t('notifications'),icon: Bell,            badge: '5'  },
+    { href: `/${locale}/dashboard/notifications`, label: t('notifications'),icon: Bell,            badge: notificationsBadge },
   ];
 
   const accountItems = [

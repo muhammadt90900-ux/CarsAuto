@@ -65,7 +65,7 @@ const SpecRow = memo(function SpecRow({ label, value, icon: Icon }: { label: str
   if (!value) return null;
   return (
     <tr className="border-b border-white/[0.05] last:border-0">
-      <th scope="row" className="py-3 pr-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35 whitespace-nowrap w-1/2">
+      <th scope="row" className="py-3 pe-4 text-xs font-semibold uppercase tracking-[0.09em] text-white/35 whitespace-nowrap w-1/2">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-3.5 h-3.5 text-[rgba(201,168,76,0.5)] flex-shrink-0" aria-hidden="true" />}
           {label}
@@ -225,7 +225,7 @@ const SimilarMotorcycles = memo(function SimilarMotorcycles({ motorcycles }: { m
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-3 left-3">
+                <div className="absolute bottom-3 start-3">
                   <span className="text-base font-display font-black text-[var(--gold)]">{fmtPrice(m.price, m.currency)}</span>
                 </div>
               </div>

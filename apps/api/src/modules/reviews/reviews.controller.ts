@@ -22,6 +22,17 @@ export class ReviewsController {
     return this.reviews.create(reviewerId, dto);
   }
 
+  /**
+   * GET /reviews/featured — public, no auth. Powers the homepage
+   * testimonials section with real reviews (see ReviewsService.findFeatured
+   * for the selection criteria). Replaces what used to be three fabricated
+   * named customer quotes hardcoded into the homepage.
+   */
+  @Get('reviews/featured')
+  findFeatured(@Query('limit', new DefaultValuePipe(6), ParseIntPipe) limit: number) {
+    return this.reviews.findFeatured(limit);
+  }
+
   /** GET /users/:userId/reviews — public, no auth required. */
   @Get('users/:userId/reviews')
   findByUser(

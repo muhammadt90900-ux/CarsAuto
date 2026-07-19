@@ -97,7 +97,7 @@ export function LanguageSwitcher({
             rounded-xl overflow-hidden
             bg-[#0f1b2d] border border-white/10
             shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-            ${align === 'right' ? 'right-0' : 'left-0'}
+            ${align === 'right' ? 'end-0' : 'start-0'}
           `}
         >
           {locales.map((loc) => (

@@ -339,7 +339,7 @@ export function ChatWindow({
               {otherUser.name.charAt(0).toUpperCase()}
             </div>
             {isConnected && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#070d18]" />
+              <span className="absolute bottom-0 end-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#070d18]" />
             )}
           </div>
           <div>

@@ -456,12 +456,12 @@ export function CarsMarketplaceClient({
   const sidebar = (
     <div className="text-sm">
       <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
         <input
           value={query}
           onChange={e => { setQuery(e.target.value); setPage(1); }}
           placeholder="Search cars…"
-          className="input-base pl-9 text-sm h-10"
+          className="input-base ps-9 text-sm h-10"
         />
       </div>
 
@@ -650,10 +650,10 @@ export function CarsMarketplaceClient({
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="relative">
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                    className="input-base pr-8 h-9 text-xs cursor-pointer appearance-none max-w-[160px]">
+                    className="input-base pe-8 h-9 text-xs cursor-pointer appearance-none max-w-[160px]">
                     {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
-                  <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)] pointer-events-none"/>
+                  <ArrowUpDown className="absolute end-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)] pointer-events-none"/>
                 </div>
                 <div className="flex rounded-xl overflow-hidden border border-[var(--border-default)] bg-white dark:bg-[var(--ink-750)]">
                   <button onClick={() => setView('grid')}
@@ -781,7 +781,7 @@ export function CarsMarketplaceClient({
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
                onClick={() => setSidebar(false)}/>
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)]
+          <div className="fixed inset-y-0 start-0 z-50 w-80 bg-white dark:bg-[var(--ink-750)]
                           shadow-[var(--shadow-xl)] overflow-y-auto no-scrollbar lg:hidden anim-slide-l">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-default)]">
               <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2">

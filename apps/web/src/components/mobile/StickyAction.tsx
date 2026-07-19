@@ -182,7 +182,7 @@ export function StickyFilterTrigger({
 
   return (
     <div className={cn(
-      'fixed top-[70px] left-1/2 -translate-x-1/2 z-40 md:hidden',
+      'fixed top-[70px] start-1/2 -translate-x-1/2 z-40 md:hidden',
       'transition-all duration-300 ease-out',
       visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
     )}>

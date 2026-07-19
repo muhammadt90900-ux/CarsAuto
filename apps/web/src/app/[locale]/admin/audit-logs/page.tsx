@@ -144,12 +144,12 @@ export default function AuditLogsPage() {
       <div className="flex flex-wrap gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search action, actor, target…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
                        text-white text-sm placeholder:text-white/25 focus:outline-none
                        focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />

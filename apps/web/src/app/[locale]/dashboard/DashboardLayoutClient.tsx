@@ -105,7 +105,7 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')} />
 
       <div
-        className={cn('fixed top-0 left-0 bottom-0 z-50 w-[280px]',
+        className={cn('fixed top-0 start-0 bottom-0 z-50 w-[280px]',
           'bg-[#06111f] border-r border-[rgba(201,168,76,0.15)]',
           'shadow-[8px_0_48px_rgba(0,0,0,0.70)]',
           'flex flex-col md:hidden will-change-transform',
@@ -114,7 +114,7 @@ function BuyerMobileDrawer({ open, onClose, locale }: {
         onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
       >
         {/* Sky blue accent line */}
-        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b
+        <div className="absolute inset-y-0 end-0 w-px bg-gradient-to-b
                          from-transparent via-[rgba(201,168,76,0.2)] to-transparent" />
 
         {/* Header */}
@@ -225,7 +225,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')} />
 
       <div
-        className={cn('fixed top-0 left-0 bottom-0 z-50 w-[280px]',
+        className={cn('fixed top-0 start-0 bottom-0 z-50 w-[280px]',
           'bg-[var(--ink-800)] border-r border-[var(--gold-subtle)]',
           'shadow-[8px_0_48px_rgba(0,0,0,0.70)]',
           'flex flex-col md:hidden will-change-transform',
@@ -233,7 +233,7 @@ function SellerMobileDrawer({ open, onClose, locale }: {
         style={{ transform: open ? `translateX(${dragX}px)` : `translateX(calc(-100% + ${dragX}px))` }}
         onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
       >
-        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b
+        <div className="absolute inset-y-0 end-0 w-px bg-gradient-to-b
                          from-transparent via-[rgba(201,168,76,0.2)] to-transparent" />
 
         <div className="flex items-center justify-between px-5 pt-14 pb-6">

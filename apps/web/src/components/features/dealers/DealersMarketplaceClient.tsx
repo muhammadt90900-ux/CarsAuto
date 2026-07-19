@@ -161,11 +161,11 @@ export function DealersMarketplaceClient({
           <p className="text-white/45 text-sm mb-6">Connect with verified dealerships across Iraq &amp; UAE</p>
           {/* Search */}
           <div className="relative max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"/>
+            <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"/>
             <input value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Search dealers by name, city, specialty…"
               className="w-full h-12 bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] rounded-2xl
-                         pl-11 pr-4 text-white placeholder-white/30 text-sm outline-none
+                         ps-11 pe-4 text-white placeholder-white/30 text-sm outline-none
                          focus:border-[rgba(201,168,76,0.5)] focus:shadow-[0_0_0_3px_rgba(201,168,76,0.10)] transition-all"/>
           </div>
         </div>
