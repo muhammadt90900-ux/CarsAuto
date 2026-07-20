@@ -376,7 +376,7 @@ export function HeroSearch() {
           {/* Hero image — bleeds into the background, decorative only */}
           <div className="hidden lg:block relative h-[300px] xl:h-[340px] hero-line-2" aria-hidden="true">
             <Image
-              src="/placeholder-car.jpg"
+              src="/hero-car.jpg"
               alt=""
               fill
               priority

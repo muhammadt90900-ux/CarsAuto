@@ -36,8 +36,11 @@
   "devDependencies": {
     "@playwright/test": "^1.44.0",
     "autocannon": "^7.15.0",
+    "concurrently": "^10.0.3",
+    "nodemon": "^3.1.14",
     "prettier": "^3.0.0",
-    "turbo": "latest"
+    "turbo": "latest",
+    "wait-on": "^9.0.10"
   },
   "packageManager": "npm@10.9.2",
   "engines": {
@@ -48,7 +51,7 @@
     "ws": ">=8.17.1",
     "@nestjs/core": "11.1.26",
     "@types/react": "^18.3.31"
-  },  
+  },
   "dependencies": {
     "axios": "^1.18.1",
     "cloudinary": "^2.10.0"
