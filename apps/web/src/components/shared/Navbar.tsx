@@ -436,13 +436,6 @@ export function Navbar({ locale }: NavbarProps) {
               </span>
             </Link>
 
-            {/* ── Desktop nav links ─────────────────────────────── */}
-            <div className="hidden md:flex items-center">
-              {navLinks.map(l => (
-                <NavLink key={l.href} {...l} active={isActive(l.href)} />
-              ))}
-            </div>
-
             {/* ── Desktop search ───────────────────────────────── */}
             <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md">
               <div className="relative w-full group">
@@ -540,6 +533,13 @@ export function Navbar({ locale }: NavbarProps) {
                                   ${mobileOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
               </button>
             </div>
+          </div>
+
+          {/* ── Desktop nav links row ───────────────────────────── */}
+          <div className="hidden md:flex items-center justify-center">
+            {navLinks.map(l => (
+              <NavLink key={l.href} {...l} active={isActive(l.href)} />
+            ))}
           </div>
         </div>
 

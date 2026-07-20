@@ -2,6 +2,7 @@
 // components/features/home/HeroSearch.tsx
 
 import { useState, useReducer, useRef, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useLocale } from 'next-intl';
 import { CarBrandLogo, BrandGrid } from '@/components/shared/CarBrandLogo';
 import {
@@ -335,37 +336,59 @@ export function HeroSearch() {
         style={{ paddingTop:'calc(68px + 4rem)', paddingBottom:'4rem' }}
       >
 
-        {/* Live badge */}
-        <div className="flex justify-center mb-6 hero-line-1">
-          <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse pulse-gold" />
-            <span className="text-[rgba(201,168,76,0.65)]">🇮🇶</span>
-            <span className="text-white/50">Iraq</span>
-            <span className="text-white/15">·</span>
-            <span className="text-[rgba(201,168,76,0.65)]">🇦🇪</span>
-            <span className="text-white/50">UAE</span>
-            <span className="text-white/15">·</span>
-            <span className="text-[rgba(201,168,76,0.65)]">🇨🇳</span>
-            <span className="text-white/50">China</span>
-          </span>
-        </div>
+        {/* Badge + headline, paired with a blended hero image on wide screens */}
+        <div className="lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8">
+          <div>
+            {/* Live badge */}
+            <div className="flex justify-center lg:justify-start mb-6 hero-line-1">
+              <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse pulse-gold" />
+                <span className="text-[rgba(201,168,76,0.65)]">🇮🇶</span>
+                <span className="text-white/50">Iraq</span>
+                <span className="text-white/15">·</span>
+                <span className="text-[rgba(201,168,76,0.65)]">🇦🇪</span>
+                <span className="text-white/50">UAE</span>
+                <span className="text-white/15">·</span>
+                <span className="text-[rgba(201,168,76,0.65)]">🇨🇳</span>
+                <span className="text-white/50">China</span>
+              </span>
+            </div>
 
-        {/* Headline */}
-        <div className="text-center mb-8 hero-line-2">
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl
-                         font-extrabold text-white leading-[1.08] tracking-tight mb-4">
-            دۆزینەوەی{' '}
-            <span className="relative" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              ئۆتۆمبێلی
-              <svg className="absolute -bottom-1 start-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
-                <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.5"/>
-              </svg>
-            </span>
-            {' '}تەواوت
-          </h1>
-          <p className="text-white/45 text-sm sm:text-base md:text-lg font-light max-w-xl mx-auto leading-relaxed">
-            Find Your Perfect Vehicle Across the Middle East &amp; Beyond
-          </p>
+            {/* Headline */}
+            <div className="text-center lg:text-start mb-8 hero-line-2">
+              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl
+                             font-extrabold text-white leading-[1.12] tracking-tight mb-4">
+                دۆزینەوەی{' '}
+                <span className="relative" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  ئۆتۆمبێلی
+                  <svg className="absolute -bottom-1 start-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
+                    <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.5"/>
+                  </svg>
+                </span>
+                {' '}تەواوت
+              </h1>
+              <p className="text-white/45 text-sm sm:text-base md:text-lg font-light max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Find Your Perfect Vehicle Across the Middle East &amp; Beyond
+              </p>
+            </div>
+          </div>
+
+          {/* Hero image — bleeds into the background, decorative only */}
+          <div className="hidden lg:block relative h-[300px] xl:h-[340px] hero-line-2" aria-hidden="true">
+            <Image
+              src="/placeholder-car.jpg"
+              alt=""
+              fill
+              priority
+              className="object-contain select-none pointer-events-none"
+              style={{
+                objectPosition: 'center',
+                maskImage: 'radial-gradient(ellipse 70% 75% at 55% 50%, black 55%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(ellipse 70% 75% at 55% 50%, black 55%, transparent 100%)',
+                filter: 'drop-shadow(0 30px 50px rgba(0,0,0,0.45))',
+              }}
+            />
+          </div>
         </div>
 
         {/* Category Tabs */}
@@ -515,24 +538,6 @@ export function HeroSearch() {
             <div className="grid grid-cols-2 md:flex md:flex-nowrap gap-2 items-stretch">
               <Dropdown label="براند" value={filters.make} options={MAKES}
                 onChange={v => { setFilter('make', v); setFilter('model', ''); }} placeholder="هەموو براندەکان" />
-              {/* Brand logo quick-picks */}
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {MAKES.slice(0, 8).map(m => {
-                  const name = m.split(' / ').find((p: string) => /^[A-Za-z]/.test(p.trim())) ?? m;
-                  const active = filters.make === m;
-                  return (
-                    <button key={m} type="button" onClick={() => setFilter('make', active ? '' : m)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium
-                        transition-all duration-150
-                        ${active
-                          ? 'border-[var(--gold)] bg-[var(--gold-subtle)] text-[var(--gold)]'
-                          : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white/80'}`}>
-                      <CarBrandLogo brand={m} size="xs" />
-                      {name}
-                    </button>
-                  );
-                })}
-              </div>
               <Dropdown label="مۆدێل" value={filters.model} options={activeModels}
                 onChange={v => setFilter('model', v)} placeholder="مۆدێل هەڵبژێرە" disabled={!filters.make} />
               <Dropdown label="شار" value={filters.city} options={CITIES}
@@ -551,6 +556,31 @@ export function HeroSearch() {
                 <Search className="w-4 h-4" />
                 گەڕان
               </button>
+            </div>
+
+            {/* Brand logo quick-picks — its own clearly-labeled row, separate
+                from the filter fields above so the main row never wraps */}
+            <div className="mt-3 pt-3 border-t border-white/[0.06]">
+              <span className="block text-[9px] uppercase tracking-[0.12em] text-white/30 font-bold mb-2">
+                براندە بەناوبانگەکان / Popular brands
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {MAKES.slice(0, 8).map(m => {
+                  const name = m.split(' / ').find((p: string) => /^[A-Za-z]/.test(p.trim())) ?? m;
+                  const active = filters.make === m;
+                  return (
+                    <button key={m} type="button" onClick={() => setFilter('make', active ? '' : m)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium
+                        transition-all duration-150
+                        ${active
+                          ? 'border-[var(--gold)] bg-[var(--gold-subtle)] text-[var(--gold)]'
+                          : 'border-white/10 text-white/50 hover:border-white/25 hover:text-white/80'}`}>
+                      <CarBrandLogo brand={m} size="xs" />
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Advanced toggle */}
