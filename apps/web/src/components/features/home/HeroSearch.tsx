@@ -289,7 +289,7 @@ export function HeroSearch() {
       className="relative overflow-hidden"
       style={{
         background: 'linear-gradient(175deg, var(--ink-900) 0%, var(--ink-800) 35%, var(--ink-750) 65%, var(--ink-900) 100%)',
-        minHeight: 'calc(100vh * 0.82)',
+        minHeight: 'calc(100vh * 0.62)',
       }}
     >
       {/* ── Background atmosphere ──────────────────────────────── */}
@@ -339,14 +339,14 @@ export function HeroSearch() {
       {/* ── Content ────────────────────────────────────────────── */}
       <div
         className="relative z-10 w-full max-w-5xl mx-auto px-4"
-        style={{ paddingTop:'calc(68px + 4rem)', paddingBottom:'4rem' }}
+        style={{ paddingTop:'calc(68px + 2.25rem)', paddingBottom:'2.25rem' }}
       >
 
         {/* Badge + headline, paired with a blended hero image on wide screens */}
         <div className={`lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 ${heroImgError ? '' : 'lg:min-h-[360px] xl:min-h-[420px]'}`}>
           <div>
             {/* Live badge */}
-            <div className="flex justify-center lg:justify-start mb-6 hero-line-1">
+            <div className="flex justify-center lg:justify-start mb-4 hero-line-1">
               <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse pulse-gold" />
                 <span className="text-[rgba(201,168,76,0.65)]">🇮🇶</span>
@@ -361,7 +361,7 @@ export function HeroSearch() {
             </div>
 
             {/* Headline */}
-            <div className="text-center lg:text-start mb-8 hero-line-2">
+            <div className="text-center lg:text-start mb-5 hero-line-2">
               <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl
                              font-extrabold text-white leading-[1.12] tracking-tight mb-4">
                 دۆزینەوەی{' '}
@@ -409,7 +409,7 @@ export function HeroSearch() {
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-2 justify-center mb-6 hero-line-3">
+        <div className="flex gap-2 justify-center mb-5 hero-line-3">
           {CATEGORIES.map(({ id, label, labelEn, icon: Icon }) => (
             <button
               key={id}
@@ -423,21 +423,6 @@ export function HeroSearch() {
               <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[var(--ink-900)]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
               <span className="hidden xs:inline">{label}</span>
               <span className="hidden sm:inline text-[10px] opacity-60">/ {labelEn}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Quick category filters below tabs */}
-        <div className="flex flex-wrap gap-2 justify-center mb-5 hero-line-3">
-          {['New', 'Used', 'Electric', 'Under $20k', 'Luxury', '4×4'].map(tag => (
-            <button
-              key={tag}
-              className="px-3 py-1 rounded-full text-[11px] font-semibold
-                         bg-white/[0.05] border border-white/[0.10] text-white/45
-                         hover:bg-[var(--gold-subtle)] hover:border-[rgba(201,168,76,0.3)] hover:text-[var(--gold)]
-                         transition-all duration-200"
-            >
-              {tag}
             </button>
           ))}
         </div>
