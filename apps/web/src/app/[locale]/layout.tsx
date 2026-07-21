@@ -9,6 +9,7 @@ import { fontVariables } from '@/lib/fonts';
 import { safeJsonLd } from '@/lib/json-ld-safe';
 import { Providers } from '@/components/Providers';
 import { PWAProvider, InstallPrompt } from '@/components/pwa';
+import { DevScriptWarningSuppressor } from '@/components/shared/DevScriptWarningSuppressor';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import '@/styles/globals.css';
 
@@ -183,6 +184,11 @@ export default async function LocaleLayout({ children, params }: Props) {
             __html: `(function(){try{var t=localStorage.getItem('carsauto-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
           }}
         />
+        {/* Silences the known Next.js 16.2 dev-only false-positive console
+            error for the beforeInteractive script above — see the comment
+            inside DevScriptWarningSuppressor.tsx for the upstream issue
+            links. Renders nothing; dev-mode only. */}
+        <DevScriptWarningSuppressor />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {/*
            * error.tsx boundaries only catch errors thrown by *page* segments

@@ -343,7 +343,7 @@ export function HeroSearch() {
       >
 
         {/* Badge + headline, paired with a blended hero image on wide screens */}
-        <div className="lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 lg:min-h-[360px] xl:min-h-[420px]">
+        <div className={`lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 ${heroImgError ? '' : 'lg:min-h-[360px] xl:min-h-[420px]'}`}>
           <div>
             {/* Live badge */}
             <div className="flex justify-center lg:justify-start mb-6 hero-line-1">
@@ -399,11 +399,9 @@ export function HeroSearch() {
                 className="object-cover select-none pointer-events-none"
                 style={{
                   objectPosition: 'center 35%',
-                  maskImage: 'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%), linear-gradient(to bottom, black 60%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%), linear-gradient(to bottom, black 60%, transparent 100%)',
-                  maskComposite: 'intersect',
-                  WebkitMaskComposite: 'source-in',
-                  filter: 'brightness(0.9) contrast(1.05)',
+                  maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 88%, rgba(0,0,0,0.85) 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 88%, rgba(0,0,0,0.85) 100%)',
+                  filter: 'brightness(0.92) contrast(1.05)',
                 }}
               />
             </div>
