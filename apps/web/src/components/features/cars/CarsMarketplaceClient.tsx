@@ -484,7 +484,7 @@ export function CarsMarketplaceClient({
               <label key={m.id} className="flex items-center gap-2.5 cursor-pointer group">
                 <input type="radio" name="model" checked={modelId === m.id} onChange={() => selectModel(m.id)}
                   className="w-4 h-4 accent-[var(--gold)]" />
-                <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{m.name?.en ?? m.name}</span>
+                <span className="text-[var(--text-secondary)] group-hover:text-[var(--gold)] transition-colors">{m.name}</span>
               </label>
             ))}
             {models && models.length === 0 && (
@@ -675,7 +675,7 @@ export function CarsMarketplaceClient({
               <div className="filter-chips-row flex gap-2 mb-5 pb-1">
                 {[
                   { key: 'brand',    label: brands?.find(b => b.id === brandId)?.name?.en ?? (brands?.find(b => b.id === brandId)?.name as any), value: brandId, clear: () => { setBrandId(''); setModelId(''); } },
-                  { key: 'model',    label: models?.find(m => m.id === modelId)?.name?.en ?? (models?.find(m => m.id === modelId)?.name as any), value: modelId, clear: () => setModelId('') },
+                  { key: 'model',    label: models?.find(m => m.id === modelId)?.name, value: modelId, clear: () => setModelId('') },
                   { key: 'bodyType', label: bodyType,     value: bodyType,     clear: () => setBodyType('') },
                   { key: 'fuelType', label: fuelType,     value: fuelType,     clear: () => setFuelType('') },
                   { key: 'trans',    label: transmission, value: transmission, clear: () => setTrans('') },

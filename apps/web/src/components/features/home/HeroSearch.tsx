@@ -12,7 +12,7 @@ import {
 import {
   MAKES, MODELS, YEARS, CITIES, COUNTRIES, FUEL_TYPES, TRANSMISSIONS,
   CONDITIONS, COLORS, PRICE_RANGES, CATEGORIES, TRENDING_SEARCHES,
-  QUICK_SEARCHES, POPULAR_VEHICLES, STATS, SUGGESTIONS_MAP,
+  QUICK_SEARCHES, POPULAR_VEHICLES, SUGGESTIONS_MAP,
 } from '@/data/heroSearchData';
 
 /* ── Local-storage search history ───────────────────────────── */
@@ -188,6 +188,12 @@ export function HeroSearch() {
   const [filters, dispatchFilters] = useReducer(filtersReducer, initialFilters);
   const [ui, setUi] = useState<UiState>(initialUi);
   const [search, setSearch] = useState<SearchState>(initialSearchState);
+  // BUG FIX: if /hero-car.jpg ever fails to load (bad deploy, wrong path),
+  // this used to show the browser's default broken-image icon inside an
+  // empty bordered box — exactly the "بۆم داناوە" screenshot. Hiding the
+  // whole decorative image on error means visitors just see the headline
+  // and search card, never a broken box.
+  const [heroImgError, setHeroImgError] = useState(false);
 
   const inputRef    = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -337,7 +343,7 @@ export function HeroSearch() {
       >
 
         {/* Badge + headline, paired with a blended hero image on wide screens */}
-        <div className="lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8">
+        <div className="lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 lg:min-h-[360px] xl:min-h-[420px]">
           <div>
             {/* Live badge */}
             <div className="flex justify-center lg:justify-start mb-6 hero-line-1">
@@ -373,22 +379,35 @@ export function HeroSearch() {
             </div>
           </div>
 
-          {/* Hero image — bleeds into the background, decorative only */}
-          <div className="hidden lg:block relative h-[300px] xl:h-[340px] hero-line-2" aria-hidden="true">
-            <Image
-              src="/hero-car.jpg"
-              alt=""
-              fill
-              priority
-              className="object-contain select-none pointer-events-none"
-              style={{
-                objectPosition: 'center',
-                maskImage: 'radial-gradient(ellipse 70% 75% at 55% 50%, black 55%, transparent 100%)',
-                WebkitMaskImage: 'radial-gradient(ellipse 70% 75% at 55% 50%, black 55%, transparent 100%)',
-                filter: 'drop-shadow(0 30px 50px rgba(0,0,0,0.45))',
-              }}
-            />
-          </div>
+          {/* Hero image — bleeds into the background, decorative only.
+              BUG FIX: was a small object-contain image in a radial-masked
+              box, which on some screens/deploys rendered as an empty
+              bordered box (broken image icon in the corner) with a huge
+              dead gap around it. Now: taller, bleeds past its own column
+              into the text side, and fades directionally into the dark
+              background (linear mask, not a floating radial blob) — same
+              blended look as the reference. Hides itself entirely on
+              load failure instead of showing a broken-image box. */}
+          {!heroImgError && (
+            <div className="hidden lg:block absolute inset-y-0 end-0 w-[46%] xl:w-[44%] hero-line-2" aria-hidden="true">
+              <Image
+                src="/hero-car.jpg"
+                alt=""
+                fill
+                priority
+                onError={() => setHeroImgError(true)}
+                className="object-cover select-none pointer-events-none"
+                style={{
+                  objectPosition: 'center 35%',
+                  maskImage: 'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%), linear-gradient(to bottom, black 60%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%), linear-gradient(to bottom, black 60%, transparent 100%)',
+                  maskComposite: 'intersect',
+                  WebkitMaskComposite: 'source-in',
+                  filter: 'brightness(0.9) contrast(1.05)',
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Category Tabs */}
@@ -725,23 +744,6 @@ export function HeroSearch() {
           </div>
         </div>
 
-        {/* Stats strip */}
-        <div className="mt-10">
-          <div className="h-px mb-8" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.15) 25%, rgba(201,168,76,0.35) 50%, rgba(201,168,76,0.15) 75%, transparent 100%)' }} />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-0">
-            {STATS.map(({ value, label, labelEn }, i) => (
-              <div key={label}
-                className={`stat-item text-center py-2 relative ${i < STATS.length - 1 ? 'sm:border-e sm:border-white/[0.08]' : ''}`}
-                style={{ animationDelay:`${0.35 + i * 0.07}s` }}>
-                <div className="text-2xl sm:text-3xl font-display font-extrabold mb-0.5 tabular-nums"
-                  style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 60%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{value}</div>
-                <div className="text-white/40 text-xs font-medium">
-                  {label}<span className="text-white/20 mx-1">/</span>{labelEn}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Bottom wave */}
