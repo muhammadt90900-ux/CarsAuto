@@ -268,7 +268,8 @@
     "postYourCar": "انشر سيارتك",
     "sellerDashboard": "لوحة البائع",
     "monthlyListingsUsed": "{used} من {limit} إعلانات مستخدمة هذا الشهر",
-    "browseListings": "تصفح الإعلانات"
+    "browseListings": "تصفح الإعلانات",
+    "referrals": "الإحالة"
   },
   "notifications": {
     "newMessage": "رسالة جديدة من {name}",
@@ -857,5 +858,40 @@
     "linkCopied": "تم النسخ!",
     "backHome": "العودة إلى الرئيسية",
     "registerAnother": "تسجيل وكيل آخر"
+  },
+  "referral": {
+    "title": "برنامج الإحالة والمكافآت",
+    "subtitle": "ادعُ شركاءك إلى CarsAuto واحصل على مكافآت حقيقية",
+    "yourCode": "رمز الإحالة الخاص بك",
+    "copy": "نسخ",
+    "copied": "تم النسخ!",
+    "share": "مشاركة",
+    "shareMessage": "استخدم رمز الإحالة الخاص بي في CarsAuto واحصل على مكافآت",
+    "totalReferrals": "إجمالي الإحالات",
+    "successfulReferrals": "الإحالات الناجحة",
+    "pendingReferrals": "قيد الانتظار",
+    "rejectedReferrals": "مرفوضة",
+    "premiumMonthsEarned": "أشهر البريميوم المكتسبة",
+    "nextReward": "المكافأة القادمة",
+    "remainingReferrals": "تحتاج إلى {count} إحالات أخرى",
+    "allRewardsUnlocked": "لقد حصلت على جميع المكافآت! 🎉",
+    "rewardTiers": "مستويات المكافآت",
+    "milestone3": "٣ إحالات ← شهر بريميوم واحد",
+    "milestone10": "١٠ إحالات ← ٣ أشهر بريميوم",
+    "milestone25": "٢٥ إحالة ← شارة Gold Partner",
+    "milestone50": "٥٠ إحالة ← شارة VIP Dealer",
+    "milestone100": "١٠٠ إحالة ← CarsAuto Ambassador",
+    "yourBadges": "شاراتك",
+    "noBadgesYet": "لم تحصل على أي شارة بعد",
+    "history": "سجل الإحالات",
+    "noHistory": "لم تدعُ أي شخص بعد",
+    "statusPending": "قيد الانتظار",
+    "statusQualified": "ناجحة",
+    "statusRejected": "مرفوضة",
+    "statusSuspended": "معلّقة",
+    "conditionApproved": "تمت الموافقة على البائع",
+    "conditionVerified": "تم التحقق من الحساب",
+    "conditionListing": "تم نشر إعلان",
+    "notDealerYet": "برنامج الإحالة متاح فقط للبائعين المعتمدين"
   }
 }

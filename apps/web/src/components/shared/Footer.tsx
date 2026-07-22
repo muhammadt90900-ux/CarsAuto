@@ -138,7 +138,7 @@ export function Footer({ locale = 'ku' }: { locale?: string }) {
       {/* ── Newsletter / CTA Banner ─────────────────────────── */}
       <div className="border-b border-white/[0.05]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="relative overflow-hidden rounded-3xl p-8 sm:p-10 flex flex-col lg:flex-row gap-8 items-center justify-between"
+          <div className="relative overflow-hidden rounded-[var(--r-3xl)] p-8 sm:p-10 flex flex-col lg:flex-row gap-8 items-center justify-between"
                style={{ background: 'linear-gradient(135deg,rgba(11,21,37,0.9),rgba(8,15,28,0.95))', border: '1px solid rgba(201,168,76,0.18)' }}>
             <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
               style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.8) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
@@ -221,8 +221,8 @@ export function Footer({ locale = 'ku' }: { locale?: string }) {
       </div>
 
       {/* ── Main footer links ───────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-10 lg:gap-x-10 mb-14">
 
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
@@ -240,12 +240,12 @@ export function Footer({ locale = 'ku' }: { locale?: string }) {
                 <span className="text-[9px] text-[rgba(201,168,76,0.6)] uppercase tracking-widest">{t('premiumMarketplace')}</span>
               </div>
             </div>
-            <p className="text-white/30 text-xs leading-relaxed mb-5 max-w-[200px]">
+            <p className="text-white/30 text-xs leading-relaxed mb-6 max-w-[200px]">
               {t('tagline')}
             </p>
 
             {/* Stats — real counts from GET /public/stats, not hardcoded */}
-            <div className="grid grid-cols-2 gap-2 mb-5">
+            <div className="grid grid-cols-2 gap-2 mb-6">
               {[
                 ['statsListings', formatCount(stats?.activeListings)],
                 ['statsDealers', formatCount(stats?.verifiedDealers)],
@@ -259,30 +259,31 @@ export function Footer({ locale = 'ku' }: { locale?: string }) {
               ))}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               {SOCIAL_LINKS.map(({ Icon, href, label }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center
-                                 bg-white/[0.05] border border-white/[0.08] text-white/35
-                                 hover:border-[rgba(201,168,76,0.40)] hover:text-[var(--gold)] hover:bg-[rgba(201,168,76,0.08)]
-                                 transition-all duration-200">
-                  <Icon className="w-3.5 h-3.5" aria-hidden />
+                      className="w-9 h-9 rounded-xl flex items-center justify-center
+                                 bg-white/[0.06] border border-white/[0.10] text-white/55
+                                 hover:border-[rgba(201,168,76,0.5)] hover:text-[var(--gold)] hover:bg-[rgba(201,168,76,0.10)]
+                                 hover:-translate-y-0.5 transition-all duration-200">
+                  <Icon className="w-4 h-4" aria-hidden />
                 </a>
               ))}
             </div>
           </div>
 
           {Object.entries(FOOTER_LINKS).map(([section, items]) => (
-            <div key={section}>
-              <h4 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+            <div key={section} className="lg:ps-8 lg:border-s lg:border-white/[0.06]">
+              <h4 className="text-white/85 font-black text-[11px] uppercase tracking-[0.12em] mb-1.5 flex items-center gap-2">
                 {t(`headings.${section}`)}
               </h4>
-              <ul className="space-y-2.5">
+              <div className="w-5 h-px bg-gradient-to-r from-[var(--gold)] to-transparent mb-4" />
+              <ul className="space-y-3">
                 {items.map(({ key, href }) => (
                   <li key={key}>
                     <Link
                       href={href}
-                      className="text-white/35 hover:text-[var(--gold)] text-xs transition-colors duration-200
+                      className="text-white/45 hover:text-[var(--gold)] text-[13px] transition-colors duration-200
                                  flex items-center gap-1 group"
                     >
                       <span className={`w-0 group-hover:w-2 overflow-hidden transition-all duration-200

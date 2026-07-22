@@ -37,20 +37,18 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden bg-[var(--surface-card)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]">
-      <Skeleton height="13rem" rounded="rounded-none" />
-      <div className="p-4 space-y-3">
-        <Skeleton height="1rem" width="75%" />
+    <div className="rounded-[var(--r-xl)] overflow-hidden bg-[var(--surface-card)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]">
+      <Skeleton className="aspect-[16/10] sm:aspect-[4/3] w-full" height="auto" rounded="rounded-none" />
+      <div className="p-[1.125rem] space-y-3">
+        <Skeleton height="1.5rem" width="45%" />
+        <Skeleton height="1rem" width="80%" />
         <Skeleton height="0.75rem" width="50%" />
         <div className="flex gap-2 pt-1">
           <Skeleton height="0.75rem" width="33%" rounded="rounded-full" />
           <Skeleton height="0.75rem" width="33%" rounded="rounded-full" />
         </div>
         <div className="h-px bg-[var(--border-subtle)]" />
-        <div className="flex items-center justify-between pt-1">
-          <Skeleton height="1.5rem" width="40%" />
-          <Skeleton height="2rem" width="2rem" rounded="rounded-full" />
-        </div>
+        <Skeleton height="2.25rem" width="100%" rounded="rounded-xl" />
       </div>
     </div>
   );

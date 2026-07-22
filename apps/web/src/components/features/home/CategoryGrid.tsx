@@ -37,22 +37,40 @@ export function CategoryGrid() {
   });
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6">
       {TILES.map(({ id, icon, labelKu, labelEn, color, statKey }) => {
         const count = statKey ? formatCount(stats?.[statKey]) : null;
         return (
           <Link key={id}
             href={`/${id === 'parts' ? 'spare-parts' : 'cars'}?category=${id}`}
-            className="group relative rounded-2xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+            className="group relative rounded-[var(--r-xl)] overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-xl)] transition-all duration-expo ease-out-expo hover:-translate-y-1.5 hover:scale-[1.02]"
             style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
+            {/* Ambient glow that blooms from the icon on hover */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                 style={{ background: `radial-gradient(circle at 50% 0%, ${color}18 0%, transparent 70%)` }} />
-            <div className="relative p-5 text-center">
-              <div className="text-4xl mb-3 transition-all duration-400 group-hover:scale-125 group-hover:-rotate-6 group-hover:drop-shadow-lg">{icon}</div>
-              <div className="font-bold text-white text-sm mb-0.5">{labelKu}</div>
-              <div className="text-white/40 text-[10px]">{labelEn}</div>
+                 style={{ background: `radial-gradient(circle at 50% 0%, ${color}20 0%, transparent 70%)` }} />
+            {/* Corner sheen sweep */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                 style={{ background: `linear-gradient(135deg, transparent 40%, ${color}12 50%, transparent 60%)` }} />
+
+            <div className="relative p-6 sm:p-7 text-center">
+              {/* Icon sits in its own tinted chip so it reads clearly against the dark card */}
+              <div
+                className="mx-auto mb-4 w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-2xl flex items-center justify-center
+                           transition-all duration-400 ease-out
+                           group-hover:scale-110 group-hover:-rotate-6"
+                style={{ background: `${color}16`, border: `1px solid ${color}30`, boxShadow: `0 8px 24px ${color}12` }}
+              >
+                <span className="text-4xl sm:text-[2.75rem] leading-none drop-shadow-sm transition-transform duration-400 group-hover:scale-110">
+                  {icon}
+                </span>
+              </div>
+
+              <div className="font-black text-white text-base sm:text-[1.05rem] mb-1 tracking-tight">{labelKu}</div>
+              <div className="text-white/35 text-[10px] font-semibold uppercase tracking-[0.1em]">{labelEn}</div>
+
               {count && (
-                <div className="mt-3 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block"
+                <div className="mt-3.5 text-[10px] font-bold px-2.5 py-1 rounded-full inline-block
+                                 transition-transform duration-300 group-hover:scale-105"
                      style={{ color, background: `${color}15`, border: `1px solid ${color}35`, boxShadow: `0 2px 8px ${color}15` }}>{count}</div>
               )}
             </div>

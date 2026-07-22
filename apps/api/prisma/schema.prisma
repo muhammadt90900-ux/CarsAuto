@@ -317,6 +317,11 @@ model User {
   suspiciousActivityEvents SuspiciousActivityEvent[]
   badges                  UserBadge[]
 
+  // ADDED (Referral & Rewards System): the single Referral row recording
+  // that this user was referred by a dealer's referral code (if any) —
+  // one-to-one because a user can only ever be referred once.
+  referredAs Referral?
+
   // ADDED: admin broadcast notifications authored by this user (admin-only in practice)
   sentAdminNotifications AdminNotification[]
 
@@ -1615,6 +1620,27 @@ model Dealer {
   badges          DealerBadge[]
   followers       DealerFollower[]
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // REFERRAL PROGRAM (Referral & Rewards System)
+  // Every dealer gets a permanent, unique, shareable code the moment it's
+  // first VERIFIED (see ReferralsService.onDealerVerified, triggered off the
+  // same 'dealer.verified' event DealerListeners already reacts to). Counters
+  // are denormalized onto Dealer (rather than always COUNT()'ing the
+  // Referral table) for cheap dashboard/admin reads; Referral rows remain
+  // the source of truth and a reconciliation pass can recompute these the
+  // same way dealer-reconciliation.service.ts already does for
+  // totalListings/activeListings.
+  // ─────────────────────────────────────────────────────────────────────────
+  referralCode           String? @unique @db.VarChar(20)
+  referralCount          Int     @default(0) // all referrals ever registered against this code (any status)
+  qualifiedReferralCount Int     @default(0) // referrals that reached QUALIFIED
+  // Highest milestone (3/10/25/50/100) already rewarded — prevents
+  // re-granting a reward if this recomputes or a webhook fires twice.
+  lastReferralMilestone  Int     @default(0)
+  premiumMonthsEarned    Int     @default(0) // lifetime count of premium months granted via referrals
+
+  referralsMade Referral[] @relation("ReferrerDealer")
+
   // CHANGE: marketplace browse composite — status + tier + rating
   @@index([status, tier, averageRating(sort: Desc)])
   @@index([locationId, status])
@@ -1623,6 +1649,8 @@ model Dealer {
   @@index([userId])
   // ADDED: status alone — admin "pending verification" queue
   @@index([status, createdAt(sort: Desc)])
+  // ADDED: referral code lookup (validation at dealer-application time)
+  @@index([referralCode])
   // Trigram indexes on dealer names for autocomplete — created in raw migration
   @@map("dealers")
 }
@@ -2151,4 +2179,68 @@ model BetaRegistration {
   @@index([phone])
   @@index([createdAt])
   @@map("beta_registrations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFERRAL (Dealer/Seller Referral & Rewards System)
+//
+// Deliberately separate from BetaRegistration.referredById above — that pair
+// links two pre-signup leads together (no User accounts exist yet). This
+// model links a real, already-VERIFIED Dealer (the referrer) to a real User
+// account (the referred party) created after the dealer shared its code.
+// A Referral row is created the moment someone applies to become a dealer
+// with a valid referralCode (see DealersService.create) and stays PENDING
+// until ReferralsService confirms all three qualification conditions —
+// referred dealer VERIFIED + referred user's email verified + referred
+// dealer has at least one ACTIVE (published) listing — at which point it
+// flips to QUALIFIED exactly once (@@unique([referredUserId]) below plus the
+// status check in ReferralsService.tryQualify make this idempotent even if
+// the same event fires twice).
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ReferralStatus {
+  PENDING   // registered with a referral code, not yet qualified
+  QUALIFIED // all 3 conditions met — counts toward rewards
+  REJECTED  // admin rejected (fraud/abuse) — never counts, never re-evaluated
+  SUSPENDED // admin paused an already-qualified referral (claws back reward eligibility for future milestone recomputation, does not reverse rewards already granted)
+}
+
+model Referral {
+  id String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+
+  referrerDealerId String @db.Uuid
+  referrerDealer   Dealer @relation("ReferrerDealer", fields: [referrerDealerId], references: [id], onDelete: Cascade)
+
+  // The user account created via the referral. Unique — a user can be
+  // referred at most once, which is also our duplicate-referral guard.
+  referredUserId String @unique @db.Uuid
+  referredUser   User   @relation(fields: [referredUserId], references: [id], onDelete: Cascade)
+
+  // The dealer profile the referred user eventually creates (nullable until
+  // they actually apply to become a dealer — a Referral row can exist for a
+  // user who registered with a code but never applied as a dealer, in which
+  // case it simply never qualifies).
+  referredDealerId String? @db.Uuid
+
+  referralCodeUsed String         @db.VarChar(20)
+  status           ReferralStatus @default(PENDING)
+
+  // Per-condition flags — lets the dashboard/admin explain exactly what's
+  // still missing, instead of a single opaque PENDING state.
+  dealerApproved    Boolean @default(false)
+  accountVerified   Boolean @default(false)
+  hasPublishedListing Boolean @default(false)
+
+  qualifiedAt DateTime?
+  rejectedAt  DateTime?
+  rejectedReason String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Admin "referral tree" / dealer dashboard "referral history" queries
+  @@index([referrerDealerId, status, createdAt(sort: Desc)])
+  @@index([status])
+  @@index([referredDealerId])
+  @@map("referrals")
 }

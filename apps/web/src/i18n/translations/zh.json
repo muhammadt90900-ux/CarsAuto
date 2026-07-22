@@ -307,7 +307,8 @@
     "sellerDashboard": "卖家控制台",
     "upgradeNow": "立即升级",
     "upgradeToSeller": "升级为卖家",
-    "upgradeToSellerDesc": "升级为经销商账户，享受无限发布"
+    "upgradeToSellerDesc": "升级为经销商账户，享受无限发布",
+    "referrals": "推荐"
   },
   "notifications": {
     "newMessage": "来自{name}的新消息",
@@ -870,5 +871,40 @@
     "linkCopied": "已复制！",
     "backHome": "返回首页",
     "registerAnother": "注册另一位经销商"
+  },
+  "referral": {
+    "title": "推荐与奖励计划",
+    "subtitle": "邀请其他经销商加入 CarsAuto，赢取真实奖励",
+    "yourCode": "您的推荐码",
+    "copy": "复制",
+    "copied": "已复制！",
+    "share": "分享",
+    "shareMessage": "使用我的 CarsAuto 推荐码，获得奖励",
+    "totalReferrals": "推荐总数",
+    "successfulReferrals": "成功推荐",
+    "pendingReferrals": "待定",
+    "rejectedReferrals": "已拒绝",
+    "premiumMonthsEarned": "已获赠的高级月数",
+    "nextReward": "下一个奖励",
+    "remainingReferrals": "还需要 {count} 个推荐",
+    "allRewardsUnlocked": "您已解锁所有奖励！🎉",
+    "rewardTiers": "奖励等级",
+    "milestone3": "3 个推荐 → 赠送1个高级月",
+    "milestone10": "10 个推荐 → 赠送3个高级月",
+    "milestone25": "25 个推荐 → 金牌合作徽章",
+    "milestone50": "50 个推荐 → VIP 经销商徽章",
+    "milestone100": "100 个推荐 → CarsAuto 大使",
+    "yourBadges": "您的徽章",
+    "noBadgesYet": "尚未获得任何徽章",
+    "history": "推荐历史",
+    "noHistory": "您还没有邀请任何人",
+    "statusPending": "待定",
+    "statusQualified": "已成功",
+    "statusRejected": "已拒绝",
+    "statusSuspended": "已暂停",
+    "conditionApproved": "经销商已批准",
+    "conditionVerified": "账户已验证",
+    "conditionListing": "已发布列表",
+    "notDealerYet": "推荐计划仅适用于已批准的经销商"
   }
 }

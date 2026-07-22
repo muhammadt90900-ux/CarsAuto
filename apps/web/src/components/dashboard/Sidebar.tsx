@@ -12,7 +12,7 @@ import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
   Bell, User, Star, CreditCard, ChevronRight,
-  Plus, TrendingUp, Settings, LogOut, Shield,
+  Plus, TrendingUp, Settings, LogOut, Shield, Gift,
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -113,6 +113,7 @@ export function Sidebar({ className }: { className?: string }) {
   const accountItems = [
     { href: `/${locale}/dashboard/profile`,      label: t('profile'),      icon: User,            badge: null },
     { href: `/${locale}/dashboard/reviews`,      label: t('reviews'),      icon: Star,            badge: null },
+    { href: `/${locale}/dashboard/dealers/referrals`, label: t('referrals'), icon: Gift,           badge: null },
     { href: `/${locale}/dashboard/subscription`, label: t('subscription'), icon: CreditCard,      badge: null },
   ];
 

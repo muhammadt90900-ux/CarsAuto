@@ -42,4 +42,5 @@ export {
   ChatStatus,
   ContactRequestStatus,
   BetaRegistrationStatus,
+  ReferralStatus,
 } from '@prisma/client';

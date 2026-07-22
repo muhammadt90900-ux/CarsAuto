@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car,
   BarChart3, ShieldCheck, ChevronRight,
   Star, FileWarning, Store, Bell, ClipboardList,
-  Shield, Receipt, Crown, AlertOctagon, BadgeCheck, Rocket,
+  Shield, Receipt, Crown, AlertOctagon, BadgeCheck, Rocket, Gift,
 } from 'lucide-react';
 import { adminApi, notificationsApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -86,6 +86,7 @@ export function AdminSidebar({ className }: { className?: string }) {
       items: [
         { href: `/${locale}/admin/notifications`, label: 'Notifications',icon: Bell,           badge: BADGE_COUNTS.notifications },
         { href: `/${locale}/admin/beta-registrations`, label: 'Beta Registrations', icon: Rocket, badge: BADGE_COUNTS.betaRegistrations },
+        { href: `/${locale}/admin/referrals`,      label: 'Referrals',    icon: Gift            },
       ],
     },
   ];

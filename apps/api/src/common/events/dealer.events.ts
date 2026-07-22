@@ -22,3 +22,16 @@ export class DealerFollowedEvent {
     public readonly followerId: string,
   ) {}
 }
+
+// ADDED (Referral & Rewards System): emitted from DealersService.create()
+// whenever a new dealer application carries a referralCode — the sole
+// signal ReferralListeners needs to resolve the code, validate it (exists /
+// not self-referral / not already referred), and create the Referral row.
+// DealersService never imports the referrals module directly.
+export class DealerAppliedEvent {
+  constructor(
+    public readonly dealerId: string,
+    public readonly userId: string,
+    public readonly referralCodeUsed?: string,
+  ) {}
+}

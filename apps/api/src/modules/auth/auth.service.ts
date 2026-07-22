@@ -31,6 +31,8 @@ import { EmailService } from '../../common/email/email.service';
 // valid again, which is a much worse failure mode than an evicted listing
 // cache entry. Same API, so only this import changed.
 import { CriticalStateService } from '../../common/cache/critical-state.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserEmailVerifiedEvent } from '../../common/events';
 import * as crypto from 'crypto';
 import { promisify } from 'util';
 
@@ -125,6 +127,9 @@ export class AuthService {
     private readonly emailService: EmailService,
     // BUG #5 FIX: Injected so we can write / read the access-token blocklist.
     private readonly cache:        CriticalStateService,
+    // Referral & Rewards System: lets verifyEmail() signal
+    // ReferralListeners without AuthService knowing that module exists.
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── Register ────────────────────────────────────────────────────────────────
@@ -478,6 +483,12 @@ export class AuthService {
     });
 
     await this.prisma.emailVerificationToken.delete({ where: { tokenHash } });
+
+    try {
+      this.eventEmitter.emit('user.email_verified', new UserEmailVerifiedEvent(record.userId));
+    } catch {
+      // Referral qualification is best-effort — never block email verification on it.
+    }
 
     return { message: 'Email verified successfully' };
   }

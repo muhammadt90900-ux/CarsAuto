@@ -136,15 +136,21 @@ export function ListingCard({
     <div
       dir={rtl ? 'rtl' : 'ltr'}
       className={cn(
-        'group relative flex flex-col overflow-hidden',
+        'group relative flex flex-col overflow-hidden isolate',
         'rounded-[var(--r-xl)] border border-[var(--border-default)]',
         'bg-[var(--surface-card)] shadow-[var(--shadow-md)]',
-        'transition-all duration-expo',
-        !isSold && 'hover:-translate-y-1 hover:border-gold/28 hover:shadow-[var(--shadow-lg)] hover:ring-1 hover:ring-gold/10',
+        'transition-all duration-expo ease-out-expo',
+        !isSold && 'hover:-translate-y-1.5 hover:border-gold/30 hover:shadow-[var(--shadow-lg),0_24px_56px_-12px_rgba(0,0,0,0.35)] hover:ring-1 hover:ring-gold/12',
         isSold && 'grayscale-[0.4]',
         className
       )}
     >
+      {/* Subtle top highlight — appears on hover to give the card a hint of
+          premium "edge lit" polish without adding a permanent border color */}
+      {!isSold && (
+        <div className="absolute top-0 inset-x-6 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-slow pointer-events-none z-10" />
+      )}
       {/*
         `display: contents` (via the `contents` class) keeps the Link itself
         out of the flex layout — its children (image → location footer)
@@ -155,27 +161,47 @@ export function ListingCard({
       */}
       <Link href={href} className="contents" aria-disabled={isSold} aria-label={title}>
         {/* [1] HERO IMAGE ────────────────────────────────────────────── */}
-        <div className="relative w-full aspect-[4/3] overflow-hidden bg-[var(--surface-100)]">
+        <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] overflow-hidden bg-[var(--surface-100)]">
           <Image
             src={heroImage}
             alt={title || 'Listing photo'}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className={cn(
-              'object-cover transition-transform duration-slow',
-              !isSold && 'group-hover:scale-[1.06]'
+              'object-cover transition-transform duration-[900ms] ease-out',
+              !isSold && 'group-hover:scale-[1.08]'
             )}
             onError={() => setImgError(true)}
           />
 
-          {/* gradient scrim so badges stay legible on any photo */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent pointer-events-none" />
+          {/* gradient scrim, top (badge legibility) and bottom (photo-count legibility) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/20 pointer-events-none" />
 
-          {/* top-start: featured badge */}
-          {listing.featured && !isSold && (
-            <div className="absolute top-3 start-3">
-              <Badge variant="gold" dot>Featured</Badge>
+          {/* top-start: featured + condition badges, stacked */}
+          {!isSold && (
+            <div className="absolute top-3 start-3 flex flex-col items-start gap-1.5">
+              {listing.featured && (
+                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-full px-2.5 py-1
+                                 bg-[var(--ink-900)]/75 backdrop-blur-md border border-gold/40 text-gold shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+                  Featured
+                </span>
+              )}
+              {listing.type === ListingType.CAR && listing.condition === ListingCondition.NEW && (
+                <span className="inline-flex items-center text-[9px] font-black uppercase tracking-widest rounded-full px-2.5 py-1
+                                 bg-[var(--ink-900)]/75 backdrop-blur-md border border-status-success/40 text-status-success shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+                  New
+                </span>
+              )}
             </div>
+          )}
+
+          {/* bottom-end: photo count, only when there's more than one photo */}
+          {!isSold && images.length > 1 && (
+            <span className="absolute bottom-2.5 end-2.5 inline-flex items-center gap-1 text-[10px] font-bold
+                             text-white/90 bg-black/45 backdrop-blur-md rounded-full px-2 py-0.5">
+              1/{images.length}
+            </span>
           )}
 
           {/* sold / unavailable overlay */}
@@ -189,12 +215,17 @@ export function ListingCard({
         </div>
 
         {/* [2] + [3] PRICE + TRUST ───────────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 pt-3.5">
-          <span className="price-tag text-xl">
-            {formatCurrency(listing.price, listing.currency)}
-          </span>
+        <div className="flex items-start justify-between px-[1.125rem] pt-4">
+          <div className="flex flex-col">
+            <span className="price-tag text-2xl">
+              {formatCurrency(listing.price, listing.currency)}
+            </span>
+            {listing.negotiable && (
+              <span className="text-[10px] font-semibold text-[var(--text-faint)] mt-0.5">Negotiable</span>
+            )}
+          </div>
           {seller?.verified && (
-            <span className="verified-badge shrink-0">
+            <span className="verified-badge shrink-0 mt-1">
               <ShieldCheck className="w-3 h-3" />
               {seller.isDealer ? 'Dealer' : 'Verified'}
             </span>
@@ -202,19 +233,19 @@ export function ListingCard({
         </div>
 
         {/* Title */}
-        <h3 className="px-4 pt-1.5 text-sm font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 min-h-[2.5em]">
+        <h3 className="px-[1.125rem] pt-2 text-[0.95rem] font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 min-h-[2.6em]">
           {title}
         </h3>
 
         {/* [4] VERTICAL-SPECIFIC META ────────────────────────────────── */}
-        <div className="px-4 pt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+        <div className="px-[1.125rem] pt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[var(--text-muted)]">
           <VerticalMeta listing={listing} />
         </div>
 
         {/* [5] FOOTER: location ──────────────────────────────────────── */}
         <div className={cn(
-          'mt-auto px-4 pt-2.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]',
-          (!phone || isSold) && 'pb-3.5'
+          'mt-auto px-[1.125rem] pt-3 flex items-center gap-1 text-[11px] text-[var(--text-faint)]',
+          (!phone || isSold) && 'pb-4'
         )}>
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{locationLabel || listing.locationId}</span>
@@ -231,13 +262,14 @@ export function ListingCard({
           aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
           className={cn(
             'absolute top-3 end-3 z-10 w-9 h-9 rounded-full flex items-center justify-center',
-            'bg-black/35 backdrop-blur-md border border-white/15',
-            'transition-all duration-base hover:bg-black/55 hover:scale-110 active:scale-95'
+            'bg-black/40 backdrop-blur-md border border-white/15',
+            'transition-all duration-base hover:bg-black/60 hover:scale-110 hover:border-white/25 active:scale-95'
           )}
         >
           <Heart
+            key={isSaved ? 'saved' : 'unsaved'}
             className={cn(
-              'w-4 h-4 transition-colors duration-base',
+              'w-4 h-4 transition-colors duration-base anim-heart-pop',
               isSaved ? 'fill-status-error stroke-status-error' : 'stroke-white fill-transparent'
             )}
           />
@@ -247,12 +279,12 @@ export function ListingCard({
       {/* [6] SPLIT CONTACT ACTION — Call | WhatsApp — also a sibling of the
           Link, so these are ordinary top-level <a> tags, not nested ones */}
       {!isSold && phone && (
-        <div className="px-4 pt-2.5 pb-3.5">
+        <div className="px-[1.125rem] pt-3 pb-4">
           <div className="flex items-stretch rounded-xl overflow-hidden border border-[var(--border-default)]">
             <a
               href={`tel:${phone}`}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold',
+                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold',
                 'text-[var(--text-secondary)] bg-[var(--surface-50)]',
                 'transition-colors duration-base hover:text-gold hover:bg-gold/10'
               )}
@@ -266,7 +298,7 @@ export function ListingCard({
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold',
+                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold',
                 'text-whatsapp bg-whatsapp/10',
                 'transition-colors duration-base hover:bg-whatsapp/20'
               )}

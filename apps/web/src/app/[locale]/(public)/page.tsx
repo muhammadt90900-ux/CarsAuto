@@ -117,8 +117,8 @@ export default async function HomePage({ params }: Props) {
       </section>
 
       {/* 04 · FEATURED CARS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="flex items-end justify-between mb-8 gap-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
+        <div className="flex items-end justify-between mb-10 gap-4">
           <div>
             <span className="inline-flex items-center gap-2 text-[var(--gold)] text-xs font-bold tracking-[0.14em] uppercase mb-2">
               <span className="w-6 h-px bg-[var(--gold)]" />{t('featuredEyebrow')}
@@ -162,7 +162,7 @@ export default async function HomePage({ params }: Props) {
 
       {/* 06 · SPARE PARTS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
-        <div className="flex items-end justify-between mb-8 gap-4">
+        <div className="flex items-end justify-between mb-10 gap-4">
           <div>
             <span className="inline-flex items-center gap-2 text-[var(--gold)] text-xs font-bold tracking-[0.14em] uppercase mb-2">
               <span className="w-6 h-px bg-[var(--gold)]" />{t('partsEyebrow')}
@@ -189,28 +189,43 @@ export default async function HomePage({ params }: Props) {
 
       {/* 09 · SELL CTA */}
       <section className="mx-4 sm:mx-6 lg:mx-8 mb-8">
-        <div className="relative rounded-3xl overflow-hidden py-14 sm:py-20 text-center"
+        <div className="relative rounded-[var(--r-3xl)] overflow-hidden py-12 sm:py-16 text-center"
              style={{ background: 'linear-gradient(135deg, #050d1a 0%, #0b1929 40%, var(--ink-700) 50%, #0b1929 60%, #050d1a 100%)' }}>
+          {/* Ambient dot texture */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
                style={{ backgroundImage: 'radial-gradient(circle,rgba(201,168,76,1) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+          {/* Radial gold bloom behind the headline for stronger visual impact */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[280px] pointer-events-none"
+               style={{ background: 'radial-gradient(ellipse, rgba(201,168,76,0.16) 0%, transparent 70%)' }} />
+          {/* Top accent line */}
           <div className="absolute top-0 inset-x-0 h-0.5"
                style={{ background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
-          <div className="relative px-8 space-y-5">
+          {/* Corner brackets — small decorative touch that reads as "premium promo panel" */}
+          <div className="hidden sm:block absolute top-6 start-6 w-8 h-8 border-t-2 border-s-2 border-gold/25 rounded-tl-lg pointer-events-none" />
+          <div className="hidden sm:block absolute bottom-6 end-6 w-8 h-8 border-b-2 border-e-2 border-gold/25 rounded-br-lg pointer-events-none" />
+
+          <div className="relative px-8 space-y-4">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.14em] uppercase bg-[var(--gold-subtle)] border border-[rgba(201,168,76,0.25)] text-[var(--gold)]">● {t('sellCTAEyebrow')}</span>
-            <h2 className="text-3xl sm:text-4xl font-black text-white">{t('sellCTATitle')}</h2>
-            <p className="text-white/50 max-w-md mx-auto text-sm">{t('sellCTASubtitle')}</p>
-            <div className="flex flex-wrap gap-3 justify-center pt-2">
+            <h2 className="text-3xl sm:text-5xl font-black text-white leading-[1.08] tracking-tight">{t('sellCTATitle')}</h2>
+            <p className="text-white/50 max-w-md mx-auto text-sm sm:text-base">{t('sellCTASubtitle')}</p>
+            <div className="flex flex-wrap gap-3 justify-center pt-3">
               <Link href="/dashboard/listings/new"
-                className="px-8 py-3.5 rounded-xl text-sm font-black text-[var(--ink-900)] shadow-[0_6px_28px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_48px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
+                className="cta-sheen relative overflow-hidden px-10 py-4 rounded-xl text-sm sm:text-base font-black uppercase tracking-wide text-[var(--ink-900)] shadow-[0_8px_32px_rgba(201,168,76,0.45)] hover:shadow-[0_14px_52px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' }}>
                 {t('sellCTAButton')} →
               </Link>
               <Link href="/cars"
-                className="px-8 py-3.5 rounded-xl text-sm font-bold text-white/70 border border-white/15 hover:border-white/30 hover:text-white transition-all duration-200">
+                className="px-8 py-4 rounded-xl text-sm font-bold text-white/70 border border-white/15 hover:border-white/35 hover:text-white hover:bg-white/[0.04] transition-all duration-200">
                 {t('browseAll')}
               </Link>
             </div>
           </div>
+
+          <style>{`
+            @keyframes ctaSheen{0%{background-position:-160% 0}100%{background-position:160% 0}}
+            .cta-sheen{background-image:linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.30) 38%, rgba(255,255,255,0.5) 45%, transparent 60%);background-size:220% 100%;animation:ctaSheen 3.4s ease-in-out 1s infinite}
+            @media (prefers-reduced-motion: reduce){ .cta-sheen{ animation:none } }
+          `}</style>
         </div>
       </section>
     </>

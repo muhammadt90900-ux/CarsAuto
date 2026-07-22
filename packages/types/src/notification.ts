@@ -8,7 +8,14 @@ export type NotificationType =
   | 'price-drop'
   | 'subscription-expiring'
   | 'dealer-follow'
-  | 'system';
+  | 'system'
+  // ADDED (Referral & Rewards System) — matches the uppercase literals
+  // AuthService/NotificationsService write server-side (Notification.type
+  // is a free-form string column; the frontend union just needs to stay in
+  // sync for display purposes).
+  | 'REFERRAL_QUALIFIED'
+  | 'REFERRAL_REWARD_PREMIUM'
+  | 'REFERRAL_BADGE_EARNED';
 
 export interface NotificationItem {
   id: string;

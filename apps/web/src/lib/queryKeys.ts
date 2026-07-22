@@ -38,6 +38,9 @@ export const queryKeys = {
   notifications: {
     unreadCount: () => ['notifications', 'unread-count'] as const,
   },
+  referrals: {
+    myDashboard: () => ['referrals', 'me'] as const,
+  },
   chat: {
     unreadCount: () => ['chat', 'unread-count'] as const,
   },

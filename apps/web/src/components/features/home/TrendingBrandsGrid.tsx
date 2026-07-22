@@ -35,20 +35,38 @@ export function TrendingBrandsGrid() {
   });
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
       {BRANDS.map(({ name, logoText, color }) => {
         const count = formatCount(stats?.[name]);
         return (
           <Link key={name} href={`/cars?make=${name}`}
-            className="group relative rounded-xl overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] transition-all duration-300 hover:-translate-y-1"
+            className="group relative rounded-[var(--r-lg)] overflow-hidden cursor-pointer border border-white/[0.07] hover:border-[rgba(201,168,76,0.4)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] transition-all duration-expo ease-out-expo hover:-translate-y-1.5 hover:scale-[1.03]"
             style={{ background: 'linear-gradient(145deg, rgba(11,21,37,0.9), rgba(8,15,28,0.95))' }}>
-            <div className="relative p-4 text-center">
-              <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-xs font-black border-2 transition-all duration-300 group-hover:scale-110"
-                   style={{ background: `${color}18`, borderColor: `${color}45`, color, boxShadow: `0 4px 12px ${color}20` }}>
+            {/* Ambient glow bloom on hover, consistent with category tiles */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                 style={{ background: `radial-gradient(circle at 50% 0%, ${color}22 0%, transparent 70%)` }} />
+            <div className="relative p-5 text-center">
+              {/*
+                Logo text is always near-white regardless of the brand's own
+                color — several brand colors (Lexus #1a1a2e, KIA #05141f) are
+                near-black and were unreadable as text-color-on-dark-card.
+                The brand color now drives the ring/glow/background instead,
+                which keeps each tile identifiable without sacrificing legibility.
+              */}
+              <div
+                className="w-14 h-14 rounded-full mx-auto mb-3.5 flex items-center justify-center
+                           text-white text-sm font-black border-2 transition-all duration-300 ease-out
+                           group-hover:scale-110 group-hover:-rotate-3"
+                style={{ background: `linear-gradient(145deg, ${color}55, ${color}30)`, borderColor: `${color}70`, boxShadow: `0 4px 16px ${color}30` }}
+              >
                 {logoText}
               </div>
-              <div className="font-bold text-white text-xs mb-1">{name}</div>
-              {count && <div className="text-white/35 text-[9px]">{count}</div>}
+              <div className="font-bold text-white text-xs mb-1 tracking-tight">{name}</div>
+              {count && (
+                <div className="text-white/35 text-[9px] font-semibold transition-colors duration-300 group-hover:text-white/55">
+                  {count}
+                </div>
+              )}
             </div>
           </Link>
         );

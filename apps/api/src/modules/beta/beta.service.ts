@@ -1,43 +1,24 @@
 // apps/api/src/modules/beta/beta.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import * as crypto from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RegisterBetaDto } from './dto/register-beta.dto';
 import { UpdateBetaStatusDto } from './dto/update-beta-status.dto';
 import { BetaQueryDto } from './dto/beta-query.dto';
 import { BetaRegistrationStatus } from '../../common/prisma/enums';
-
-// Excludes visually ambiguous characters (0/O, 1/I/L) so codes are easy to
-// read aloud over the phone and type correctly from a screenshot.
-const REFERRAL_CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const REFERRAL_CODE_LENGTH = 6;
-const MAX_REFERRAL_ID_ATTEMPTS = 8;
+import { generateUniqueReferralCode } from '../../common/utils/referral-code.util';
 
 @Injectable()
 export class BetaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private generateReferralCode(): string {
-    const bytes = crypto.randomBytes(REFERRAL_CODE_LENGTH);
-    let code = '';
-    for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
-      code += REFERRAL_CHARSET[bytes[i] % REFERRAL_CHARSET.length];
-    }
-    return `CA-${code}`;
-  }
-
   private async uniqueReferralId(): Promise<string> {
-    for (let attempt = 0; attempt < MAX_REFERRAL_ID_ATTEMPTS; attempt++) {
-      const candidate = this.generateReferralCode();
+    return generateUniqueReferralCode(async (candidate) => {
       const existing = await this.prisma.betaRegistration.findUnique({
         where: { referralId: candidate },
         select: { id: true },
       });
-      if (!existing) return candidate;
-    }
-    // Astronomically unlikely with a 32^6 keyspace, but never loop forever —
-    // fall back to a longer, guaranteed-unique suffix derived from randomUUID.
-    return `CA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      return !!existing;
+    });
   }
 
   /**

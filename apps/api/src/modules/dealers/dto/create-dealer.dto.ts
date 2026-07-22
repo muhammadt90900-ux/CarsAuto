@@ -58,4 +58,10 @@ export class CreateDealerDto {
   @IsOptional()              openingHours?: Record<string, string>;
   @ApiPropertyOptional({ description: 'Specialties/tags', type: [String] })
   @IsOptional() @IsArray() @IsString({ each: true }) specialties?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Referral code of an existing approved dealer/seller who referred this applicant (e.g. "CA-7XK92P")',
+    example: 'CA-7XK92P',
+  })
+  @IsOptional() @IsString() @MaxLength(20) referralCode?: string;
 }

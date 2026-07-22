@@ -29,7 +29,11 @@ export type NotificationType =
   | 'IDENTITY_VERIFIED'
   | 'IDENTITY_REJECTED'
   // ADDED (Trust & Safety Prompt 5)
-  | 'SUSPICIOUS_ACTIVITY_ALERT';
+  | 'SUSPICIOUS_ACTIVITY_ALERT'
+  // ADDED (Referral & Rewards System)
+  | 'REFERRAL_QUALIFIED'
+  | 'REFERRAL_REWARD_PREMIUM'
+  | 'REFERRAL_BADGE_EARNED';
 
 export interface PushNotificationPayload {
   title: string;

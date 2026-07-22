@@ -307,7 +307,8 @@
     "noFollowedDealersDesc": "شوێنی فرۆشیارە دڵخوازەکانت بکەوە بۆ بینینی نوێترین ئۆتۆمبێلەکانیان",
     "latestListing": "دوایین ئۆتۆمبێل",
     "noActiveListings": "هیچ ئۆتۆمبێلێکی چالاک نییە",
-    "browseListings": "گەڕان بەناو بەرگەکاندا"
+    "browseListings": "گەڕان بەناو بەرگەکاندا",
+    "referrals": "ڕیفێڕاڵ"
   },
   "notifications": {
     "newMessage": "پەیامی نوێ لە {name}",
@@ -797,5 +798,40 @@
     "linkCopied": "کۆپیکرا!",
     "backHome": "گەڕانەوە بۆ ماڵەوە",
     "registerAnother": "دیلەرێکی تر تۆمار بکە"
+  },
+  "referral": {
+    "title": "پڕۆگرامی ڕیفێڕاڵ و پاداشت",
+    "subtitle": "هاوکارانت بانگهێشت بکە بۆ CarsAuto و پاداشتی ڕاستەقینە وەربگرە",
+    "yourCode": "کۆدی ڕیفێڕاڵی تایبەت بە تۆ",
+    "copy": "کۆپیکردن",
+    "copied": "کۆپی کرا!",
+    "share": "هاوبەشکردن",
+    "shareMessage": "بەکارهێنانی کۆدی ڕیفێڕاڵم لە CarsAuto وەربگرە و وەرگرن پاداشت",
+    "totalReferrals": "کۆی ڕیفێڕاڵەکان",
+    "successfulReferrals": "ڕیفێڕاڵی سەرکەوتوو",
+    "pendingReferrals": "چاوەڕوانی پەسەندکردن",
+    "rejectedReferrals": "ڕەتکراوە",
+    "premiumMonthsEarned": "مانگی پرێمیۆمی بەدەستهاتوو",
+    "nextReward": "پاداشتی داهاتوو",
+    "remainingReferrals": "{count} ڕیفێڕاڵی تر پێویستە",
+    "allRewardsUnlocked": "هەموو پاداشتەکانت بەدەستهێنا! 🎉",
+    "rewardTiers": "پۆلەکانی پاداشت",
+    "milestone3": "٣ ڕیفێڕاڵ → ١ مانگ پرێمیۆم",
+    "milestone10": "١٠ ڕیفێڕاڵ → ٣ مانگ پرێمیۆم",
+    "milestone25": "٢٥ ڕیفێڕاڵ → مۆری Gold Partner",
+    "milestone50": "٥٠ ڕیفێڕاڵ → مۆری VIP Dealer",
+    "milestone100": "١٠٠ ڕیفێڕاڵ → CarsAuto Ambassador",
+    "yourBadges": "مۆرەکانت",
+    "noBadgesYet": "هێشتا هیچ مۆرێکت بەدەست نەهێناوە",
+    "history": "مێژووی ڕیفێڕاڵەکان",
+    "noHistory": "هێشتا هیچ کەسێکت بانگهێشت نەکردووە",
+    "statusPending": "چاوەڕوان",
+    "statusQualified": "سەرکەوتوو",
+    "statusRejected": "ڕەتکراوە",
+    "statusSuspended": "ڕاگیراو",
+    "conditionApproved": "فرۆشیار پەسەندکراوە",
+    "conditionVerified": "هەژمار پشتڕاستکراوەتەوە",
+    "conditionListing": "ئەلانێکی بڵاوکراوەتەوە",
+    "notDealerYet": "پڕۆگرامی ڕیفێڕاڵ تەنها بۆ فرۆشیارە پەسەندکراوەکانە"
   }
 }

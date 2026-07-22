@@ -16,6 +16,11 @@ import type {
   BetaRegistrationListResponse,
   BetaRegistrationStatus,
   RegisterBetaPayload,
+  ReferralDashboard,
+  ReferralListResponse,
+  ReferralStats,
+  ReferralLeaderboardEntry,
+  ReferralTree,
 } from '@cars-auto/types';
 
 // ── In-memory access token (never stored in localStorage) ────────────────────
@@ -617,6 +622,47 @@ export const betaApi = {
 
   updateStatus: (id: string, status: BetaRegistrationStatus) =>
     getApi().patch<BetaRegistration>(`/beta/registrations/${id}/status`, { status }).then(r => r.data),
+};
+
+// ── Referrals API (Referral & Rewards System) ──────────────────────────────────
+export const referralsApi = {
+  /** GET /api/referrals/me — Seller Dashboard summary */
+  getMyDashboard: () =>
+    getApi().get<ReferralDashboard>('/referrals/me').then(r => r.data),
+};
+
+// ── Admin Referrals API ──────────────────────────────────────────────────────────
+export const adminReferralsApi = {
+  getAll: (params: Record<string, unknown> = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+          .map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString();
+    return getApi().get<ReferralListResponse>(`/admin/referrals?${query}`).then(r => r.data);
+  },
+
+  getStats: () =>
+    getApi().get<ReferralStats>('/admin/referrals/stats').then(r => r.data),
+
+  getLeaderboard: (limit = 20) =>
+    getApi().get<ReferralLeaderboardEntry[]>(`/admin/referrals/leaderboard?limit=${limit}`).then(r => r.data),
+
+  getTree: (dealerId: string) =>
+    getApi().get<ReferralTree>(`/admin/referrals/tree/${dealerId}`).then(r => r.data),
+
+  approve: (id: string) =>
+    getApi().patch(`/admin/referrals/${id}/approve`).then(r => r.data),
+
+  reject: (id: string, reason?: string) =>
+    getApi().patch(`/admin/referrals/${id}/reject`, { reason }).then(r => r.data),
+
+  suspend: (id: string) =>
+    getApi().patch(`/admin/referrals/${id}/suspend`).then(r => r.data),
+
+  exportUrl: () => `/api/admin/referrals/export`,
 };
 
 export default api;

@@ -15,7 +15,7 @@ import { PrismaService }       from '@/common/prisma/prisma.service';
 import { CacheService  }       from '@/common/cache/cache.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DealerReviewAddedEvent, DealerFollowedEvent } from '../../common/events';
+import { DealerReviewAddedEvent, DealerFollowedEvent, DealerVerifiedEvent, DealerAppliedEvent } from '../../common/events';
 import { DealerStatus, DealerTier } from '@/common/prisma/enums';
 import { CreateDealerDto }  from './dto/create-dealer.dto';
 import { UpdateDealerDto }  from './dto/update-dealer.dto';
@@ -118,6 +118,21 @@ export class DealersService {
     });
 
     this.cache.del('dealers:list:');
+
+    // Referral & Rewards System: fire-and-forget, decoupled from
+    // ReferralsService the same way listing.created is decoupled from
+    // DealersService — see the F-ARCH note on dealer.events.ts.
+    if (dto.referralCode) {
+      try {
+        this.eventEmitter.emit(
+          'dealer.applied',
+          new DealerAppliedEvent(dealer.id, userId, dto.referralCode),
+        );
+      } catch {
+        // Best-effort — never block dealer application submission on this.
+      }
+    }
+
     return dealer;
   }
 
@@ -621,11 +636,30 @@ export class DealersService {
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   async verify(dealerId: string, adminId: string, tier: DealerTier = DealerTier.BASIC) {
+    const wasAlreadyVerified = await this.prisma.dealer.findUnique({
+      where: { id: dealerId },
+      select: { status: true },
+    });
+
     const d = await this.prisma.dealer.update({
       where: { id: dealerId },
       data:  { status: DealerStatus.VERIFIED, tier, verifiedAt: new Date(), verifiedBy: adminId },
     });
     this.cache.del('dealers:list:');
+
+    // Referral & Rewards System: fire only on the FIRST approval, not on
+    // subsequent tier re-verifications — mirrors the "referral qualifies
+    // once the referred seller is approved" rule without re-processing an
+    // already-qualified/rejected Referral row every time an admin re-saves
+    // a dealer's tier.
+    if (wasAlreadyVerified?.status !== DealerStatus.VERIFIED) {
+      try {
+        this.eventEmitter.emit('dealer.verified', new DealerVerifiedEvent(d.id, d.userId));
+      } catch {
+        // Best-effort — never block the admin approval action on this.
+      }
+    }
+
     return d;
   }
 

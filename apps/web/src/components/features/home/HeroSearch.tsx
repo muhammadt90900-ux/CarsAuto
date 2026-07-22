@@ -81,6 +81,7 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
       <button
         type="button"
         disabled={disabled}
+        title={disabled ? 'یەکەم جار براند هەڵبژێرە / Pick a make first' : undefined}
         onClick={() => !disabled && setOpen(v => !v)}
         className={`
           w-full flex items-center justify-between gap-2 px-4 py-3
@@ -103,7 +104,7 @@ function Dropdown({ label, value, options, onChange, placeholder, disabled }: Dr
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 start-0 end-0 z-50
+        <div className="dropdown-anim absolute top-full mt-2 start-0 end-0 z-50
                         bg-[rgba(11,21,37,0.98)] backdrop-blur-2xl
                         border border-[rgba(201,168,76,0.2)] rounded-xl
                         shadow-[0_16px_48px_rgba(0,0,0,0.70)] overflow-hidden">
@@ -289,7 +290,6 @@ export function HeroSearch() {
       className="relative overflow-hidden"
       style={{
         background: 'linear-gradient(175deg, var(--ink-900) 0%, var(--ink-800) 35%, var(--ink-750) 65%, var(--ink-900) 100%)',
-        minHeight: 'calc(100vh * 0.62)',
       }}
     >
       {/* ── Background atmosphere ──────────────────────────────── */}
@@ -326,7 +326,6 @@ export function HeroSearch() {
         .hero-line-1{animation:heroFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both}
         .hero-line-2{animation:heroFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both}
         .hero-line-3{animation:heroFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s both}
-        .hero-card  {animation:heroFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both}
         .stat-item  {animation:countUp    0.6s cubic-bezier(0.16,1,0.3,1) both}
         .no-scrollbar::-webkit-scrollbar{display:none}
         .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
@@ -334,20 +333,29 @@ export function HeroSearch() {
         .dropdown-anim{animation:fadeIn 0.18s ease-out both}
         @keyframes pulseGold{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0.4)}70%{box-shadow:0 0 0 8px rgba(201,168,76,0)}}
         .pulse-gold{animation:pulseGold 2s infinite}
+        @keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .hero-float{animation:heroFloat 7s ease-in-out infinite}
+        @keyframes cardGlowIn{from{opacity:0;transform:translateY(20px) scale(0.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .hero-card{animation:cardGlowIn 0.75s cubic-bezier(0.16,1,0.3,1) 0.35s both}
+        @keyframes ctaSheen{0%{background-position:-160% 0}100%{background-position:160% 0}}
+        .cta-sheen{background-image:linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.35) 38%, rgba(255,255,255,0.55) 45%, transparent 60%);background-size:220% 100%;animation:ctaSheen 3.2s ease-in-out 1.4s infinite}
+        @media (prefers-reduced-motion: reduce){
+          .hero-float,.pulse-gold,.cta-sheen{animation:none}
+        }
       `}</style>
 
       {/* ── Content ────────────────────────────────────────────── */}
       <div
         className="relative z-10 w-full max-w-5xl mx-auto px-4"
-        style={{ paddingTop:'calc(68px + 2.25rem)', paddingBottom:'2.25rem' }}
+        style={{ paddingTop:'clamp(84px, 68px + 4.5vh, 118px)', paddingBottom:'clamp(1.5rem, 3vh, 2.25rem)' }}
       >
 
         {/* Badge + headline, paired with a blended hero image on wide screens */}
-        <div className={`lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 ${heroImgError ? '' : 'lg:min-h-[360px] xl:min-h-[420px]'}`}>
+        <div className={`lg:relative lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 ${heroImgError ? '' : 'lg:min-h-[320px] xl:min-h-[380px]'}`}>
           <div>
             {/* Live badge */}
-            <div className="flex justify-center lg:justify-start mb-4 hero-line-1">
-              <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm">
+            <div className="flex justify-center lg:justify-start mb-5 hero-line-1">
+              <span className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold bg-[rgba(201,168,76,0.09)] border border-[var(--gold-glow)] text-[var(--gold)] shadow-[0_0_32px_rgba(201,168,76,0.06)] backdrop-blur-sm hover:border-[rgba(201,168,76,0.45)] hover:bg-[rgba(201,168,76,0.13)] transition-all duration-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] animate-pulse pulse-gold" />
                 <span className="text-[rgba(201,168,76,0.65)]">🇮🇶</span>
                 <span className="text-white/50">Iraq</span>
@@ -361,19 +369,19 @@ export function HeroSearch() {
             </div>
 
             {/* Headline */}
-            <div className="text-center lg:text-start mb-5 hero-line-2">
-              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl
-                             font-extrabold text-white leading-[1.12] tracking-tight mb-4">
+            <div className="text-center lg:text-start mb-6 hero-line-2">
+              <h1 className="font-display text-[2.75rem] sm:text-6xl md:text-7xl lg:text-6xl xl:text-7xl
+                             font-black text-white leading-[1.06] tracking-tight mb-4">
                 دۆزینەوەی{' '}
-                <span className="relative" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <span className="relative inline-block" style={{ background: 'linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, #b8922e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 2px 24px rgba(201,168,76,0.25))' }}>
                   ئۆتۆمبێلی
-                  <svg className="absolute -bottom-1 start-0 w-full" height="4" viewBox="0 0 200 4" preserveAspectRatio="none">
-                    <path d="M0,2 Q50,0 100,2 Q150,4 200,2" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.5"/>
+                  <svg className="absolute -bottom-1.5 start-0 w-full" height="5" viewBox="0 0 200 5" preserveAspectRatio="none">
+                    <path d="M0,2.5 Q50,0 100,2.5 Q150,5 200,2.5" stroke="var(--gold)" strokeWidth="2" fill="none" opacity="0.55"/>
                   </svg>
                 </span>
                 {' '}تەواوت
               </h1>
-              <p className="text-white/45 text-sm sm:text-base md:text-lg font-light max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-white/65 text-base sm:text-lg md:text-xl font-light max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 Find Your Perfect Vehicle Across the Middle East &amp; Beyond
               </p>
             </div>
@@ -389,7 +397,7 @@ export function HeroSearch() {
               blended look as the reference. Hides itself entirely on
               load failure instead of showing a broken-image box. */}
           {!heroImgError && (
-            <div className="hidden lg:block absolute inset-y-0 end-0 w-[46%] xl:w-[44%] hero-line-2" aria-hidden="true">
+            <div className="hidden lg:block absolute inset-y-0 end-0 w-[46%] xl:w-[44%] hero-line-2 hero-float" aria-hidden="true">
               <Image
                 src="/hero-car.jpg"
                 alt=""
@@ -401,7 +409,7 @@ export function HeroSearch() {
                   objectPosition: 'center 35%',
                   maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 88%, rgba(0,0,0,0.85) 100%)',
                   WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 88%, rgba(0,0,0,0.85) 100%)',
-                  filter: 'brightness(0.92) contrast(1.05)',
+                  filter: 'brightness(0.94) contrast(1.08) saturate(1.05)',
                 }}
               />
             </div>
@@ -409,15 +417,15 @@ export function HeroSearch() {
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-2 justify-center mb-5 hero-line-3">
+        <div className="flex gap-2 justify-center mb-6 hero-line-3">
           {CATEGORIES.map(({ id, label, labelEn, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setFilter('category', id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250 will-change-transform
                 ${filters.category === id
                   ? 'bg-gradient-to-r from-[#a87828] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[rgba(201,168,76,0.25)] scale-[1.03]'
-                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[rgba(201,168,76,0.07)] hover:text-white/90 hover:border-[rgba(201,168,76,0.28)] hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:scale-[1.01]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[rgba(201,168,76,0.07)] hover:text-white/90 hover:border-[rgba(201,168,76,0.28)] hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:-translate-y-0.5'
                 }`}
             >
               <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[var(--ink-900)]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
@@ -429,23 +437,30 @@ export function HeroSearch() {
 
         {/* ── Search Card ─────────────────────────────────────── */}
         <div
-          className={`hero-card rounded-2xl border transition-all duration-350 overflow-visible
+          className={`hero-card relative rounded-2xl border transition-all duration-350 overflow-visible
                        ${ui.focused
-                         ? 'border-[rgba(201,168,76,0.55)] shadow-[0_0_0_1px_rgba(201,168,76,0.14),0_24px_72px_rgba(0,0,0,0.55),0_0_48px_rgba(201,168,76,0.05)]'
-                         : 'border-white/[0.09] shadow-[0_12px_40px_rgba(0,0,0,0.40)]'
+                         ? 'border-[rgba(201,168,76,0.6)] shadow-[0_0_0_1px_rgba(201,168,76,0.18),0_28px_84px_rgba(0,0,0,0.6),0_0_60px_rgba(201,168,76,0.10)]'
+                         : 'border-[rgba(201,168,76,0.22)] shadow-[0_18px_56px_rgba(0,0,0,0.48),0_0_40px_rgba(201,168,76,0.05)]'
                        }`}
-          style={{ background:'linear-gradient(135deg, rgba(11,21,37,0.85) 0%, rgba(8,15,28,0.90) 100%)', backdropFilter:'blur(24px)' }}
+          style={{ background:'linear-gradient(135deg, rgba(13,23,40,0.90) 0%, rgba(8,15,28,0.94) 100%)', backdropFilter:'blur(24px)' }}
         >
+          {/* Top accent line — signals "this is the primary action" before anything else registers */}
+          <div className="absolute -top-px inset-x-6 h-px rounded-full pointer-events-none"
+               style={{ background: 'linear-gradient(90deg, transparent, var(--gold-light), transparent)' }} />
           {/* Search input + autocomplete */}
           <div ref={dropdownRef} className="relative">
-            <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.07]">
-              <Search className={`w-5 h-5 flex-shrink-0 transition-colors duration-200 ${ui.focused ? 'text-[var(--gold)]' : 'text-white/25'}`} />
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.07]">
+              <Search className={`w-5 h-5 flex-shrink-0 transition-all duration-200 ${ui.focused ? 'text-[var(--gold)] scale-110' : 'text-white/25'}`} />
               <input
                 ref={inputRef}
                 type="text"
                 value={search.query}
                 onChange={e => { setSearch(s => ({ ...s, query: e.target.value })); setUi(s => ({ ...s, showDropdown: true })); }}
                 onFocus={() => setUi(s => ({ ...s, focused: true, showDropdown: true }))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { handleSearch(); inputRef.current?.blur(); }
+                  if (e.key === 'Escape') { setUi(s => ({ ...s, showDropdown: false })); inputRef.current?.blur(); }
+                }}
                 placeholder="گەڕان بکە... Toyota Land Cruiser، بەغدا، BMW 2023..."
                 className="flex-1 bg-transparent text-white placeholder-white/25
                            outline-none text-base font-medium caret-[var(--gold)] hero-search-input"
@@ -535,9 +550,9 @@ export function HeroSearch() {
           </div>
 
           {/* Filter row */}
-          <div className="p-3">
-            {/* Mobile: 2-col grid; md+: single flex row */}
-            <div className="grid grid-cols-2 md:flex md:flex-nowrap gap-2 items-stretch">
+          <div className="p-3.5">
+            {/* Mobile & tablet: 2-col grid; lg+: single flex row (more room needed for 4 dropdowns + CTA) */}
+            <div className="grid grid-cols-2 lg:flex lg:flex-nowrap gap-2.5 items-stretch">
               <Dropdown label="براند" value={filters.make} options={MAKES}
                 onChange={v => { setFilter('make', v); setFilter('model', ''); }} placeholder="هەموو براندەکان" />
               <Dropdown label="مۆدێل" value={filters.model} options={activeModels}
@@ -549,11 +564,12 @@ export function HeroSearch() {
               <button
                 type="button"
                 onClick={() => handleSearch()}
-                className="col-span-2 md:col-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap flex-shrink-0
-                           bg-gradient-to-r from-[#b8922e] to-[#dab445] text-[var(--ink-900)]
+                className="cta-sheen relative overflow-hidden col-span-2 lg:col-auto mt-1 lg:mt-0 flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-black text-sm uppercase tracking-wide whitespace-nowrap flex-shrink-0
+                           bg-gradient-to-r from-[#b8922e] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)]
                            hover:from-[var(--gold)] hover:to-[#e6c258]
-                           shadow-[0_4px_20px_rgba(201,168,76,0.30)]
-                           transition-all duration-200 active:scale-[0.98]"
+                           shadow-[0_6px_28px_rgba(201,168,76,0.40)] hover:shadow-[0_10px_40px_rgba(201,168,76,0.55)]
+                           hover:-translate-y-0.5
+                           transition-all duration-200 active:scale-[0.98] active:translate-y-0"
               >
                 <Search className="w-4 h-4" />
                 گەڕان
@@ -562,7 +578,7 @@ export function HeroSearch() {
 
             {/* Brand logo quick-picks — its own clearly-labeled row, separate
                 from the filter fields above so the main row never wraps */}
-            <div className="mt-3 pt-3 border-t border-white/[0.06]">
+            <div className="mt-4 pt-3.5 border-t border-white/[0.06]">
               <span className="block text-[9px] uppercase tracking-[0.12em] text-white/30 font-bold mb-2">
                 براندە بەناوبانگەکان / Popular brands
               </span>
@@ -586,7 +602,7 @@ export function HeroSearch() {
             </div>
 
             {/* Advanced toggle */}
-            <div className="mt-2.5 flex items-center justify-between">
+            <div className="mt-3.5 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setUi(s => ({ ...s, showAdvanced: !s.showAdvanced }))}
@@ -617,10 +633,10 @@ export function HeroSearch() {
             className="overflow-hidden transition-all duration-350"
             style={{ maxHeight: ui.showAdvanced ? '500px' : '0' }}
           >
-            <div className="px-3 pb-4 pt-3 border-t border-white/[0.06]">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="px-3.5 pb-4 pt-3.5 border-t border-white/[0.06]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Dropdown label="ساڵی دەستپێک" value={filters.yearFrom} options={YEARS} onChange={v => setFilter('yearFrom', v)} placeholder="2000" />
                   <span className="text-white/20 text-sm flex-shrink-0 mt-3">—</span>
                   <Dropdown label="ساڵی کۆتایی"  value={filters.yearTo}   options={YEARS} onChange={v => setFilter('yearTo', v)}   placeholder="2025" />
@@ -631,7 +647,7 @@ export function HeroSearch() {
                 <Dropdown label="گێرکردن / Transmission"    value={filters.transmission} options={TRANSMISSIONS} onChange={v => setFilter('transmission', v)} placeholder="هەموو جۆرەکان" />
                 <Dropdown label="ڕەنگ / Color"              value={filters.color}        options={COLORS}        onChange={v => setFilter('color', v)}        placeholder="هەموو ڕەنگەکان" />
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div className="flex-1 flex flex-col min-w-0 gap-0.5">
                     <span className="text-[9px] uppercase tracking-[0.12em] text-[rgba(201,168,76,0.7)] font-bold">کێلۆمەتری کەم / Min KM</span>
                     <input type="number" value={filters.minMileage} onChange={e => setFilter('minMileage', e.target.value)}

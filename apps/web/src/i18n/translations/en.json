@@ -307,7 +307,8 @@
     "noFollowedDealersDesc": "Follow your favorite dealers to see their latest cars",
     "latestListing": "Latest listing",
     "noActiveListings": "No active listings",
-    "browseListings": "Browse listings"
+    "browseListings": "Browse listings",
+    "referrals": "Referrals"
   },
   "notifications": {
     "title": "Notifications",
@@ -797,5 +798,40 @@
     "linkCopied": "Copied!",
     "backHome": "Back to Home",
     "registerAnother": "Register Another Dealer"
+  },
+  "referral": {
+    "title": "Referral & Rewards Program",
+    "subtitle": "Invite fellow dealers to CarsAuto and earn real rewards",
+    "yourCode": "Your Referral Code",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "share": "Share",
+    "shareMessage": "Use my CarsAuto referral code and get rewarded",
+    "totalReferrals": "Total Referrals",
+    "successfulReferrals": "Successful Referrals",
+    "pendingReferrals": "Pending",
+    "rejectedReferrals": "Rejected",
+    "premiumMonthsEarned": "Premium Months Earned",
+    "nextReward": "Next Reward",
+    "remainingReferrals": "{count} more referrals needed",
+    "allRewardsUnlocked": "You've unlocked every reward! 🎉",
+    "rewardTiers": "Reward Tiers",
+    "milestone3": "3 referrals → +1 Premium Month",
+    "milestone10": "10 referrals → +3 Premium Months",
+    "milestone25": "25 referrals → Gold Partner Badge",
+    "milestone50": "50 referrals → VIP Dealer Badge",
+    "milestone100": "100 referrals → CarsAuto Ambassador",
+    "yourBadges": "Your Badges",
+    "noBadgesYet": "No badges earned yet",
+    "history": "Referral History",
+    "noHistory": "You haven't invited anyone yet",
+    "statusPending": "Pending",
+    "statusQualified": "Qualified",
+    "statusRejected": "Rejected",
+    "statusSuspended": "Suspended",
+    "conditionApproved": "Dealer approved",
+    "conditionVerified": "Account verified",
+    "conditionListing": "Listing published",
+    "notDealerYet": "The referral program is only available to approved dealers"
   }
 }
