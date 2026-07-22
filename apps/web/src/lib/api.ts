@@ -12,6 +12,10 @@ import type {
   NotificationItem,
   ChatConversation,
   Message,
+  BetaRegistration,
+  BetaRegistrationListResponse,
+  BetaRegistrationStatus,
+  RegisterBetaPayload,
 } from '@cars-auto/types';
 
 // ── In-memory access token (never stored in localStorage) ────────────────────
@@ -407,14 +411,16 @@ export const adminApi = {
    * controller bug is ever fixed, this call needs to explicitly pass
    * `status=PENDING` to keep meaning the same thing.
    */
-  getBadgeCounts: async (): Promise<{ moderation: number; reports: number }> => {
-    const [moderationRes, reportsRes] = await Promise.all([
+  getBadgeCounts: async (): Promise<{ moderation: number; reports: number; betaRegistrations: number }> => {
+    const [moderationRes, reportsRes, betaRes] = await Promise.all([
       getApi().get<{ total: number }>('/admin/listings', { params: { status: 'PENDING', limit: 1 } }),
       getApi().get<{ total: number }>('/admin/reports', { params: { limit: 1 } }),
+      getApi().get<{ count: number }>('/beta/registrations/pending-count'),
     ]);
     return {
       moderation: moderationRes.data.total ?? 0,
       reports: reportsRes.data.total ?? 0,
+      betaRegistrations: betaRes.data.count ?? 0,
     };
   },
 };
@@ -588,6 +594,29 @@ export const reviewsApi = {
 export const newsletterApi = {
   subscribe: (email: string, locale?: string) =>
     getApi().post<{ subscribed: true }>('/marketing/newsletter', { email, locale }).then(r => r.data),
+};
+
+// ── Beta Registration API ───────────────────────────────────────────────────
+export const betaApi = {
+  register: (data: RegisterBetaPayload) =>
+    getApi().post<BetaRegistration>('/beta/register', data).then(r => r.data),
+
+  getAll: (params: Record<string, unknown> = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+          .map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString();
+    return getApi().get<BetaRegistrationListResponse>(`/beta/registrations?${query}`).then(r => r.data);
+  },
+
+  getPendingCount: () =>
+    getApi().get<{ count: number }>('/beta/registrations/pending-count').then(r => r.data),
+
+  updateStatus: (id: string, status: BetaRegistrationStatus) =>
+    getApi().patch<BetaRegistration>(`/beta/registrations/${id}/status`, { status }).then(r => r.data),
 };
 
 export default api;

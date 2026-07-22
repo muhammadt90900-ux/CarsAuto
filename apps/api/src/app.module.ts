@@ -37,6 +37,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
+import { BetaModule } from './modules/beta/beta.module';
 
 @Module({
   imports: [
@@ -109,6 +110,7 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     ReportsModule,
     StatsModule,
     NewsletterModule,
+    BetaModule,
   ],
 })
 export class AppModule implements NestModule {

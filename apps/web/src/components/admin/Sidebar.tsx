@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car,
   BarChart3, ShieldCheck, ChevronRight,
   Star, FileWarning, Store, Bell, ClipboardList,
-  Shield, Receipt, Crown, AlertOctagon, BadgeCheck,
+  Shield, Receipt, Crown, AlertOctagon, BadgeCheck, Rocket,
 } from 'lucide-react';
 import { adminApi, notificationsApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -39,6 +39,7 @@ export function AdminSidebar({ className }: { className?: string }) {
     moderation: adminCounts?.moderation,
     reports: adminCounts?.reports,
     notifications: unread?.count,
+    betaRegistrations: adminCounts?.betaRegistrations,
   };
 
   const groups = [
@@ -84,6 +85,7 @@ export function AdminSidebar({ className }: { className?: string }) {
       label: 'Engagement',
       items: [
         { href: `/${locale}/admin/notifications`, label: 'Notifications',icon: Bell,           badge: BADGE_COUNTS.notifications },
+        { href: `/${locale}/admin/beta-registrations`, label: 'Beta Registrations', icon: Rocket, badge: BADGE_COUNTS.betaRegistrations },
       ],
     },
   ];

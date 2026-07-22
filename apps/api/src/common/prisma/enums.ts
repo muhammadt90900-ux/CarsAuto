@@ -41,4 +41,5 @@ export {
   ReportStatus,
   ChatStatus,
   ContactRequestStatus,
+  BetaRegistrationStatus,
 } from '@prisma/client';

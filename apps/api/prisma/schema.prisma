@@ -2097,3 +2097,58 @@ model NewsletterSubscriber {
   @@index([email])
   @@map("newsletter_subscribers")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BETA REGISTRATION — "Coming Soon / Join Beta" dealer lead capture, ahead of
+// public launch. Deliberately its own lightweight model rather than reusing
+// Dealer: registrants here have no User account yet (pre-signup lead), and
+// businessType reuses the existing ListingType enum (CAR/MOTORCYCLE/
+// SPARE_PART/ACCESSORY/SERVICE) rather than inventing a parallel enum.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum BetaRegistrationStatus {
+  PENDING
+  CONTACTED
+  APPROVED
+  REJECTED
+}
+
+model BetaRegistration {
+  id String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+
+  dealerName   String  @db.VarChar(150)
+  ownerName    String  @db.VarChar(150)
+  phone        String  @db.VarChar(30)
+  city         String  @db.VarChar(100)
+  businessType ListingType
+  facebookUrl  String? @db.VarChar(255)
+  website      String? @db.VarChar(255)
+  notes        String? @db.Text
+
+  // Public-facing, shareable code (e.g. "CA-7F3K9Q") — distinct from the
+  // internal uuid `id` so it's short enough to put in a referral link/SMS.
+  referralId String @unique @db.VarChar(20)
+
+  // The referral code THIS registrant entered/arrived via (if any), and the
+  // resolved link to that referring registration once matched server-side.
+  referredByCode String?            @db.VarChar(20)
+  referredById   String?            @db.Uuid
+  referredBy     BetaRegistration?  @relation("BetaReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals      BetaRegistration[] @relation("BetaReferrals")
+
+  status           BetaRegistrationStatus @default(PENDING)
+  // Auto-set true the moment status transitions to APPROVED — never set
+  // directly by the client.
+  isFoundingDealer Boolean                @default(false)
+
+  locale String? @db.VarChar(5) // which locale they were browsing in when they registered
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([referredById])
+  @@index([phone])
+  @@index([createdAt])
+  @@map("beta_registrations")
+}

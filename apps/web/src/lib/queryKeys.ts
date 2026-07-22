@@ -31,6 +31,10 @@ export const queryKeys = {
   admin: {
     badgeCounts: () => ['admin', 'badge-counts'] as const,
   },
+  beta: {
+    registrations: (params: Record<string, unknown>) => ['beta', 'registrations', params] as const,
+    pendingCount: () => ['beta', 'pending-count'] as const,
+  },
   notifications: {
     unreadCount: () => ['notifications', 'unread-count'] as const,
   },
