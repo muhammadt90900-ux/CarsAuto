@@ -269,8 +269,9 @@ export default function BuyerDashboardHome() {
   );
   const monthlyUsed = monthlyListings.length;
 
-  // Dummy subscription check — will be real once payments are wired
-  // In production: fetch /auth/permission-status and check reason
+  // Subscription check — real call to /listings/permission-status below.
+  // (Comment used to say "dummy"; that stopped being true once this was wired
+  // to the real endpoint — left stale and misleading, now corrected.)
   const [subscribed, setSubscribed] = useState(false);
   useEffect(() => {
     api.get('/listings/permission-status')

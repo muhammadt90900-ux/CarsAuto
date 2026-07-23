@@ -17,25 +17,35 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
   const fmtPrice = (v: number) => '$' + new Intl.NumberFormat('en-US').format(v);
   const fmtNum   = (v: number) => new Intl.NumberFormat('en-US').format(v);
 
+  // HONESTY FIX: every field below used to fall back to an invented value
+  // when the real one was missing — including a fake phone number
+  // ('+964 750 123 4567') wired to a live "Call Dealer" button, a fake
+  // "Platinum" tier badge, a fake 4.9★/284-review rating, a fake founding
+  // year, and a fake city. A buyer could have called a real phone number
+  // that belonged to no dealer, or trusted a rating nobody earned. Missing
+  // fields now stay null/empty and the UI shows an honest "not provided"
+  // state instead of a fabricated one — see hasRating/hasContactPhone/etc.
+  // below and how they gate rendering.
   const dealerData = {
     id: dealer?.id ?? '',
     name: dealer?.nameEn ?? (dealer?.slug ?? '').replace(/-/g,' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-    nameKu: dealer?.nameKu ?? 'ئۆتۆمبێل پریمیئوم',
-    city: dealer?.location?.city ?? dealer?.city ?? 'Erbil',
-    country: dealer?.location?.country ?? dealer?.country ?? 'Kurdistan Region',
-    tier: dealer?.tier ?? 'Platinum',
+    nameKu: dealer?.nameKu ?? null,
+    city: dealer?.location?.city ?? dealer?.city ?? null,
+    country: dealer?.location?.country ?? dealer?.country ?? null,
+    tier: dealer?.tier ?? null,
     color: '#a855f7',
-    rating: dealer?.averageRating ?? dealer?.rating ?? 4.9,
-    reviews: dealer?._count?.reviews ?? dealer?.totalReviews ?? dealer?.reviewCount ?? 284,
-    listings: dealer?.activeListings ?? dealer?.listings ?? 142,
-    specialty: dealer?.specialties?.[0] ?? dealer?.specialty ?? 'Luxury & Premium Vehicles',
-    phone: dealer?.phone ?? '+964 750 123 4567',
-    whatsapp: dealer?.whatsapp ?? dealer?.phone ?? '+964 750 123 4567',
+    rating: dealer?.averageRating ?? dealer?.rating ?? null,
+    reviews: dealer?._count?.reviews ?? dealer?.totalReviews ?? dealer?.reviewCount ?? 0,
+    listings: dealer?.activeListings ?? dealer?.listings ?? 0,
+    specialty: dealer?.specialties?.[0] ?? dealer?.specialty ?? null,
+    phone: dealer?.phone ?? null,
+    whatsapp: dealer?.whatsapp ?? dealer?.phone ?? null,
     website: dealer?.website ?? null,
-    hours: dealer?.businessHours ?? dealer?.hours ?? 'Sat–Thu 9:00 AM – 7:00 PM',
-    established: dealer?.establishedYear ?? dealer?.established ?? 2015,
-    description: dealer?.descriptionEn ?? dealer?.description ?? 'One of the leading premium automotive dealerships.',
+    hours: dealer?.businessHours ?? dealer?.hours ?? null,
+    established: dealer?.establishedYear ?? dealer?.established ?? null,
+    description: dealer?.descriptionEn ?? dealer?.description ?? null,
   };
+  const hasRating = dealerData.rating != null;
 
   // FEATURE 9: follow state — server provides isFollowing + _count.followers on detail fetch
   const { isFollowing, followerCount, toggle, isPending } = useDealerFollow(
@@ -61,6 +71,15 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
     staleTime: 60_000,
   });
   const dealerReviews: any[] = (reviewsData as any)?.reviews ?? reviewsData?.data ?? [];
+
+  // HONESTY FIX: this used to be a hardcoded 72/18/6/2% breakdown shown
+  // under every dealer's rating regardless of their actual reviews.
+  // Computed for real from the reviews just fetched instead.
+  const ratingCounts = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: dealerReviews.filter((r: any) => Math.round(r.rating) === star).length,
+  }));
+  const totalRated = dealerReviews.length;
 
   const TABS = [
     { id: 'listings', label: 'Listings', count: dealerData.listings },
@@ -100,17 +119,23 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <h1 className="text-2xl font-black text-white">{dealerData.name}</h1>
-                  <span className="text-[10px] font-black uppercase tracking-widest rounded-full px-2.5 py-1"
-                        style={{ background:`${dealerData.color}15`, border:`1px solid ${dealerData.color}30`, color:dealerData.color }}>
-                    💎 {dealerData.tier}
-                  </span>
+                  {dealerData.tier && (
+                    <span className="text-[10px] font-black uppercase tracking-widest rounded-full px-2.5 py-1"
+                          style={{ background:`${dealerData.color}15`, border:`1px solid ${dealerData.color}30`, color:dealerData.color }}>
+                      💎 {dealerData.tier}
+                    </span>
+                  )}
                   <span className="verified-badge"><Shield className="w-2.5 h-2.5"/>Verified</span>
                 </div>
-                <p className="text-white/45 text-sm mb-3">{dealerData.nameKu} · {dealerData.specialty}</p>
+                {(dealerData.nameKu || dealerData.specialty) && (
+                  <p className="text-white/45 text-sm mb-3">
+                    {[dealerData.nameKu, dealerData.specialty].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-4 text-sm text-white/50">
-                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.city}, {dealerData.country}</span>
-                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.hours}</span>
-                  <span className="flex items-center gap-1.5">Est. {dealerData.established}</span>
+                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.city && dealerData.country ? `${dealerData.city}, ${dealerData.country}` : 'Location not specified'}</span>
+                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[var(--gold)]"/>{dealerData.hours ?? 'Hours not listed'}</span>
+                  {dealerData.established && <span className="flex items-center gap-1.5">Est. {dealerData.established}</span>}
                 </div>
               </div>
 
@@ -118,7 +143,7 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
               <div className="flex flex-col items-end gap-3 flex-shrink-0">
                 <div className="flex gap-4 sm:gap-6">
                   {[
-                    { val: dealerData.rating + '★', lbl: 'Rating' },
+                    { val: hasRating ? dealerData.rating + '★' : 'New', lbl: 'Rating' },
                     { val: dealerData.reviews,       lbl: 'Reviews' },
                     { val: followerCount,            lbl: 'Followers' },
                   ].map(s => (
@@ -152,16 +177,20 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
 
             {/* Contact buttons */}
             <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/[0.07]">
-              <a href={`tel:${dealerData.phone}`}
-                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
-                            bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[var(--gold-light)] transition-colors">
-                <Phone className="w-4 h-4"/>Call Dealer
-              </a>
-              <a href={`https://wa.me/${dealerData.whatsapp?.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
-                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
-                            bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/25 hover:bg-[#22c55e]/25 transition-colors">
-                <MessageCircle className="w-4 h-4"/>WhatsApp
-              </a>
+              {dealerData.phone && (
+                <a href={`tel:${dealerData.phone}`}
+                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
+                              bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[var(--gold-light)] transition-colors">
+                  <Phone className="w-4 h-4"/>Call Dealer
+                </a>
+              )}
+              {dealerData.whatsapp && (
+                <a href={`https://wa.me/${dealerData.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
+                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
+                              bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/25 hover:bg-[#22c55e]/25 transition-colors">
+                  <MessageCircle className="w-4 h-4"/>WhatsApp
+                </a>
+              )}
               {dealerData.website && (
                 <a href={dealerData.website} target="_blank" rel="noopener noreferrer"
                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold
@@ -223,25 +252,30 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
             {/* Summary */}
             <div className="card-premium p-6 flex items-center gap-8">
               <div className="text-center">
-                <div className="text-5xl font-black text-[var(--gold)]">{dealerData.rating}</div>
+                <div className="text-5xl font-black text-[var(--gold)]">{hasRating ? dealerData.rating : '—'}</div>
                 <div className="flex gap-0.5 justify-center my-1">
                   {Array.from({length:5}).map((_,i) => (
-                    <Star key={i} className={`w-4 h-4 ${i < Math.floor(dealerData.rating) ? 'fill-[var(--gold)] text-[var(--gold)]' : 'text-[var(--border-default)]'}`}/>
+                    <Star key={i} className={`w-4 h-4 ${hasRating && i < Math.floor(dealerData.rating) ? 'fill-[var(--gold)] text-[var(--gold)]' : 'text-[var(--border-default)]'}`}/>
                   ))}
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">{dealerData.reviews} reviews</p>
               </div>
               <div className="flex-1 space-y-2">
-                {[5,4,3,2,1].map(n => (
-                  <div key={n} className="flex items-center gap-3">
-                    <span className="text-xs text-[var(--text-muted)] w-4">{n}</span>
-                    <Star className="w-3 h-3 fill-[var(--gold)] text-[var(--gold)]"/>
-                    <div className="flex-1 progress-bar">
-                      <div className="progress-bar-fill" style={{ width:`${n === 5 ? 72 : n === 4 ? 18 : n === 3 ? 6 : 2}%` }}/>
+                {totalRated === 0 ? (
+                  <p className="text-xs text-[var(--text-muted)]">No reviews yet — the breakdown will appear once this dealer gets rated.</p>
+                ) : ratingCounts.map(({ star, count }) => {
+                  const pct = Math.round((count / totalRated) * 100);
+                  return (
+                    <div key={star} className="flex items-center gap-3">
+                      <span className="text-xs text-[var(--text-muted)] w-4">{star}</span>
+                      <Star className="w-3 h-3 fill-[var(--gold)] text-[var(--gold)]"/>
+                      <div className="flex-1 progress-bar">
+                        <div className="progress-bar-fill" style={{ width:`${pct}%` }}/>
+                      </div>
+                      <span className="text-xs text-[var(--text-muted)] w-8">{pct}%</span>
                     </div>
-                    <span className="text-xs text-[var(--text-muted)] w-8">{n === 5 ? '72%' : n === 4 ? '18%' : n === 3 ? '6%' : '2%'}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             {reviewsLoading ? (
@@ -282,15 +316,17 @@ export function DealerShowroomClient({ dealer, locale }: { dealer: any; locale: 
               <h3 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
                 <span className="w-1 h-5 rounded-full bg-[var(--gold)]"/>About Us
               </h3>
-              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{dealerData.description}</p>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                {dealerData.description ?? "This dealer hasn't added a description yet."}
+              </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { label:'Location',      value:`${dealerData.city}, ${dealerData.country}`,  icon:<MapPin className="w-4 h-4"/> },
-                { label:'Phone',         value:dealerData.phone,                          icon:<Phone className="w-4 h-4"/> },
-                { label:'Business Hours',value:dealerData.hours,                          icon:<Clock className="w-4 h-4"/> },
-                { label:'Established',   value:String(dealerData.established),            icon:<Shield className="w-4 h-4"/> },
-              ].map(item => (
+                { label:'Location',      value: dealerData.city && dealerData.country ? `${dealerData.city}, ${dealerData.country}` : null,  icon:<MapPin className="w-4 h-4"/> },
+                { label:'Phone',         value: dealerData.phone,   icon:<Phone className="w-4 h-4"/> },
+                { label:'Business Hours',value: dealerData.hours,   icon:<Clock className="w-4 h-4"/> },
+                { label:'Established',   value: dealerData.established ? String(dealerData.established) : null, icon:<Shield className="w-4 h-4"/> },
+              ].filter(item => item.value).map(item => (
                 <div key={item.label} className="flex items-start gap-3 p-4 rounded-xl bg-[var(--surface-50)] dark:bg-white/[0.04] border border-[var(--border-subtle)]">
                   <span className="text-[var(--gold)] mt-0.5 flex-shrink-0">{item.icon}</span>
                   <div>

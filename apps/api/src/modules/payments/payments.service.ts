@@ -32,6 +32,7 @@ import {
   PaymentGateway,
   PLAN_PRICES,
   PLAN_PRICES_IQD,
+  PLAN_DURATION_DAYS,
   ZERO_DECIMAL_CURRENCIES,
   RefundPaymentDto,
   AsiaHawalaInitiateDto,
@@ -947,10 +948,23 @@ export class PaymentsService {
 
   private async upsertSubscription(userId: string, plan: PaymentPlan) {
     const dbPlan = PaymentsService.PAYMENT_PLAN_TO_DB_PLAN[plan];
+    // BUG FIX: this used to write only { plan, status: ACTIVE } — no
+    // currentPeriodStart/currentPeriodEnd. Every caller of upsertSubscription
+    // is a *non-Stripe* gateway confirmation (ZainCash, FastPay, AsiaHawala —
+    // the gateways actually used by most dealers/buyers in Iraq); Stripe's
+    // own webhook path sets these fields separately from Stripe's billing
+    // cycle. Without this fix, ListingPermissionService's `currentPeriodEnd
+    // > now` check never matched, so a dealer or buyer who paid through a
+    // local gateway was silently never unlocked — they'd still get blocked
+    // once their free trial ran out, despite having paid.
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setDate(periodEnd.getDate() + PLAN_DURATION_DAYS[plan]);
+
     await this.upsertSubscriptionWithLock(
       userId,
-      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE },
-      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE },
+      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE, currentPeriodStart: now, currentPeriodEnd: periodEnd },
+      { plan: dbPlan, status: UserSubscriptionStatus.ACTIVE, currentPeriodStart: now, currentPeriodEnd: periodEnd },
     );
   }
 

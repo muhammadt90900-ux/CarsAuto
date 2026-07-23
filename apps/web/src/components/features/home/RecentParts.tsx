@@ -139,8 +139,28 @@ export function RecentParts() {
       ) : parts.length === 0 ? (
         <div className="text-center py-14">
           <div className="text-5xl mb-4 opacity-15">🔧</div>
-          <p className="text-[var(--text-muted)] text-sm">هیچ پارچەیەک نەدۆزرایەوە</p>
-          <p className="text-[var(--text-faint)] text-xs mt-1">No parts found</p>
+          {activeCategory === '' ? (
+            // No filter applied and still zero results — this is a
+            // platform-wide "nothing listed yet" state, not a bad search,
+            // so it needs a way forward rather than reading as broken.
+            <>
+              <p className="text-[var(--text-primary)] font-bold text-sm mb-1">هیچ پارچەیەک بڵاو نەکراوەتەوە — یەکەم کەس بە</p>
+              <p className="text-[var(--text-faint)] text-xs mb-5">No parts listed yet — be the first</p>
+              <Link
+                href="/sell"
+                className="inline-flex items-center gap-2 h-10 px-5 rounded-xl font-bold text-xs
+                           bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
+                           hover:from-[var(--gold-light)] hover:to-[var(--gold)] transition-all duration-200"
+              >
+                پارچەیەک زیاد بکە / List a Part
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-[var(--text-muted)] text-sm">هیچ پارچەیەک نەدۆزرایەوە لەم بەشەدا</p>
+              <p className="text-[var(--text-faint)] text-xs mt-1">No parts found in this category</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

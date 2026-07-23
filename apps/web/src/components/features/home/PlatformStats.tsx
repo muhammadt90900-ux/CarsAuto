@@ -28,12 +28,40 @@ export function PlatformStats() {
     staleTime: 5 * 60_000,
   });
 
+  // LAUNCH-DAY FIX: with near-zero real listings, this banner used to show
+  // a row of "0" / "—" tiles at the very top of the homepage — the first
+  // thing every visitor saw looked broken, not "early". Below a small
+  // threshold, swap the stat grid for an honest "just launched" message
+  // that reframes low numbers as a positive (be early / founding dealer)
+  // instead of exposing them as sad zeros. Threshold is deliberately low
+  // (5) so this only fires in the true early-launch window, not once the
+  // platform has genuine but modest traction.
+  const isPreLaunchVolume = !isLoading && (stats?.activeListings ?? 0) < 5;
+
   const tiles = [
     { icon: '🚗', value: formatCount(stats?.activeListings), label: t('statsListings') },
     { icon: '🏪', value: formatCount(stats?.verifiedDealers), label: t('statsDealers') },
     { icon: '📍', value: stats?.cities != null ? String(stats.cities) : '—', label: t('statsCities') },
     { icon: '⭐', value: stats?.averageRating ? `${stats.averageRating}★` : '—', label: t('statsRating') },
   ];
+
+  if (isPreLaunchVolume) {
+    return (
+      <div className="relative overflow-hidden border-y border-[rgba(201,168,76,0.15)] shadow-[inset_0_1px_0_rgba(201,168,76,0.06),inset_0_-1px_0_rgba(201,168,76,0.06)]"
+           style={{ background: 'linear-gradient(90deg, var(--ink-900) 0%, var(--ink-800) 50%, var(--ink-900) 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.03]"
+             style={{ backgroundImage: 'radial-gradient(circle, rgba(201,168,76,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+          <p className="text-[var(--gold)] text-xs font-black uppercase tracking-[0.2em] mb-1.5">
+            {t('justLaunchedEyebrow', { default: 'Just Launched' })}
+          </p>
+          <p className="text-white/70 text-sm max-w-md mx-auto">
+            {t('justLaunchedBody', { default: "We're brand new — the first listings and dealers on CarsAuto get the most visibility. Be one of them." })}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden border-y border-[rgba(201,168,76,0.15)] shadow-[inset_0_1px_0_rgba(201,168,76,0.06),inset_0_-1px_0_rgba(201,168,76,0.06)]"

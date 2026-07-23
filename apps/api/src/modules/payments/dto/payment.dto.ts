@@ -45,27 +45,30 @@ export { PaymentStatus, PaymentGateway };
 
 // ─── Plan pricing — Stripe minor units (cents, fils, etc.) ───────────────────
 // Server-side enforced: client sends plan name only, never an amount.
+// PRICING UPDATE (per product decision): BASIC is now the monthly entry
+// tier, PREMIUM is the 6-month tier, ENTERPRISE is the annual tier —
+// $10 / $50 / $89 respectively, each with its own listing cap below.
 export const PLAN_PRICES: Record<PaymentPlan, Partial<Record<PaymentCurrency, number>>> = {
   [PaymentPlan.BASIC]: {
-    [PaymentCurrency.USD]: 1999,    // $19.99
-    [PaymentCurrency.EUR]: 1799,
-    [PaymentCurrency.GBP]: 1599,
-    [PaymentCurrency.AED]: 7499,
-    [PaymentCurrency.CNY]: 14500,
+    [PaymentCurrency.USD]: 1000,    // $10.00 / month
+    [PaymentCurrency.EUR]: 900,
+    [PaymentCurrency.GBP]: 800,
+    [PaymentCurrency.AED]: 3750,
+    [PaymentCurrency.CNY]: 7300,
   },
   [PaymentPlan.PREMIUM]: {
-    [PaymentCurrency.USD]: 4999,    // $49.99
-    [PaymentCurrency.EUR]: 4499,
-    [PaymentCurrency.GBP]: 3999,
-    [PaymentCurrency.AED]: 18499,
+    [PaymentCurrency.USD]: 5000,    // $50.00 / 6 months
+    [PaymentCurrency.EUR]: 4500,
+    [PaymentCurrency.GBP]: 4000,
+    [PaymentCurrency.AED]: 18500,
     [PaymentCurrency.CNY]: 36500,
   },
   [PaymentPlan.ENTERPRISE]: {
-    [PaymentCurrency.USD]: 9999,    // $99.99
-    [PaymentCurrency.EUR]: 8999,
-    [PaymentCurrency.GBP]: 7999,
-    [PaymentCurrency.AED]: 36999,
-    [PaymentCurrency.CNY]: 72900,
+    [PaymentCurrency.USD]: 8900,    // $89.00 / year
+    [PaymentCurrency.EUR]: 8000,
+    [PaymentCurrency.GBP]: 7100,
+    [PaymentCurrency.AED]: 32700,
+    [PaymentCurrency.CNY]: 64900,
   },
   [PaymentPlan.BUYER]: {
     [PaymentCurrency.USD]: 299,     // $2.99
@@ -76,13 +79,31 @@ export const PLAN_PRICES: Record<PaymentPlan, Partial<Record<PaymentCurrency, nu
   },
 };
 
+// ─── Billing duration per plan (days added to currentPeriodEnd on activation) ─
+// BUYER stays monthly (30 days) — matches its existing monthly listing cap.
+export const PLAN_DURATION_DAYS: Record<PaymentPlan, number> = {
+  [PaymentPlan.BASIC]:      30,   // monthly
+  [PaymentPlan.PREMIUM]:    180,  // 6 months
+  [PaymentPlan.ENTERPRISE]: 365,  // annual
+  [PaymentPlan.BUYER]:      30,   // monthly
+};
+
+// ─── Listing cap per plan, enforced in ListingPermissionService ──────────────
+// null = unlimited. BUYER isn't listed here — it keeps its own separate
+// monthly cap (BUYER_MONTHLY_LIMIT in listing-permission.service.ts).
+export const PLAN_MAX_LISTINGS: Record<Exclude<PaymentPlan, PaymentPlan.BUYER>, number | null> = {
+  [PaymentPlan.BASIC]:      30,
+  [PaymentPlan.PREMIUM]:    200,
+  [PaymentPlan.ENTERPRISE]: null, // unlimited
+};
+
 // ─── IQD pricing — full Iraqi Dinars (NOT fils) ───────────────────────────────
 // Iraqi gateways (ZainCash, FastPay, QiCard, AsiaHawala) use full dinars.
 // Rate ~1 USD = 1,300 IQD
 export const PLAN_PRICES_IQD: Record<PaymentPlan, number> = {
-  [PaymentPlan.BASIC]:      26_000,
-  [PaymentPlan.PREMIUM]:    65_000,
-  [PaymentPlan.ENTERPRISE]: 130_000,
+  [PaymentPlan.BASIC]:      13_000,  // ~$10
+  [PaymentPlan.PREMIUM]:    65_000,  // ~$50
+  [PaymentPlan.ENTERPRISE]: 115_700, // ~$89
   [PaymentPlan.BUYER]:      3_900,
 };
 

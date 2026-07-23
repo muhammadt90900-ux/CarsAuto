@@ -23,6 +23,7 @@ const BUYER_PLAN = {
   label:    { ku: 'پلانی کڕیار', ar: 'خطة المشتري', en: 'Buyer Plan', zh: '买家计划' },
   priceUSD: 2.99,
   priceIQD: 3_900,
+  period:   { ku: '/مانگ', ar: '/شهر', en: '/month', zh: '/月' },
   features: {
     ku: ['تا ٢ ئەلانکاری لە مانگێکدا', 'دەستگەیشتنی داشبۆردی کڕیار', 'پشتیوانی ئیمەیڵ'],
     en: ['Up to 2 listings per month', 'Buyer dashboard access', 'Email support'],
@@ -39,13 +40,14 @@ const PLANS = [
     border: 'border-gray-200 dark:border-white/10',
     badge: null,
     label:    { ku: 'بنەڕەتی',  ar: 'أساسي',    en: 'Basic',      zh: '基础版' },
-    priceUSD: 19.99,
-    priceIQD: 26_000,
+    priceUSD: 10,
+    priceIQD: 13_000,
+    period:   { ku: '/مانگ', ar: '/شهر', en: '/month', zh: '/月' },
     features: {
-      ku: ['تا ٣ ئەلانکاری', 'ئانالیزی بنەڕەتی', 'پشتیوانی ئیمەیڵ'],
-      en: ['Up to 3 listings', 'Basic analytics', 'Email support'],
-      ar: ['حتى 3 إعلانات', 'تحليلات أساسية', 'دعم البريد الإلكتروني'],
-      zh: ['最多3个列表', '基础数据分析', '邮件支持'],
+      ku: ['تا ٣٠ ئەلانکاری', 'ئانالیزی بنەڕەتی', 'پشتیوانی ئیمەیڵ'],
+      en: ['Up to 30 listings', 'Basic analytics', 'Email support'],
+      ar: ['حتى 30 إعلان', 'تحليلات أساسية', 'دعم البريد الإلكتروني'],
+      zh: ['最多30个列表', '基础数据分析', '邮件支持'],
     },
   },
   {
@@ -55,13 +57,14 @@ const PLANS = [
     border: 'border-[rgba(201,168,76,0.4)]',
     badge: 'mostPopular',
     label:    { ku: 'پریمیەم',   ar: 'مميز',     en: 'Premium',    zh: '高级版' },
-    priceUSD: 49.99,
+    priceUSD: 50,
     priceIQD: 65_000,
+    period:   { ku: '/٦ مانگ', ar: '/6 أشهر', en: '/6 months', zh: '/6个月' },
     features: {
-      ku: ['تا ٢٠ ئەلانکاری', 'ئانالیزی پێشکەوتوو', 'پشتیوانی لەپێشەوە', 'ئەلانکاری تایبەت'],
-      en: ['Up to 20 listings', 'Advanced analytics', 'Priority support', 'Featured listings'],
-      ar: ['حتى 20 إعلان', 'تحليلات متقدمة', 'دعم مميز', 'إعلانات مميزة'],
-      zh: ['最多20个列表', '高级数据分析', '优先支持', '精选列表'],
+      ku: ['تا ٢٠٠ ئەلانکاری', 'ئانالیزی پێشکەوتوو', 'پشتیوانی لەپێشەوە', 'ئەلانکاری تایبەت'],
+      en: ['Up to 200 listings', 'Advanced analytics', 'Priority support', 'Featured listings'],
+      ar: ['حتى 200 إعلان', 'تحليلات متقدمة', 'دعم مميز', 'إعلانات مميزة'],
+      zh: ['最多200个列表', '高级数据分析', '优先支持', '精选列表'],
     },
   },
   {
@@ -71,8 +74,9 @@ const PLANS = [
     border: 'border-amber-300/40 dark:border-amber-500/20',
     badge: 'bestValue',
     label:    { ku: 'ئینتەرپرایز', ar: 'مؤسسي', en: 'Enterprise', zh: '企业版' },
-    priceUSD: 99.99,
-    priceIQD: 130_000,
+    priceUSD: 89,
+    priceIQD: 115_700,
+    period:   { ku: '/ساڵ', ar: '/سنة', en: '/year', zh: '/年' },
     features: {
       ku: ['ئەلانکاری نامەحدود', 'هەموو تایبەتمەندیەکان', 'پشتیوانی ٢٤/٧', 'دەستگەیشتن بە API'],
       en: ['Unlimited listings', 'All Premium features', '24/7 support', 'API access'],
@@ -194,11 +198,12 @@ export default function SubscriptionPage() {
 
       {/* Plan cards */}
       <div className={isBuyer ? 'grid grid-cols-1 sm:max-w-xs gap-4' : 'grid grid-cols-1 sm:grid-cols-3 gap-4'}>
-        {activePlans.map(({ id, icon: Icon, accent, border, badge, label, priceUSD, priceIQD, features }) => {
+        {activePlans.map(({ id, icon: Icon, accent, border, badge, label, priceUSD, priceIQD, period, features }) => {
           const isCurrent  = id === currentPlan;
           const isSelected = selectedPlan === id;
           const planName   = label[lang as keyof typeof label] ?? label.en;
           const featureList = features[lang as keyof typeof features] ?? features.en;
+          const periodLabel = period[lang as keyof typeof period] ?? period.en;
           const price      = currency === 'IQD' ? priceIQD : priceUSD;
           const priceLabel = currency === 'IQD'
             ? `${price.toLocaleString()} ${locale === 'ku' || locale === 'ar' ? 'د.ع' : 'IQD'}`
@@ -226,7 +231,7 @@ export default function SubscriptionPage() {
               <div className="mt-2 mb-4">
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {priceLabel}
-                  <span className="text-sm font-normal text-gray-400 ms-1">{t('perMonth')}</span>
+                  <span className="text-sm font-normal text-gray-400 ms-1">{periodLabel}</span>
                 </p>
               </div>
               <ul className="space-y-2 flex-1 mb-5">

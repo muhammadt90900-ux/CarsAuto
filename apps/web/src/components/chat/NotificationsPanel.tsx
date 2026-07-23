@@ -92,14 +92,38 @@ export default function NotificationsPanel({
   // ---------------------------------------------------------------------------
 
   const fetchNotifications = useCallback(async () => {
+    // Skip entirely until a real token exists — DashboardLayoutClient passes
+    // `getAccessToken() ?? ''` so this can run once with an empty token
+    // during the auth-hydration race on first page load. useEffect below
+    // re-runs this once `token` changes to a real value.
+    if (!token) return;
     setLoading(true);
     try {
       const res = await fetch(`${apiBase}/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data: AppNotification[] = await res.json();
-      setNotifications(data);
-      setUnread(data.filter((n) => !n.read).length);
+      // BUG FIX: this used to call res.json() and immediately do
+      // data.filter(...) with no check first. Any non-200 response (401
+      // when `token` is empty/stale during the auth-hydration race on page
+      // load, 404 if apiBase/NEXT_PUBLIC_API_URL is misconfigured, 500,
+      // etc.) still returns valid JSON — just an error object like
+      // { statusCode: 401, message: 'Unauthorized' } instead of an array —
+      // which crashed the whole panel with "data.filter is not a function".
+      // Now: skip silently on !res.ok or a non-array body, and keep
+      // whatever notifications were already showing instead of blowing up.
+      if (!res.ok) {
+        console.error(`Failed to load notifications: ${res.status}`);
+        return;
+      }
+      const data: unknown = await res.json();
+      if (!Array.isArray(data)) {
+        console.error('Notifications response was not an array:', data);
+        return;
+      }
+      setNotifications(data as AppNotification[]);
+      setUnread(data.filter((n: AppNotification) => !n.read).length);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
     } finally {
       setLoading(false);
     }

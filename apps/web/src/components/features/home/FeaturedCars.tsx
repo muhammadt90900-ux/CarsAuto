@@ -210,11 +210,26 @@ export function FeaturedCars({ locale }: { locale?: string }) {
             </ListingCardGrid>
           </div>
         ) : (
-          // Empty state
+          // Empty state — was a dead-end "check back soon" with no way
+          // forward. On day one this is the most-seen empty state on the
+          // whole site, so it should convert a visitor into the first
+          // seller instead of just apologizing for having nothing to show.
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-gray-400 dark:text-white/30 text-sm">
-              No listings yet. Check back soon!
+            <div className="text-4xl mb-3 opacity-40">🚗</div>
+            <p className="text-[var(--text-primary)] font-bold text-base mb-1.5">
+              No cars listed yet — be the first
             </p>
+            <p className="text-gray-400 dark:text-white/40 text-sm max-w-sm mb-6">
+              Early listings get the most visibility on a new platform. It only takes a few minutes.
+            </p>
+            <Link
+              href="/sell"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-xl font-bold text-sm
+                         bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
+                         hover:from-[var(--gold-light)] hover:to-[var(--gold)] transition-all duration-200"
+            >
+              List Your Car <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         )}
 
