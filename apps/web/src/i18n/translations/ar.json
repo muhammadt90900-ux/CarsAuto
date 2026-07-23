@@ -193,6 +193,9 @@
   "dashboard": {
     "overview": "نظرة عامة",
     "myListings": "إعلاناتي",
+    "inventory": "المخزون",
+    "sales": "المبيعات",
+    "accounting": "المحاسبة",
     "messages": "الرسائل",
     "favorites": "المفضلة",
     "notifications": "الإشعارات",
@@ -269,7 +272,9 @@
     "sellerDashboard": "لوحة البائع",
     "monthlyListingsUsed": "{used} من {limit} إعلانات مستخدمة هذا الشهر",
     "browseListings": "تصفح الإعلانات",
-    "referrals": "الإحالة"
+    "referrals": "الإحالة",
+    "leads": "العملاء المحتملون",
+    "dealerSettings": "إعدادات الوكيل"
   },
   "notifications": {
     "newMessage": "رسالة جديدة من {name}",

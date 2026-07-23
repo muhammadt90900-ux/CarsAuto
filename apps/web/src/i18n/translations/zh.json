@@ -232,6 +232,9 @@
   "dashboard": {
     "overview": "概览",
     "myListings": "我的列表",
+    "inventory": "库存",
+    "sales": "销售",
+    "accounting": "会计",
     "messages": "消息",
     "favorites": "收藏",
     "notifications": "通知",
@@ -308,7 +311,9 @@
     "upgradeNow": "立即升级",
     "upgradeToSeller": "升级为卖家",
     "upgradeToSellerDesc": "升级为经销商账户，享受无限发布",
-    "referrals": "推荐"
+    "referrals": "推荐",
+    "leads": "潜在客户",
+    "dealerSettings": "经销商设置"
   },
   "notifications": {
     "newMessage": "来自{name}的新消息",

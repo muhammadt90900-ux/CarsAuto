@@ -232,6 +232,9 @@
   "dashboard": {
     "overview": "کورتە",
     "myListings": "ئەلانەکانم",
+    "inventory": "کۆگا",
+    "sales": "فرۆشتن",
+    "accounting": "ژمێریاری",
     "messages": "پەیامەکان",
     "favorites": "دڵخوازەکان",
     "notifications": "ئاگادارکردنەوەکان",
@@ -308,7 +311,9 @@
     "latestListing": "دوایین ئۆتۆمبێل",
     "noActiveListings": "هیچ ئۆتۆمبێلێکی چالاک نییە",
     "browseListings": "گەڕان بەناو بەرگەکاندا",
-    "referrals": "ڕیفێڕاڵ"
+    "referrals": "ڕیفێڕاڵ",
+    "leads": "کڕیارە ئەگەرییەکان",
+    "dealerSettings": "ڕێکخستنی فرۆشیار"
   },
   "notifications": {
     "newMessage": "پەیامی نوێ لە {name}",

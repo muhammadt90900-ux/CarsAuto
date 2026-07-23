@@ -43,4 +43,9 @@ export {
   ContactRequestStatus,
   BetaRegistrationStatus,
   ReferralStatus,
+  InventoryItemStatus,
+  InventoryMovementType,
+  SaleStatus,
+  InvoiceStatus,
+  ExpenseCategory,
 } from '@prisma/client';

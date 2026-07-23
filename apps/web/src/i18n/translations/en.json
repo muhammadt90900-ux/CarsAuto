@@ -233,9 +233,9 @@
     "title": "Dashboard",
     "overview": "Overview",
     "myListings": "My Listings",
-    "messages": "Messages",
-    "favorites": "Favorites",
-    "notifications": "Notifications",
+    "inventory": "Inventory",
+    "sales": "Sales",
+    "accounting": "Accounting",
     "profile": "Profile",
     "reviews": "Reviews",
     "subscription": "Subscription",
@@ -308,7 +308,9 @@
     "latestListing": "Latest listing",
     "noActiveListings": "No active listings",
     "browseListings": "Browse listings",
-    "referrals": "Referrals"
+    "referrals": "Referrals",
+    "leads": "Leads",
+    "dealerSettings": "Dealer Settings"
   },
   "notifications": {
     "title": "Notifications",

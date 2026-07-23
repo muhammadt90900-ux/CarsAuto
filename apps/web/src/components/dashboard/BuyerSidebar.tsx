@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, Heart, MessageSquare, Bell,
-  User, ChevronRight, Search, History,
+  User, ChevronRight, Search,
   LogOut, ArrowUpRight, Car, Sparkles,
   ShoppingBag,
 } from 'lucide-react';
@@ -141,7 +141,6 @@ export function BuyerSidebar({ className }: { className?: string }) {
   const browseItems = [
     { href: `/${locale}/dashboard`,          label: t('overview'),       icon: LayoutDashboard, badge: null },
     { href: `/${locale}/dashboard/favorites`,label: t('savedListings'),  icon: Heart,           badge: null },
-    { href: `/${locale}/browse-history`,     label: t('browsingHistory'),icon: History,         badge: null },
     { href: `/${locale}/cars`,               label: 'Browse Cars',       icon: Search,          badge: null },
   ];
 

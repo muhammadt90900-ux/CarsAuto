@@ -52,4 +52,19 @@ export const queryKeys = {
   reviews: {
     featured: (limit: number) => ['reviews', 'featured', limit] as const,
   },
+  inventory: {
+    list: (params: Record<string, unknown>) => ['inventory', 'list', params] as const,
+    detail: (id: string) => ['inventory', 'detail', id] as const,
+    lowStock: () => ['inventory', 'low-stock'] as const,
+  },
+  sales: {
+    list: (params: Record<string, unknown>) => ['sales', 'list', params] as const,
+    detail: (id: string) => ['sales', 'detail', id] as const,
+    invoices: () => ['sales', 'invoices'] as const,
+    customers: (search?: string) => ['sales', 'customers', search ?? ''] as const,
+  },
+  accounting: {
+    expenses: (params: Record<string, unknown>) => ['accounting', 'expenses', params] as const,
+    profitLoss: (params: Record<string, unknown>) => ['accounting', 'profit-loss', params] as const,
+  },
 } as const;

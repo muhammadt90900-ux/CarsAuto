@@ -665,4 +665,252 @@ export const adminReferralsApi = {
   exportUrl: () => `/api/admin/referrals/export`,
 };
 
+// ── Dealer ERP — Inventory API (Phase 1) ────────────────────────────────────
+export type InventoryItemType = 'CAR' | 'MOTORCYCLE' | 'SPARE_PART' | 'ACCESSORY' | 'SERVICE';
+export type InventoryItemStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'DISCONTINUED';
+export type InventoryMovementType = 'RESTOCK' | 'SALE' | 'ADJUSTMENT' | 'RETURN';
+
+export interface InventoryMovement {
+  id: string;
+  inventoryItemId: string;
+  type: InventoryMovementType;
+  change: number;
+  reason: string | null;
+  performedByUserId: string | null;
+  createdAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  dealerId: string;
+  listingId: string | null;
+  type: InventoryItemType;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  reservedQuantity: number;
+  reorderThreshold: number;
+  costPrice: string | null;
+  currency: string;
+  status: InventoryItemStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  movements?: InventoryMovement[];
+}
+
+export interface InventoryListResponse {
+  data: InventoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  summary: { lowStockCount: number; totalUnits: number };
+}
+
+export interface CreateInventoryItemPayload {
+  type: InventoryItemType;
+  name: string;
+  sku?: string;
+  quantity: number;
+  reorderThreshold?: number;
+  costPrice?: number;
+  currency?: string;
+  notes?: string;
+  listingId?: string;
+}
+
+export interface AdjustStockPayload {
+  type: InventoryMovementType;
+  change: number;
+  reason?: string;
+}
+
+export const inventoryApi = {
+  getAll: (params: { type?: string; status?: string; search?: string; page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+          .map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString();
+    return getApi().get<InventoryListResponse>(`/inventory${query ? `?${query}` : ''}`).then(r => r.data);
+  },
+
+  getLowStock: () => getApi().get<InventoryItem[]>('/inventory/low-stock').then(r => r.data),
+
+  getOne: (id: string) => getApi().get<InventoryItem>(`/inventory/${id}`).then(r => r.data),
+
+  create: (data: CreateInventoryItemPayload) =>
+    getApi().post<InventoryItem>('/inventory', data).then(r => r.data),
+
+  update: (id: string, data: Partial<CreateInventoryItemPayload> & { status?: InventoryItemStatus }) =>
+    getApi().patch<InventoryItem>(`/inventory/${id}`, data).then(r => r.data),
+
+  adjustStock: (id: string, data: AdjustStockPayload) =>
+    getApi().post<InventoryItem>(`/inventory/${id}/adjust`, data).then(r => r.data),
+
+  remove: (id: string) => getApi().delete(`/inventory/${id}`).then(r => r.data),
+};
+
+// ── Dealer ERP — Sales & Invoices API (Phase 2) ─────────────────────────────
+export type SaleStatus = 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'VOID';
+
+export interface Customer {
+  id: string;
+  dealerId: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaleItemRecord {
+  id: string;
+  saleId: string;
+  inventoryItemId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: string;
+  lineTotal: string;
+  unitCost: string | null;
+}
+
+export interface InvoiceRecord {
+  id: string;
+  saleId: string;
+  dealerId: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  issuedAt: string | null;
+  dueAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface Sale {
+  id: string;
+  dealerId: string;
+  customerId: string | null;
+  customer?: Customer | null;
+  status: SaleStatus;
+  saleDate: string;
+  subtotal: string;
+  discount: string;
+  tax: string;
+  total: string;
+  currency: string;
+  paymentMethod: string | null;
+  notes: string | null;
+  items: SaleItemRecord[];
+  invoice?: InvoiceRecord | null;
+  createdAt: string;
+}
+
+export interface CreateSaleItemPayload {
+  inventoryItemId?: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface CreateSalePayload {
+  customerId?: string;
+  items: CreateSaleItemPayload[];
+  discount?: number;
+  tax?: number;
+  currency?: string;
+  paymentMethod?: string;
+  notes?: string;
+  issueInvoice?: boolean;
+}
+
+export const salesApi = {
+  getAll: (params: { status?: string; from?: string; to?: string; page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString();
+    return getApi()
+      .get<{ data: Sale[]; total: number; page: number; limit: number; totalPages: number; summary: { totalRevenue: string } }>(
+        `/sales${query ? `?${query}` : ''}`,
+      )
+      .then(r => r.data);
+  },
+
+  getOne: (id: string) => getApi().get<Sale>(`/sales/${id}`).then(r => r.data),
+
+  create: (data: CreateSalePayload) => getApi().post<Sale>('/sales', data).then(r => r.data),
+
+  cancel: (id: string) => getApi().patch<Sale>(`/sales/${id}/cancel`).then(r => r.data),
+
+  issueInvoice: (id: string) => getApi().post<InvoiceRecord>(`/sales/${id}/invoice`).then(r => r.data),
+
+  getInvoices: () => getApi().get<(InvoiceRecord & { sale: Sale })[]>('/invoices').then(r => r.data),
+
+  markInvoicePaid: (id: string) => getApi().patch<InvoiceRecord>(`/invoices/${id}/paid`).then(r => r.data),
+};
+
+export const customersApi = {
+  getAll: (search?: string) =>
+    getApi().get<Customer[]>(`/customers${search ? `?search=${encodeURIComponent(search)}` : ''}`).then(r => r.data),
+
+  create: (data: { name: string; phone?: string; email?: string; address?: string; notes?: string }) =>
+    getApi().post<Customer>('/customers', data).then(r => r.data),
+};
+
+// ── Dealer ERP — Accounting API (Phase 3) ───────────────────────────────────
+export type ExpenseCategory = 'RENT' | 'SALARIES' | 'UTILITIES' | 'MARKETING' | 'MAINTENANCE' | 'SUPPLIES' | 'TRANSPORT' | 'OTHER';
+export type ReportPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface Expense {
+  id: string;
+  dealerId: string;
+  category: ExpenseCategory;
+  amount: string;
+  currency: string;
+  description: string | null;
+  expenseDate: string;
+  createdAt: string;
+}
+
+export interface ProfitLossReport {
+  range: { from: string; to: string; period: ReportPeriod };
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  totalExpenses: number;
+  netProfit: number;
+  salesCount: number;
+  expensesByCategory: Record<string, number>;
+  series: { bucket: string; revenue: number; cogs: number; expenses: number; netProfit: number }[];
+}
+
+export const accountingApi = {
+  getExpenses: (params: { period?: ReportPeriod; from?: string; to?: string; category?: string } = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== '')),
+    ).toString();
+    return getApi().get<Expense[]>(`/expenses${query ? `?${query}` : ''}`).then(r => r.data);
+  },
+
+  createExpense: (data: { category: ExpenseCategory; amount: number; currency?: string; description?: string; expenseDate?: string }) =>
+    getApi().post<Expense>('/expenses', data).then(r => r.data),
+
+  deleteExpense: (id: string) => getApi().delete(`/expenses/${id}`).then(r => r.data),
+
+  getProfitLoss: (params: { period?: ReportPeriod; from?: string; to?: string } = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== '')),
+    ).toString();
+    return getApi().get<ProfitLossReport>(`/accounting/profit-loss${query ? `?${query}` : ''}`).then(r => r.data);
+  },
+};
+
 export default api;

@@ -39,6 +39,9 @@ import { StatsModule } from './modules/stats/stats.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { BetaModule } from './modules/beta/beta.module';
 import { ReferralsModule } from './modules/referrals/referrals.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
 
 @Module({
   imports: [
@@ -113,6 +116,9 @@ import { ReferralsModule } from './modules/referrals/referrals.module';
     NewsletterModule,
     BetaModule,
     ReferralsModule,
+    InventoryModule,
+    SalesModule,
+    AccountingModule,
   ],
 })
 export class AppModule implements NestModule {

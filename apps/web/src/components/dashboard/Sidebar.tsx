@@ -12,7 +12,7 @@ import { cn } from '@cars-auto/utils';
 import {
   LayoutDashboard, ListChecks, MessageSquare, Heart,
   Bell, User, Star, CreditCard, ChevronRight,
-  Plus, TrendingUp, Settings, LogOut, Shield, Gift,
+  Plus, TrendingUp, Settings, LogOut, Shield, Gift, Boxes, Receipt, Wallet,
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -105,6 +105,9 @@ export function Sidebar({ className }: { className?: string }) {
   const mainItems = [
     { href: `/${locale}/dashboard`,              label: t('overview'),      icon: LayoutDashboard, badge: null },
     { href: `/${locale}/dashboard/listings`,      label: t('myListings'),   icon: ListChecks,      badge: null },
+    { href: `/${locale}/dashboard/dealers/inventory`, label: t('inventory'), icon: Boxes,          badge: null },
+    { href: `/${locale}/dashboard/dealers/sales`, label: t('sales'),         icon: Receipt,         badge: null },
+    { href: `/${locale}/dashboard/dealers/accounting`, label: t('accounting'), icon: Wallet,        badge: null },
     { href: `/${locale}/dashboard/messages`,      label: t('messages'),     icon: MessageSquare,   badge: messagesBadge },
     { href: `/${locale}/dashboard/favorites`,     label: t('favorites'),    icon: Heart,           badge: null },
     { href: `/${locale}/dashboard/notifications`, label: t('notifications'),icon: Bell,            badge: notificationsBadge },
@@ -114,7 +117,9 @@ export function Sidebar({ className }: { className?: string }) {
     { href: `/${locale}/dashboard/profile`,      label: t('profile'),      icon: User,            badge: null },
     { href: `/${locale}/dashboard/reviews`,      label: t('reviews'),      icon: Star,            badge: null },
     { href: `/${locale}/dashboard/dealers/referrals`, label: t('referrals'), icon: Gift,           badge: null },
+    { href: `/${locale}/dashboard/dealers/leads`, label: t('leads'),        icon: TrendingUp,      badge: null },
     { href: `/${locale}/dashboard/subscription`, label: t('subscription'), icon: CreditCard,      badge: null },
+    { href: `/${locale}/dashboard/dealers/settings`, label: t('dealerSettings'), icon: Settings,   badge: null },
   ];
 
   return (

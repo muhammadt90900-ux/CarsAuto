@@ -1,0 +1,38 @@
+// apps/api/src/modules/inventory/dto/inventory-query.dto.ts
+
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ListingType, InventoryItemStatus } from '../../../common/prisma/enums';
+
+export class InventoryQueryDto {
+  @ApiPropertyOptional({ enum: ListingType })
+  @IsOptional()
+  @IsEnum(ListingType)
+  type?: ListingType;
+
+  @ApiPropertyOptional({ enum: InventoryItemStatus })
+  @IsOptional()
+  @IsEnum(InventoryItemStatus)
+  status?: InventoryItemStatus;
+
+  @ApiPropertyOptional({ description: 'Search by name or SKU' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
+}
