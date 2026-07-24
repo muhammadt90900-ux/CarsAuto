@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
+import { AdminErpService } from './admin-erp.service';
+import { AdminErpController } from './admin-erp.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuthModule } from '../auth/auth.module';
@@ -17,7 +19,7 @@ import { SearchIndexingModule } from '../search-indexing/search-index.module';
   // @InjectQueue it directly, reusing the same queue the event listener
   // enqueues onto (see search-index.module.ts's export comment).
   imports: [PrismaModule, NotificationsModule, AuthModule, SearchIndexingModule],
-  controllers: [AdminController],
-  providers: [AdminService],
+  controllers: [AdminController, AdminErpController],
+  providers: [AdminService, AdminErpService],
 })
 export class AdminModule {}

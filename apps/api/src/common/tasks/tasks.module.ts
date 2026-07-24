@@ -22,10 +22,12 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenCleanupTask } from './token-cleanup.task';
 import { EmbeddingSyncTask } from './embedding-sync.task';
+import { ErpNotificationsTask } from './erp-notifications.task';
+import { NotificationsModule } from '../../modules/notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [TokenCleanupTask, EmbeddingSyncTask],
+  imports: [PrismaModule, NotificationsModule],
+  providers: [TokenCleanupTask, EmbeddingSyncTask, ErpNotificationsTask],
   exports: [EmbeddingSyncTask],
 })
 export class TasksModule {}

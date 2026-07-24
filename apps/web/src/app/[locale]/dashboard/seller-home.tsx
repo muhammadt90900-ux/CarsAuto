@@ -5,13 +5,13 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { listingsApi, chatApi, notificationsApi } from '@/lib/api';
+import { listingsApi, chatApi, notificationsApi, accountingApi, inventoryApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import {
   TrendingUp, Eye, Car, MessageSquare,
   ArrowUpRight, Plus, ChevronRight,
   CheckCircle2, AlertCircle, Zap, Star, Bell,
-  ArrowDownRight
+  ArrowDownRight, Wallet, PackageX, Receipt
 } from 'lucide-react';
 
 function MiniSparkline({ values, color }: { values?: number[]; color: string }) {
@@ -96,6 +96,22 @@ export default function SellerDashboardHome() {
     queryKey: ['notifications'],
     queryFn:  notificationsApi.getAll,
     staleTime: 30_000,
+  });
+
+  // ── ERP snapshot — only for actual dealer accounts (an ADMIN viewing this
+  // page has no Dealer row, so these are gated on role to avoid a 403) ────
+  const isDealer = user?.role === 'DEALER';
+  const { data: profitLoss } = useQuery({
+    queryKey: ['accounting', 'profit-loss', 'monthly'],
+    queryFn: () => accountingApi.getProfitLoss({ period: 'monthly' }),
+    enabled: isDealer,
+    staleTime: 60_000,
+  });
+  const { data: lowStockItems } = useQuery({
+    queryKey: ['inventory', 'low-stock'],
+    queryFn: () => inventoryApi.getLowStock(),
+    enabled: isDealer,
+    staleTime: 60_000,
   });
 
   const unreadMessages = (conversations as any[])
@@ -229,6 +245,67 @@ export default function SellerDashboardHome() {
           : stats.map(s => <StatCard key={s.labelKey} {...s} t={t} />)
         }
       </div>
+
+      {/* ── ERP snapshot — revenue + low-stock, dealer accounts only ────── */}
+      {isDealer && (
+        <div className="grid lg:grid-cols-3 gap-4">
+          <Link
+            href={`/${locale}/dashboard/dealers/accounting`}
+            className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
+                       bg-white dark:bg-[var(--ink-750)] p-5 hover:border-[rgba(201,168,76,0.3)]
+                       transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--gold-subtle)] text-[var(--gold-light)]">
+                <Wallet className="w-4.5 h-4.5" aria-hidden />
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-[var(--gold)] transition-colors" />
+            </div>
+            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-4">
+              {profitLoss ? profitLoss.netProfit.toFixed(2) : '—'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Net Profit (this month)</p>
+          </Link>
+
+          <Link
+            href={`/${locale}/dashboard/dealers/sales`}
+            className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
+                       bg-white dark:bg-[var(--ink-750)] p-5 hover:border-[rgba(201,168,76,0.3)]
+                       transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                <Receipt className="w-4.5 h-4.5" aria-hidden />
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-[var(--gold)] transition-colors" />
+            </div>
+            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-4">
+              {profitLoss ? profitLoss.revenue.toFixed(2) : '—'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Revenue (this month)</p>
+          </Link>
+
+          <Link
+            href={`/${locale}/dashboard/dealers/inventory`}
+            className="rounded-2xl border border-gray-100 dark:border-white/[0.07]
+                       bg-white dark:bg-[var(--ink-750)] p-5 hover:border-[rgba(201,168,76,0.3)]
+                       transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                lowStockItems && lowStockItems.length > 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-gray-100 dark:bg-white/5 text-gray-400'
+              }`}>
+                <PackageX className="w-4.5 h-4.5" aria-hidden />
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-[var(--gold)] transition-colors" />
+            </div>
+            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-4">
+              {lowStockItems ? lowStockItems.length : '—'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Low / Out of Stock Items</p>
+          </Link>
+        </div>
+      )}
 
       {/* ── Bottom 2-col ─────────────────────────────────────── */}
       <div className="grid lg:grid-cols-3 gap-6">

@@ -10,6 +10,11 @@ export default function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|offline).*)',
+    // Skip Next internals, API routes, and any request path that contains a
+    // dot (i.e. has a file extension — covers every static file under
+    // /public: images, fonts, placeholder.jpg, manifest.json, etc.), plus
+    // the offline fallback page which intentionally lives outside the
+    // locale prefix.
+    '/((?!api|_next/static|_next/image|offline|.*\\..*).*)',
   ],
 };

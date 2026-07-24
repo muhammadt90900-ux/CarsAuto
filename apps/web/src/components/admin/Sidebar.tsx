@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car,
   BarChart3, ShieldCheck, ChevronRight,
   Star, FileWarning, Store, Bell, ClipboardList,
-  Shield, Receipt, Crown, AlertOctagon, BadgeCheck, Rocket, Gift,
+  Shield, Receipt, Crown, AlertOctagon, BadgeCheck, Rocket, Gift, Wallet,
 } from 'lucide-react';
 import { adminApi, notificationsApi } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -69,6 +69,7 @@ export function AdminSidebar({ className }: { className?: string }) {
       items: [
         { href: `/${locale}/admin/transactions`,  label: 'Transactions', icon: Receipt         },
         { href: `/${locale}/admin/subscriptions`, label: 'Subscriptions', icon: Crown          },
+        { href: `/${locale}/admin/erp`,           label: 'Dealer ERP',   icon: Wallet          },
       ],
     },
     {

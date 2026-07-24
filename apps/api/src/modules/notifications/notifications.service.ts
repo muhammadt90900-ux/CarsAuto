@@ -33,7 +33,11 @@ export type NotificationType =
   // ADDED (Referral & Rewards System)
   | 'REFERRAL_QUALIFIED'
   | 'REFERRAL_REWARD_PREMIUM'
-  | 'REFERRAL_BADGE_EARNED';
+  | 'REFERRAL_BADGE_EARNED'
+  // ADDED (Dealer ERP Phase 4 — notifications)
+  | 'LOW_STOCK_ALERT'
+  | 'SUBSCRIPTION_EXPIRING'
+  | 'PAYMENT_REMINDER';
 
 export interface PushNotificationPayload {
   title: string;
