@@ -176,7 +176,7 @@ export function Sidebar({ className }: { className?: string }) {
           href="/dashboard/listings"
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold
                      bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a]
-                     transition-all duration-200 shadow-[0_4px_12px_rgba(201,168,76,0.30)]"
+                     transition-all duration-200 shadow-gold-sm"
         >
           <Plus className="w-3.5 h-3.5" />
           Post New Listing

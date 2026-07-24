@@ -51,7 +51,7 @@ const DealerCard = memo(function DealerCard({
     <Link
       href={`/dealers/${dealer.slug}`}
       className="group flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
-                 bg-[#0d1b2e] border border-white/[0.07]
+                 bg-ink-700 border border-white/[0.07]
                  hover:border-[rgba(201,168,76,0.32)] transition-all duration-350
                  hover:-translate-y-1.5 hover:shadow-[0_20px_48px_rgba(0,0,0,0.60),0_0_0_1px_rgba(201,168,76,0.05)] relative"
       style={{ '--accent': accent } as React.CSSProperties}
@@ -78,11 +78,11 @@ const DealerCard = memo(function DealerCard({
             style={{ background: `radial-gradient(ellipse at 60% 30%, ${accent}20, transparent 65%)` }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2e] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-700 to-transparent" />
 
         {/* Logo */}
         <div className="absolute -bottom-4 start-3 w-10 h-10 rounded-xl border-2
-                        border-[#0d1b2e] overflow-hidden bg-[#0d1b2e]
+                        border-ink-700 overflow-hidden bg-ink-700
                         flex items-center justify-center shadow-lg">
           {dealer.logoUrl ? (
             // PERF: fixed 40×40 — no layout shift, correct cache bucket
@@ -138,7 +138,7 @@ const DealerCard = memo(function DealerCard({
 function DealerCardSkeleton() {
   return (
     <div className="flex-shrink-0 w-64 snap-start rounded-2xl overflow-hidden
-                    bg-[#0d1b2e] border border-white/[0.07]" aria-hidden>
+                    bg-ink-700 border border-white/[0.07]" aria-hidden>
       <div className="h-24 skeleton" />
       <div className="pt-7 px-3 pb-3 space-y-2">
         <div className="h-4 skeleton rounded w-3/4" />

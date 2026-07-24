@@ -54,9 +54,9 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
       href={`/dealers/${dealer.slug}`}
       className={cn(
         'group relative flex flex-col rounded-2xl overflow-hidden',
-        'bg-[#0d1b2e] border border-white/[0.07]',
+        'bg-ink-700 border border-white/[0.07]',
         'hover:border-[rgba(201,168,76,0.3)] transition-all duration-300',
-        'hover:shadow-[0_12px_40px_rgba(201,168,76,0.12)]',
+        'hover:shadow-gold-xl',
         'hover:-translate-y-0.5',
         tier.ring, 'ring-1',
       )}
@@ -82,7 +82,7 @@ export function DealerCard({ dealer, locale = 'en' }: DealerCardProps) {
         )}
 
         {/* Logo */}
-        <div className="absolute -bottom-5 start-4 w-12 h-12 rounded-xl border-2 border-[#0d1b2e] overflow-hidden bg-[#0d1b2e] flex items-center justify-center shadow-lg">
+        <div className="absolute -bottom-5 start-4 w-12 h-12 rounded-xl border-2 border-ink-700 overflow-hidden bg-ink-700 flex items-center justify-center shadow-lg">
           {dealer.logoUrl ? (
             <Image src={dealer.logoUrl} alt={name} width={48} height={48} className="object-contain" />
           ) : (

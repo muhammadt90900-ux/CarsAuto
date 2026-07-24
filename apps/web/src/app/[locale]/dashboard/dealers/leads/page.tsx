@@ -88,7 +88,7 @@ export default function DealerLeadsPage() {
 
       {/* Filter tabs + search */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['all', 'new', 'read', 'replied'] as const).map(tab => (
             <button
               key={tab}
@@ -96,14 +96,14 @@ export default function DealerLeadsPage() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all',
                 filter === tab
-                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
               {tab}
               <span className={cn(
                 'min-w-[18px] h-4 px-1 rounded-full text-center text-[0.6rem] font-black',
-                filter === tab ? 'bg-[#0d1b2e]/30 text-[#0d1b2e]' : 'bg-white/[0.08] text-white/40',
+                filter === tab ? 'bg-ink-700/30 text-ink-700' : 'bg-white/[0.08] text-white/40',
               )}>
                 {counts[tab]}
               </span>
@@ -117,7 +117,7 @@ export default function DealerLeadsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search leads…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function DealerLeadsPage() {
                   className={cn(
                     'w-full text-left p-4 rounded-2xl border transition-all',
                     isSelected
-                      ? 'bg-[#0d1b2e] border-[rgba(201,168,76,0.3)]'
+                      ? 'bg-ink-700 border-[rgba(201,168,76,0.3)]'
                       : 'bg-[var(--ink-750)] border-white/[0.06] hover:border-white/[0.12]',
                   )}
                 >
@@ -184,7 +184,7 @@ export default function DealerLeadsPage() {
 
           {/* Detail panel */}
           {selected ? (
-            <div className="p-5 rounded-2xl bg-[#0d1b2e] border border-white/[0.09] space-y-5 sticky top-6 self-start">
+            <div className="p-5 rounded-2xl bg-ink-700 border border-white/[0.09] space-y-5 sticky top-6 self-start">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-display font-bold text-white text-base">{selected.name}</h3>
@@ -248,7 +248,7 @@ export default function DealerLeadsPage() {
               </div>
             </div>
           ) : (
-            <div className="hidden lg:flex items-center justify-center p-10 rounded-2xl bg-[#0d1b2e] border border-white/[0.06] border-dashed">
+            <div className="hidden lg:flex items-center justify-center p-10 rounded-2xl bg-ink-700 border border-white/[0.06] border-dashed">
               <p className="text-white/20 text-sm">Select a lead to view details</p>
             </div>
           )}

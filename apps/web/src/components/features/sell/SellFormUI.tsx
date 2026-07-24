@@ -51,8 +51,8 @@ export const textareaCls = (e: boolean) =>
 export const goldBtn = `
   inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl font-bold text-sm
   bg-gradient-to-r from-[var(--gold)] to-[#9e6e1e] text-[var(--ink-900)]
-  border border-[rgba(201,168,76,0.4)] shadow-[0_3px_14px_rgba(201,168,76,0.22)]
-  hover:from-[var(--gold-light)] hover:to-[var(--gold)] hover:shadow-[0_6px_28px_rgba(201,168,76,0.28)]
+  border border-[rgba(201,168,76,0.4)] shadow-gold-sm
+  hover:from-[var(--gold-light)] hover:to-[var(--gold)] hover:shadow-gold
   hover:-translate-y-px active:translate-y-0 transition-all duration-200 cursor-pointer
   disabled:opacity-50 disabled:pointer-events-none
 `;

@@ -38,7 +38,7 @@ function PressButton({
         pressed ? 'scale-95' : 'scale-100',
         variant === 'gold' && [
           'bg-gradient-to-br from-[var(--gold)] to-[#9e6e1e] text-[#1a0e00]',
-          'shadow-[0_4px_20px_rgba(201,168,76,0.40)]',
+          'shadow-gold',
           'rounded-2xl h-14 px-6 text-[0.92rem]',
         ],
         variant === 'outline' && [
@@ -148,7 +148,7 @@ export function DashboardStickyAction({
       <PressButton
         variant="gold"
         onClick={onClick}
-        className="w-full gap-3 shadow-[0_8px_32px_rgba(201,168,76,0.45)]"
+        className="w-full gap-3 shadow-gold-xl"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
           <path d="M9 3v12M3 9h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />

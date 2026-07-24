@@ -144,7 +144,7 @@ const AICarCard = memo(function AICarCard({
           'relative flex flex-col rounded-2xl overflow-hidden h-full',
           'bg-[var(--ink-750)] border border-white/[0.06]',
           'transition-all duration-300 ease-out',
-          'hover:border-[rgba(201,168,76,0.4)] hover:shadow-[0_20px_60px_rgba(201,168,76,0.12)]',
+          'hover:border-[rgba(201,168,76,0.4)] hover:shadow-gold-xl',
           'hover:-translate-y-0.5',
         )}
       >

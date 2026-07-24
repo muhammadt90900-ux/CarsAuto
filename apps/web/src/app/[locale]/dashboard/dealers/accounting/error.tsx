@@ -21,7 +21,7 @@ export default function AccountingError({ error, reset }: { error: Error & { dig
       <button
         onClick={reset}
         className="inline-flex items-center justify-center h-10 px-5 rounded-xl font-semibold text-sm
-                   bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] hover:opacity-90 transition-opacity"
+                   bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 hover:opacity-90 transition-opacity"
       >
         Try again
       </button>

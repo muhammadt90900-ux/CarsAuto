@@ -295,7 +295,7 @@ export function RegisterForm({ locale = 'en' }: { locale?: string }) {
             aria-busy={isSubmitting}
             className="btn-gold w-full h-12 text-sm rounded-xl flex items-center justify-center gap-2
                        disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200
-                       shadow-[0_4px_20px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_28px_rgba(201,168,76,0.50)]
+                       shadow-gold hover:shadow-gold-xl
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2"
           >
             {isSubmitting ? (

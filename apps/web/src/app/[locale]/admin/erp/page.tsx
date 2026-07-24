@@ -87,7 +87,7 @@ export default function AdminErpPage() {
         {(overviewLoading ? Array.from({ length: 8 }) : KPIs).map((kpi: any, i) => {
           const Icon = kpi?.icon ?? Store;
           return (
-            <div key={kpi?.label ?? i} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-5 hover:border-white/[0.12] transition-colors">
+            <div key={kpi?.label ?? i} className="rounded-2xl bg-ink-750 border border-white/[0.07] p-5 hover:border-white/[0.12] transition-colors">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
                 style={{ background: `${kpi?.color ?? '#888'}15`, border: `1px solid ${kpi?.color ?? '#888'}22` }}
@@ -104,7 +104,7 @@ export default function AdminErpPage() {
       </div>
 
       {/* Dealer activity table */}
-      <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] overflow-hidden">
+      <div className="rounded-2xl bg-ink-750 border border-white/[0.07] overflow-hidden">
         <div className="p-5 border-b border-white/[0.07]">
           <h2 className="font-bold text-white flex items-center gap-2">
             <Store className="w-4.5 h-4.5 text-[var(--gold)]" />

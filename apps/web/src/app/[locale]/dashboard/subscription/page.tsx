@@ -244,7 +244,7 @@ export default function SubscriptionPage() {
               </ul>
               <div className={`w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 ${
                 isCurrent   ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-default' :
-                isSelected  ? 'bg-[var(--gold)] text-white shadow-[0_4px_16px_rgba(201,168,76,0.25)]' :
+                isSelected  ? 'bg-[var(--gold)] text-white shadow-gold' :
                               'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300'
               }`}>
                 {isCurrent ? t('currentPlanBadge') : isSelected ? (locale === 'ku' ? '✓ هەڵبژێردراو' : '✓ Selected') : t('getStarted')}
@@ -273,7 +273,7 @@ export default function SubscriptionPage() {
           <button
             onClick={handlePayNow}
             disabled={payMutation.isPending}
-            className="w-full py-3.5 rounded-xl bg-[var(--gold)] text-white text-sm font-bold hover:bg-[#b8943c] transition-colors disabled:opacity-60 shadow-[0_4px_20px_rgba(201,168,76,0.3)] flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-[var(--gold)] text-white text-sm font-bold hover:bg-[#b8943c] transition-colors disabled:opacity-60 shadow-gold flex items-center justify-center gap-2"
           >
             {payMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
             {locale === 'ku' ? 'ئێستا پارەدە' : locale === 'ar' ? 'ادفع الآن' : 'Pay Now'}

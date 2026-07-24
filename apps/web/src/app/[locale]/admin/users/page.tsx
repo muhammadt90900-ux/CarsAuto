@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
         ].map(s => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-4 flex items-center gap-4">
+            <div key={s.label} className="rounded-2xl bg-ink-750 border border-white/[0.07] p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                    style={{ background: `${s.color}15`, border: `1px solid ${s.color}22` }}>
                 <Icon className="w-4.5 h-4.5" style={{ color: s.color }} />
@@ -268,12 +268,12 @@ export default function AdminUsersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />
         </div>
 
         {/* Role filter */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['ALL', ...ROLES] as const).map(r => (
             <button
               key={r}
@@ -281,7 +281,7 @@ export default function AdminUsersPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all',
                 roleFilter === r
-                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -294,7 +294,7 @@ export default function AdminUsersPage() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as any)}
-          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white/70 text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
+          className="px-3 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white/70 text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)] transition-colors"
         >
           <option value="ALL">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{STATUS_STYLES[s].label}</option>)}
@@ -374,7 +374,7 @@ export default function AdminUsersPage() {
                     key={user.id}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
-                      isSelected ? 'bg-[rgba(201,168,76,0.06)]' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      isSelected ? 'bg-[rgba(201,168,76,0.06)]' : i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700',
                       'hover:bg-[rgba(201,168,76,0.03)]',
                     )}
                   >
@@ -450,7 +450,7 @@ export default function AdminUsersPage() {
                           <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                         {actionMenu === user.id && (
-                          <div className="absolute end-0 top-8 z-50 w-48 rounded-xl bg-[#0d1b2e] border border-white/[0.12] shadow-2xl overflow-hidden py-1">
+                          <div className="absolute end-0 top-8 z-50 w-48 rounded-xl bg-ink-700 border border-white/[0.12] shadow-2xl overflow-hidden py-1">
                             {[
                               { label: 'View Profile', icon: Eye,    action: () => setActionMenu(null) },
                               { label: 'Change Role',  icon: Shield, action: () => { setModal({ type: 'role', user }); setActionMenu(null); } },
@@ -512,7 +512,7 @@ export default function AdminUsersPage() {
                     className={cn(
                       'w-7 h-7 rounded-lg text-xs font-semibold transition-all',
                       page === pg
-                        ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                        ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]',
                     )}
                   >
@@ -535,7 +535,7 @@ export default function AdminUsersPage() {
       {/* Confirm modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-[#0d1b2e] border border-white/[0.12] p-6 space-y-4">
+          <div className="w-full max-w-sm rounded-2xl bg-ink-700 border border-white/[0.12] p-6 space-y-4">
             <div className="flex items-center gap-3">
               {modal.type === 'ban' ? (
                 <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">

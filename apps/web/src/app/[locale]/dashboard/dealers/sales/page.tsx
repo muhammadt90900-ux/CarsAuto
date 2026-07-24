@@ -124,7 +124,7 @@ export default function DealerSalesPage() {
         <button
           onClick={() => setShowNewSale(v => !v)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
-                     bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] hover:opacity-90 transition-opacity"
+                     bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 hover:opacity-90 transition-opacity"
         >
           <Plus className="w-4 h-4" /> New Sale
         </button>
@@ -140,7 +140,7 @@ export default function DealerSalesPage() {
 
       {/* New sale form */}
       {showNewSale && (
-        <form onSubmit={handleSubmit} className="p-5 rounded-2xl bg-[#0d1b2e] border border-[rgba(201,168,76,0.25)] space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 rounded-2xl bg-ink-700 border border-[rgba(201,168,76,0.25)] space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-bold text-white text-sm">New Sale</h3>
             <button type="button" onClick={() => setShowNewSale(false)} className="text-white/40 hover:text-white">
@@ -160,9 +160,9 @@ export default function DealerSalesPage() {
                   onChange={e => (e.target.value ? pickInventoryItem(i, e.target.value) : updateLine(i, { inventoryItemId: undefined }))}
                   className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm flex-1 min-w-[10rem]"
                 >
-                  <option value="" className="bg-[#0d1b2e]">Custom item…</option>
+                  <option value="" className="bg-ink-700">Custom item…</option>
                   {inventoryData?.data.map(item => (
-                    <option key={item.id} value={item.id} className="bg-[#0d1b2e]">
+                    <option key={item.id} value={item.id} className="bg-ink-700">
                       {item.name} ({item.quantity} in stock)
                     </option>
                   ))}
@@ -210,7 +210,7 @@ export default function DealerSalesPage() {
               type="submit"
               disabled={createSaleMutation.isPending}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
-                         bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] hover:opacity-90 transition-opacity disabled:opacity-50"
+                         bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {createSaleMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               Complete Sale & Issue Invoice
@@ -220,14 +220,14 @@ export default function DealerSalesPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] w-fit">
         {(['sales', 'invoices'] as const).map(tb => (
           <button
             key={tb}
             onClick={() => setTab(tb)}
             className={cn(
               'px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize',
-              tab === tb ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70',
+              tab === tb ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700' : 'text-white/40 hover:text-white/70',
             )}
           >
             {tb}

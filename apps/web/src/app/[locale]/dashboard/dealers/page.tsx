@@ -20,7 +20,7 @@ function StatCard({
   label: string; value: string | number; delta?: number; icon: any; color?: string;
 }) {
   return (
-    <div className="p-5 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] space-y-3">
+    <div className="p-5 rounded-2xl bg-ink-700 border border-white/[0.07] space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-[0.7rem] text-white/40 uppercase tracking-wider">{label}</span>
         <div className="w-8 h-8 rounded-xl bg-white/[0.05] flex items-center justify-center">
@@ -42,7 +42,7 @@ function StatCard({
 function MiniBarChart({ data, label }: { data: number[]; label: string }) {
   const max = Math.max(...data, 1);
   return (
-    <div className="p-4 rounded-2xl bg-[#0d1b2e] border border-white/[0.07]">
+    <div className="p-4 rounded-2xl bg-ink-700 border border-white/[0.07]">
       <div className="text-[0.7rem] text-white/40 uppercase tracking-wider mb-3">{label}</div>
       <div className="flex items-end gap-1 h-16">
         {data.map((v, i) => (
@@ -125,7 +125,7 @@ export default function DealerDashboardPage() {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="h-28 rounded-2xl bg-[#0d1b2e] border border-white/[0.06] animate-pulse" />
+            <div key={i} className="h-28 rounded-2xl bg-ink-700 border border-white/[0.06] animate-pulse" />
           ))}
         </div>
       ) : (
@@ -183,7 +183,7 @@ export default function DealerDashboardPage() {
           <Link
             key={a.label}
             href={a.href}
-            className="flex items-center gap-4 p-5 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] hover:border-white/[0.14] transition-all group"
+            className="flex items-center gap-4 p-5 rounded-2xl bg-ink-700 border border-white/[0.07] hover:border-white/[0.14] transition-all group"
           >
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', a.bg)}>
               <a.icon className={cn('w-5 h-5', a.color)} />
@@ -209,7 +209,7 @@ export default function DealerDashboardPage() {
           </div>
           <Link
             href="/dashboard/subscription"
-            className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
+            className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Upgrade
           </Link>

@@ -101,8 +101,8 @@ export default function AdminSuspiciousActivityPage() {
             className={cn(
               'px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border',
               minSeverity === val
-                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] border-transparent'
-                : 'bg-[#0d1b2e] border-white/[0.07] text-white/50 hover:text-white/80',
+                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 border-transparent'
+                : 'bg-ink-700 border-white/[0.07] text-white/50 hover:text-white/80',
             )}
           >
             {label}
@@ -143,7 +143,7 @@ export default function AdminSuspiciousActivityPage() {
                     onClick={() => setDetail(event)}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 cursor-pointer transition-colors hover:bg-[rgba(201,168,76,0.03)]',
-                      i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700',
                     )}
                   >
                     <td className="px-4 py-3">
@@ -192,7 +192,7 @@ export default function AdminSuspiciousActivityPage() {
 
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDetail(null)}>
-          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-ink-700 border border-white/[0.12] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-white">Event Details</h3>

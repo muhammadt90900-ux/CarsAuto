@@ -226,8 +226,8 @@ export default function ProfilePage() {
                    bg-[var(--gold)] text-[var(--ink-900)] font-bold text-sm
                    disabled:opacity-60 disabled:cursor-not-allowed
                    hover:bg-[#d4b45a] active:scale-[0.98]
-                   shadow-[0_4px_16px_rgba(201,168,76,0.35)]
-                   hover:shadow-[0_6px_24px_rgba(201,168,76,0.50)]
+                   shadow-gold
+                   hover:shadow-gold-xl
                    transition-all duration-200"
       >
         {loading ? (

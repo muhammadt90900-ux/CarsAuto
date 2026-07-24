@@ -424,8 +424,8 @@ export function HeroSearch() {
               onClick={() => setFilter('category', id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-250 will-change-transform
                 ${filters.category === id
-                  ? 'bg-gradient-to-r from-[#a87828] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)] shadow-[0_6px_28px_rgba(201,168,76,0.45)] ring-1 ring-[rgba(201,168,76,0.25)] scale-[1.03]'
-                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[rgba(201,168,76,0.07)] hover:text-white/90 hover:border-[rgba(201,168,76,0.28)] hover:shadow-[0_4px_16px_rgba(201,168,76,0.10)] hover:-translate-y-0.5'
+                  ? 'bg-gradient-to-r from-[#a87828] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)] shadow-gold-xl ring-1 ring-[rgba(201,168,76,0.25)] scale-[1.03]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-white/45 hover:bg-[rgba(201,168,76,0.07)] hover:text-white/90 hover:border-[rgba(201,168,76,0.28)] hover:shadow-gold-sm hover:-translate-y-0.5'
                 }`}
             >
               <Icon className={`w-4 h-4 transition-colors ${filters.category === id ? 'text-[var(--ink-900)]' : id === 'cars' ? 'text-sky-400' : id === 'parts' ? 'text-orange-400' : 'text-emerald-400'}`} />
@@ -567,7 +567,7 @@ export function HeroSearch() {
                 className="cta-sheen relative overflow-hidden col-span-2 lg:col-auto mt-1 lg:mt-0 flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-black text-sm uppercase tracking-wide whitespace-nowrap flex-shrink-0
                            bg-gradient-to-r from-[#b8922e] via-[var(--gold)] to-[#dab445] text-[var(--ink-900)]
                            hover:from-[var(--gold)] hover:to-[#e6c258]
-                           shadow-[0_6px_28px_rgba(201,168,76,0.40)] hover:shadow-[0_10px_40px_rgba(201,168,76,0.55)]
+                           shadow-gold hover:shadow-gold-xl
                            hover:-translate-y-0.5
                            transition-all duration-200 active:scale-[0.98] active:translate-y-0"
               >

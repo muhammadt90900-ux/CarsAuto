@@ -200,7 +200,7 @@ export default function SellerDashboardHome() {
           href="/dashboard/listings"
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm font-bold
                      bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a]
-                     transition-all duration-200 shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
+                     transition-all duration-200 shadow-gold"
         >
           <Plus className="w-4 h-4" />
           New Listing
@@ -435,7 +435,7 @@ export default function SellerDashboardHome() {
           href="/dashboard/subscription"
           className="flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold
                      bg-[var(--gold)] text-[var(--ink-900)] hover:bg-[#d4b45a] transition-all duration-200
-                     shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
+                     shadow-gold"
         >
           Upgrade <ChevronRight className="w-3.5 h-3.5" />
         </Link>

@@ -86,7 +86,7 @@ export default function AdminDealersPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['PENDING','VERIFIED','SUSPENDED','REJECTED'] as const).map(s => (
             <button
               key={s}
@@ -94,7 +94,7 @@ export default function AdminDealersPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all',
                 filter === s
-                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -108,7 +108,7 @@ export default function AdminDealersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search dealers…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
       </div>
@@ -146,14 +146,14 @@ export default function AdminDealersPage() {
                     key={dealer.id}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
-                      i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700',
                       'hover:bg-[rgba(201,168,76,0.03)]',
                     )}
                   >
                     {/* Dealer info */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#0d1b2e] border border-white/[0.07] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-xl bg-ink-700 border border-white/[0.07] overflow-hidden flex-shrink-0 flex items-center justify-center">
                           {dealer.logoUrl ? (
                             <Image src={dealer.logoUrl} alt={dealer.nameEn} width={36} height={36} className="object-contain" />
                           ) : (

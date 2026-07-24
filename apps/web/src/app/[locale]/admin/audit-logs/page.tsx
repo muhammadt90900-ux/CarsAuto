@@ -149,7 +149,7 @@ export default function AuditLogsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search action, actor, target…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07]
                        text-white text-sm placeholder:text-white/25 focus:outline-none
                        focus:border-[rgba(201,168,76,0.4)] transition-colors"
           />
@@ -159,7 +159,7 @@ export default function AuditLogsPage() {
         <select
           value={severity}
           onChange={e => { setSeverity(e.target.value as any); setPage(1); }}
-          className="h-10 px-3 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+          className="h-10 px-3 rounded-xl bg-ink-700 border border-white/[0.07]
                      text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
         >
           <option value="ALL">All Severities</option>
@@ -170,7 +170,7 @@ export default function AuditLogsPage() {
 
         <button
           onClick={() => refetch()}
-          className="h-10 w-10 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+          className="h-10 w-10 rounded-xl bg-ink-700 border border-white/[0.07]
                      text-white/40 hover:text-white hover:border-white/20 transition-all
                      flex items-center justify-center"
           title="Refresh"

@@ -84,7 +84,7 @@ function Textarea({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-6 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] space-y-5">
+    <div className="p-6 rounded-2xl bg-ink-700 border border-white/[0.07] space-y-5">
       <h2 className="flex items-center gap-2 font-display font-bold text-white text-base">
         <span className="w-1 h-4 rounded-full bg-gradient-to-b from-[var(--gold)] to-[#9e6e1e]" />
         {title}
@@ -177,13 +177,13 @@ export default function DealerRegisterForm() {
   if (isHydrated && !user) {
     return (
       <div className="max-w-lg mx-auto p-6">
-        <div className="p-6 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] text-center space-y-4">
+        <div className="p-6 rounded-2xl bg-ink-700 border border-white/[0.07] text-center space-y-4">
           <AlertCircle className="w-8 h-8 text-[var(--gold)] mx-auto" />
           <p className="text-white font-semibold">Please log in to register as a dealer</p>
           <p className="text-white/40 text-sm">You'll need an account before you can create a dealer showroom.</p>
           <button
             onClick={() => router.push('/login?redirect=/dealers/register')}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 font-bold text-sm hover:opacity-90 transition-opacity"
           >
             Log In
           </button>
@@ -195,7 +195,7 @@ export default function DealerRegisterForm() {
   if (submitted) {
     return (
       <div className="max-w-lg mx-auto p-6">
-        <div className="p-6 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] text-center space-y-4">
+        <div className="p-6 rounded-2xl bg-ink-700 border border-white/[0.07] text-center space-y-4">
           <CheckCircle2 className="w-8 h-8 text-[var(--gold)] mx-auto" />
           <p className="text-white font-semibold">Your dealer profile has been created!</p>
           <p className="text-white/40 text-sm">Redirecting to your dashboard…</p>
@@ -315,7 +315,7 @@ export default function DealerRegisterForm() {
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {submitting
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Registering…</>

@@ -134,7 +134,7 @@ export function VerifyEmailForm({ locale = 'en' }: { locale?: string }) {
       <div className="text-center mb-8">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4
-                     shadow-[0_8px_32px_rgba(201,168,76,0.35)]"
+                     shadow-gold-xl"
           style={{ background: 'linear-gradient(135deg,var(--gold),#9e6e1e)' }}
         >
           <Mail size={26} className="text-[#0a0f1a]" />

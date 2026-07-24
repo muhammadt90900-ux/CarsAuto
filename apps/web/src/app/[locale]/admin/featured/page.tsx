@@ -50,7 +50,7 @@ export default function AdminFeaturedPage() {
         <p className="text-white/40 text-sm mt-0.5">Manage what gets premium placement on the marketplace</p>
       </div>
 
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] w-fit">
         {([
           ['listings', 'Featured Listings', Star],
           ['ads',      'Banner Ads',        Megaphone],
@@ -61,7 +61,7 @@ export default function AdminFeaturedPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all',
               tab === val
-                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                 : 'text-white/40 hover:text-white/70',
             )}
           >
@@ -229,7 +229,7 @@ function AdsPanel() {
       <div className="flex justify-end">
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all"
         >
           <Plus className="w-4 h-4" />
           New Ad
@@ -269,7 +269,7 @@ function AdsPanel() {
               {ads.map((ad, i) => {
                 const isActing = acting === ad.id;
                 return (
-                  <tr key={ad.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]')}>
+                  <tr key={ad.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700')}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-white/[0.05] border border-white/[0.07] overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -369,7 +369,7 @@ function CreateAdModal({ onClose, onCreated }: { onClose: () => void; onCreated:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[#0d1b2e] border border-white/[0.12] p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-ink-700 border border-white/[0.12] p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-white">New Banner Ad</h3>
           <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
@@ -407,7 +407,7 @@ function CreateAdModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         <button
           onClick={submit}
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 text-sm font-bold hover:shadow-lg hover:shadow-[rgba(201,168,76,0.2)] transition-all disabled:opacity-50"
         >
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Create Ad

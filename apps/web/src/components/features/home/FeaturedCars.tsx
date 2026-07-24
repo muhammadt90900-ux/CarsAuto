@@ -174,7 +174,7 @@ export function FeaturedCars({ locale }: { locale?: string }) {
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]
                           ${activeTab === tab.id
-                            ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)] shadow-[0_2px_12px_rgba(201,168,76,0.38)] font-bold'
+                            ? 'bg-gradient-to-r from-[#a87828] to-[var(--gold)] text-[var(--ink-900)] shadow-gold-sm font-bold'
                             : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
             >
               {tab.label}

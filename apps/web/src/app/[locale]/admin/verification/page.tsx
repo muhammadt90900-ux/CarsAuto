@@ -112,7 +112,7 @@ export default function AdminVerificationPage() {
             <button
               key={item.id}
               onClick={() => setDetail(item)}
-              className="text-left rounded-2xl bg-[#0d1b2e] border border-white/[0.08] p-4 space-y-3 hover:border-[rgba(201,168,76,0.3)] transition-all"
+              className="text-left rounded-2xl bg-ink-700 border border-white/[0.08] p-4 space-y-3 hover:border-[rgba(201,168,76,0.3)] transition-all"
             >
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-white text-sm truncate">{item.user?.name ?? '—'}</p>
@@ -159,7 +159,7 @@ export default function AdminVerificationPage() {
 
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => { setDetail(null); setShowRejectFor(null); }}>
-          <div className="w-full max-w-lg rounded-2xl bg-[#0d1b2e] border border-white/[0.12] max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-2xl bg-ink-700 border border-white/[0.12] max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <div>

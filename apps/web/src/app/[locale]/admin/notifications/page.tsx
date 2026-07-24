@@ -114,7 +114,7 @@ export default function AdminNotificationsPage() {
 
       {/* Compose panel */}
       {compose && (
-        <div className="rounded-2xl border border-[rgba(201,168,76,0.2)] bg-[#0d1b2e] p-5 space-y-4">
+        <div className="rounded-2xl border border-[rgba(201,168,76,0.2)] bg-ink-700 p-5 space-y-4">
           <h2 className="font-bold text-white text-sm">New Notification</h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export default function AdminNotificationsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search notifications…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07]
                        text-white text-sm placeholder:text-white/25 focus:outline-none
                        focus:border-[rgba(201,168,76,0.4)]"
           />
@@ -226,7 +226,7 @@ export default function AdminNotificationsPage() {
           </button>
         ))}
         <button onClick={() => refetch()}
-          className="h-10 w-10 rounded-xl bg-[#0d1b2e] border border-white/[0.07]
+          className="h-10 w-10 rounded-xl bg-ink-700 border border-white/[0.07]
                      text-white/40 hover:text-white hover:border-white/20 transition-all
                      flex items-center justify-center">
           <RefreshCw className="w-4 h-4" />

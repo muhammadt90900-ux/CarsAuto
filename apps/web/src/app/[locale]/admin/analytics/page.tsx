@@ -103,7 +103,7 @@ export default function AdminAnalyticsPage() {
         {KPIs.map(kpi => {
           const Icon = kpi.icon;
           return (
-            <div key={kpi.label} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-5 hover:border-white/[0.12] transition-colors">
+            <div key={kpi.label} className="rounded-2xl bg-ink-750 border border-white/[0.07] p-5 hover:border-white/[0.12] transition-colors">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
                    style={{ background: `${kpi.color}15`, border: `1px solid ${kpi.color}22` }}>
                 <Icon className="w-4 h-4" style={{ color: kpi.color }} />
@@ -118,7 +118,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Growth chart — real, from GET /admin/analytics */}
-      <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6">
+      <div className="rounded-2xl bg-ink-750 border border-white/[0.07] p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-bold text-white flex items-center gap-2">
             <BarChart2 className="w-4.5 h-4.5 text-[var(--gold)]" />
@@ -155,7 +155,7 @@ export default function AdminAnalyticsPage() {
          (traffic sources, conversion funnel, top makes, top regions).
          None of that has a real data source yet, so it's gone rather
          than faked again. */}
-      <div className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-6 flex items-start gap-3">
+      <div className="rounded-2xl bg-ink-750 border border-white/[0.07] p-6 flex items-start gap-3">
         <Info className="w-4.5 h-4.5 text-white/30 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-white/70">Traffic sources, conversion funnel, and top makes/regions aren't tracked yet</p>

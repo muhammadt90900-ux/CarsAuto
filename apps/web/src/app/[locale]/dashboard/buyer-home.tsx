@@ -109,7 +109,7 @@ function QuotaCard({
             href={`/${locale}/dashboard/subscription`}
             className="flex-shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-xl
                        text-sm font-bold bg-[var(--gold)] text-white
-                       hover:bg-[#b8943c] transition-colors shadow-[0_4px_14px_rgba(201,168,76,0.35)]"
+                       hover:bg-[#b8943c] transition-colors shadow-gold"
           >
             Activate <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -311,7 +311,7 @@ export default function BuyerDashboardHome() {
           className="flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl
                      text-sm font-bold bg-[var(--gold)] text-white
                      hover:bg-[#b8943c] transition-all duration-200
-                     shadow-[0_4px_16px_rgba(201,168,76,0.35)]"
+                     shadow-gold"
         >
           <Search className="w-3.5 h-3.5" /> Browse Cars
         </Link>

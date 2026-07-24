@@ -142,16 +142,16 @@ export default function AdminModerationPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search listings…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['ALL', 'PENDING', 'UNDER_REVIEW', 'ACTIVE', 'REJECTED'] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatus(s)}
               className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                                    : 'text-white/40 hover:text-white/70')}
             >
               {s === 'ALL' ? 'All' : STATUS_STYLES[s as ListingStatus].label}
@@ -215,7 +215,7 @@ export default function AdminModerationPage() {
                     key={item.id}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 transition-colors',
-                      isFlagged ? 'bg-red-950/10' : i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      isFlagged ? 'bg-red-950/10' : i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700',
                       'hover:bg-[rgba(201,168,76,0.03)] cursor-pointer',
                     )}
                     onClick={() => setPreview(item)}
@@ -280,7 +280,7 @@ export default function AdminModerationPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>
@@ -299,7 +299,7 @@ export default function AdminModerationPage() {
       {preview && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
              onClick={() => setPreview(null)}>
-          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto"
+          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-ink-700 border border-white/[0.12] overflow-auto"
                onClick={e => e.stopPropagation()}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">

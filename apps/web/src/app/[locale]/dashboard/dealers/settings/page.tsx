@@ -85,7 +85,7 @@ function Textarea({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-6 rounded-2xl bg-[#0d1b2e] border border-white/[0.07] space-y-5">
+    <div className="p-6 rounded-2xl bg-ink-700 border border-white/[0.07] space-y-5">
       <h2 className="flex items-center gap-2 font-display font-bold text-white text-base">
         <span className="w-1 h-4 rounded-full bg-gradient-to-b from-[var(--gold)] to-[#9e6e1e]" />
         {title}
@@ -197,7 +197,7 @@ export default function DealerSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
@@ -333,7 +333,7 @@ export default function DealerSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e] font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700 font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {saving
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>

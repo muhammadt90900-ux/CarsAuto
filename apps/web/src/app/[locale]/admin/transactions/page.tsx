@@ -127,16 +127,16 @@ export default function AdminTransactionsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by customer name or email…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] overflow-x-auto">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] overflow-x-auto">
           {(['ALL', 'pending', 'completed', 'failed', 'refunded', 'cancelled'] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatus(s)}
               className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
-                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                                    : 'text-white/40 hover:text-white/70')}
             >
               {s === 'ALL' ? 'All' : STATUS_STYLES[s as PaymentStatus].label}
@@ -146,7 +146,7 @@ export default function AdminTransactionsPage() {
         <select
           value={gatewayFilter}
           onChange={e => setGateway(e.target.value as any)}
-          className="px-3 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+          className="px-3 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
         >
           <option value="ALL">All gateways</option>
           {Object.entries(GATEWAY_LABELS).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
@@ -192,7 +192,7 @@ export default function AdminTransactionsPage() {
                     onClick={() => openDetail(txn)}
                     className={cn(
                       'border-b border-white/[0.05] last:border-0 cursor-pointer transition-colors hover:bg-[rgba(201,168,76,0.03)]',
-                      i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]',
+                      i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700',
                     )}
                   >
                     <td className="px-4 py-3">
@@ -236,7 +236,7 @@ export default function AdminTransactionsPage() {
                 return (
                   <button key={pg} onClick={() => setPage(pg)}
                           className={cn('w-7 h-7 rounded-lg text-xs font-semibold transition-all',
-                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                            page === pg ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                                         : 'text-white/40 hover:text-white hover:bg-white/[0.08]')}>
                     {pg}
                   </button>
@@ -255,7 +255,7 @@ export default function AdminTransactionsPage() {
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
              onClick={() => setDetail(null)}>
-          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-[#0d1b2e] border border-white/[0.12] overflow-auto"
+          <div className="w-full sm:w-[480px] h-[80vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-ink-700 border border-white/[0.12] overflow-auto"
                onClick={e => e.stopPropagation()}>
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between">

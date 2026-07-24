@@ -153,7 +153,7 @@ export function AdminSidebar({ className }: { className?: string }) {
                         <span className={cn(
                           'min-w-[18px] h-[18px] px-1 rounded-full text-[0.6rem] font-black flex items-center justify-center',
                           active
-                            ? 'bg-[var(--gold)] text-[#0d1b2e]'
+                            ? 'bg-[var(--gold)] text-ink-700'
                             : 'bg-red-500 text-white',
                         )}>
                           {badge > 99 ? '99+' : badge}

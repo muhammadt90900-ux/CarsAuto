@@ -210,7 +210,7 @@ export default async function HomePage({ params }: Props) {
             <p className="text-white/50 max-w-md mx-auto text-sm sm:text-base">{t('sellCTASubtitle')}</p>
             <div className="flex flex-wrap gap-3 justify-center pt-3">
               <Link href="/dashboard/listings/new"
-                className="cta-sheen relative overflow-hidden px-10 py-4 rounded-xl text-sm sm:text-base font-black uppercase tracking-wide text-[var(--ink-900)] shadow-[0_8px_32px_rgba(201,168,76,0.45)] hover:shadow-[0_14px_52px_rgba(201,168,76,0.65)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
+                className="cta-sheen relative overflow-hidden px-10 py-4 rounded-xl text-sm sm:text-base font-black uppercase tracking-wide text-[var(--ink-900)] shadow-gold-xl hover:shadow-gold-xl hover:-translate-y-1 active:scale-[0.98] active:translate-y-0 transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' }}>
                 {t('sellCTAButton')} →
               </Link>

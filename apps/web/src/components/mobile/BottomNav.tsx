@@ -47,7 +47,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
       {/* FAB — Post listing */}
       <Link
         href="/dashboard/listings/new"
-        className="fixed z-40 flex items-center gap-1.5 rounded-full shadow-[0_8px_32px_rgba(201,168,76,0.50)]
+        className="fixed z-40 flex items-center gap-1.5 rounded-full shadow-gold-xl
                    md:hidden px-4 h-12 text-sm font-bold text-[var(--ink-900)]"
         style={{
           background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)',
@@ -96,7 +96,7 @@ export function BottomNav({ locale: localeProp }: BottomNavProps) {
                 )}
 
                 <div className={`p-1.5 rounded-xl transition-all duration-200
-                                 ${active ? 'bg-gradient-to-b from-[rgba(201,168,76,0.18)] to-[rgba(201,168,76,0.08)] scale-110 shadow-[0_2px_8px_rgba(201,168,76,0.12)]' : 'hover:bg-white/[0.04]'}`}>
+                                 ${active ? 'bg-gradient-to-b from-[rgba(201,168,76,0.18)] to-[rgba(201,168,76,0.08)] scale-110 shadow-gold-sm' : 'hover:bg-white/[0.04]'}`}>
                   <Icon className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <span className={`text-[9px] font-bold tracking-wide leading-none

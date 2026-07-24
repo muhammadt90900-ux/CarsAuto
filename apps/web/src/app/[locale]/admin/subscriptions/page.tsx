@@ -71,7 +71,7 @@ export default function AdminSubscriptionsPage() {
         <p className="text-white/40 text-sm mt-0.5">Premium dealer plans and individual listing subscriptions</p>
       </div>
 
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] w-fit">
         {([
           ['dealers', 'Premium Dealers', Crown],
           ['users',   'User Plans',      Users],
@@ -81,7 +81,7 @@ export default function AdminSubscriptionsPage() {
             onClick={() => setTab(val)}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all',
-              tab === val ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70',
+              tab === val ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700' : 'text-white/40 hover:text-white/70',
             )}
           >
             <Icon className="w-4 h-4" />
@@ -136,7 +136,7 @@ function DealerSubsPanel() {
         ].map(s => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="rounded-2xl bg-[#0a1525] border border-white/[0.07] p-4 flex items-center gap-3">
+            <div key={s.label} className="rounded-2xl bg-ink-750 border border-white/[0.07] p-4 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                    style={{ background: `${s.color}15`, border: `1px solid ${s.color}22` }}>
                 <Icon className="w-4 h-4" style={{ color: s.color }} />
@@ -151,20 +151,20 @@ function DealerSubsPanel() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['ALL', 'FREE', 'STARTER', 'BUSINESS', 'ENTERPRISE'] as const).map(p => (
             <button key={p} onClick={() => setPlan(p)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                      planFilter === p ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                      planFilter === p ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700' : 'text-white/40 hover:text-white/70')}>
               {p === 'ALL' ? 'All plans' : p}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07]">
           {(['ALL', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'TRIALING'] as const).map(s => (
             <button key={s} onClick={() => setStatus(s)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                      statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                      statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700' : 'text-white/40 hover:text-white/70')}>
               {s === 'ALL' ? 'All statuses' : DEALER_STATUS_STYLES[s as DealerStatus].label}
             </button>
           ))}
@@ -199,7 +199,7 @@ function DealerSubsPanel() {
                 const planStyle = PLAN_STYLES[sub.plan] ?? PLAN_STYLES.FREE;
                 const statusStyle = DEALER_STATUS_STYLES[sub.status] ?? DEALER_STATUS_STYLES.ACTIVE;
                 return (
-                  <tr key={sub.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]')}>
+                  <tr key={sub.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700')}>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-white">{sub.dealer?.nameEn ?? '—'}</p>
                       <p className="text-[0.68rem] text-white/30">{sub.dealer?.user?.email ?? sub.dealer?.slug}</p>
@@ -293,11 +293,11 @@ function UserSubsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] w-fit">
         {(['ALL', 'active', 'past_due', 'trialing', 'cancelled', 'inactive'] as const).map(s => (
           <button key={s} onClick={() => setStatus(s)}
                   className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize',
-                    statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]' : 'text-white/40 hover:text-white/70')}>
+                    statusFilter === s ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700' : 'text-white/40 hover:text-white/70')}>
             {s === 'ALL' ? 'All' : s.replace('_', ' ')}
           </button>
         ))}
@@ -330,7 +330,7 @@ function UserSubsPanel() {
               {subs.map((sub, i) => {
                 const badge = statusBadge(sub.status);
                 return (
-                  <tr key={sub.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-[#0a1525]' : 'bg-[#0d1b2e]')}>
+                  <tr key={sub.id} className={cn('border-b border-white/[0.05] last:border-0', i % 2 === 0 ? 'bg-ink-750' : 'bg-ink-700')}>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-white">{sub.user?.name ?? '—'}</p>
                       <p className="text-[0.68rem] text-white/30">{sub.user?.email}</p>

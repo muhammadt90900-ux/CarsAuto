@@ -100,7 +100,7 @@ export default function DealerInventoryPage() {
         <button
           onClick={() => setShowAddForm(v => !v)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
-                     bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]
+                     bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700
                      hover:opacity-90 transition-opacity"
         >
           <Plus className="w-4 h-4" /> Add Item
@@ -142,7 +142,7 @@ export default function DealerInventoryPage() {
       {showAddForm && (
         <form
           onSubmit={handleAddSubmit}
-          className="p-5 rounded-2xl bg-[#0d1b2e] border border-[rgba(201,168,76,0.25)] space-y-4"
+          className="p-5 rounded-2xl bg-ink-700 border border-[rgba(201,168,76,0.25)] space-y-4"
         >
           <div className="flex items-center justify-between">
             <h3 className="font-display font-bold text-white text-sm">New Inventory Item</h3>
@@ -158,7 +158,7 @@ export default function DealerInventoryPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <select name="type" required className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm">
               {Object.entries(TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value} className="bg-[#0d1b2e]">{label}</option>
+                <option key={value} value={value} className="bg-ink-700">{label}</option>
               ))}
             </select>
             <input name="name" required placeholder="Item name" className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder:text-white/25" />
@@ -172,7 +172,7 @@ export default function DealerInventoryPage() {
             type="submit"
             disabled={createMutation.isPending}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
-                       bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]
+                       bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700
                        hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -183,7 +183,7 @@ export default function DealerInventoryPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0d1b2e] border border-white/[0.07] flex-wrap">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-ink-700 border border-white/[0.07] flex-wrap">
           {(['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'DISCONTINUED'] as const).map(tab => (
             <button
               key={tab}
@@ -191,7 +191,7 @@ export default function DealerInventoryPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                 statusFilter === tab
-                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-[#0d1b2e]'
+                  ? 'bg-gradient-to-r from-[var(--gold)] to-[var(--gold-light)] text-ink-700'
                   : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -205,7 +205,7 @@ export default function DealerInventoryPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or SKU…"
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-[#0d1b2e] border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-ink-700 border border-white/[0.07] text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[rgba(201,168,76,0.4)]"
           />
         </div>
       </div>

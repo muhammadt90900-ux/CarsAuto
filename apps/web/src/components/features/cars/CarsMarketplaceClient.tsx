@@ -764,7 +764,7 @@ export function CarsMarketplaceClient({
                   <button key={p} onClick={() => setPage(p)}
                     className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
                       ${p === page
-                        ? 'text-[var(--ink-900)] shadow-[0_2px_8px_rgba(201,168,76,0.35)]'
+                        ? 'text-[var(--ink-900)] shadow-gold-sm'
                         : 'bg-white dark:bg-[var(--ink-750)] border border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]'}`}
                     style={p === page ? { background: 'linear-gradient(135deg, #a87828 0%, var(--gold) 50%, #dab445 100%)' } : undefined}>
                     {p}

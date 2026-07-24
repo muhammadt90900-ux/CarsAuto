@@ -120,7 +120,7 @@ export default function MyListingsPage() {
             className="inline-flex items-center gap-2 px-4 py-2.5
                        bg-[var(--gold)] hover:bg-[#d4b45a] text-[var(--ink-900)]
                        rounded-xl text-sm font-bold transition-all duration-200
-                       shadow-[0_4px_16px_rgba(201,168,76,0.35)] hover:shadow-[0_6px_24px_rgba(201,168,76,0.50)]
+                       shadow-gold hover:shadow-gold-xl
                        hover:-translate-y-0.5 active:translate-y-0"
           >
             <Plus className="w-4 h-4" />
@@ -366,7 +366,7 @@ export default function MyListingsPage() {
             className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
                        text-sm font-bold bg-[var(--gold)] text-[var(--ink-900)]
                        hover:bg-[#d4b45a] transition-all duration-200
-                       shadow-[0_4px_12px_rgba(201,168,76,0.35)]"
+                       shadow-gold"
           >
             Upgrade <ChevronRight className="w-3.5 h-3.5" />
           </Link>
