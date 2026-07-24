@@ -233,6 +233,7 @@
   },
   "dashboard": {
     "overview": "概览",
+    "analytics": "分析",
     "myListings": "我的列表",
     "inventory": "库存",
     "sales": "销售",

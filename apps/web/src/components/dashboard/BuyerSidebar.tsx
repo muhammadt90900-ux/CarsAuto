@@ -12,10 +12,11 @@ import {
   LayoutDashboard, Heart, MessageSquare, Bell,
   User, ChevronRight, Search,
   LogOut, ArrowUpRight, Car, Sparkles,
-  ShoppingBag,
+  ShoppingBag, Star,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, chatApi, notificationsApi } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface NavItemProps {
   href:    string;
@@ -126,6 +127,26 @@ export function BuyerSidebar({ className }: { className?: string }) {
     staleTime: 60_000,
   });
 
+  // Real unread counts — previously hardcoded as `badge: '3'` / `badge: '5'`
+  // below regardless of the actual user. Now sourced from the same
+  // endpoints the dealer Sidebar (components/dashboard/Sidebar.tsx) uses.
+  const { data: unreadMessages } = useQuery({
+    queryKey: queryKeys.chat.unreadCount(),
+    queryFn: () => chatApi.getUnreadCount(),
+    enabled: !!user,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const { data: unreadNotifications } = useQuery({
+    queryKey: queryKeys.notifications.unreadCount(),
+    queryFn: () => notificationsApi.getUnreadCount(),
+    enabled: !!user,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const messagesBadge = unreadMessages?.count ? String(unreadMessages.count) : null;
+  const notificationsBadge = unreadNotifications?.count ? String(unreadNotifications.count) : null;
+
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -146,12 +167,13 @@ export function BuyerSidebar({ className }: { className?: string }) {
 
   const myItems = [
     { href: `/${locale}/dashboard/listings`, label: t('myListings'),     icon: Car,             badge: null },
-    { href: `/${locale}/dashboard/messages`, label: t('messages'),       icon: MessageSquare,   badge: '3'  },
-    { href: `/${locale}/dashboard/notifications`, label: t('notifications'), icon: Bell,        badge: '5'  },
+    { href: `/${locale}/dashboard/messages`, label: t('messages'),       icon: MessageSquare,   badge: messagesBadge },
+    { href: `/${locale}/dashboard/notifications`, label: t('notifications'), icon: Bell,        badge: notificationsBadge },
   ];
 
   const accountItems = [
     { href: `/${locale}/dashboard/profile`,      label: t('profile'),     icon: User,           badge: null },
+    { href: `/${locale}/dashboard/reviews`,      label: t('reviews'),     icon: Star,           badge: null },
     { href: `/${locale}/dashboard/subscription`, label: t('subscription'),icon: ShoppingBag,    badge: null },
   ];
 

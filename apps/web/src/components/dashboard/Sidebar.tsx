@@ -78,8 +78,12 @@ export function Sidebar({ className }: { className?: string }) {
     ? params.locale[0]
     : (params.locale ?? 'ku');
 
+  // Exact-match-only routes: their children already have their own dedicated
+  // nav items below (Inventory/Sales/Accounting/etc.), so a startsWith match
+  // here would light up two items at once.
+  const EXACT_MATCH_ONLY = [`/${locale}/dashboard`, `/${locale}/dashboard/dealers`];
   const isActive = (href: string) =>
-    pathname === href || (href !== `/${locale}/dashboard` && pathname.startsWith(href));
+    pathname === href || (!EXACT_MATCH_ONLY.includes(href) && pathname.startsWith(href));
 
   // Previously hardcoded (`badge: '3'` / `badge: '5'`), permanently, for every
   // user regardless of whether they had any unread messages or notifications.
@@ -104,6 +108,11 @@ export function Sidebar({ className }: { className?: string }) {
 
   const mainItems = [
     { href: `/${locale}/dashboard`,              label: t('overview'),      icon: LayoutDashboard, badge: null },
+    // Previously unreachable from this sidebar — /dashboard/dealers has its
+    // own period-filterable analytics view (StatCard grid + date range) not
+    // covered by the Overview page above; only reachable before via the
+    // Footer's "Dealer Portal" link or the post-registration redirect.
+    { href: `/${locale}/dashboard/dealers`,       label: t('analytics'),    icon: TrendingUp,      badge: null },
     { href: `/${locale}/dashboard/listings`,      label: t('myListings'),   icon: ListChecks,      badge: null },
     { href: `/${locale}/dashboard/dealers/inventory`, label: t('inventory'), icon: Boxes,          badge: null },
     { href: `/${locale}/dashboard/dealers/sales`, label: t('sales'),         icon: Receipt,         badge: null },

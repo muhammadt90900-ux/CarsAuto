@@ -154,6 +154,21 @@ const ACCESSORY_TYPES = new Set<ListingType>([
   ListingType.SERVICE,
 ]);
 
+// BUG FIX: the Sell form's drive-type select (Step2VehicleDetails.tsx) uses
+// '4WD' as both the display label and the submitted value — a natural,
+// user-facing choice. Prisma's DrivetrainType enum, however, has no '4WD'
+// member (enum names can't start with a digit), so it's declared as
+// FOUR_WD. Every other value (FWD/RWD/AWD) already matches 1:1, so only
+// '4WD' needs remapping here before it reaches prisma.listing.create().
+// Without this, create() throws PrismaClientValidationError ("Invalid value
+// for argument drivetrain. Expected DrivetrainType.") → 500 to the client.
+const DRIVETRAIN_INPUT_TO_ENUM: Record<string, string> = {
+  '4WD': 'FOUR_WD',
+};
+function toDrivetrainEnum(input: string): string {
+  return DRIVETRAIN_INPUT_TO_ENUM[input] ?? input;
+}
+
 export interface ListingQueryParams {
   type?:         string;
   minPrice?:     string;
@@ -592,7 +607,7 @@ export class ListingsService {
             ...(vehicleSpecInput?.engineCC      ? { engineCC:     vehicleSpecInput.engineCC }      : {}),
             ...(vehicleSpecInput?.doors         ? { doors:        vehicleSpecInput.doors }         : {}),
             ...(vehicleSpecInput?.bodyType      ? { bodyType:     vehicleSpecInput.bodyType }      : {}),
-            ...(vehicleSpecInput?.driveType     ? { drivetrain:   vehicleSpecInput.driveType }     : {}),
+            ...(vehicleSpecInput?.driveType     ? { drivetrain:   toDrivetrainEnum(vehicleSpecInput.driveType) } : {}),
             ...(condition                       ? { condition }                                    : {}),
           }
         : null;

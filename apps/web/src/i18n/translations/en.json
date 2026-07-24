@@ -234,6 +234,7 @@
   "dashboard": {
     "title": "Dashboard",
     "overview": "Overview",
+    "analytics": "Analytics",
     "myListings": "My Listings",
     "inventory": "Inventory",
     "sales": "Sales",
