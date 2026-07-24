@@ -30,7 +30,6 @@ const STATUS_STYLES: Record<InventoryItemStatus, { label: string; dot: string; t
 };
 
 export default function DealerInventoryPage() {
-  const t = useTranslations('dashboard');
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InventoryItemStatus | 'ALL'>('ALL');
@@ -95,7 +94,7 @@ export default function DealerInventoryPage() {
         <div>
           <h1 className="font-display font-black text-white text-2xl">Inventory</h1>
           <p className="text-white/40 text-sm mt-0.5">
-            {t('title') && 'Track your vehicle and parts stock'}
+            Track your vehicle and parts stock
           </p>
         </div>
         <button
